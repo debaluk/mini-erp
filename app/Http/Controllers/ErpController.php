@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class ErpController extends Controller
@@ -48,7 +49,12 @@ class ErpController extends Controller
         foreach ($config['fields'] as $key=>$field) if (($field['required'] ?? false)) $rules[$key]=['required'];
         $data=$request->validate($rules);
         foreach ($config['fields'] as $key=>$field) if (!array_key_exists($key,$data)) $data[$key]=$request->input($key);
-        $data['entity_id']=$this->entityId(); $data['is_active']=1; $data['created_at']=now(); $data['updated_at']=now();
+        $data['entity_id']=$this->entityId();
+        if (Schema::hasColumn($config['table'], 'is_active')) {
+            $data['is_active']=1;
+        }
+        $data['created_at']=now();
+        $data['updated_at']=now();
         if ($type==='products') { $data['unit_id']=$data['unit_id']??null; $data['category_id']=$data['category_id']??null; }
         DB::table($config['table'])->insert($data);
         return back()->with('success',$config['title'].' berhasil disimpan.');
