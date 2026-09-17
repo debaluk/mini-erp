@@ -18,14 +18,15 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    foreach (['products','customers','suppliers','warehouses','units','tariffs','vehicles','drivers'] as $type) {
-        Route::get('/master/'.$type, [ErpController::class, 'master'])
-            ->middleware('role:owner,admin')
-            ->name('master.'.$type);
+    $masterTypes = ['products','customers','suppliers','warehouses','units','tariffs','vehicles','drivers'];
+    foreach ($masterTypes as $type) {
+        Route::get('/master/'.$type, function () use ($type) {
+            return app(ErpController::class)->master($type);
+        })->middleware('role:owner,admin')->name('master.'.$type);
 
-        Route::post('/master/'.$type, [ErpController::class, 'masterStore'])
-            ->middleware('role:owner,admin')
-            ->name('master.store.'.$type);
+        Route::post('/master/'.$type, function (\Illuminate\Http\Request $request) use ($type) {
+            return app(ErpController::class)->masterStore($request, $type);
+        })->middleware('role:owner,admin')->name('master.store.'.$type);
     }
 
     foreach (['pos','sales','payments','shifts'] as $module) {
