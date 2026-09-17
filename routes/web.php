@@ -10,12 +10,11 @@ Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.process');
 });
-
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     foreach (['products','customers','suppliers','warehouses','units','tariffs','vehicles','drivers'] as $type) {
-        Route::get('/master/'.$type, [ErpController::class, 'master'])->middleware('role:owner,admin,inventori')->name('master.'.$type);
-        Route::post('/master/'.$type, [ErpController::class, 'masterStore'])->middleware('role:owner,admin')->name('master.store.'.$type);
+        Route::get('/master/'.$type, [ErpController::class,'master'])->middleware('role:owner,admin,inventori')->name('master.'.$type);
+        Route::post('/master/'.$type, [ErpController::class,'masterStore'])->middleware('role:owner,admin,inventori')->name('master.store.'.$type);
     }
     $cashier=['pos','sales','payments','shifts'];
     $inventory=['purchases','receipts','stock','movements','opname','bom','production','production-results','material-usage','production-cost','fleet','deliveries','operations','fleet-costs'];
