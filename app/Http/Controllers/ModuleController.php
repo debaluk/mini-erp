@@ -75,7 +75,7 @@ class ModuleController extends Controller
         $data['rows'] = $queries[$module] ?? collect();
 
         if ($module === 'bom') {
-            $data['boms'] = DB::table('boms')->where('entity_id',$entity)->with([])->latest('id')->get();
+            $data['boms'] = DB::table('boms')->where('entity_id',$entity)->latest('id')->get();
         }
         if (in_array($module, ['ledger','receivables','cashbank','cogs','profit-loss','balance-sheet','cash-flow'], true)) {
             $data['report'] = $this->report($module, $entity);
