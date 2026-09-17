@@ -1,31 +1,192 @@
-# Mini ERP — Sistem Terintegrasi Retail, Produksi, Armada & Akuntansi
+cd ~/workspace/mini-erp
 
-Baseline project Laravel 13 + MySQL, arsitektur multi-entitas dengan tahap awal 1 entitas.
+cat >> README.md <<'EOF'
 
-## Modul terkunci
-1. Master
-2. POS Retail
-3. Inventori
-4. Produksi
-5. Armada & Jasa
-6. Akuntansi
-7. Laporan
+---
 
-## Role utama
-Owner, Admin, Kasir, Inventori, Akuntansi. Detail akses memakai permission dan scope entitas/cabang/gudang.
+# Mini ERP — Retail + Produksi Batako + Armada + Akuntansi
 
-## Prasyarat
-PHP 8.2+, Composer, MySQL 8+/MariaDB kompatibel.
+## Akses Aplikasi
 
-## Instalasi
+**URL:**
+
+https://minierp.labku.biz.id
+
+## Login Uji Coba
+
+Password seluruh akun uji coba:
+
+`password`
+
+| Role | Email | Password |
+|---|---|---|
+| Owner | owner@minierp.local | password |
+| Admin | admin@minierp.local | password |
+| Kasir | kasir@minierp.local | password |
+| Inventori | inventori@minierp.local | password |
+| Akuntansi | akuntansi@minierp.local | password |
+
+## Role & Hak Akses
+
+### Owner
+Pemilik & kontrol seluruh usaha.
+
+Akses:
+- Semua modul
+- Semua laporan
+- Approval
+
+### Admin
+Administrasi & pengelolaan.
+
+Akses:
+- Master data
+- User
+- Konfigurasi
+
+### Kasir
+Penjualan retail.
+
+Akses:
+- POS
+- Pembayaran
+- Shift kasir
+
+### Inventori
+Seluruh operasional stok.
+
+Akses:
+- Pembelian
+- Gudang
+- Inventory
+- Produksi
+- Armada
+
+### Akuntansi
+Keuangan & laporan.
+
+Akses:
+- Accounting
+- HPP
+- Laporan keuangan
+
+---
+
+# Struktur Modul
+
+## 1. MASTER
+
+- Produk
+- Customer
+- Supplier
+- Gudang
+- Satuan
+- Tarif
+
+## 2. PENJUALAN / POS
+
+- POS
+- Transaksi penjualan
+- Pembayaran
+- Shift kasir
+
+## 3. PEMBELIAN
+
+- Pembelian
+- Supplier
+- Penerimaan barang
+- Hutang
+
+## 4. INVENTORI
+
+- Stok
+- Mutasi stok
+- Gudang
+- Stock opname
+
+## 5. PRODUKSI BATAKO
+
+- Formula / BOM
+- Bahan baku
+- Produksi
+- Hasil produksi
+- Pemakaian bahan
+- HPP produksi
+
+## 6. ARMADA
+
+- Kendaraan
+- Driver
+- Pengiriman
+- Operasional armada
+- Biaya armada
+
+## 7. AKUNTANSI
+
+- Jurnal
+- Buku besar
+- Hutang
+- Piutang
+- Kas & Bank
+- HPP
+- Laba Rugi
+- Neraca
+- Arus Kas
+
+---
+
+# Teknologi
+
+- Laravel 13
+- PHP 8.3
+- MySQL
+- Bootstrap 5
+- Apache
+- PHP-FPM
+
+UI menggunakan **Bootstrap standard**, bukan Tailwind.
+
+---
+
+# Status Pengembangan
+
+## Fondasi
+
+- [x] Laravel project
+- [x] Database MySQL
+- [x] Users table
+- [x] Authentication routes
+- [x] Login
+- [x] Logout
+- [x] Role dasar
+- [x] Dashboard route
+- [x] Master route
+
+## Berikutnya
+
+- [ ] Middleware role
+- [ ] Dashboard berdasarkan role
+- [ ] User management
+- [ ] Master Produk
+- [ ] Master Customer
+- [ ] Master Supplier
+- [ ] Master Gudang
+- [ ] Master Satuan
+- [ ] Master Tarif
+- [ ] POS
+- [ ] Pembelian
+- [ ] Inventory
+- [ ] Produksi Batako
+- [ ] Armada
+- [ ] Akuntansi
+- [ ] Laporan
+- [ ] Approval
+
+---
+
+# Development Commands
+
+Install dependency:
+
 ```bash
 composer install
-cp .env.example .env
-php artisan key:generate
-# buat database mini_erp di MySQL lalu sesuaikan .env
-php artisan migrate --seed
-php artisan serve
-```
-
-## Catatan
-Source ini adalah fondasi siap dikembangkan/UAT: schema inti, multi-entity, master, dashboard, inventory movement, accounting journal, sync log dan seed data sudah disiapkan. Modul transaksi detail POS, purchasing, produksi, fleet, accounting posting, RBAC granular dan sync engine berikutnya dibangun di atas fondasi ini.
