@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BomController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ErpController;
 use App\Http\Controllers\ModuleController;
@@ -59,13 +60,15 @@ Route::middleware('auth')->group(function () {
     Route::post('/erp/movement', [ModuleController::class, 'movementStore'])->middleware('role:owner,inventori')->name('erp.movement.store');
     Route::post('/erp/opname', [ModuleController::class, 'opnameStore'])->middleware('role:owner,inventori')->name('erp.opname.store');
 
-    $productionModules = ['bom','production','production-results','material-usage','production-cost'];
+    Route::get('/erp/bom', [BomController::class, 'show'])->middleware('role:owner,inventori')->name('erp.bom');
+    Route::post('/erp/bom', [BomController::class, 'store'])->middleware('role:owner,inventori')->name('erp.bom.store');
+
+    $productionModules = ['production','production-results','material-usage','production-cost'];
     foreach ($productionModules as $module) {
         Route::get('/erp/'.$module, function () use ($module) {
             return app(ModuleController::class)->show($module);
         })->middleware('role:owner,inventori')->name('erp.'.$module);
     }
-    Route::post('/erp/bom', [ModuleController::class, 'bomStore'])->middleware('role:owner,inventori')->name('erp.bom.store');
     Route::post('/erp/production', [ProductionController::class, 'store'])->middleware('role:owner,inventori')->name('erp.production.store');
 
     $fleetModules = ['fleet','deliveries','operations','fleet-costs'];
