@@ -48,7 +48,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/erp/payables', function () {
         return app(ModuleController::class)->show('payables');
     })->middleware('role:owner,inventori,akuntansi')->name('erp.payables');
-    Route::post('/erp/purchase', [ModuleController::class, 'purchaseStore'])->middleware('role:owner,inventori')->name('erp.purchase.store');
+    Route::post('/erp/purchase', [ErpController::class, 'purchaseStore'])->middleware('role:owner,inventori')->name('erp.purchase.store');
 
     $inventoryModules = ['stock','movements','opname'];
     foreach ($inventoryModules as $module) {
