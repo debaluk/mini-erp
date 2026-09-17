@@ -18,15 +18,15 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    Route::get('/master/{type}', [ErpController::class, 'master'])
-        ->whereIn('type', ['products', 'customers', 'suppliers', 'warehouses', 'units', 'tariffs', 'vehicles', 'drivers'])
-        ->middleware('role:owner,admin')
-        ->name('master');
+    foreach (['products','customers','suppliers','warehouses','units','tariffs','vehicles','drivers'] as $type) {
+        Route::get('/master/'.$type, [ErpController::class, 'master'])
+            ->middleware('role:owner,admin')
+            ->name('master.'.$type);
 
-    Route::post('/master/{type}', [ErpController::class, 'masterStore'])
-        ->whereIn('type', ['products', 'customers', 'suppliers', 'warehouses', 'units', 'tariffs', 'vehicles', 'drivers'])
-        ->middleware('role:owner,admin')
-        ->name('master.store');
+        Route::post('/master/'.$type, [ErpController::class, 'masterStore'])
+            ->middleware('role:owner,admin')
+            ->name('master.store.'.$type);
+    }
 
     foreach (['pos','sales','payments','shifts'] as $module) {
         Route::get('/erp/'.$module, [ModuleController::class, 'show'])
