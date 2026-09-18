@@ -597,14 +597,92 @@ class ModuleController extends Controller
             $result['balance_difference']=$totalsByType['asset']-$result['total_liabilities_equity'];
             $result['total']=$totalsByType['asset'];
         } elseif ($module === 'cash-flow') {
-            $in = (float) DB::table('payments')->where('entity_id',$entity)->sum('amount');
-            $out = (float) DB::table('purchases')->where('entity_id',$entity)->sum('total');
-            $result['lines'] = [['label'=>'Penerimaan penjualan','amount'=>$in],['label'=>'Pembelian','amount'=>-$out],['label'=>'Arus kas bersih','amount'=>$in-$out]];
-            $result['total'] = $in-$out;
+            // Format Arus Kas dikunci terlebih dahulu. Logika dinamis akan diisi
+            // setelah jurnal, COA, dan mapping akun kas/bank selesai.
+            $result['cash_flow'] = [
+                'operating' => [
+                    'Penerimaan dari Penjualan' => 0,
+                    'Penerimaan dari Customer' => 0,
+                    'Pembayaran kepada Supplier' => 0,
+                    'Pembayaran Beban Operasional' => 0,
+                    'Pembayaran Biaya Operasional Lainnya' => 0,
+                ],
+                'investing' => [
+                    'Pembelian Kendaraan' => 0,
+                    'Pembelian Peralatan' => 0,
+                    'Pembelian Aset Tetap' => 0,
+                    'Penjualan Aset Tetap' => 0,
+                ],
+                'financing' => [
+                    'Setoran Modal' => 0,
+                    'Pengambilan Modal' => 0,
+                    'Penerimaan Pinjaman' => 0,
+                    'Pembayaran Pinjaman' => 0,
+                ],
+                'operating_total' => 0,
+                'investing_total' => 0,
+                'financing_total' => 0,
+                'net_change' => 0,
+                'opening_cash' => 0,
+                'closing_cash' => 0,
+            ];
+            $result['total'] = 0;
         }
         return $result;
     }
 
+
+
+    public function exportCashFlowExcel(Request $request)
+    {
+        $entity = $this->entityId();
+        $entityRow = DB::table('entities')->where('id',$entity)->first();
+        $startDate = $request->input('start_date', now()->startOfMonth()->toDateString());
+        $endDate = $request->input('end_date', now()->endOfMonth()->toDateString());
+
+        $rows = [
+            ['ARUS KAS DARI AKTIVITAS OPERASI', ''],
+            ['Penerimaan dari Penjualan', 0],
+            ['Penerimaan dari Customer', 0],
+            ['Pembayaran kepada Supplier', 0],
+            ['Pembayaran Beban Operasional', 0],
+            ['Pembayaran Biaya Operasional Lainnya', 0],
+            ['TOTAL ARUS KAS OPERASI', 0],
+            ['', ''],
+            ['ARUS KAS DARI AKTIVITAS INVESTASI', ''],
+            ['Pembelian Kendaraan', 0],
+            ['Pembelian Peralatan', 0],
+            ['Pembelian Aset Tetap', 0],
+            ['Penjualan Aset Tetap', 0],
+            ['TOTAL ARUS KAS INVESTASI', 0],
+            ['', ''],
+            ['ARUS KAS DARI AKTIVITAS PENDANAAN', ''],
+            ['Setoran Modal', 0],
+            ['Pengambilan Modal', 0],
+            ['Penerimaan Pinjaman', 0],
+            ['Pembayaran Pinjaman', 0],
+            ['TOTAL ARUS KAS PENDANAAN', 0],
+            ['KENAIKAN / (PENURUNAN) KAS', 0],
+            ['SALDO KAS AWAL', 0],
+            ['SALDO KAS AKHIR', 0],
+        ];
+
+        $e = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
+        $html = '<html><head><meta charset="UTF-8"><style>body{font-family:Arial,sans-serif;font-size:11pt}table{border-collapse:collapse;width:100%}th,td{border:1px solid #000;padding:6px}th{font-weight:700}.right{text-align:right}.bold{font-weight:700}.section{font-weight:700;background:#eee}</style></head><body>';
+        $html .= '<div style="text-align:center;font-weight:700;font-size:14pt;">'.$e($entityRow?->name ?? 'MINI ERP').'</div>';
+        $html .= '<div style="text-align:center;font-weight:700;font-size:13pt;">LAPORAN ARUS KAS</div>';
+        $html .= '<div style="text-align:center;">Periode '.$e($startDate).' s/d '.$e($endDate).'</div><br>';
+        $html .= '<table><thead><tr><th>Uraian</th><th>Jumlah (Rp)</th></tr></thead><tbody>';
+        foreach($rows as $row){
+            $label=$row[0]; $value=$row[1];
+            $isSection=in_array($label,['ARUS KAS DARI AKTIVITAS OPERASI','ARUS KAS DARI AKTIVITAS INVESTASI','ARUS KAS DARI AKTIVITAS PENDANAAN'],true);
+            $isTotal=str_starts_with($label,'TOTAL ') || in_array($label,['KENAIKAN / (PENURUNAN) KAS','SALDO KAS AWAL','SALDO KAS AKHIR'],true);
+            $cls=($isSection?'section ':'').($isTotal?'bold':'');
+            $html.='<tr class="'.$cls.'"><td>'.$e($label).'</td><td class="right">'.($label!==''?'Rp '.number_format((float)$value,0,',','.'):'').'</td></tr>';
+        }
+        $html .= '</tbody></table></body></html>';
+        return response($html,200,['Content-Type'=>'application/vnd.ms-excel; charset=UTF-8','Content-Disposition'=>'attachment; filename="arus-kas-'.$startDate.'-'.$endDate.'.xls"']);
+    }
 
     public function salesDetail(int $id)
     {
