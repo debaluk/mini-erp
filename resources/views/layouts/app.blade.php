@@ -32,6 +32,13 @@
         main .dataTables_wrapper .dt-search { font-size: .82rem; }
         main .dataTables_wrapper .dt-length select,
         main .dataTables_wrapper .dt-search input { font-size: .82rem; padding: .2rem .45rem; min-height: 30px; }
+        main .dataTables_wrapper .dt-paging .dt-paging-button {
+            padding: .25rem .55rem !important;
+            font-size: .76rem !important;
+            line-height: 1.2;
+            min-width: auto !important;
+            min-height: 30px;
+        }
         main .card-body { padding: .75rem; }
         main .card-header { padding: .5rem .75rem; }
         main form.row { --bs-gutter-x: .6rem; --bs-gutter-y: .45rem; }
