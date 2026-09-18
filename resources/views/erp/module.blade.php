@@ -64,7 +64,7 @@
 <div class="modal fade" id="posEditModal{{ $key }}" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-sm modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Edit Barang</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
 <form method="POST" action="{{ route('erp.pos.update',$key) }}">@csrf @method('PUT')
 <div class="modal-body"><div class="small text-secondary mb-3">{{ $item['code'] }} · {{ $item['name'] }}</div><label class="form-label">Harga Transaksi</label><input name="price" type="number" min="0" step="0.01" class="form-control mb-3" value="{{ $item['price'] }}" required><label class="form-label">Qty</label><input name="qty" type="number" min="0.001" step="0.001" class="form-control" value="{{ $item['qty'] }}" required></div>
-<div class="modal-footer justify-content-between"><button type="submit" formaction="{{ route('erp.pos.remove',$key) }}" formmethod="POST" class="btn btn-outline-danger" onclick="return confirm('Hapus barang ini dari transaksi?')">Hapus</button><button class="btn btn-primary">Simpan</button></div></form></div></div></div>
+<div class="modal-footer justify-content-between"><button type="submit" formaction="{{ route('erp.pos.remove',$key) }}" formmethod="POST" class="btn btn-outline-danger" onclick="if(!confirm('Hapus barang ini dari transaksi?')) return false; this.form.querySelector('[name=_method]').value='POST';">Hapus</button><button class="btn btn-primary">Simpan</button></div></form></div></div></div>
 @endforeach
 @php
     $posDiscount = old('discount', 0);
