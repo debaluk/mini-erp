@@ -5,6 +5,7 @@
     <td class="{{ $depth === 0 ? 'fw-semibold' : '' }}">
         {{ $account->name }}
     </td>
+    <td>{{ $typeLabels[$account->type] ?? $account->type }}</td>
     <td>{{ ucfirst($account->normal_balance) }}</td>
     <td class="text-end">
         @if((int) $account->level < 3)
@@ -21,7 +22,8 @@
             'account' => $child,
             'children' => $children,
             'nextCodes' => $nextCodes,
-            'depth' => $depth + 1
+            'depth' => $depth + 1,
+            'typeLabels' => $typeLabels
         ])
     @endforeach
 @endif
