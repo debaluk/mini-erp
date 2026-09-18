@@ -21,7 +21,7 @@
             line-height: 1.2;
         }
         main textarea.form-control { height: auto; min-height: 52px; }
-        main .btn:not(.btn-close) { padding: .25rem .55rem; font-size: .76rem; line-height: 1.2; }
+        main .btn:not(.btn-close) { padding: .3rem .65rem; font-size: .8rem; line-height: 1.2; }
         main .table { font-size: .82rem; }
         main .table thead th { font-size: .82rem; font-weight: 600; padding: .45rem .5rem; }
         main .table tbody td { font-size: .82rem; padding: .4rem .5rem; }
