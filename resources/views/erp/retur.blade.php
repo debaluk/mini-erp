@@ -248,7 +248,7 @@ document.addEventListener('DOMContentLoaded', function () {
             { data: 'product_names', defaultContent: '-' },
             { data: 'return_qty', className: 'text-end', render: data => Number(data || 0).toLocaleString('id-ID') },
             { data: 'return_prices', className: 'text-end', defaultContent: '-', render: function (data) {
-                return data ? esc(data).replace(/ @ /g, ' @ ') : '-';
+                return data ? String(data) : '-';
             }},
             { data: 'warehouse_name', defaultContent: '-' },
             { data: 'total', className: 'text-end fw-semibold', render: data => 'Rp ' + Number(data || 0).toLocaleString('id-ID') },
