@@ -49,7 +49,7 @@ Route::middleware('auth')->group(function () {
     foreach ($kasirModules as $module) {
         Route::get('/erp/'.$module, function () use ($module) {
             return app(ModuleController::class)->show($module);
-        })->middleware('role:owner,kasir')->name('erp.'.$module);
+        })->middleware($module === 'sales' ? 'role:owner,kasir,akuntansi' : 'role:owner,kasir')->name('erp.'.$module);
     }
     Route::post('/erp/pos/add', [PosController::class, 'add'])->middleware('role:owner,kasir')->name('erp.pos.add');
     Route::put('/erp/pos/item/{id}', [PosController::class, 'updateItem'])->middleware('role:owner,kasir')->name('erp.pos.update');
