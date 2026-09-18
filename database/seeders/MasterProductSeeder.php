@@ -171,7 +171,7 @@ class MasterProductSeeder extends Seeder
             $conversions = [
                 ['sku' => 'BB-001', 'unit' => 'SAK', 'factor' => 50],
                 ['sku' => 'FG-001', 'unit' => 'DUS', 'factor' => 20],
-                ['FG-002', 'DUS', 20],
+                ['sku' => 'FG-002', 'unit' => 'DUS', 'factor' => 20],
                 ['sku' => 'FG-003', 'unit' => 'DUS', 'factor' => 20],
                 ['sku' => 'FG-004', 'unit' => 'DUS', 'factor' => 20],
                 ['sku' => 'FG-005', 'unit' => 'DUS', 'factor' => 20],
