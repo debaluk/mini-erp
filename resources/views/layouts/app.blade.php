@@ -56,16 +56,16 @@
                     <li><a class="dropdown-item" href="{{ route('inventori.pembelian') }}">Pembelian</a></li><li><a class="dropdown-item" href="{{ route('inventori.penerimaan') }}">Penerimaan</a></li><li><a class="dropdown-item" href="{{ route('inventori.stok') }}">Stok</a></li><li><a class="dropdown-item" href="{{ route('inventori.transfer') }}">Transfer</a></li><li><a class="dropdown-item" href="{{ route('inventori.adjustment') }}">Adjustment</a></li><li><a class="dropdown-item" href="{{ route('inventori.stock-opname') }}">Stock Opname</a></li>
                 </ul></li>
                 @endif
-                @if(auth()->user()->hasModuleAccess('akuntansi'))
-                <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">AKUNTANSI</a><ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="{{ route('akuntansi.akun') }}">Akun</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.jurnal') }}">Jurnal</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.buku-besar') }}">Buku Besar</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.kas-bank') }}">Kas &amp; Bank</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.laba-rugi') }}">Laba Rugi</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.neraca-saldo') }}">Neraca Saldo</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.neraca') }}">Neraca</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.arus-kas') }}">Arus Kas</a></li>
-                </ul></li>
-                @endif
                 @if(auth()->user()->hasModuleAccess('laporan'))
                 <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">LAPORAN</a><ul class="dropdown-menu">
                     @if(auth()->user()->hasModuleAccess('laporan'))<li><a class="dropdown-item" href="{{ route('laporan.penjualan') }}">Penjualan</a></li>@endif
                     @if(auth()->user()->hasModuleAccess('laporan'))<li><a class="dropdown-item" href="{{ route('laporan.pembelian') }}">Pembelian</a></li><li><a class="dropdown-item" href="{{ route('laporan.persediaan') }}">Persediaan</a></li><li><a class="dropdown-item" href="{{ route('laporan.produksi') }}">Produksi</a></li><li><a class="dropdown-item" href="{{ route('laporan.armada-jasa') }}">Armada &amp; Jasa</a></li><li><a class="dropdown-item" href="{{ route('laporan.hutang') }}">Hutang</a></li>@endif
                     @if(auth()->user()->hasModuleAccess('laporan'))<li><a class="dropdown-item" href="{{ route('laporan.piutang') }}">Piutang</a></li><li><a class="dropdown-item" href="{{ route('laporan.keuangan') }}">Keuangan</a></li>@endif
+                </ul></li>
+                @endif
+                @if(auth()->user()->hasModuleAccess('akuntansi'))
+                <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">AKUNTANSI</a><ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="{{ route('akuntansi.akun') }}">Akun</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.jurnal') }}">Jurnal</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.buku-besar') }}">Buku Besar</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.kas-bank') }}">Kas &amp; Bank</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.laba-rugi') }}">Laba Rugi</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.neraca-saldo') }}">Neraca Saldo</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.neraca') }}">Neraca</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.arus-kas') }}">Arus Kas</a></li>
                 </ul></li>
                 @endif
                 @if(in_array(auth()->user()->role, ['superadmin','owner','admin']))
