@@ -9,6 +9,21 @@
         .navbar .dropdown-menu { min-width: 230px; }
         .navbar .dropdown-menu .dropdown-header { font-weight: 700; color: var(--bs-primary); }
         main { min-height: calc(100vh - 56px); }
+        /* Compact ERP forms: consistent Bootstrap sizing across all modules */
+        main .form-label { font-size: .8rem; margin-bottom: .2rem; font-weight: 600; }
+        main .form-control,
+        main .form-select {
+            min-height: 32px;
+            height: 32px;
+            padding: .2rem .5rem;
+            font-size: .82rem;
+            line-height: 1.2;
+        }
+        main textarea.form-control { height: auto; min-height: 52px; }
+        main .btn:not(.btn-close) { padding: .3rem .65rem; font-size: .82rem; }
+        main .card-body { padding: .75rem; }
+        main .card-header { padding: .5rem .75rem; }
+        main form.row { --bs-gutter-x: .6rem; --bs-gutter-y: .45rem; }
     </style>
 </head>
 <body class="bg-light">
