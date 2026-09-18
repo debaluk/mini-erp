@@ -20,7 +20,7 @@
 
 @endif
 
-@php if ($module === 'pos'): @endphp
+@if($module === 'pos')
 <div class="pos-screen" id="posScreen">
 <div class="pos-topbar"><div><strong>MINI ERP POS</strong><span class="ms-3 text-secondary">{{ auth()->user()->name }}</span></div><div>@if($openShift)<span class="badge text-bg-success">SHIFT AKTIF</span>@else<span class="badge text-bg-warning">SHIFT BELUM DIBUKA</span>@endif</div></div>
 <div class="pos-main">
@@ -65,7 +65,7 @@ recalc();
 });
 </script>
 </div>
-@php endif; @endphp
+@endif
 @if($module === 'shifts')
 <div class="row g-3 mb-4"><div class="col-lg-6"><div class="card shadow-sm h-100"><div class="card-header fw-semibold">Buka Shift</div><div class="card-body"><form method="POST" action="{{ route('erp.shift.store') }}" class="row g-3">@csrf<input type="hidden" name="action" value="open"><div class="col-8"><label class="form-label">Kas Awal</label><input name="opening_cash" type="number" step="0.01" min="0" class="form-control" value="0"></div><div class="col-4 d-flex align-items-end"><button class="btn btn-primary w-100" @if($openShift) disabled @endif>Buka Shift</button></div></form>@if($openShift)<div class="alert alert-success mt-3 mb-0">Shift aktif sejak {{ $openShift->opened_at }}.</div>@endif</div></div></div><div class="col-lg-6"><div class="card shadow-sm h-100"><div class="card-header fw-semibold">Tutup Shift</div><div class="card-body"><form method="POST" action="{{ route('erp.shift.store') }}" class="row g-3">@csrf<input type="hidden" name="action" value="close"><div class="col-8"><label class="form-label">Kas Akhir</label><input name="closing_cash" type="number" step="0.01" min="0" class="form-control" value="0"></div><div class="col-4 d-flex align-items-end"><button class="btn btn-warning w-100" @if(!$openShift) disabled @endif>Tutup Shift</button></div></form></div></div></div></div>
 @endif
