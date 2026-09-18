@@ -107,5 +107,44 @@ Route::middleware('auth')->group(function () {
     }
     Route::post('/erp/journal', [ModuleController::class, 'journalStore'])->middleware('role:owner,akuntansi')->name('erp.journal.store');
 
+
+    // Clean menu URL aliases — existing /erp endpoints remain for backward compatibility.
+    Route::get('/pos', fn () => app(ModuleController::class)->show('pos'))->middleware('role:owner,kasir')->name('pos');
+    Route::get('/penjualan', fn () => app(ModuleController::class)->show('sales'))->middleware('role:owner,kasir,akuntansi')->name('penjualan');
+    Route::get('/pembayaran', fn () => app(ModuleController::class)->show('payments'))->middleware('role:owner,kasir')->name('pembayaran');
+    Route::get('/shift', fn () => app(ModuleController::class)->show('shifts'))->middleware('role:owner,kasir')->name('shift');
+    Route::get('/inventori/pembelian', fn () => app(ModuleController::class)->show('purchases'))->middleware('role:owner,inventori')->name('inventori.pembelian');
+    Route::get('/inventori/penerimaan', fn () => app(ModuleController::class)->show('receipts'))->middleware('role:owner,inventori')->name('inventori.penerimaan');
+    Route::get('/inventori/stok', fn () => app(ModuleController::class)->show('stock'))->middleware('role:owner,inventori')->name('inventori.stok');
+    Route::get('/inventori/transfer', fn () => app(ModuleController::class)->show('movements'))->middleware('role:owner,inventori')->name('inventori.transfer');
+    Route::get('/inventori/adjustment', fn () => app(ModuleController::class)->show('movements'))->middleware('role:owner,inventori')->name('inventori.adjustment');
+    Route::get('/inventori/stock-opname', fn () => app(ModuleController::class)->show('opname'))->middleware('role:owner,inventori')->name('inventori.stock-opname');
+    Route::get('/produksi/bom', fn () => app(BomController::class)->show())->middleware('role:owner,inventori')->name('produksi.bom');
+    Route::get('/produksi', fn () => app(ModuleController::class)->show('production'))->middleware('role:owner,inventori')->name('produksi');
+    Route::get('/produksi/pemakaian-bahan', fn () => app(ModuleController::class)->show('material-usage'))->middleware('role:owner,inventori')->name('produksi.pemakaian-bahan');
+    Route::get('/produksi/hasil-produksi', fn () => app(ModuleController::class)->show('production-results'))->middleware('role:owner,inventori')->name('produksi.hasil-produksi');
+    Route::get('/produksi/reject', fn () => app(ModuleController::class)->show('production-results'))->middleware('role:owner,inventori')->name('produksi.reject');
+    Route::get('/produksi/hpp', fn () => app(ModuleController::class)->show('production-cost'))->middleware('role:owner,inventori')->name('produksi.hpp');
+    Route::get('/armada/order-jasa', fn () => app(ModuleController::class)->show('deliveries'))->middleware('role:owner,inventori')->name('armada.order-jasa');
+    Route::get('/armada/surat-jalan', fn () => app(ModuleController::class)->show('deliveries'))->middleware('role:owner,inventori')->name('armada.surat-jalan');
+    Route::get('/armada/perjalanan', fn () => app(ModuleController::class)->show('operations'))->middleware('role:owner,inventori')->name('armada.perjalanan');
+    Route::get('/akuntansi/jurnal', fn () => app(ModuleController::class)->show('journals'))->middleware('role:owner,akuntansi')->name('akuntansi.jurnal');
+    Route::get('/akuntansi/buku-besar', fn () => app(ModuleController::class)->show('ledger'))->middleware('role:owner,akuntansi')->name('akuntansi.buku-besar');
+    Route::get('/akuntansi/kas-bank', fn () => app(ModuleController::class)->show('cashbank'))->middleware('role:owner,akuntansi')->name('akuntansi.kas-bank');
+    Route::get('/akuntansi/piutang', fn () => app(ModuleController::class)->show('receivables'))->middleware('role:owner,akuntansi')->name('akuntansi.piutang');
+    Route::get('/akuntansi/hutang', fn () => app(ModuleController::class)->show('payables'))->middleware('role:owner,akuntansi')->name('akuntansi.hutang');
+    Route::get('/akuntansi/hpp', fn () => app(ModuleController::class)->show('cogs'))->middleware('role:owner,akuntansi')->name('akuntansi.hpp');
+    Route::get('/akuntansi/laba-rugi', fn () => app(ModuleController::class)->show('profit-loss'))->middleware('role:owner,akuntansi')->name('akuntansi.laba-rugi');
+    Route::get('/akuntansi/neraca', fn () => app(ModuleController::class)->show('balance-sheet'))->middleware('role:owner,akuntansi')->name('akuntansi.neraca');
+    Route::get('/akuntansi/arus-kas', fn () => app(ModuleController::class)->show('cash-flow'))->middleware('role:owner,akuntansi')->name('akuntansi.arus-kas');
+    Route::get('/laporan/penjualan', fn () => app(ModuleController::class)->show('sales'))->middleware('role:owner,kasir,akuntansi')->name('laporan.penjualan');
+    Route::get('/laporan/pembelian', fn () => app(ModuleController::class)->show('purchases'))->middleware('role:owner,inventori,akuntansi')->name('laporan.pembelian');
+    Route::get('/laporan/persediaan', fn () => app(ModuleController::class)->show('stock'))->middleware('role:owner,inventori,akuntansi')->name('laporan.persediaan');
+    Route::get('/laporan/produksi', fn () => app(ModuleController::class)->show('production'))->middleware('role:owner,inventori,akuntansi')->name('laporan.produksi');
+    Route::get('/laporan/armada-jasa', fn () => app(ModuleController::class)->show('operations'))->middleware('role:owner,inventori,akuntansi')->name('laporan.armada-jasa');
+    Route::get('/laporan/piutang', fn () => app(ModuleController::class)->show('receivables'))->middleware('role:owner,akuntansi')->name('laporan.piutang');
+    Route::get('/laporan/hutang', fn () => app(ModuleController::class)->show('payables'))->middleware('role:owner,inventori,akuntansi')->name('laporan.hutang');
+    Route::get('/laporan/keuangan', fn () => app(ModuleController::class)->show('profit-loss'))->middleware('role:owner,akuntansi')->name('laporan.keuangan');
+
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
