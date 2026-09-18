@@ -95,7 +95,7 @@
             @forelse($rows as $r)
                 <tr>
                     <td class="fw-semibold">{{ $r->invoice_no }}</td>
-                    <td>{{ CarbonCarbon::parse($r->sale_date)->format('d/m/Y H:i') }}</td>
+                    <td>{{ \Carbon\Carbon::parse($r->sale_date)->format('d/m/Y H:i') }}</td>
                     <td>{{ $r->customer_name }}</td>
                     <td>{{ $r->cashier_name }}</td>
                     <td>#{{ $r->shift_id ?? '-' }}</td>
@@ -132,7 +132,7 @@
             </div>
             <div class="modal-body">
                 <div class="row g-2 mb-3">
-                    <div class="col-md-4"><div class="text-secondary small">Tanggal</div><div class="fw-semibold">{{ CarbonCarbon::parse($r->sale_date)->format('d/m/Y H:i') }}</div></div>
+                    <div class="col-md-4"><div class="text-secondary small">Tanggal</div><div class="fw-semibold">{{ \Carbon\Carbon::parse($r->sale_date)->format('d/m/Y H:i') }}</div></div>
                     <div class="col-md-4"><div class="text-secondary small">Customer</div><div class="fw-semibold">{{ $r->customer_name }}</div></div>
                     <div class="col-md-4"><div class="text-secondary small">Kasir</div><div class="fw-semibold">{{ $r->cashier_name }}</div></div>
                 </div>
