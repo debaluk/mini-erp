@@ -71,7 +71,22 @@ class ModuleController extends Controller
         $entity = $this->entityId();
 
         $queries = [
-            'sales' => DB::table('sales')->where('entity_id',$entity)->latest('id')->paginate(15)->withQueryString(),
+            'sales' => DB::table('sales as s')
+                ->leftJoin('customers as c', 'c.id', '=', 's.customer_id')
+                ->leftJoin('users as u', 'u.id', '=', 's.user_id')
+                ->where('s.entity_id', $entity)
+                ->select(
+                    's.id', 's.invoice_no', 's.sale_date', 's.subtotal', 's.discount', 's.total', 's.status',
+                    's.shift_id',
+                    DB::raw("COALESCE(c.name, 'Umum') as customer_name"),
+                    DB::raw("COALESCE(u.name, '-') as cashier_name"),
+                    DB::raw("(SELECT GROUP_CONCAT(DISTINCT p.method ORDER BY p.id SEPARATOR ', ') FROM payments p WHERE p.sale_id = s.id) as payment_methods"),
+                    DB::raw("(SELECT COALESCE(SUM(p.paid_amount), SUM(p.amount), 0) FROM payments p WHERE p.sale_id = s.id) as paid_amount"),
+                    DB::raw("(SELECT COALESCE(SUM(p.change_amount), 0) FROM payments p WHERE p.sale_id = s.id) as change_amount")
+                )
+                ->orderByDesc('s.id')
+                ->paginate(15)
+                ->withQueryString(),
             'payments' => DB::table('payments')->where('entity_id',$entity)->latest('id')->paginate(15)->withQueryString(),
             'shifts' => DB::table('cash_shifts')->where('entity_id',$entity)->latest('id')->paginate(15)->withQueryString(),
             'purchases' => DB::table('purchases')->where('entity_id',$entity)->latest('id')->paginate(15)->withQueryString(),
@@ -92,6 +107,25 @@ class ModuleController extends Controller
             'journals' => DB::table('journals')->where('entity_id',$entity)->latest('id')->paginate(15)->withQueryString(),
         ];
         $data['rows'] = $queries[$module] ?? collect();
+
+        if ($module === 'sales') {
+            $saleIds = collect($data['rows']->items())->pluck('id')->all();
+            $data['saleDetails'] = [];
+
+            if ($saleIds) {
+                $items = DB::table('sale_items as si')
+                    ->join('products as p', 'p.id', '=', 'si.product_id')
+                    ->whereIn('si.sale_id', $saleIds)
+                    ->select('si.sale_id', 'p.sku', 'p.name', 'si.qty', 'si.unit_price', 'si.discount', 'si.total')
+                    ->orderBy('si.id')
+                    ->get()
+                    ->groupBy('sale_id');
+
+                foreach ($saleIds as $saleId) {
+                    $data['saleDetails'][$saleId] = $items->get($saleId, collect());
+                }
+            }
+        }
 
         if ($module === 'bom') {
             $data['boms'] = DB::table('boms')->where('entity_id',$entity)->latest('id')->get();
