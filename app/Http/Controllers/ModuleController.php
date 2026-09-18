@@ -285,13 +285,13 @@ class ModuleController extends Controller
         $html='<html><head><meta charset="UTF-8"><style>body{font-family:Arial}table{border-collapse:collapse}th,td{border:1px solid #000;padding:5px}.right{text-align:right}.bold{font-weight:700}</style></head><body>';
         $html.='<div><b>'.$e($entityRow?->name??'MINI ERP').'</b></div>';
         if(!empty($entityRow?->address))$html.='<div>'.$e($entityRow->address).'</div>';
-        $html.='<h4>NERACA</h4><div>Per tanggal: '.$e(date('d-m-Y',strtotime($asOf))).'</div><br><table><tr><th colspan="2">ASET</th><th>Jumlah</th></tr>';
+        $html.='<h4>NERACA</h4><div>Per tanggal: '.$e(date('d-m-Y',strtotime($asOf))).'</div><br><table><tr><th colspan="2">AKTIVA</th><th>Jumlah</th></tr><tr><th colspan="2">Asset</th><th>Jumlah</th></tr>';
         foreach($groups['asset'] as $x)$html.='<tr><td>'.$e($x[0]).'</td><td>'.$e($x[1]).'</td><td class="right">'.$num($x[2]).'</td></tr>';
-        $html.='<tr class="bold"><td colspan="2">TOTAL ASET</td><td class="right">'.$num($tot['asset']).'</td></tr><tr><th colspan="2">LIABILITAS</th><th>Jumlah</th></tr>';
+        $html.='<tr class="bold"><td colspan="2">TOTAL AKTIVA</td><td class="right">'.$num($tot['asset']).'</td></tr><tr><th colspan="2">PASSIVA</th><th>Jumlah</th></tr><tr><th colspan="2">Hutang</th><th>Jumlah</th></tr>';
         foreach($groups['liability'] as $x)$html.='<tr><td>'.$e($x[0]).'</td><td>'.$e($x[1]).'</td><td class="right">'.$num($x[2]).'</td></tr>';
-        $html.='<tr class="bold"><td colspan="2">TOTAL LIABILITAS</td><td class="right">'.$num($tot['liability']).'</td></tr><tr><th colspan="2">EKUITAS</th><th>Jumlah</th></tr>';
+        $html.='<tr class="bold"><td colspan="2">TOTAL HUTANG</td><td class="right">'.$num($tot['liability']).'</td></tr><tr><th colspan="2">Modal</th><th>Jumlah</th></tr>';
         foreach($groups['equity'] as $x)$html.='<tr><td>'.$e($x[0]).'</td><td>'.$e($x[1]).'</td><td class="right">'.$num($x[2]).'</td></tr>';
-        $html.='<tr class="bold"><td colspan="2">TOTAL EKUITAS</td><td class="right">'.$num($tot['equity']).'</td></tr><tr class="bold"><td colspan="2">TOTAL LIABILITAS + EKUITAS</td><td class="right">'.$num($tot['liability']+$tot['equity']).'</td></tr>';
+        $html.='<tr class="bold"><td colspan="2">TOTAL MODAL</td><td class="right">'.$num($tot['equity']).'</td></tr><tr class="bold"><td colspan="2">TOTAL PASSIVA</td><td class="right">'.$num($tot['liability']+$tot['equity']).'</td></tr>';
         $html.='</table></body></html>';
         return response($html)->header('Content-Type','application/vnd.ms-excel; charset=UTF-8')->header('Content-Disposition','attachment; filename="neraca_'.$asOf.'.xls"');
     }
