@@ -68,7 +68,110 @@
 
 @if($module==='stock')
 <div class="card shadow-sm"><div class="card-header fw-semibold">Posisi Stok</div><div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>Gudang</th><th>Produk</th><th class="text-end">Qty</th><th class="text-end">HPP Rata-rata</th><th class="text-end">Nilai</th></tr></thead><tbody>@forelse($rows as $r)<tr><td>{{ optional(DB::table('warehouses')->find($r->warehouse_id))->name ?? '-' }}</td><td>{{ optional(DB::table('products')->find($r->product_id))->name ?? '-' }}</td><td class="text-end">{{ $r->qty }}</td><td class="text-end">Rp {{ number_format($r->avg_cost,0,',','.') }}</td><td class="text-end">Rp {{ number_format($r->qty*$r->avg_cost,0,',','.') }}</td></tr>@empty<tr><td colspan="5" class="text-center text-secondary py-4">Belum ada stok.</td></tr>@endforelse</tbody></table></div><div class="card-footer">{{ $rows->links() }}</div></div>
-@elseif(in_array($module,['sales','payments','purchases','receipts','payables','shifts','movements','opname','bom','production','production-results','material-usage','production-cost','fleet','deliveries','operations','fleet-costs','journals'],true))
+@elseif($module==='sales')
+<div class="card shadow-sm mb-3">
+    <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+        <span>Register Penjualan</span>
+        <span class="badge text-bg-light">Transaksi hasil posting POS</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>No. Invoice</th>
+                    <th>Tanggal</th>
+                    <th>Customer</th>
+                    <th>Kasir</th>
+                    <th>Shift</th>
+                    <th>Pembayaran</th>
+                    <th class="text-end">Subtotal</th>
+                    <th class="text-end">Diskon</th>
+                    <th class="text-end">Total</th>
+                    <th>Status</th>
+                    <th class="text-center">Detail</th>
+                </tr>
+            </thead>
+            <tbody>
+            @forelse($rows as $r)
+                <tr>
+                    <td class="fw-semibold">{{ $r->invoice_no }}</td>
+                    <td>{{ CarbonCarbon::parse($r->sale_date)->format('d/m/Y H:i') }}</td>
+                    <td>{{ $r->customer_name }}</td>
+                    <td>{{ $r->cashier_name }}</td>
+                    <td>#{{ $r->shift_id ?? '-' }}</td>
+                    <td>{{ $r->payment_methods ?: '-' }}</td>
+                    <td class="text-end">Rp {{ number_format($r->subtotal,0,',','.') }}</td>
+                    <td class="text-end">{{ (float)$r->discount > 0 ? 'Rp '.number_format($r->discount,0,',','.') : '—' }}</td>
+                    <td class="text-end fw-semibold">Rp {{ number_format($r->total,0,',','.') }}</td>
+                    <td><span class="badge text-bg-success">{{ strtoupper($r->status) }}</span></td>
+                    <td class="text-center">
+                        <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#saleDetail{{ $r->id }}">Lihat</button>
+                    </td>
+                </tr>
+            @empty
+                <tr><td colspan="11" class="text-center text-secondary py-4">Belum ada transaksi penjualan.</td></tr>
+            @endforelse
+            </tbody>
+        </table>
+    </div>
+    @if(is_object($rows) && method_exists($rows,'links'))
+        <div class="card-footer">{{ $rows->links() }}</div>
+    @endif
+</div>
+
+@foreach($rows as $r)
+<div class="modal fade" id="saleDetail{{ $r->id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title mb-1">Detail Penjualan</h5>
+                    <div class="small text-secondary">{{ $r->invoice_no }}</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-2 mb-3">
+                    <div class="col-md-4"><div class="text-secondary small">Tanggal</div><div class="fw-semibold">{{ CarbonCarbon::parse($r->sale_date)->format('d/m/Y H:i') }}</div></div>
+                    <div class="col-md-4"><div class="text-secondary small">Customer</div><div class="fw-semibold">{{ $r->customer_name }}</div></div>
+                    <div class="col-md-4"><div class="text-secondary small">Kasir</div><div class="fw-semibold">{{ $r->cashier_name }}</div></div>
+                </div>
+                <div class="table-responsive border rounded">
+                    <table class="table table-sm mb-0">
+                        <thead><tr><th>SKU</th><th>Produk</th><th class="text-end">Qty</th><th class="text-end">Harga</th><th class="text-end">Diskon</th><th class="text-end">Total</th></tr></thead>
+                        <tbody>
+                        @forelse(($saleDetails[$r->id] ?? collect()) as $item)
+                            <tr>
+                                <td>{{ $item->sku ?: '-' }}</td>
+                                <td>{{ $item->name }}</td>
+                                <td class="text-end">{{ rtrim(rtrim(number_format($item->qty,3,',','.'),'0'),',') }}</td>
+                                <td class="text-end">Rp {{ number_format($item->unit_price,0,',','.') }}</td>
+                                <td class="text-end">{{ (float)$item->discount > 0 ? 'Rp '.number_format($item->discount,0,',','.') : '—' }}</td>
+                                <td class="text-end">Rp {{ number_format($item->total,0,',','.') }}</td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="6" class="text-center text-secondary py-3">Detail barang tidak tersedia.</td></tr>
+                        @endforelse
+                        </tbody>
+                    </table>
+                </div>
+                <div class="row justify-content-end mt-3">
+                    <div class="col-md-6">
+                        <div class="d-flex justify-content-between"><span>Subtotal</span><span>Rp {{ number_format($r->subtotal,0,',','.') }}</span></div>
+                        <div class="d-flex justify-content-between"><span>Diskon</span><span>Rp {{ number_format($r->discount,0,',','.') }}</span></div>
+                        <div class="d-flex justify-content-between fs-5 fw-bold border-top mt-2 pt-2"><span>TOTAL</span><span>Rp {{ number_format($r->total,0,',','.') }}</span></div>
+                        <div class="d-flex justify-content-between mt-2"><span>Metode Pembayaran</span><span>{{ $r->payment_methods ?: '-' }}</span></div>
+                        <div class="d-flex justify-content-between"><span>Dibayar</span><span>Rp {{ number_format($r->paid_amount,0,',','.') }}</span></div>
+                        <div class="d-flex justify-content-between"><span>Kembalian</span><span>Rp {{ number_format($r->change_amount,0,',','.') }}</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endforeach
+
+@elseif(in_array($module,['payments','purchases','receipts','payables','shifts','movements','opname','bom','production','production-results','material-usage','production-cost','fleet','deliveries','operations','fleet-costs','journals'],true))
 <div class="card shadow-sm"><div class="card-header fw-semibold">Data {{ $title }}</div><div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>ID</th><th>Referensi</th><th>Tanggal</th><th>Status</th><th class="text-end">Nilai</th></tr></thead><tbody>@forelse($rows as $r)<tr><td>{{ $r->id }}</td><td>{{ $r->invoice_no ?? $r->purchase_no ?? $r->delivery_no ?? $r->production_no ?? $r->journal_no ?? ($r->code ?? '-') }}</td><td>{{ $r->sale_date ?? $r->purchase_date ?? $r->payment_date ?? $r->operation_date ?? $r->cost_date ?? $r->journal_date ?? $r->created_at ?? '-' }}</td><td><span class="badge text-bg-secondary">{{ $r->status ?? $r->method ?? $r->movement_type ?? 'data' }}</span></td><td class="text-end">Rp {{ number_format($r->total ?? $r->amount ?? $r->total_cost ?? 0,0,',','.') }}</td></tr>@empty<tr><td colspan="5" class="text-center text-secondary py-4">Belum ada data.</td></tr>@endforelse</tbody></table></div>@if(is_object($rows) && method_exists($rows,'links'))<div class="card-footer">{{ $rows->links() }}</div>@endif</div>
 @endif
 @endsection
