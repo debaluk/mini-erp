@@ -15,6 +15,15 @@
 
 @php
     $children = $accounts->groupBy('parent_id');
+
+    $typeLabels = [
+        'asset' => 'Aset',
+        'liability' => 'Hutang',
+        'equity' => 'Modal',
+        'revenue' => 'Pendapatan',
+        'cogs' => 'HPP',
+        'expense' => 'Biaya',
+    ];
 @endphp
 
 <div class="card shadow-sm">
@@ -24,15 +33,16 @@
                 <tr>
                     <th style="width:170px">Kode</th>
                     <th>Nama Akun</th>
+                    <th style="width:160px">Type</th>
                     <th style="width:150px">Normal Balance</th>
                     <th class="text-end" style="width:100px">Aksi</th>
                 </tr>
             </thead>
             <tbody>
             @forelse($children->get(null, collect()) as $a)
-                @include('akuntansi.partials.akun-row', ['account' => $a, 'children' => $children, 'nextCodes' => $nextCodes, 'depth' => 0])
+                @include('akuntansi.partials.akun-row', ['account' => $a, 'children' => $children, 'nextCodes' => $nextCodes, 'depth' => 0, 'typeLabels' => $typeLabels])
             @empty
-                <tr><td colspan="4" class="text-center text-secondary py-4">Belum ada akun utama.</td></tr>
+                <tr><td colspan="5" class="text-center text-secondary py-4">Belum ada akun utama.</td></tr>
             @endforelse
             </tbody>
         </table>
