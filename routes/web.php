@@ -127,6 +127,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/pos/pos', fn () => app(ModuleController::class)->show('pos'))->middleware('role:owner,kasir')->name('pos.pos');
     Route::get('/pos/penjualan', fn () => app(ModuleController::class)->show('sales'))->middleware('role:owner,kasir,akuntansi')->name('pos.penjualan');
     Route::get('/pos/penjualan/data', [ModuleController::class, 'salesData'])->middleware('role:owner,kasir,akuntansi')->name('pos.penjualan.data');
+    Route::get('/pos/penjualan/export-excel', [ModuleController::class, 'exportSalesExcel'])->middleware('role:owner,kasir,akuntansi')->name('pos.penjualan.export-excel');
     Route::get('/pos/penjualan/{id}/detail', [ModuleController::class, 'salesDetail'])->middleware('role:owner,kasir,akuntansi')->name('pos.penjualan.detail');
     Route::get('/pos/pembayaran', fn () => app(ModuleController::class)->show('payments'))->middleware('role:owner,kasir')->name('pos.pembayaran');
     Route::get('/pos/retur', fn () => abort(501, 'Modul Retur belum diimplementasikan.'))->middleware('role:owner,kasir')->name('pos.retur');
