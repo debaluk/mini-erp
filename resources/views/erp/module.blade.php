@@ -362,10 +362,25 @@ document.addEventListener('DOMContentLoaded', function () {
 @endpush
 @elseif($module === 'profit-loss')
 @php
-    $revenue = collect($report['lines'] ?? [])->where('type','revenue');
-    $cogs = collect($report['lines'] ?? [])->where('type','cogs');
-    $expense = collect($report['lines'] ?? [])->where('type','expense');
+    $allCoa = collect($report['coa_hierarchy'] ?? []);
+    $linesByCode = collect($report['lines'] ?? [])->keyBy('code');
+    $revenue = $allCoa->where('type','revenue');
+    $cogs = $allCoa->where('type','cogs');
+    $expense = $allCoa->where('type','expense');
     $money = fn($v) => number_format((float)$v, 2, ',', '.');
+
+    $renderGroup = function ($accounts) use ($linesByCode, $money) {
+        foreach ($accounts as $account) {
+            $level = (int)($account['level'] ?? 3);
+            $line = $linesByCode->get($account['code']);
+            $amount = $line['amount'] ?? 0;
+            echo '<tr>';
+            echo '<td style="padding-left:' . (0.75 + max(0, $level - 1) * 1.5) . 'rem;">' . e($account['code']) . '</td>';
+            echo '<td class="' . ($level < 3 ? 'fw-semibold' : '') . '">' . e($account['name']) . '</td>';
+            echo '<td class="text-end">' . ($level === 3 ? e($money($amount)) : '') . '</td>';
+            echo '</tr>';
+        }
+    };
 @endphp
 <div class="card shadow-sm">
     <div class="card-header fw-semibold">Laba Rugi</div>
@@ -387,28 +402,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 <thead class="table-light"><tr><th>Kode</th><th>Nama Akun</th><th class="text-end">Jumlah</th></tr></thead>
                 <tbody>
                     <tr class="fw-bold table-light"><td colspan="2">PENDAPATAN</td><td></td></tr>
-                    @forelse($revenue as $line)
-                        <tr><td>{{ $line['code'] }}</td><td>{{ $line['label'] }}</td><td class="text-end">{{ $money($line['amount']) }}</td></tr>
-                    @empty
-                        <tr><td colspan="3" class="text-center text-secondary">Belum ada pendapatan.</td></tr>
-                    @endforelse
+                    @php $renderGroup($revenue); @endphp
                     <tr class="fw-bold border-top"><td colspan="2">TOTAL PENDAPATAN</td><td class="text-end">{{ $money($report['revenue'] ?? 0) }}</td></tr>
 
                     <tr class="fw-bold table-light"><td colspan="2">HPP</td><td></td></tr>
-                    @forelse($cogs as $line)
-                        <tr><td>{{ $line['code'] }}</td><td>{{ $line['label'] }}</td><td class="text-end">{{ $money($line['amount']) }}</td></tr>
-                    @empty
-                        <tr><td colspan="3" class="text-center text-secondary">Belum ada HPP.</td></tr>
-                    @endforelse
+                    @php $renderGroup($cogs); @endphp
                     <tr class="fw-bold border-top"><td colspan="2">TOTAL HPP</td><td class="text-end">{{ $money($report['cogs'] ?? 0) }}</td></tr>
                     <tr class="fw-bold border-top"><td colspan="2">LABA KOTOR</td><td class="text-end">{{ $money($report['gross_profit'] ?? 0) }}</td></tr>
 
                     <tr class="fw-bold table-light"><td colspan="2">BIAYA</td><td></td></tr>
-                    @forelse($expense as $line)
-                        <tr><td>{{ $line['code'] }}</td><td>{{ $line['label'] }}</td><td class="text-end">{{ $money($line['amount']) }}</td></tr>
-                    @empty
-                        <tr><td colspan="3" class="text-center text-secondary">Belum ada biaya.</td></tr>
-                    @endforelse
+                    @php $renderGroup($expense); @endphp
                     <tr class="fw-bold border-top"><td colspan="2">TOTAL BIAYA</td><td class="text-end">{{ $money($report['expense'] ?? 0) }}</td></tr>
                     <tr class="fw-bold border-top table-light"><td colspan="2">LABA / (RUGI) BERSIH</td><td class="text-end">{{ $money($report['net_profit'] ?? 0) }}</td></tr>
                 </tbody>
