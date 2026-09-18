@@ -11,6 +11,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $users=[
+            ['name'=>'Superadmin','email'=>'superadmin@minierp.local','role'=>'superadmin'],
             ['name'=>'Owner','email'=>'owner@minierp.local','role'=>'owner'],
             ['name'=>'Admin','email'=>'admin@minierp.local','role'=>'admin'],
             ['name'=>'Kasir','email'=>'kasir@minierp.local','role'=>'kasir'],
@@ -22,6 +23,9 @@ class DatabaseSeeder extends Seeder
         $entity=DB::table('entities')->first();
         $eid=$entity?->id;
         if(!$eid) $eid=DB::table('entities')->insertGetId(['code'=>'ENT-001','name'=>'Entitas Utama','is_active'=>1,'created_at'=>now(),'updated_at'=>now()]);
+        foreach($users as $data) {
+            DB::table('users')->where('email',$data['email'])->update(['entity_id' => $data['role'] === 'superadmin' ? null : $eid, 'updated_at' => now()]);
+        }
 
         $unit=DB::table('units')->where(['entity_id'=>$eid,'code'=>'PCS'])->first();
         $unitId=$unit?->id;
