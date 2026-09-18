@@ -68,9 +68,11 @@
                     @if(in_array(auth()->user()->role, ['owner','akuntansi']))<li><a class="dropdown-item" href="{{ route('laporan.piutang') }}">Piutang</a></li><li><a class="dropdown-item" href="{{ route('laporan.keuangan') }}">Keuangan</a></li>@endif
                 </ul></li>
                 @endif
-                @if(in_array(auth()->user()->role, ['owner','admin']))
+                @if(in_array(auth()->user()->role, ['superadmin','owner','admin']))
                 <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">PENGATURAN</a><ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="{{ url('/pengaturan/user') }}">User</a></li><li><a class="dropdown-item" href="{{ url('/pengaturan/role') }}">Role &amp; Hak Akses</a></li><li><a class="dropdown-item" href="{{ url('/pengaturan/entitas') }}">Entitas</a></li><li><a class="dropdown-item" href="{{ url('/pengaturan/konfigurasi') }}">Konfigurasi</a></li>
+                    @if(in_array(auth()->user()->role, ['owner']))<li><a class="dropdown-item" href="{{ route('pengaturan.user') }}">User</a></li>@endif
+                    @if(in_array(auth()->user()->role, ['superadmin','owner']))<li><a class="dropdown-item" href="{{ route('pengaturan.role') }}">Role &amp; Hak Akses</a><li><a class="dropdown-item" href="{{ route('pengaturan.entitas') }}">Entitas</a></li>@endif
+                    @if(in_array(auth()->user()->role, ['superadmin','owner','admin']))<li><a class="dropdown-item" href="{{ route('pengaturan.konfigurasi') }}">Konfigurasi</a></li>@endif
                 </ul></li>
                 @endif
             </ul>
