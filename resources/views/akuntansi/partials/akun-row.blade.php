@@ -8,15 +8,21 @@
     <td>{{ $typeLabels[$account->type] ?? $account->type }}</td>
     <td>{{ ucfirst($account->normal_balance) }}</td>
     <td class="text-end">
+        @if((int) $account->level < 3)
+            <button class="btn btn-sm btn-primary px-3 me-1"
+                    data-bs-toggle="modal"
+                    data-bs-target="#account-add-{{ $account->id }}">+</button>
+        @endif
         @if(strlen((string) $account->code) > 3)
             <button class="btn btn-sm btn-outline-secondary me-1"
                     data-bs-toggle="modal"
                     data-bs-target="#account-edit-{{ $account->id }}">Edit</button>
-        @endif
-        @if((int) $account->level < 3)
-            <button class="btn btn-sm btn-primary px-3"
-                    data-bs-toggle="modal"
-                    data-bs-target="#account-add-{{ $account->id }}">+</button>
+            <form method="POST" action="{{ route('akuntansi.akun.delete', $account->id) }}" class="d-inline"
+                  onsubmit="return confirm('Hapus akun {{ $account->code }} — {{ addslashes($account->name) }}?');">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="btn btn-sm btn-outline-danger">Hapus</button>
+            </form>
         @endif
     </td>
 </tr>
