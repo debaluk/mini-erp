@@ -59,5 +59,8 @@ class DatabaseSeeder extends Seeder
         DB::table('warehouses_stocks')->updateOrInsert(['warehouse_id'=>$warehouseId,'product_id'=>$productIds['SEMEN-001']],['entity_id'=>$eid,'qty'=>100,'avg_cost'=>65000,'created_at'=>now(),'updated_at'=>now()]);
         DB::table('warehouses_stocks')->updateOrInsert(['warehouse_id'=>$warehouseId,'product_id'=>$productIds['PASIR-001']],['entity_id'=>$eid,'qty'=>50,'avg_cost'=>250000,'created_at'=>now(),'updated_at'=>now()]);
         DB::table('warehouses_stocks')->updateOrInsert(['warehouse_id'=>$warehouseId,'product_id'=>$productIds['BATAKO-001']],['entity_id'=>$eid,'qty'=>200,'avg_cost'=>2500,'created_at'=>now(),'updated_at'=>now()]);
+
+        // Master barang, satuan, konversi, stok awal dan BOM UAT.
+        $this->call(MasterProductSeeder::class);
     }
 }
