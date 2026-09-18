@@ -51,6 +51,10 @@ Route::middleware('auth')->group(function () {
             return app(ModuleController::class)->show($module);
         })->middleware('role:owner,kasir')->name('erp.'.$module);
     }
+    Route::post('/erp/pos/add', [PosController::class, 'add'])->middleware('role:owner,kasir')->name('erp.pos.add');
+    Route::put('/erp/pos/item/{id}', [PosController::class, 'updateItem'])->middleware('role:owner,kasir')->name('erp.pos.update');
+    Route::post('/erp/pos/item/{id}/remove', [PosController::class, 'removeItem'])->middleware('role:owner,kasir')->name('erp.pos.remove');
+    Route::post('/erp/pos/clear', [PosController::class, 'clear'])->middleware('role:owner,kasir')->name('erp.pos.clear');
     Route::post('/erp/pos', [PosController::class, 'store'])->middleware('role:owner,kasir')->name('erp.pos.store');
     Route::post('/erp/shift', [ModuleController::class, 'shiftStore'])->middleware('role:owner,kasir')->name('erp.shift.store');
 
