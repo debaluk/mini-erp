@@ -1,13 +1,16 @@
 <tr>
-    <td class="fw-semibold" style="padding-left: {{ 1 + ($depth * 3) }}rem;">
-        {{ $account->code }}
+    <td style="padding-left: {{ 1 + ($depth * 2.5) }}rem;">
+        <span class="{{ $depth === 0 ? 'fw-bold' : 'fw-semibold' }}">{{ $account->code }}</span>
     </td>
     <td class="{{ $depth === 0 ? 'fw-semibold' : '' }}">
-        {{ $account->name }}
+        @if($depth > 0)<span class="text-secondary me-2">└</span>@endif{{ $account->name }}
     </td>
     <td>{{ $typeLabels[$account->type] ?? $account->type }}</td>
     <td>{{ ucfirst($account->normal_balance) }}</td>
     <td class="text-end">
+        <button class="btn btn-sm btn-outline-secondary me-1"
+                data-bs-toggle="modal"
+                data-bs-target="#account-edit-{{ $account->id }}">Edit</button>
         @if((int) $account->level < 3)
             <button class="btn btn-sm btn-primary px-3"
                     data-bs-toggle="modal"
