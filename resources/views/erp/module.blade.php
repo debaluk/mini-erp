@@ -27,7 +27,9 @@
 <div class="col-md-3 d-flex align-items-end"><button class="btn btn-primary w-100" @disabled(!$openShift)>+ Tambah Barang</button></div>
 </form>
 <div class="table-responsive border rounded"><table class="table table-hover align-middle mb-0"><thead class="table-light"><tr><th>Kode</th><th>Nama Barang</th><th class="text-end">Harga</th><th class="text-end">Qty</th><th class="text-end">Diskon</th><th class="text-end">Sub Total</th></tr></thead><tbody>
-@php($posSubtotal=0)
+@php
+    $posSubtotal = 0;
+@endphp
 @forelse($posCart as $key=>$item)
 @php
     $line = (float) $item['price'] * (float) $item['qty'];
