@@ -385,11 +385,14 @@ document.addEventListener('DOMContentLoaded', function () {
 <div class="card shadow-sm">
     <div class="card-header fw-semibold">Laba Rugi</div>
     <div class="card-body border-bottom py-2">
-        <form method="GET" class="d-flex align-items-end gap-2 flex-nowrap" style="white-space:nowrap;">
-            <div><label class="form-label">Mulai tanggal</label><input type="date" name="start_date" class="form-control" value="{{ request('start_date', now()->startOfMonth()->toDateString()) }}"></div>
-            <div><label class="form-label">Sampai tanggal</label><input type="date" name="end_date" class="form-control" value="{{ request('end_date', now()->endOfMonth()->toDateString()) }}"></div>
-            <button class="btn btn-primary">Tampilkan</button>
-        </form>
+        <div class="d-flex justify-content-between align-items-end gap-3">
+            <form method="GET" class="d-flex align-items-end gap-2 flex-nowrap" style="white-space:nowrap;">
+                <div><label class="form-label">Mulai tanggal</label><input type="date" name="start_date" class="form-control" value="{{ request('start_date', now()->startOfMonth()->toDateString()) }}"></div>
+                <div><label class="form-label">Sampai tanggal</label><input type="date" name="end_date" class="form-control" value="{{ request('end_date', now()->endOfMonth()->toDateString()) }}"></div>
+                <button class="btn btn-primary">Tampilkan</button>
+            </form>
+            <a href="{{ route('akuntansi.laba-rugi.export-excel', request()->only(['start_date','end_date'])) }}" class="btn btn-success text-nowrap" title="Export Excel">⬇ Export Excel</a>
+        </div>
     </div>
     <div class="card-body">
         <div class="text-center mb-4">
