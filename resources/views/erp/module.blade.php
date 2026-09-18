@@ -361,6 +361,39 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 @endpush
+@elseif($module === 'profit-loss')
+<div class="card shadow-sm">
+    <div class="card-header fw-semibold">Laba Rugi</div>
+    <div class="card-body border-bottom py-2">
+        <form method="GET" class="d-flex align-items-end gap-2 flex-nowrap" style="white-space:nowrap;">
+            <div><label class="form-label">Mulai tanggal</label><input type="date" name="start_date" class="form-control" value="{{ request('start_date', now()->startOfMonth()->toDateString()) }}"></div>
+            <div><label class="form-label">Sampai tanggal</label><input type="date" name="end_date" class="form-control" value="{{ request('end_date', now()->endOfMonth()->toDateString()) }}"></div>
+            <button class="btn btn-primary">Tampilkan</button>
+        </form>
+    </div>
+    <div class="card-body">
+        <div class="text-center mb-4">
+            <h5 class="mb-1">{{ $entity->name ?? 'Entitas Utama' }}</h5>
+            <div class="fw-semibold">LAPORAN LABA RUGI</div>
+            <small class="text-secondary">Periode {{ request('start_date', now()->startOfMonth()->toDateString()) }} s/d {{ request('end_date', now()->endOfMonth()->toDateString()) }}</small>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead class="table-light"><tr><th>Kode</th><th>Nama Akun</th><th class="text-end">Jumlah</th></tr></thead>
+                <tbody>
+                @foreach(($report['lines'] ?? []) as $line)
+                    <tr class="{{ in_array($line['label'], ['TOTAL PENDAPATAN','TOTAL HPP','TOTAL BIAYA','LABA KOTOR','LABA / (RUGI) BERSIH']) ? 'fw-bold border-top' : '' }}">
+                        <td>{{ $line['code'] ?? '' }}</td><td>{{ $line['label'] }}</td><td class="text-end">{{ number_format($line['amount'], 2, ',', '.') }}</td>
+                    </tr>
+                @endforeach
+                @if(empty($report['lines']))
+                    <tr><td colspan="3" class="text-center text-secondary py-5">Belum ada data laba rugi.</td></tr>
+                @endif
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 @elseif(in_array($module,['purchases','receipts','payables','shifts','movements','opname','bom','production','production-results','material-usage','production-cost','fleet','deliveries','operations','fleet-costs','journals'],true))
 <div class="card shadow-sm"><div class="card-header fw-semibold">Data {{ $title }}</div><div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>ID</th><th>Referensi</th><th>Tanggal</th><th>Status</th><th class="text-end">Nilai</th></tr></thead><tbody>@forelse($rows as $r)<tr><td>{{ $r->id }}</td><td>{{ $r->invoice_no ?? $r->purchase_no ?? $r->delivery_no ?? $r->production_no ?? $r->journal_no ?? ($r->code ?? '-') }}</td><td>{{ $r->sale_date ?? $r->purchase_date ?? $r->payment_date ?? $r->operation_date ?? $r->cost_date ?? $r->journal_date ?? $r->created_at ?? '-' }}</td><td><span class="badge text-bg-secondary">{{ $r->status ?? $r->method ?? $r->movement_type ?? 'data' }}</span></td><td class="text-end">Rp {{ number_format($r->total ?? $r->amount ?? $r->total_cost ?? 0,0,',','.') }}</td></tr>@empty<tr><td colspan="5" class="text-center text-secondary py-4">Belum ada data.</td></tr>@endforelse</tbody></table></div>@if(is_object($rows) && method_exists($rows,'links'))<div class="card-footer">{{ $rows->links() }}</div>@endif</div>
 @endif
