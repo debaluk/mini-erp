@@ -61,109 +61,50 @@
 <nav class="navbar navbar-expand-xl navbar-dark bg-dark sticky-top shadow-sm">
     <div class="container-fluid px-3">
         <a class="navbar-brand fw-bold" href="{{ route('dashboard') }}">Mini ERP</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topMenu" aria-controls="topMenu" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topMenu" aria-controls="topMenu" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
         <div class="collapse navbar-collapse" id="topMenu">
             <ul class="navbar-nav me-auto mb-2 mb-xl-0">
                 <li class="nav-item"><a class="nav-link" href="{{ route('dashboard') }}">Dashboard</a></li>
-
                 @if(in_array(auth()->user()->role, ['owner','admin']))
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">MASTER</a>
-                    <ul class="dropdown-menu">
-                        @foreach(['products'=>'Produk','customers'=>'Customer','suppliers'=>'Supplier','warehouses'=>'Gudang','units'=>'Satuan','unit-conversions'=>'Konversi Satuan','tariffs'=>'Tarif','vehicles'=>'Kendaraan','drivers'=>'Driver'] as $route=>$label)
-                            <li><a class="dropdown-item" href="{{ route('master.'.$route) }}">{{ $label }}</a></li>
-                        @endforeach
-                    </ul>
-                </li>
+                <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">MASTER DATA</a><ul class="dropdown-menu">
+                    @foreach(['products'=>'Produk','customers'=>'Customer','suppliers'=>'Supplier','warehouses'=>'Gudang','units'=>'Satuan','unit-conversions'=>'Konversi Satuan','tariffs'=>'Tarif','vehicles'=>'Kendaraan','drivers'=>'Driver'] as $route=>$label)<li><a class="dropdown-item" href="{{ route('master.'.$route) }}">{{ $label }}</a></li>@endforeach
+                </ul></li>
                 @endif
-
                 @if(in_array(auth()->user()->role, ['owner','kasir']))
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">PENJUALAN / POS</a>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="{{ route('erp.pos') }}">POS</a></li>
-                        <li><a class="dropdown-item" href="{{ route('erp.sales') }}">Transaksi Penjualan</a></li>
-                        <li><a class="dropdown-item" href="{{ route('erp.payments') }}">Pembayaran</a></li>
-                        <li><a class="dropdown-item" href="{{ route('erp.shifts') }}">Shift Kasir</a></li>
-                    </ul>
-                </li>
+                <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">POS RETAIL</a><ul class="dropdown-menu">
+                    <li><a class="dropdown-item fw-semibold" href="{{ route('pos') }}">POS</a></li><li><a class="dropdown-item" href="{{ route('penjualan') }}">Penjualan</a></li><li><a class="dropdown-item" href="{{ route('pembayaran') }}">Pembayaran</a></li><li><a class="dropdown-item text-secondary" href="#">Retur</a></li><li><a class="dropdown-item" href="{{ route('shift') }}">Kasir / Shift</a></li>
+                </ul></li>
                 @endif
-
-                @if(in_array(auth()->user()->role, ['owner','inventori','akuntansi']))
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">PEMBELIAN</a>
-                    <ul class="dropdown-menu">
-                        @if(in_array(auth()->user()->role, ['owner','inventori']))
-                            <li><a class="dropdown-item" href="{{ route('erp.purchases') }}">Pembelian</a></li>
-                            <li><a class="dropdown-item" href="{{ route('erp.receipts') }}">Penerimaan Barang</a></li>
-                        @endif
-                        <li><a class="dropdown-item" href="{{ route('erp.payables') }}">Hutang</a></li>
-                    </ul>
-                </li>
-                @endif
-
                 @if(in_array(auth()->user()->role, ['owner','inventori']))
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">INVENTORI</a>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="{{ route('erp.stock') }}">Stok</a></li>
-                        <li><a class="dropdown-item" href="{{ route('erp.movements') }}">Mutasi Stok</a></li>
-                        <li><a class="dropdown-item" href="{{ route('erp.opname') }}">Stock Opname</a></li>
-                    </ul>
-                </li>
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">PRODUKSI BATAKO</a>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="{{ route('erp.bom') }}">Formula / BOM</a></li>
-                        <li><a class="dropdown-item" href="{{ route('erp.production') }}">Produksi</a></li>
-                        <li><a class="dropdown-item" href="{{ route('erp.production-results') }}">Hasil Produksi</a></li>
-                        <li><a class="dropdown-item" href="{{ route('erp.material-usage') }}">Pemakaian Bahan</a></li>
-                        <li><a class="dropdown-item" href="{{ route('erp.production-cost') }}">HPP Produksi</a></li>
-                    </ul>
-                </li>
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">ARMADA</a>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="{{ route('erp.fleet') }}">Kendaraan</a></li>
-                        <li><a class="dropdown-item" href="{{ route('erp.deliveries') }}">Pengiriman</a></li>
-                        <li><a class="dropdown-item" href="{{ route('erp.operations') }}">Operasional Armada</a></li>
-                        <li><a class="dropdown-item" href="{{ route('erp.fleet-costs') }}">Biaya Armada</a></li>
-                    </ul>
-                </li>
+                <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">PRODUKSI</a><ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="{{ route('produksi.bom') }}">BOM / Formula</a></li><li><a class="dropdown-item" href="{{ route('produksi') }}">Produksi</a></li><li><a class="dropdown-item" href="{{ route('produksi.pemakaian-bahan') }}">Pemakaian Bahan</a></li><li><a class="dropdown-item" href="{{ route('produksi.hasil-produksi') }}">Hasil Produksi</a></li><li><a class="dropdown-item" href="{{ route('produksi.reject') }}">Reject</a></li><li><a class="dropdown-item" href="{{ route('produksi.hpp') }}">HPP Produksi</a></li>
+                </ul></li>
+                <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">ARMADA &amp; JASA</a><ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="{{ route('armada.order-jasa') }}">Order Jasa</a></li><li><a class="dropdown-item" href="{{ route('armada.surat-jalan') }}">Surat Jalan</a></li><li><a class="dropdown-item" href="{{ route('armada.perjalanan') }}">Perjalanan</a></li>
+                </ul></li>
+                <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">INVENTORI</a><ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="{{ route('inventori.pembelian') }}">Pembelian</a></li><li><a class="dropdown-item" href="{{ route('inventori.penerimaan') }}">Penerimaan</a></li><li><a class="dropdown-item" href="{{ route('inventori.stok') }}">Stok</a></li><li><a class="dropdown-item" href="{{ route('inventori.transfer') }}">Transfer</a></li><li><a class="dropdown-item" href="{{ route('inventori.adjustment') }}">Adjustment</a></li><li><a class="dropdown-item" href="{{ route('inventori.stock-opname') }}">Stock Opname</a></li>
+                </ul></li>
                 @endif
-
                 @if(in_array(auth()->user()->role, ['owner','akuntansi']))
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">AKUNTANSI</a>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="{{ route('erp.journals') }}">Jurnal</a></li>
-                        <li><a class="dropdown-item" href="{{ route('erp.ledger') }}">Buku Besar</a></li>
-                        <li><a class="dropdown-item" href="{{ route('erp.payables') }}">Hutang</a></li>
-                        <li><a class="dropdown-item" href="{{ route('erp.receivables') }}">Piutang</a></li>
-                        <li><a class="dropdown-item" href="{{ route('erp.cashbank') }}">Kas & Bank</a></li>
-                        <li><a class="dropdown-item" href="{{ route('erp.cogs') }}">HPP</a></li>
-                        <li><a class="dropdown-item" href="{{ route('erp.profit-loss') }}">Laba Rugi</a></li>
-                        <li><a class="dropdown-item" href="{{ route('erp.balance-sheet') }}">Neraca</a></li>
-                        <li><a class="dropdown-item" href="{{ route('erp.cash-flow') }}">Arus Kas</a></li>
-                    </ul>
-                </li>
+                <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">AKUNTANSI</a><ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="{{ route('akuntansi.jurnal') }}">Jurnal</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.buku-besar') }}">Buku Besar</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.kas-bank') }}">Kas &amp; Bank</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.piutang') }}">Piutang</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.hutang') }}">Hutang</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.hpp') }}">HPP</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.laba-rugi') }}">Laba Rugi</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.neraca') }}">Neraca</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.arus-kas') }}">Arus Kas</a></li>
+                </ul></li>
+                @endif
+                @if(in_array(auth()->user()->role, ['owner','kasir','inventori','akuntansi']))
+                <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">LAPORAN</a><ul class="dropdown-menu">
+                    @if(in_array(auth()->user()->role, ['owner','kasir','akuntansi']))<li><a class="dropdown-item" href="{{ route('laporan.penjualan') }}">Penjualan</a></li>@endif
+                    @if(in_array(auth()->user()->role, ['owner','inventori','akuntansi']))<li><a class="dropdown-item" href="{{ route('laporan.pembelian') }}">Pembelian</a></li><li><a class="dropdown-item" href="{{ route('laporan.persediaan') }}">Persediaan</a></li><li><a class="dropdown-item" href="{{ route('laporan.produksi') }}">Produksi</a></li><li><a class="dropdown-item" href="{{ route('laporan.armada-jasa') }}">Armada &amp; Jasa</a></li><li><a class="dropdown-item" href="{{ route('laporan.hutang') }}">Hutang</a></li>@endif
+                    @if(in_array(auth()->user()->role, ['owner','akuntansi']))<li><a class="dropdown-item" href="{{ route('laporan.piutang') }}">Piutang</a></li><li><a class="dropdown-item" href="{{ route('laporan.keuangan') }}">Keuangan</a></li>@endif
+                </ul></li>
+                @endif
+                @if(in_array(auth()->user()->role, ['owner','admin']))
+                <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">PENGATURAN</a><ul class="dropdown-menu">
+                    <li><a class="dropdown-item text-secondary" href="#">User</a></li><li><a class="dropdown-item text-secondary" href="#">Role &amp; Hak Akses</a></li><li><a class="dropdown-item text-secondary" href="#">Entitas</a></li><li><a class="dropdown-item text-secondary" href="#">Konfigurasi</a></li>
+                </ul></li>
                 @endif
             </ul>
-
-            <div class="dropdown">
-                <button class="btn btn-outline-light btn-sm dropdown-toggle" data-bs-toggle="dropdown">
-                    {{ auth()->user()->name }} · {{ ucfirst(auth()->user()->role) }}
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    <li><span class="dropdown-item-text fw-semibold">{{ auth()->user()->name }}</span></li>
-                    <li><span class="dropdown-item-text text-secondary">Role: {{ ucfirst(auth()->user()->role) }}</span></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><form method="POST" action="{{ route('logout') }}">@csrf<button class="dropdown-item" type="submit">Logout</button></form></li>
-                </ul>
-            </div>
+            <div class="dropdown"><button class="btn btn-outline-light btn-sm dropdown-toggle" data-bs-toggle="dropdown">{{ auth()->user()->name }} · {{ ucfirst(auth()->user()->role) }}</button><ul class="dropdown-menu dropdown-menu-end"><li><span class="dropdown-item-text fw-semibold">{{ auth()->user()->name }}</span></li><li><span class="dropdown-item-text text-secondary">Role: {{ ucfirst(auth()->user()->role) }}</span></li><li><hr class="dropdown-divider"></li><li><form method="POST" action="{{ route('logout') }}">@csrf<button class="dropdown-item" type="submit">Logout</button></form></li></ul></div>
         </div>
     </div>
 </nav>
