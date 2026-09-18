@@ -1,5 +1,4 @@
 @extends('layouts.app')
-@section('content')
 <style>
     /* Mini ERP compact form UI */
     .erp-compact .form-label { font-size: .82rem; margin-bottom: .25rem; font-weight: 600; }
@@ -30,7 +29,10 @@
 <div class="table-responsive border rounded"><table class="table table-hover align-middle mb-0"><thead class="table-light"><tr><th>Kode</th><th>Nama Barang</th><th class="text-end">Harga</th><th class="text-end">Qty</th><th class="text-end">Diskon</th><th class="text-end">Sub Total</th></tr></thead><tbody>
 @php($posSubtotal=0)
 @forelse($posCart as $key=>$item)
-@php($line=(float)$item['price']*(float)$item['qty']; $posSubtotal+=$line)
+@php
+    $line = (float) $item['price'] * (float) $item['qty'];
+    $posSubtotal += $line;
+@endphp
 <tr data-bs-toggle="modal" data-bs-target="#posEditModal{{ $key }}" style="cursor:pointer"><td>{{ $item['code'] }}</td><td>{{ $item['name'] }}</td><td class="text-end">Rp {{ number_format($item['price'],0,',','.') }}</td><td class="text-end">{{ rtrim(rtrim(number_format($item['qty'],3,',','.'),'0'),',') }}</td><td class="text-end">—</td><td class="text-end fw-semibold">Rp {{ number_format($line,0,',','.') }}</td></tr>
 @empty<tr><td colspan="6" class="text-center text-secondary py-5">Belum ada barang. Pilih barang lalu klik Tambah Barang.</td></tr>@endforelse
 </tbody></table></div>
@@ -40,7 +42,10 @@
 <div class="modal-body"><div class="small text-secondary mb-3">{{ $item['code'] }} · {{ $item['name'] }}</div><label class="form-label">Harga Transaksi</label><input name="price" type="number" min="0" step="0.01" class="form-control mb-3" value="{{ $item['price'] }}" required><label class="form-label">Qty</label><input name="qty" type="number" min="0.001" step="0.001" class="form-control" value="{{ $item['qty'] }}" required></div>
 <div class="modal-footer justify-content-between"><button type="submit" formaction="{{ route('erp.pos.remove',$key) }}" formmethod="POST" class="btn btn-outline-danger" onclick="return confirm('Hapus barang ini dari transaksi?')">Hapus</button><button class="btn btn-primary">Simpan</button></div></form></div></div></div>
 @endforeach
-@php($posDiscount=old('discount',0)); $posTotal=max(0,$posSubtotal-(float)$posDiscount)
+@php
+    $posDiscount = old('discount', 0);
+    $posTotal = max(0, $posSubtotal - (float) $posDiscount);
+@endphp
 <div class="row justify-content-end mt-3"><div class="col-lg-5"><div class="border rounded p-3 bg-light">
 <div class="d-flex justify-content-between mb-2"><span>Subtotal</span><strong>Rp {{ number_format($posSubtotal,0,',','.') }}</strong></div>
 <form method="POST" action="{{ route('erp.pos.store') }}">@csrf
