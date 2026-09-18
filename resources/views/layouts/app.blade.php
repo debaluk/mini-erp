@@ -26,7 +26,14 @@
         main .card-header { padding: .5rem .75rem; }
         main form.row { --bs-gutter-x: .6rem; --bs-gutter-y: .45rem; }
     </style>
-<script>function openPosWindow(url){window.open(url,'miniErpPos','width=1200,height=780,left=80,top=60,toolbar=no,location=no,menubar=no,status=no,resizable=yes,scrollbars=yes');return false;}</script>
+<script>
+function openPosWindow(url){
+    const w = window.screen.availWidth;
+    const h = window.screen.availHeight;
+    window.open(url,'miniErpPos','width='+w+',height='+h+',left=0,top=0,toolbar=no,location=no,menubar=no,status=no,resizable=yes,scrollbars=yes');
+    return false;
+}
+</script>
 </head>
 <body class="bg-light">
 @if(!request()->routeIs('erp.pos'))
