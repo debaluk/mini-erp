@@ -24,7 +24,21 @@ class ModuleController extends Controller
         return [
             'module' => $module,
             'title' => $title,
-            'products' => DB::table('products')->where('entity_id', $entity)->where('is_active', 1)->orderBy('name')->get(),
+            'products' => DB::table('products as p')
+                ->where('p.entity_id', $entity)
+                ->where('p.is_active', 1)
+                ->leftJoin('product_units as pu', function ($join) {
+                    $join->on('pu.product_id', '=', 'p.id')
+                        ->where('pu.is_default', 1);
+                })
+                ->leftJoin(DB::raw('(SELECT product_id, SUM(qty) AS stock_qty FROM warehouses_stocks GROUP BY product_id) AS ws'), 'ws.product_id', '=', 'p.id')
+                ->orderBy('p.name')
+                ->select(
+                    'p.*',
+                    'pu.unit_id as selling_unit_id',
+                    DB::raw('COALESCE(ws.stock_qty, 0) as stock_qty')
+                )
+                ->get(),
             'warehouses' => DB::table('warehouses')->where('entity_id', $entity)->where('is_active', 1)->orderBy('name')->get(),
             'vehicles' => DB::table('vehicles')->where('entity_id', $entity)->where('status', 'active')->orderBy('code')->get(),
             'drivers' => DB::table('drivers')->where('entity_id', $entity)->where('is_active', 1)->orderBy('name')->get(),
