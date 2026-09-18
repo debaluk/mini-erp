@@ -559,6 +559,56 @@ document.addEventListener('DOMContentLoaded', function () {
         </div>
     </div>
 </div>
+@elseif($module==='cash-flow')
+<div class="card shadow-sm mb-4">
+    <div class="card-header fw-semibold">Arus Kas</div>
+    <div class="card-body border-bottom py-2">
+        <form method="GET" class="d-flex align-items-end gap-2 flex-nowrap" style="white-space:nowrap;">
+            <div><label class="form-label mb-1">Mulai tanggal</label><input type="date" name="start_date" class="form-control" value="{{ request('start_date', now()->startOfMonth()->toDateString()) }}"></div>
+            <div><label class="form-label mb-1">Sampai tanggal</label><input type="date" name="end_date" class="form-control" value="{{ request('end_date', now()->endOfMonth()->toDateString()) }}"></div>
+            <button class="btn btn-primary">Tampilkan</button>
+            <a href="{{ route('akuntansi.arus-kas.export-excel', request()->only(['start_date','end_date'])) }}" class="btn btn-success text-nowrap" title="Export Excel">⬇ Export Excel</a>
+        </form>
+    </div>
+    <div class="card-body">
+        <div class="text-center mb-4">
+            <h5 class="mb-1">{{ $entity->name ?? 'Entitas Utama' }}</h5>
+            <div class="fw-semibold">LAPORAN ARUS KAS</div>
+            <small class="text-secondary">Periode {{ request('start_date', now()->startOfMonth()->toDateString()) }} s/d {{ request('end_date', now()->endOfMonth()->toDateString()) }}</small>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead class="table-light"><tr><th>Uraian</th><th class="text-end">Jumlah (Rp)</th></tr></thead>
+                <tbody>
+                    <tr class="fw-bold table-light"><td>ARUS KAS DARI AKTIVITAS OPERASI</td><td></td></tr>
+                    <tr><td class="ps-4">Penerimaan dari Penjualan</td><td class="text-end">Rp 0</td></tr>
+                    <tr><td class="ps-4">Penerimaan dari Customer</td><td class="text-end">Rp 0</td></tr>
+                    <tr><td class="ps-4">Pembayaran kepada Supplier</td><td class="text-end">Rp 0</td></tr>
+                    <tr><td class="ps-4">Pembayaran Beban Operasional</td><td class="text-end">Rp 0</td></tr>
+                    <tr><td class="ps-4">Pembayaran Biaya Operasional Lainnya</td><td class="text-end">Rp 0</td></tr>
+                    <tr class="fw-bold border-top"><td>TOTAL ARUS KAS OPERASI</td><td class="text-end">Rp 0</td></tr>
+                    <tr><td colspan="2">&nbsp;</td></tr>
+                    <tr class="fw-bold table-light"><td>ARUS KAS DARI AKTIVITAS INVESTASI</td><td></td></tr>
+                    <tr><td class="ps-4">Pembelian Kendaraan</td><td class="text-end">Rp 0</td></tr>
+                    <tr><td class="ps-4">Pembelian Peralatan</td><td class="text-end">Rp 0</td></tr>
+                    <tr><td class="ps-4">Pembelian Aset Tetap</td><td class="text-end">Rp 0</td></tr>
+                    <tr><td class="ps-4">Penjualan Aset Tetap</td><td class="text-end">Rp 0</td></tr>
+                    <tr class="fw-bold border-top"><td>TOTAL ARUS KAS INVESTASI</td><td class="text-end">Rp 0</td></tr>
+                    <tr><td colspan="2">&nbsp;</td></tr>
+                    <tr class="fw-bold table-light"><td>ARUS KAS DARI AKTIVITAS PENDANAAN</td><td></td></tr>
+                    <tr><td class="ps-4">Setoran Modal</td><td class="text-end">Rp 0</td></tr>
+                    <tr><td class="ps-4">Pengambilan Modal</td><td class="text-end">Rp 0</td></tr>
+                    <tr><td class="ps-4">Penerimaan Pinjaman</td><td class="text-end">Rp 0</td></tr>
+                    <tr><td class="ps-4">Pembayaran Pinjaman</td><td class="text-end">Rp 0</td></tr>
+                    <tr class="fw-bold border-top"><td>TOTAL ARUS KAS PENDANAAN</td><td class="text-end">Rp 0</td></tr>
+                    <tr class="fw-bold border-top"><td>KENAIKAN / (PENURUNAN) KAS</td><td class="text-end">Rp 0</td></tr>
+                    <tr class="fw-bold"><td>SALDO KAS AWAL</td><td class="text-end">Rp 0</td></tr>
+                    <tr class="fw-bold table-light"><td>SALDO KAS AKHIR</td><td class="text-end">Rp 0</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 @elseif(in_array($module,['purchases','receipts','payables','shifts','movements','opname','bom','production','production-results','material-usage','production-cost','fleet','deliveries','operations','fleet-costs','journals'],true))
 <div class="card shadow-sm"><div class="card-header fw-semibold">Data {{ $title }}</div><div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>ID</th><th>Referensi</th><th>Tanggal</th><th>Status</th><th class="text-end">Nilai</th></tr></thead><tbody>@forelse($rows as $r)<tr><td>{{ $r->id }}</td><td>{{ $r->invoice_no ?? $r->purchase_no ?? $r->delivery_no ?? $r->production_no ?? $r->journal_no ?? ($r->code ?? '-') }}</td><td>{{ $r->sale_date ?? $r->purchase_date ?? $r->payment_date ?? $r->operation_date ?? $r->cost_date ?? $r->journal_date ?? $r->created_at ?? '-' }}</td><td><span class="badge text-bg-secondary">{{ $r->status ?? $r->method ?? $r->movement_type ?? 'data' }}</span></td><td class="text-end">Rp {{ number_format($r->total ?? $r->amount ?? $r->total_cost ?? 0,0,',','.') }}</td></tr>@empty<tr><td colspan="5" class="text-center text-secondary py-4">Belum ada data.</td></tr>@endforelse</tbody></table></div>@if(is_object($rows) && method_exists($rows,'links'))<div class="card-footer">{{ $rows->links() }}</div>@endif</div>
 @endif
