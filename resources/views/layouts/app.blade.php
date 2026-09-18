@@ -21,7 +21,17 @@
             line-height: 1.2;
         }
         main textarea.form-control { height: auto; min-height: 52px; }
-        main .btn:not(.btn-close) { padding: .3rem .65rem; font-size: .82rem; }
+        main .btn:not(.btn-close) { padding: .25rem .55rem; font-size: .76rem; line-height: 1.2; }
+        main .table { font-size: .82rem; }
+        main .table thead th { font-size: .82rem; font-weight: 600; padding: .45rem .5rem; }
+        main .table tbody td { font-size: .82rem; padding: .4rem .5rem; }
+        main .dataTables_wrapper,
+        main .dataTables_wrapper .dt-info,
+        main .dataTables_wrapper .dt-paging,
+        main .dataTables_wrapper .dt-length,
+        main .dataTables_wrapper .dt-search { font-size: .82rem; }
+        main .dataTables_wrapper .dt-length select,
+        main .dataTables_wrapper .dt-search input { font-size: .82rem; padding: .2rem .45rem; min-height: 30px; }
         main .card-body { padding: .75rem; }
         main .card-header { padding: .5rem .75rem; }
         main form.row { --bs-gutter-x: .6rem; --bs-gutter-y: .45rem; }
