@@ -18,7 +18,7 @@
             @forelse($rows as $r)
                 <tr>
                     <td class="fw-semibold">{{ $r->return_no }}</td>
-                    <td>{{ CarbonCarbon::parse($r->return_date)->format('d-m-Y H:i') }}</td>
+                    <td>{{ Carbon\\Carbon::parse($r->return_date)->format('d-m-Y H:i') }}</td>
                     <td>{{ $r->invoice_no }}</td>
                     <td>{{ $r->customer_name }}</td>
                     <td>{{ $r->warehouse_name }}</td>
