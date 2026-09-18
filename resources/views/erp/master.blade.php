@@ -103,7 +103,10 @@ document.addEventListener('DOMContentLoaded', () => {
     form.addEventListener('submit',async e=>{
         e.preventDefault();
         const missing=validateRequired();
-        if(missing.length){return;}
+        if(missing.length){
+            form.querySelector('[data-required="1"].is-invalid')?.focus();
+            return;
+        }
         const url=editId?baseUrl+'/'+editId:baseUrl, method=editId?'PUT':'POST';
         try{
             const response=await fetch(url,{method,headers:{'X-Requested-With':'XMLHttpRequest','Accept':'application/json','X-CSRF-TOKEN':csrf},body:new FormData(form)});
