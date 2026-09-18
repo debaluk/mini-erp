@@ -35,17 +35,17 @@
         <div class="collapse navbar-collapse" id="topMenu">
             <ul class="navbar-nav me-auto mb-2 mb-xl-0">
                 <li class="nav-item"><a class="nav-link" href="{{ route('dashboard') }}">Dashboard</a></li>
-                @if(in_array(auth()->user()->role, ['owner','admin']))
+                @if(auth()->user()->hasModuleAccess('master_data'))
                 <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">MASTER DATA</a><ul class="dropdown-menu">
                     @foreach(['products'=>'Produk','customers'=>'Customer','suppliers'=>'Supplier','warehouses'=>'Gudang','units'=>'Satuan','unit-conversions'=>'Konversi Satuan','tariffs'=>'Tarif','vehicles'=>'Kendaraan','drivers'=>'Driver'] as $route=>$label)<li><a class="dropdown-item" href="{{ route('master.menu.'.match ($route) { 'products' => 'produk', 'customers' => 'customer', 'suppliers' => 'supplier', 'warehouses' => 'gudang', 'units' => 'satuan', 'unit-conversions' => 'konversi-satuan', 'tariffs' => 'tarif', 'vehicles' => 'kendaraan', 'drivers' => 'driver' }) }}">{{ $label }}</a></li>@endforeach
                 </ul></li>
                 @endif
-                @if(in_array(auth()->user()->role, ['owner','kasir']))
+                @if(auth()->user()->hasModuleAccess('pos_retail'))
                 <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">POS RETAIL</a><ul class="dropdown-menu">
                     <li><a class="dropdown-item fw-semibold" href="{{ route('pos.pos') }}" onclick="window.open(this.href, 'POSKasir', 'width=1400,height=900,resizable=yes,scrollbars=yes'); return false;">POS</a></li><li><a class="dropdown-item" href="{{ route('pos.penjualan') }}">Penjualan</a></li><li><a class="dropdown-item" href="{{ route('pos.pembayaran') }}">Pembayaran</a></li><li><a class="dropdown-item" href="{{ route('pos.retur') }}">Retur</a></li><li><a class="dropdown-item" href="{{ route('pos.shift') }}">Kasir / Shift</a></li>
                 </ul></li>
                 @endif
-                @if(in_array(auth()->user()->role, ['owner','inventori']))
+                @if(auth()->user()->hasAnyModuleAccess(['produksi','armada_jasa','inventori']))
                 <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">PRODUKSI</a><ul class="dropdown-menu">
                     <li><a class="dropdown-item" href="{{ route('produksi.bom') }}">BOM / Formula</a></li><li><a class="dropdown-item" href="{{ route('produksi') }}">Produksi</a></li><li><a class="dropdown-item" href="{{ route('produksi.pemakaian-bahan') }}">Pemakaian Bahan</a></li><li><a class="dropdown-item" href="{{ route('produksi.hasil-produksi') }}">Hasil Produksi</a></li><li><a class="dropdown-item" href="{{ route('produksi.reject') }}">Reject</a></li><li><a class="dropdown-item" href="{{ route('produksi.hpp') }}">HPP Produksi</a></li>
                 </ul></li>
@@ -56,16 +56,16 @@
                     <li><a class="dropdown-item" href="{{ route('inventori.pembelian') }}">Pembelian</a></li><li><a class="dropdown-item" href="{{ route('inventori.penerimaan') }}">Penerimaan</a></li><li><a class="dropdown-item" href="{{ route('inventori.stok') }}">Stok</a></li><li><a class="dropdown-item" href="{{ route('inventori.transfer') }}">Transfer</a></li><li><a class="dropdown-item" href="{{ route('inventori.adjustment') }}">Adjustment</a></li><li><a class="dropdown-item" href="{{ route('inventori.stock-opname') }}">Stock Opname</a></li>
                 </ul></li>
                 @endif
-                @if(in_array(auth()->user()->role, ['owner','akuntansi']))
+                @if(auth()->user()->hasModuleAccess('akuntansi'))
                 <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">AKUNTANSI</a><ul class="dropdown-menu">
                     <li><a class="dropdown-item" href="{{ route('akuntansi.akun') }}">Akun</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.jurnal') }}">Jurnal</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.buku-besar') }}">Buku Besar</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.kas-bank') }}">Kas &amp; Bank</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.laba-rugi') }}">Laba Rugi</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.neraca-saldo') }}">Neraca Saldo</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.neraca') }}">Neraca</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.arus-kas') }}">Arus Kas</a></li>
                 </ul></li>
                 @endif
-                @if(in_array(auth()->user()->role, ['owner','kasir','inventori','akuntansi']))
+                @if(auth()->user()->hasAnyModuleAccess(['pos_retail','produksi','armada_jasa','inventori','akuntansi','laporan']))
                 <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">LAPORAN</a><ul class="dropdown-menu">
-                    @if(in_array(auth()->user()->role, ['owner','kasir','akuntansi']))<li><a class="dropdown-item" href="{{ route('laporan.penjualan') }}">Penjualan</a></li>@endif
-                    @if(in_array(auth()->user()->role, ['owner','inventori','akuntansi']))<li><a class="dropdown-item" href="{{ route('laporan.pembelian') }}">Pembelian</a></li><li><a class="dropdown-item" href="{{ route('laporan.persediaan') }}">Persediaan</a></li><li><a class="dropdown-item" href="{{ route('laporan.produksi') }}">Produksi</a></li><li><a class="dropdown-item" href="{{ route('laporan.armada-jasa') }}">Armada &amp; Jasa</a></li><li><a class="dropdown-item" href="{{ route('laporan.hutang') }}">Hutang</a></li>@endif
-                    @if(in_array(auth()->user()->role, ['owner','akuntansi']))<li><a class="dropdown-item" href="{{ route('laporan.piutang') }}">Piutang</a></li><li><a class="dropdown-item" href="{{ route('laporan.keuangan') }}">Keuangan</a></li>@endif
+                    @if(auth()->user()->hasAnyModuleAccess(['pos_retail','akuntansi','laporan']))<li><a class="dropdown-item" href="{{ route('laporan.penjualan') }}">Penjualan</a></li>@endif
+                    @if(auth()->user()->hasAnyModuleAccess(['produksi','armada_jasa','inventori','akuntansi','laporan']))<li><a class="dropdown-item" href="{{ route('laporan.pembelian') }}">Pembelian</a></li><li><a class="dropdown-item" href="{{ route('laporan.persediaan') }}">Persediaan</a></li><li><a class="dropdown-item" href="{{ route('laporan.produksi') }}">Produksi</a></li><li><a class="dropdown-item" href="{{ route('laporan.armada-jasa') }}">Armada &amp; Jasa</a></li><li><a class="dropdown-item" href="{{ route('laporan.hutang') }}">Hutang</a></li>@endif
+                    @if(auth()->user()->hasAnyModuleAccess(['akuntansi','laporan']))<li><a class="dropdown-item" href="{{ route('laporan.piutang') }}">Piutang</a></li><li><a class="dropdown-item" href="{{ route('laporan.keuangan') }}">Keuangan</a></li>@endif
                 </ul></li>
                 @endif
                 @if(in_array(auth()->user()->role, ['superadmin','owner','admin']))
