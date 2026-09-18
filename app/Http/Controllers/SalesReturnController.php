@@ -246,9 +246,9 @@ class SalesReturnController extends Controller
                 ? $this->accountId($entity, $payment && in_array(strtolower($payment->method), ['transfer', 'qris'], true) ? ['Bank', 'Bank & Giro'] : ['Kas'])
                 : $this->accountId($entity, ['Piutang', 'Piutang Usaha', 'Piutang Dagang'], 'asset');
 
-            $returnAccount = $this->accountId($entity, ['Retur Penjualan'], 'revenue');
+            $returnAccount = $this->accountId($entity, ['Penjualan'], 'revenue');
             $inventoryAccount = $this->accountId($entity, ['Persediaan'], 'asset');
-            $cogsAccount = $this->accountId($entity, ['HPP Penjualan', 'HPP'], 'cogs');
+            $cogsAccount = $this->accountId($entity, ['HPP'], 'cogs');
 
             $description = 'Retur atas penjualan #' . $sale->invoice_no;
             $journalNo = 'JRN-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(3));
