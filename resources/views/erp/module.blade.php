@@ -59,38 +59,47 @@
 <div class="card shadow-sm mb-4">
     <div class="card-header fw-semibold">Neraca Saldo</div>
     <div class="card-body border-bottom py-2">
-        <form method="GET" class="d-flex align-items-end gap-2 flex-nowrap" style="white-space:nowrap;">
-            <div><label class="form-label mb-1">Mulai tanggal</label><input type="date" name="start_date" class="form-control" value="{{ request('start_date', now()->startOfMonth()->toDateString()) }}"></div>
-            <div><label class="form-label mb-1">Sampai tanggal</label><input type="date" name="end_date" class="form-control" value="{{ request('end_date', now()->endOfMonth()->toDateString()) }}"></div>
-            <button class="btn btn-primary">Tampilkan</button>
-        </form>
+        <div class="d-flex align-items-end gap-2 flex-nowrap" style="white-space:nowrap;">
+            <form method="GET" class="d-flex align-items-end gap-2 flex-nowrap">
+                <div><label class="form-label mb-1">Mulai tanggal</label><input type="date" name="start_date" class="form-control" value="{{ request('start_date', now()->startOfMonth()->toDateString()) }}"></div>
+                <div><label class="form-label mb-1">Sampai tanggal</label><input type="date" name="end_date" class="form-control" value="{{ request('end_date', now()->endOfMonth()->toDateString()) }}"></div>
+                <button class="btn btn-primary">Tampilkan</button>
+            </form>
+            <a href="{{ route('akuntansi.neraca-saldo.export-excel', request()->only(['start_date','end_date'])) }}" class="btn btn-success text-nowrap" title="Export Excel">⬇ Export Excel</a>
+        </div>
     </div>
     <div class="card-body">
         <div class="text-center mb-4">
             <h5 class="mb-1">{{ $entity->name ?? 'Entitas Utama' }}</h5>
             <div class="fw-semibold">NERACA SALDO</div>
-            <small class="text-secondary">Per {{ request('end_date', now()->endOfMonth()->toDateString()) }}</small>
+            <small class="text-secondary">Periode {{ request('start_date', now()->startOfMonth()->toDateString()) }} s/d {{ request('end_date', now()->endOfMonth()->toDateString()) }}</small>
         </div>
         <div class="table-responsive">
             <table class="table table-hover align-middle">
                 <thead class="table-light">
-                    <tr><th>Kode</th><th>Nama Akun</th><th class="text-end">Debit</th><th class="text-end">Kredit</th><th class="text-end">Saldo</th></tr>
+                    <tr><th>Kode</th><th>Nama Akun</th><th class="text-end">Saldo Awal</th><th class="text-end">Debit</th><th class="text-end">Kredit</th><th class="text-end">Saldo Akhir</th></tr>
                 </thead>
                 <tbody>
                     @forelse($report['lines'] as $r)
                     <tr>
-                        <td>{{ $r['code'] }}</td>
-                        <td>{{ $r['label'] }}</td>
+                        <td>{{ $r['code'] }}</td><td>{{ $r['label'] }}</td>
+                        <td class="text-end">Rp {{ number_format(abs($r['opening']),0,',','.') }} {{ $r['opening'] >= 0 ? 'D' : 'K' }}</td>
                         <td class="text-end">Rp {{ number_format($r['debit'],0,',','.') }}</td>
                         <td class="text-end">Rp {{ number_format($r['credit'],0,',','.') }}</td>
                         <td class="text-end fw-semibold">Rp {{ number_format(abs($r['balance']),0,',','.') }} {{ $r['balance'] >= 0 ? 'D' : 'K' }}</td>
                     </tr>
                     @empty
-                    <tr><td colspan="5" class="text-center text-secondary py-4">Belum ada akun detail.</td></tr>
+                    <tr><td colspan="6" class="text-center text-secondary py-4">Belum ada akun detail.</td></tr>
                     @endforelse
                 </tbody>
                 <tfoot class="table-light fw-semibold">
-                    <tr><td colspan="2" class="text-end">TOTAL</td><td class="text-end">Rp {{ number_format($report['debit_total'] ?? 0,0,',','.') }}</td><td class="text-end">Rp {{ number_format($report['credit_total'] ?? 0,0,',','.') }}</td><td></td></tr>
+                    <tr>
+                        <td colspan="2" class="text-end">TOTAL</td>
+                        <td class="text-end">Rp {{ number_format(abs($report['opening_total'] ?? 0),0,',','.') }} {{ ($report['opening_total'] ?? 0) >= 0 ? 'D' : 'K' }}</td>
+                        <td class="text-end">Rp {{ number_format($report['debit_total'] ?? 0,0,',','.') }}</td>
+                        <td class="text-end">Rp {{ number_format($report['credit_total'] ?? 0,0,',','.') }}</td>
+                        <td class="text-end">Rp {{ number_format(abs($report['balance_total'] ?? 0),0,',','.') }} {{ ($report['balance_total'] ?? 0) >= 0 ? 'D' : 'K' }}</td>
+                    </tr>
                 </tfoot>
             </table>
         </div>
