@@ -43,14 +43,20 @@ class AccountController extends Controller
     public function index()
     {
         $entity = $this->entityId();
-        $accounts = DB::table('chart_of_accounts as a')
-            ->leftJoin('chart_of_accounts as p', 'p.id', '=', 'a.parent_id')
-            ->where('a.entity_id', $entity)
-            ->select('a.*', 'p.code as parent_code', 'p.name as parent_name')
-            ->orderBy('a.code')
+
+        // Tampilan awal hanya akun utama agar mudah dipahami user UKM.
+        $accounts = DB::table('chart_of_accounts')
+            ->where('entity_id', $entity)
+            ->where('level', 1)
+            ->orderBy('code')
             ->get();
 
-        return view('akuntansi.akun', compact('accounts'));
+        $nextCodes = [];
+        foreach ($accounts as $account) {
+            $nextCodes[$account->id] = $this->nextCode($entity, $account);
+        }
+
+        return view('akuntansi.akun', compact('accounts', 'nextCodes'));
     }
 
     public function exportExcel()
