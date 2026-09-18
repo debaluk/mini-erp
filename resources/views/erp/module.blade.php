@@ -105,6 +105,85 @@
 </div>
 @endif
 
+@if($module==='balance-sheet')
+<div class="card shadow-sm mb-4">
+    <div class="card-header fw-semibold">Neraca</div>
+    <div class="card-body border-bottom py-2">
+        <form method="GET" class="d-flex align-items-end gap-2 flex-nowrap" style="white-space:nowrap;">
+            <div>
+                <label class="form-label mb-1">Per tanggal</label>
+                <input type="date" name="end_date" class="form-control" value="{{ request('end_date', now()->endOfMonth()->toDateString()) }}">
+            </div>
+            <button class="btn btn-primary">Tampilkan</button>
+            <a href="{{ route('akuntansi.neraca.export-excel', request()->only(['end_date'])) }}" class="btn btn-success text-nowrap" title="Export Excel">⬇ Export Excel</a>
+        </form>
+    </div>
+    <div class="card-body">
+        <div class="text-center mb-4">
+            <h5 class="mb-1">{{ $entity->name ?? 'Entitas Utama' }}</h5>
+            <div class="fw-semibold">NERACA</div>
+            <small class="text-secondary">Per tanggal {{ date('d-m-Y', strtotime(request('end_date', now()->endOfMonth()->toDateString()))) }}</small>
+        </div>
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <div class="fw-semibold border-bottom pb-2 mb-2">ASET</div>
+                @forelse(($report['balance_sheet_lines']['asset'] ?? []) as $r)
+                    <div class="d-flex justify-content-between py-1">
+                        <span>{{ $r['code'] }} {{ $r['label'] }}</span>
+                        <span>Rp {{ number_format($r['amount'],0,',','.') }}</span>
+                    </div>
+                @empty
+                    <div class="text-secondary py-2">Belum ada saldo aset.</div>
+                @endforelse
+                <div class="d-flex justify-content-between border-top pt-2 mt-2 fw-semibold">
+                    <span>TOTAL ASET</span>
+                    <span>Rp {{ number_format($report['total_assets'] ?? 0,0,',','.') }}</span>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="fw-semibold border-bottom pb-2 mb-2">LIABILITAS</div>
+                @forelse(($report['balance_sheet_lines']['liability'] ?? []) as $r)
+                    <div class="d-flex justify-content-between py-1">
+                        <span>{{ $r['code'] }} {{ $r['label'] }}</span>
+                        <span>Rp {{ number_format($r['amount'],0,',','.') }}</span>
+                    </div>
+                @empty
+                    <div class="text-secondary py-2">Belum ada saldo liabilitas.</div>
+                @endforelse
+                <div class="d-flex justify-content-between border-top pt-2 mt-2 fw-semibold">
+                    <span>TOTAL LIABILITAS</span>
+                    <span>Rp {{ number_format($report['balance_sheet_totals']['liability'] ?? 0,0,',','.') }}</span>
+                </div>
+
+                <div class="fw-semibold border-bottom pb-2 mb-2 mt-4">EKUITAS</div>
+                @forelse(($report['balance_sheet_lines']['equity'] ?? []) as $r)
+                    <div class="d-flex justify-content-between py-1">
+                        <span>{{ $r['code'] }} {{ $r['label'] }}</span>
+                        <span>Rp {{ number_format($r['amount'],0,',','.') }}</span>
+                    </div>
+                @empty
+                    <div class="text-secondary py-2">Belum ada saldo ekuitas.</div>
+                @endforelse
+                <div class="d-flex justify-content-between border-top pt-2 mt-2 fw-semibold">
+                    <span>TOTAL EKUITAS</span>
+                    <span>Rp {{ number_format($report['balance_sheet_totals']['equity'] ?? 0,0,',','.') }}</span>
+                </div>
+                <div class="d-flex justify-content-between border-top pt-2 mt-2 fw-semibold">
+                    <span>TOTAL LIABILITAS + EKUITAS</span>
+                    <span>Rp {{ number_format($report['total_liabilities_equity'] ?? 0,0,',','.') }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="alert {{ abs((float)($report['balance_difference'] ?? 0)) < 0.01 ? 'alert-success' : 'alert-warning' }} mt-4 mb-0">
+            <div class="d-flex justify-content-between">
+                <span class="fw-semibold">Selisih Neraca</span>
+                <span class="fw-semibold">Rp {{ number_format(abs($report['balance_difference'] ?? 0),0,',','.') }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+
 @if(in_array($module,['ledger','receivables','cashbank','cogs','balance-sheet','cash-flow'],true))
 <div class="card shadow-sm mb-4"><div class="card-header d-flex justify-content-between"><span class="fw-semibold">Laporan {{ $title }}</span><span class="badge text-bg-primary">Total Rp {{ number_format($report['total'] ?? 0,0,',','.') }}</span></div><div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>Uraian</th><th class="text-end">Debit / Nilai</th><th class="text-end">Kredit / Saldo</th></tr></thead><tbody>
 @if($module==='ledger') @forelse($report['lines'] as $r)<tr><td>{{ $r->journal_date }} · {{ $r->journal_no }} · {{ $r->description }} · {{ $r->code }} {{ $r->name }}</td><td class="text-end">Rp {{ number_format($r->debit,0,',','.') }}</td><td class="text-end">Rp {{ number_format($r->credit,0,',','.') }}</td></tr>@empty<tr><td colspan="3" class="text-center text-secondary py-4">Belum ada jurnal.</td></tr>@endforelse
