@@ -130,10 +130,10 @@ document.addEventListener('DOMContentLoaded', function () {
             zeroRecords: 'Data tidak ditemukan',
             emptyTable: 'Belum ada data',
             paginate: {
-                first: 'Pertama',
-                previous: 'Sebelumnya',
-                next: 'Berikutnya',
-                last: 'Terakhir'
+                first: '<<',
+                previous: '<',
+                next: '>',
+                last: '>>'
             }
         },
         ajax: {
