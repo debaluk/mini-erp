@@ -8,7 +8,7 @@
     <td>{{ $typeLabels[$account->type] ?? $account->type }}</td>
     <td>{{ ucfirst($account->normal_balance) }}</td>
     <td class="text-end">
-        @if((int) $account->level > 0)
+        @if(strlen((string) $account->code) > 3)
             <button class="btn btn-sm btn-outline-secondary me-1"
                     data-bs-toggle="modal"
                     data-bs-target="#account-edit-{{ $account->id }}">Edit</button>
