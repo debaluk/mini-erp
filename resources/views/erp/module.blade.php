@@ -362,6 +362,12 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 @endpush
 @elseif($module === 'profit-loss')
+@php
+    $revenue = collect($report['lines'] ?? [])->where('type','revenue');
+    $cogs = collect($report['lines'] ?? [])->where('type','cogs');
+    $expense = collect($report['lines'] ?? [])->where('type','expense');
+    $money = fn($v) => number_format((float)$v, 2, ',', '.');
+@endphp
 <div class="card shadow-sm">
     <div class="card-header fw-semibold">Laba Rugi</div>
     <div class="card-body border-bottom py-2">
@@ -381,14 +387,31 @@ document.addEventListener('DOMContentLoaded', function () {
             <table class="table align-middle">
                 <thead class="table-light"><tr><th>Kode</th><th>Nama Akun</th><th class="text-end">Jumlah</th></tr></thead>
                 <tbody>
-                @foreach(($report['lines'] ?? []) as $line)
-                    <tr class="{{ in_array($line['label'], ['TOTAL PENDAPATAN','TOTAL HPP','TOTAL BIAYA','LABA KOTOR','LABA / (RUGI) BERSIH']) ? 'fw-bold border-top' : '' }}">
-                        <td>{{ $line['code'] ?? '' }}</td><td>{{ $line['label'] }}</td><td class="text-end">{{ number_format($line['amount'], 2, ',', '.') }}</td>
-                    </tr>
-                @endforeach
-                @if(empty($report['lines']))
-                    <tr><td colspan="3" class="text-center text-secondary py-5">Belum ada data laba rugi.</td></tr>
-                @endif
+                    <tr class="fw-bold table-light"><td colspan="2">PENDAPATAN</td><td></td></tr>
+                    @forelse($revenue as $line)
+                        <tr><td>{{ $line['code'] }}</td><td>{{ $line['label'] }}</td><td class="text-end">{{ $money($line['amount']) }}</td></tr>
+                    @empty
+                        <tr><td colspan="3" class="text-center text-secondary">Belum ada pendapatan.</td></tr>
+                    @endforelse
+                    <tr class="fw-bold border-top"><td colspan="2">TOTAL PENDAPATAN</td><td class="text-end">{{ $money($report['revenue'] ?? 0) }}</td></tr>
+
+                    <tr class="fw-bold table-light"><td colspan="2">HPP</td><td></td></tr>
+                    @forelse($cogs as $line)
+                        <tr><td>{{ $line['code'] }}</td><td>{{ $line['label'] }}</td><td class="text-end">{{ $money($line['amount']) }}</td></tr>
+                    @empty
+                        <tr><td colspan="3" class="text-center text-secondary">Belum ada HPP.</td></tr>
+                    @endforelse
+                    <tr class="fw-bold border-top"><td colspan="2">TOTAL HPP</td><td class="text-end">{{ $money($report['cogs'] ?? 0) }}</td></tr>
+                    <tr class="fw-bold border-top"><td colspan="2">LABA KOTOR</td><td class="text-end">{{ $money($report['gross_profit'] ?? 0) }}</td></tr>
+
+                    <tr class="fw-bold table-light"><td colspan="2">BIAYA</td><td></td></tr>
+                    @forelse($expense as $line)
+                        <tr><td>{{ $line['code'] }}</td><td>{{ $line['label'] }}</td><td class="text-end">{{ $money($line['amount']) }}</td></tr>
+                    @empty
+                        <tr><td colspan="3" class="text-center text-secondary">Belum ada biaya.</td></tr>
+                    @endforelse
+                    <tr class="fw-bold border-top"><td colspan="2">TOTAL BIAYA</td><td class="text-end">{{ $money($report['expense'] ?? 0) }}</td></tr>
+                    <tr class="fw-bold border-top table-light"><td colspan="2">LABA / (RUGI) BERSIH</td><td class="text-end">{{ $money($report['net_profit'] ?? 0) }}</td></tr>
                 </tbody>
             </table>
         </div>
