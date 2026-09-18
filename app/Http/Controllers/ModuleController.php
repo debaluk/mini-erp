@@ -476,10 +476,72 @@ class ModuleController extends Controller
             $result['opening_total']=$openingTotal; $result['debit_total']=$debitTotal; $result['credit_total']=$creditTotal; $result['balance_total']=$balanceTotal;
             $result['total']=$balanceTotal;
         } elseif ($module === 'balance-sheet') {
-            $stock = (float) DB::table('warehouses_stocks')->where('entity_id',$entity)->selectRaw('COALESCE(SUM(qty * avg_cost),0) v')->value('v');
-            $cash = (float) DB::table('payments')->where('entity_id',$entity)->sum('amount');
-            $result['lines'] = [['label'=>'Kas & penerimaan','amount'=>$cash],['label'=>'Persediaan','amount'=>$stock]];
-            $result['total'] = $cash+$stock;
+            // Neraca: posisi akun neraca per tanggal yang dipilih.
+            $asOf = $endDate;
+
+            $totals = DB::table('journal_entries as e')
+                ->join('journals as j','j.id','=','e.journal_id')
+                ->where('j.entity_id',$entity)
+                ->where('j.status','posted')
+                ->where('j.journal_date','<=',$asOf)
+                ->groupBy('e.account_id')
+                ->select('e.account_id',DB::raw('SUM(e.debit) as debit'),DB::raw('SUM(e.credit) as credit'));
+
+            $accounts = DB::table('chart_of_accounts as a')
+                ->leftJoinSub($totals,'jt',fn($join)=>$join->on('jt.account_id','=','a.id'))
+                ->where('a.entity_id',$entity)
+                ->where('a.is_active',1)
+                ->where('a.level',3)
+                ->whereIn('a.type',['asset','liability','equity'])
+                ->orderBy('a.code')
+                ->select('a.id','a.code','a.name','a.type',
+                    DB::raw('COALESCE(jt.debit,0) as debit'),
+                    DB::raw('COALESCE(jt.credit,0) as credit'))
+                ->get();
+
+            $lines=['asset'=>[],'liability'=>[],'equity'=>[]];
+            $totalsByType=['asset'=>0,'liability'=>0,'equity'=>0];
+
+            foreach($accounts as $a){
+                $amount = $a->type === 'asset'
+                    ? (float)$a->debit - (float)$a->credit
+                    : (float)$a->credit - (float)$a->debit;
+                $lines[$a->type][]=[
+                    'code'=>$a->code,'label'=>$a->name,'amount'=>$amount
+                ];
+                $totalsByType[$a->type]+=$amount;
+            }
+
+            // Pendapatan, HPP, dan biaya yang belum ditutup ke laba ditahan
+            // menjadi "Laba Tahun Berjalan" pada sisi ekuitas.
+            $profitRows = DB::table('journal_entries as e')
+                ->join('journals as j','j.id','=','e.journal_id')
+                ->join('chart_of_accounts as a','a.id','=','e.account_id')
+                ->where('j.entity_id',$entity)
+                ->where('j.status','posted')
+                ->where('j.journal_date','<=',$asOf)
+                ->whereIn('a.type',['revenue','cogs','expense'])
+                ->select('a.type',DB::raw('SUM(e.debit) as debit'),DB::raw('SUM(e.credit) as credit'))
+                ->groupBy('a.type')
+                ->get();
+
+            $profit=0;
+            foreach($profitRows as $p){
+                $profit += $p->type === 'revenue'
+                    ? (float)$p->credit-(float)$p->debit
+                    : (float)$p->debit-(float)$p->credit;
+            }
+            if(abs($profit)>0.00001){
+                $lines['equity'][]=['code'=>'','label'=>'Laba Tahun Berjalan','amount'=>$profit];
+                $totalsByType['equity'] += $profit;
+            }
+
+            $result['balance_sheet_lines']=$lines;
+            $result['balance_sheet_totals']=$totalsByType;
+            $result['total_assets']=$totalsByType['asset'];
+            $result['total_liabilities_equity']=$totalsByType['liability']+$totalsByType['equity'];
+            $result['balance_difference']=$totalsByType['asset']-$result['total_liabilities_equity'];
+            $result['total']=$totalsByType['asset'];
         } elseif ($module === 'cash-flow') {
             $in = (float) DB::table('payments')->where('entity_id',$entity)->sum('amount');
             $out = (float) DB::table('purchases')->where('entity_id',$entity)->sum('total');
