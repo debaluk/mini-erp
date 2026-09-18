@@ -126,6 +126,10 @@ class PosController extends Controller
         $changeAmount = $paidAmount - $total;
 
         abort_if($paidAmount < $total, 422, 'Nominal pembayaran kurang.');
+        if ($data['payment_method'] !== 'Tunai') {
+            abort_if(round($paidAmount, 2) !== round($total, 2), 422, 'Transfer/QRIS harus dibayar tepat sesuai total.');
+            $changeAmount = 0;
+        }
 
         $invoiceNo = 'POS-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4));
 
