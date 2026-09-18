@@ -7,6 +7,7 @@ use App\Http\Controllers\ErpController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\PosController;
 use App\Http\Controllers\ProductionController;
+use App\Http\Controllers\UnitConversionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -19,6 +20,10 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    Route::get('/master/unit-conversions', [UnitConversionController::class, 'index'])->middleware('role:owner,admin')->name('master.unit-conversions');
+    Route::post('/master/unit-conversions', [UnitConversionController::class, 'store'])->middleware('role:owner,admin')->name('master.unit-conversions.store');
+    Route::delete('/master/unit-conversions/{id}', [UnitConversionController::class, 'destroy'])->middleware('role:owner,admin')->name('master.unit-conversions.delete');
 
     $masterTypes = ['products','customers','suppliers','warehouses','units','tariffs','vehicles','drivers'];
     foreach ($masterTypes as $type) {
