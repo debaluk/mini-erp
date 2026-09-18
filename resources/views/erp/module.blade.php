@@ -71,7 +71,7 @@
 @elseif($module==='sales')
 <div class="card shadow-sm mb-3">
     <div class="card-header fw-semibold">Register Penjualan</div>
-    <div class="card-body border-top-0 py-2">
+    <div class="card-body border-bottom py-2">
         <form id="sales-period-filter" class="d-flex align-items-end gap-2 flex-nowrap" style="white-space:nowrap;">
             <div>
                 <label for="sales-start-date" class="form-label mb-1">Mulai tanggal</label>
