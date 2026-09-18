@@ -72,7 +72,7 @@
 <div class="card shadow-sm mb-3">
     <div class="card-header fw-semibold">Register Penjualan</div>
     <div class="card-body border-bottom py-2">
-        <form id="sales-period-filter" class="d-flex align-items-end gap-2 flex-nowrap">
+        <form id="sales-period-filter" class="d-flex align-items-end gap-2 flex-nowrap" style="white-space:nowrap;">
             <div>
                 <label for="sales-start-date" class="form-label mb-1">Mulai tanggal</label>
                 <input type="date" id="sales-start-date" class="form-control" value="{{ request('start_date', now()->startOfMonth()->format('Y-m-d')) }}">
@@ -83,6 +83,9 @@
             </div>
             <div>
                 <button type="submit" class="btn btn-primary">Tampilkan</button>
+            </div>
+            <div>
+                <button type="button" id="sales-export-excel" class="btn btn-success">Export Excel</button>
             </div>
         </form>
     </div>
@@ -149,6 +152,14 @@ document.addEventListener('DOMContentLoaded', function () {
         ]
     });
 
+    document.getElementById('sales-export-excel').addEventListener('click', function () {
+        const start = document.getElementById('sales-start-date').value;
+        const end = document.getElementById('sales-end-date').value;
+        if (!start || !end) { alert('Periode tanggal wajib diisi.'); return; }
+        if (start > end) { alert('Tanggal mulai tidak boleh lebih besar dari tanggal sampai.'); return; }
+        window.location.href = @json(url('/pos/penjualan/export-excel')) + '?start_date=' + encodeURIComponent(start) + '&end_date=' + encodeURIComponent(end);
+    });
+
     window.loadSaleDetail = function (saleId) {
         fetch(@json(url('/pos/penjualan')) + '/' + saleId + '/detail', {
             headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
@@ -185,10 +196,55 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('sale-detail-paid').textContent = 'Rp ' + Number(sale.paid_amount || 0).toLocaleString('id-ID');
             document.getElementById('sale-detail-change').textContent = 'Rp ' + Number(sale.change_amount || 0).toLocaleString('id-ID');
             document.getElementById('sale-detail-payment').textContent = sale.payment_methods || '-';
+            window.currentSaleDetail = {
+                invoice_no: sale.invoice_no,
+                sale_date: sale.sale_date,
+                cashier: sale.cashier_name || '-',
+                shift_id: sale.shift_id || '-',
+                customer: sale.customer_name || 'Umum',
+                subtotal: sale.subtotal,
+                discount: sale.discount,
+                total: sale.total,
+                paid_amount: sale.paid_amount,
+                change_amount: sale.change_amount,
+                payment_method: sale.payment_methods || '-',
+                entity: payload.entity || {},
+                items: (payload.items || []).map(item => ({
+                    name: item.name,
+                    qty: item.qty,
+                    price: item.unit_price,
+                    selling_unit_code: item.selling_unit_code || '-'
+                }))
+            };
             bootstrap.Modal.getOrCreateInstance(document.getElementById('sale-detail-modal')).show();
         })
         .catch(error => alert(error.message));
     };
+
+    
+    document.getElementById('sale-detail-print').addEventListener('click', function () {
+        printSaleReceipt(window.currentSaleDetail);
+    });
+
+    function printSaleReceipt(r) {
+        if (!r) return;
+        let w = window.open('', '_blank', 'width=420,height=700');
+        if (!w) { alert('Popup diblokir browser. Izinkan popup untuk mencetak.'); return; }
+        let money = n => 'Rp ' + Math.round(n || 0).toLocaleString('id-ID');
+        let esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+        let rows = (r.items || []).map(x => {
+            let qty = Number(x.qty).toLocaleString('id-ID');
+            let price = Math.round(x.price || 0).toLocaleString('id-ID');
+            let line = Math.round((+x.price || 0) * (+x.qty || 0)).toLocaleString('id-ID');
+            return '<tr><td colspan="2"><b>' + esc(x.name) + '</b></td></tr><tr><td>' + qty + ' ' + esc(x.selling_unit_code || '-') + ' x ' + price + '</td><td class="right">' + line + '</td></tr>';
+        }).join('');
+        let entity = r.entity || {};
+        let address = entity.address ? '<div>' + esc(entity.address) + '</div>' : '';
+        let phone = entity.phone ? '<div>Telp. ' + esc(entity.phone) + '</div>' : '';
+        let discountRow = Number(r.discount || 0) > 0 ? '<div class="row"><span>Diskon</span><b>- ' + money(r.discount) + '</b></div>' : '';
+        let html = '<!doctype html><html><head><meta charset="utf-8"><title>' + esc(r.invoice_no) + '</title><style>@page{size:80mm auto;margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0;width:80mm}body{font-family:Arial,sans-serif;font-size:11px;line-height:1.35;padding:4mm 4mm 6mm;color:#000}.center{text-align:center}.kop{font-weight:700;font-size:16px;margin-bottom:2px}.meta{margin-top:5px}.line{border-top:1px dashed #000;margin:6px 0}.row{display:flex;justify-content:space-between;gap:8px}.right{text-align:right}.items{width:100%;border-collapse:collapse}.items td{padding:1px 0;vertical-align:top}.items .right{white-space:nowrap}.grand{font-size:14px;margin-top:4px}.footer{margin-top:10px;text-align:center}.small{font-size:10px}@media print{body{padding-bottom:2mm}}</style></head><body><div class="center"><div class="kop">' + esc(entity.name || 'MINI ERP') + '</div>' + address + phone + '<div class="small">TOKO BANGUNAN & PRODUKSI</div></div><div class="line"></div><div>No. Transaksi : ' + esc(r.invoice_no) + '</div><div>Tanggal/Jam : ' + esc(r.sale_date || '') + '</div><div>Kasir : ' + esc(r.cashier || '') + '</div><div>Shift : ' + esc(r.shift_id || '') + '</div><div>Customer : ' + esc(r.customer || 'Umum') + '</div><div class="line"></div><table class="items">' + rows + '</table><div class="line"></div><div class="row"><span>Subtotal</span><b>' + money(r.subtotal) + '</b></div>' + discountRow + '<div class="row grand"><span>TOTAL</span><b>' + money(r.total) + '</b></div><div class="line"></div><div class="row"><span>Pembayaran</span><b>' + esc(r.payment_method || '') + '</b></div><div class="row"><span>Dibayar</span><b>' + money(r.paid_amount) + '</b></div><div class="row"><span>Kembalian</span><b>' + money(r.change_amount) + '</b></div><div class="footer"><b>TERIMA KASIH</b><div>Selamat berbelanja</div><div class="small">Barang yang sudah dibeli tidak dapat dikembalikan tanpa bukti transaksi.</div><div class="line"></div><div class="small">Powered by MINI ERP</div></div><script>window.onload=function(){window.focus();window.print()}<\\/script></body></html>';
+        w.document.open(); w.document.write(html); w.document.close();
+    }
 
     function escapeHtml(value) {
         return String(value ?? '').replace(/[&<>"']/g, function (char) {
@@ -220,7 +276,10 @@ document.addEventListener('DOMContentLoaded', function () {
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="sale-detail-title">Detail Penjualan</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-primary btn-sm" id="sale-detail-print">Cetak</button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
             </div>
             <div class="modal-body">
                 <div id="sale-detail-meta" class="row g-2 small mb-3"></div>
