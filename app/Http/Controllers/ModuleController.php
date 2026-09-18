@@ -227,6 +227,8 @@ class ModuleController extends Controller
 
         abort_if($start > $end, 422, 'Periode tanggal tidak valid.');
 
+        $entityData = DB::table('entities')->where('id', $entity)->first(['name', 'address', 'phone']);
+
         $rows = DB::table('sales as s')
             ->leftJoin('customers as c', 'c.id', '=', 's.customer_id')
             ->leftJoin('users as u', 'u.id', '=', 's.user_id')
@@ -245,27 +247,55 @@ class ModuleController extends Controller
             ->orderBy('s.id')
             ->get();
 
+        $totalPenjualan = (float) $rows->sum(fn ($row) => (float) $row->total);
+
         $filename = 'penjualan_' . $start . '_' . $end . '.xls';
-        $html = '<html><head><meta charset="UTF-8"></head><body>';
-        $html .= '<table border="1"><tr>';
+        $html = '<html><head><meta charset="UTF-8"><style>
+            body{font-family:Arial,sans-serif}
+            .kop{font-size:16px;font-weight:700}
+            .periode{font-size:13px;font-weight:700}
+            table{border-collapse:collapse}
+            th,td{border:1px solid #000;padding:5px}
+            th{font-weight:700}
+            .num{mso-number-format:"0.00";}
+        </style></head><body>';
+        $html .= '<div class="kop">' . e($entityData->name ?? 'MINI ERP') . '</div>';
+        if (!empty($entityData->address)) $html .= '<div>' . e($entityData->address) . '</div>';
+        if (!empty($entityData->phone)) $html .= '<div>Telp. ' . e($entityData->phone) . '</div>';
+        $html .= '<div class="periode">LAPORAN PENJUALAN</div>';
+        $html .= '<div>Periode: ' . e(date('d-m-Y', strtotime($start))) . ' s/d ' . e(date('d-m-Y', strtotime($end))) . '</div>';
+        $html .= '<br><table><thead><tr>';
+
         foreach (['No. Invoice','Tanggal','Customer','Kasir','Shift','Pembayaran','Subtotal','Diskon','Total','Dibayar','Kembalian','Status'] as $heading) {
             $html .= '<th>' . e($heading) . '</th>';
         }
-        $html .= '</tr>';
+        $html .= '</tr></thead><tbody>';
 
         foreach ($rows as $row) {
             $html .= '<tr>';
             foreach ([
-                $row->invoice_no, $row->sale_date, $row->customer_name, $row->cashier_name, $row->shift_id,
-                $row->payment_methods ?: '-', $row->subtotal, $row->discount, $row->total,
-                $row->paid_amount, $row->change_amount, $row->status
-            ] as $value) {
-                $html .= '<td>' . e((string) $value) . '</td>';
+                $row->invoice_no,
+                $row->sale_date,
+                $row->customer_name,
+                $row->cashier_name,
+                $row->shift_id,
+                $row->payment_methods ?: '-',
+                $row->subtotal,
+                $row->discount,
+                $row->total,
+                $row->paid_amount,
+                $row->change_amount,
+                $row->status
+            ] as $index => $value) {
+                $class = in_array($index, [6,7,8,9,10], true) ? ' class="num"' : '';
+                $html .= '<td' . $class . '>' . e((string) $value) . '</td>';
             }
             $html .= '</tr>';
         }
 
-        $html .= '</table></body></html>';
+        $html .= '</tbody><tfoot>';
+        $html .= '<tr><th colspan="8" style="text-align:right">TOTAL PENJUALAN</th><th class="num">' . $totalPenjualan . '</th><th colspan="3"></th></tr>';
+        $html .= '</tfoot></table></body></html>';
 
         return response($html, 200, [
             'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
