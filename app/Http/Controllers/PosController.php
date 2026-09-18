@@ -24,14 +24,31 @@ class PosController extends Controller
     {
         $data = $request->validate(['product_id'=>'required|integer','qty'=>'required|numeric|gt:0']);
         $entity = $this->entityId();
-        $product = DB::table('products')->where('entity_id',$entity)->where('is_active',1)->find($data['product_id']);
+        $product = DB::table('products as p')
+            ->where('p.entity_id', $entity)
+            ->where('p.is_active', 1)
+            ->leftJoin('product_units as pu', function ($join) {
+                $join->on('pu.product_id', '=', 'p.id')->where('pu.is_default', 1);
+            })
+            ->leftJoin('units as u', 'u.id', '=', 'pu.unit_id')
+            ->select('p.*', 'u.code as selling_unit_code', 'u.name as selling_unit_name')
+            ->find($data['product_id']);
         abort_unless($product,404,'Produk tidak ditemukan.');
         $cart = $this->cart($request);
         $id = (string)$product->id;
         if (isset($cart[$id])) $cart[$id]['qty'] += (float)$data['qty'];
-        else $cart[$id] = ['product_id'=>(int)$product->id,'code'=>$product->sku,'name'=>$product->name,'price'=>(float)$product->selling_price,'qty'=>(float)$data['qty']];
+        else $cart[$id] = [
+            'product_id' => (int) $product->id,
+            'code' => $product->sku,
+            'barcode' => $product->barcode,
+            'name' => $product->name,
+            'selling_unit_code' => $product->selling_unit_code,
+            'selling_unit_name' => $product->selling_unit_name,
+            'price' => (float) $product->selling_price,
+            'qty' => (float) $data['qty'],
+        ];
         $request->session()->put('pos_cart',$cart);
-        return back()->with('success','Barang ditambahkan ke transaksi.');
+        return back();
     }
 
     public function updateItem(Request $request, string $id)
