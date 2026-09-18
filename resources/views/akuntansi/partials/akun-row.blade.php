@@ -8,9 +8,11 @@
     <td>{{ $typeLabels[$account->type] ?? $account->type }}</td>
     <td>{{ ucfirst($account->normal_balance) }}</td>
     <td class="text-end">
-        <button class="btn btn-sm btn-outline-secondary me-1"
-                data-bs-toggle="modal"
-                data-bs-target="#account-edit-{{ $account->id }}">Edit</button>
+        @if((int) $account->level > 0)
+            <button class="btn btn-sm btn-outline-secondary me-1"
+                    data-bs-toggle="modal"
+                    data-bs-target="#account-edit-{{ $account->id }}">Edit</button>
+        @endif
         @if((int) $account->level < 3)
             <button class="btn btn-sm btn-primary px-3"
                     data-bs-toggle="modal"
