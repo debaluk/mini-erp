@@ -109,6 +109,26 @@ Route::middleware('auth')->group(function () {
 
 
     // Clean menu URL aliases — existing /erp endpoints remain for backward compatibility.
+    // Final menu paths use singular, business-readable URLs.
+    $masterMenuPaths = [
+        'produk' => 'products', 'customer' => 'customers', 'supplier' => 'suppliers',
+        'gudang' => 'warehouses', 'satuan' => 'units', 'konversi-satuan' => 'unit-conversions',
+        'tarif' => 'tariffs', 'kendaraan' => 'vehicles', 'driver' => 'drivers',
+    ];
+    foreach ($masterMenuPaths as $path => $type) {
+        if ($type === 'unit-conversions') {
+            Route::get('/master/'.$path, [UnitConversionController::class, 'index'])->middleware('role:owner,admin')->name('master.menu.'.$path);
+        } else {
+            Route::get('/master/'.$path, function (Request $request) use ($type) {
+                return app(ErpController::class)->master($request, $type);
+            })->middleware('role:owner,admin')->name('master.menu.'.$path);
+        }
+    }
+    Route::get('/pos/pos', fn () => app(ModuleController::class)->show('pos'))->middleware('role:owner,kasir')->name('pos.pos');
+    Route::get('/pos/penjualan', fn () => app(ModuleController::class)->show('sales'))->middleware('role:owner,kasir,akuntansi')->name('pos.penjualan');
+    Route::get('/pos/pembayaran', fn () => app(ModuleController::class)->show('payments'))->middleware('role:owner,kasir')->name('pos.pembayaran');
+    Route::get('/pos/retur', fn () => abort(501, 'Modul Retur belum diimplementasikan.'))->middleware('role:owner,kasir')->name('pos.retur');
+    Route::get('/pos/shift', fn () => app(ModuleController::class)->show('shifts'))->middleware('role:owner,kasir')->name('pos.shift');
     Route::get('/pos', fn () => app(ModuleController::class)->show('pos'))->middleware('role:owner,kasir')->name('pos');
     Route::get('/penjualan', fn () => app(ModuleController::class)->show('sales'))->middleware('role:owner,kasir,akuntansi')->name('penjualan');
     Route::get('/pembayaran', fn () => app(ModuleController::class)->show('payments'))->middleware('role:owner,kasir')->name('pembayaran');
