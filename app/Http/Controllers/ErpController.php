@@ -70,6 +70,7 @@ class ErpController extends Controller
         $data['rows']=isset($map[$module]) ? DB::table($map[$module])->where('entity_id',$entity)->latest('id')->paginate(15)->withQueryString() : collect();
         $data['products']=DB::table('products')->where('entity_id',$entity)->where('is_active',1)->orderBy('name')->get();
         $data['warehouses']=DB::table('warehouses')->where('entity_id',$entity)->where('is_active',1)->orderBy('name')->get();
+        $data['suppliers']=DB::table('suppliers')->where('entity_id',$entity)->where('is_active',1)->orderBy('name')->get();
         $data['vehicles']=DB::table('vehicles')->where('entity_id',$entity)->where('status','active')->orderBy('code')->get();
         $data['drivers']=DB::table('drivers')->where('entity_id',$entity)->where('is_active',1)->orderBy('name')->get();
         return view('erp.module',$data);
@@ -91,9 +92,13 @@ class ErpController extends Controller
 
     public function purchaseStore(Request $request)
     {
-        $data=$request->validate(['product_id'=>'required|integer','warehouse_id'=>'required|integer','qty'=>'required|numeric|min:0.001','unit_cost'=>'required|numeric|min:0']); $entity=$this->entityId(); $total=$data['qty']*$data['unit_cost'];
+        $data=$request->validate(['supplier_id'=>'required|integer','product_id'=>'required|integer','warehouse_id'=>'required|integer','qty'=>'required|numeric|min:0.001','unit_cost'=>'required|numeric|min:0']); $entity=$this->entityId();
+        abort_unless(DB::table('suppliers')->where('entity_id',$entity)->where('is_active',1)->where('id',$data['supplier_id'])->exists(),422,'Supplier tidak valid.');
+        abort_unless(DB::table('products')->where('entity_id',$entity)->where('is_active',1)->where('id',$data['product_id'])->exists(),422,'Produk tidak valid.');
+        abort_unless(DB::table('warehouses')->where('entity_id',$entity)->where('is_active',1)->where('id',$data['warehouse_id'])->exists(),422,'Gudang tidak valid.');
+        $total=$data['qty']*$data['unit_cost'];
         DB::transaction(function() use($data,$entity,$total){
-            $no='PO-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4)); $id=DB::table('purchases')->insertGetId(['entity_id'=>$entity,'user_id'=>auth()->id(),'purchase_no'=>$no,'purchase_date'=>now(),'subtotal'=>$total,'total'=>$total,'status'=>'received','created_at'=>now(),'updated_at'=>now()]);
+            $no='PO-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4)); $id=DB::table('purchases')->insertGetId(['entity_id'=>$entity,'supplier_id'=>$data['supplier_id'],'user_id'=>auth()->id(),'purchase_no'=>$no,'purchase_date'=>now(),'subtotal'=>$total,'total'=>$total,'status'=>'received','created_at'=>now(),'updated_at'=>now()]);
             DB::table('purchase_items')->insert(['purchase_id'=>$id,'product_id'=>$data['product_id'],'qty'=>$data['qty'],'unit_cost'=>$data['unit_cost'],'total'=>$total,'created_at'=>now(),'updated_at'=>now()]);
             $stock=DB::table('warehouses_stocks')->where(['warehouse_id'=>$data['warehouse_id'],'product_id'=>$data['product_id']])->first();
             if($stock) DB::table('warehouses_stocks')->where('id',$stock->id)->update(['qty'=>$stock->qty+$data['qty'],'avg_cost'=>$data['unit_cost'],'updated_at'=>now()]); else DB::table('warehouses_stocks')->insert(['entity_id'=>$entity,'warehouse_id'=>$data['warehouse_id'],'product_id'=>$data['product_id'],'qty'=>$data['qty'],'avg_cost'=>$data['unit_cost'],'created_at'=>now(),'updated_at'=>now()]);
