@@ -72,7 +72,7 @@
 <div class="card shadow-sm mb-3">
     <div class="card-header fw-semibold">Register Penjualan</div>
     <div class="card-body border-bottom py-2">
-        <form id="sales-period-filter" class="d-flex flex-wrap align-items-end gap-2">
+        <form id="sales-period-filter" class="d-flex align-items-end gap-2 flex-nowrap">
             <div>
                 <label for="sales-start-date" class="form-label mb-1">Mulai tanggal</label>
                 <input type="date" id="sales-start-date" class="form-control" value="{{ request('start_date', now()->startOfMonth()->format('Y-m-d')) }}">
@@ -124,6 +124,11 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         },
         order: [[1, 'desc']],
+        rowCallback: function (row, data) {
+            row.classList.add('sales-detail-row');
+            row.title = 'Klik untuk melihat detail penjualan';
+            row.onclick = function () { loadSaleDetail(data.id); };
+        },
         columns: [
             { data: 'invoice_no', className: 'fw-semibold' },
             { data: 'sale_date', render: function (data) {
@@ -144,6 +149,53 @@ document.addEventListener('DOMContentLoaded', function () {
         ]
     });
 
+    window.loadSaleDetail = function (saleId) {
+        fetch(@json(url('/pos/penjualan')) + '/' + saleId + '/detail', {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Gagal mengambil detail penjualan.');
+            return response.json();
+        })
+        .then(payload => {
+            const sale = payload.sale;
+            document.getElementById('sale-detail-title').textContent = 'Detail Penjualan ' + (sale.invoice_no || '');
+            document.getElementById('sale-detail-meta').innerHTML =
+                '<div class="col-md-3"><strong>Tanggal:</strong> ' + escapeHtml(sale.sale_date || '-') + '</div>' +
+                '<div class="col-md-3"><strong>Customer:</strong> ' + escapeHtml(sale.customer_name || 'Umum') + '</div>' +
+                '<div class="col-md-3"><strong>Kasir:</strong> ' + escapeHtml(sale.cashier_name || '-') + '</div>' +
+                '<div class="col-md-3"><strong>Status:</strong> ' + escapeHtml(String(sale.status || '-').toUpperCase()) + '</div>';
+
+            const body = document.getElementById('sale-detail-items');
+            body.innerHTML = '';
+            (payload.items || []).forEach((item, index) => {
+                body.insertAdjacentHTML('beforeend', '<tr>' +
+                    '<td>' + (index + 1) + '</td>' +
+                    '<td>' + escapeHtml(item.sku || '-') + '</td>' +
+                    '<td>' + escapeHtml(item.name || '-') + '</td>' +
+                    '<td class="text-end">' + Number(item.qty || 0).toLocaleString('id-ID') + '</td>' +
+                    '<td class="text-end">Rp ' + Number(item.unit_price || 0).toLocaleString('id-ID') + '</td>' +
+                    '<td class="text-end">Rp ' + Number(item.discount || 0).toLocaleString('id-ID') + '</td>' +
+                    '<td class="text-end fw-semibold">Rp ' + Number(item.total || 0).toLocaleString('id-ID') + '</td>' +
+                '</tr>');
+            });
+            document.getElementById('sale-detail-subtotal').textContent = 'Rp ' + Number(sale.subtotal || 0).toLocaleString('id-ID');
+            document.getElementById('sale-detail-discount').textContent = 'Rp ' + Number(sale.discount || 0).toLocaleString('id-ID');
+            document.getElementById('sale-detail-total').textContent = 'Rp ' + Number(sale.total || 0).toLocaleString('id-ID');
+            document.getElementById('sale-detail-paid').textContent = 'Rp ' + Number(sale.paid_amount || 0).toLocaleString('id-ID');
+            document.getElementById('sale-detail-change').textContent = 'Rp ' + Number(sale.change_amount || 0).toLocaleString('id-ID');
+            document.getElementById('sale-detail-payment').textContent = sale.payment_methods || '-';
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('sale-detail-modal')).show();
+        })
+        .catch(error => alert(error.message));
+    };
+
+    function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, function (char) {
+            return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[char];
+        });
+    }
+
     document.getElementById('sales-period-filter').addEventListener('submit', function (e) {
         e.preventDefault();
         const start = document.getElementById('sales-start-date').value;
@@ -157,6 +209,41 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 @endpush
+
+<style>
+    #sales-datatable tbody tr.sales-detail-row { cursor: pointer; }
+    #sales-datatable tbody tr.sales-detail-row:hover { background-color: rgba(13, 110, 253, .06); }
+</style>
+
+<div class="modal fade" id="sale-detail-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="sale-detail-title">Detail Penjualan</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+            </div>
+            <div class="modal-body">
+                <div id="sale-detail-meta" class="row g-2 small mb-3"></div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered align-middle mb-3">
+                        <thead><tr><th>#</th><th>SKU</th><th>Produk</th><th class="text-end">Qty</th><th class="text-end">Harga</th><th class="text-end">Diskon</th><th class="text-end">Total</th></tr></thead>
+                        <tbody id="sale-detail-items"><tr><td colspan="7" class="text-center text-secondary">Tidak ada detail.</td></tr></tbody>
+                    </table>
+                </div>
+                <div class="row justify-content-end small">
+                    <div class="col-md-5">
+                        <div class="d-flex justify-content-between"><span>Subtotal</span><strong id="sale-detail-subtotal">Rp 0</strong></div>
+                        <div class="d-flex justify-content-between"><span>Diskon</span><strong id="sale-detail-discount">Rp 0</strong></div>
+                        <div class="d-flex justify-content-between fs-6 border-top pt-2 mt-2"><span>Total</span><strong id="sale-detail-total">Rp 0</strong></div>
+                        <div class="d-flex justify-content-between"><span>Dibayar</span><strong id="sale-detail-paid">Rp 0</strong></div>
+                        <div class="d-flex justify-content-between"><span>Kembalian</span><strong id="sale-detail-change">Rp 0</strong></div>
+                        <div class="d-flex justify-content-between"><span>Pembayaran</span><strong id="sale-detail-payment">-</strong></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 @elseif(in_array($module,['payments','purchases','receipts','payables','shifts','movements','opname','bom','production','production-results','material-usage','production-cost','fleet','deliveries','operations','fleet-costs','journals'],true))
 <div class="card shadow-sm"><div class="card-header fw-semibold">Data {{ $title }}</div><div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>ID</th><th>Referensi</th><th>Tanggal</th><th>Status</th><th class="text-end">Nilai</th></tr></thead><tbody>@forelse($rows as $r)<tr><td>{{ $r->id }}</td><td>{{ $r->invoice_no ?? $r->purchase_no ?? $r->delivery_no ?? $r->production_no ?? $r->journal_no ?? ($r->code ?? '-') }}</td><td>{{ $r->sale_date ?? $r->purchase_date ?? $r->payment_date ?? $r->operation_date ?? $r->cost_date ?? $r->journal_date ?? $r->created_at ?? '-' }}</td><td><span class="badge text-bg-secondary">{{ $r->status ?? $r->method ?? $r->movement_type ?? 'data' }}</span></td><td class="text-end">Rp {{ number_format($r->total ?? $r->amount ?? $r->total_cost ?? 0,0,',','.') }}</td></tr>@empty<tr><td colspan="5" class="text-center text-secondary py-4">Belum ada data.</td></tr>@endforelse</tbody></table></div>@if(is_object($rows) && method_exists($rows,'links'))<div class="card-footer">{{ $rows->links() }}</div>@endif</div>
