@@ -286,8 +286,12 @@ class ModuleController extends Controller
                 $row->change_amount,
                 $row->status
             ] as $index => $value) {
-                if (in_array($index, [6, 7, 8, 9, 10], true) && is_numeric($value)) {
-                    $html .= '<td x:num="' . e((string) $value) . '">' . e((string) $value) . '</td>';
+                if (in_array($index, [6, 7, 8, 9, 10], true)) {
+                    // Nilai angka harus tetap angka mentah agar Excel dapat langsung SUM().
+                    // Cast ke float juga mencegah string angka yang membawa format/desimal ganda.
+                    $numericValue = (float) $value;
+                    $displayValue = (string) $numericValue;
+                    $html .= '<td x:num="' . e($displayValue) . '">' . e($displayValue) . '</td>';
                 } else {
                     $html .= '<td>' . e((string) $value) . '</td>';
                 }
