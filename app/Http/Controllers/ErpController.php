@@ -35,7 +35,7 @@ class ErpController extends Controller
         ][$type] ?? abort(404);
     }
 
-    public function master(string $type)
+    public function master(Request $request, string $type)
     {
         $config = $this->masterConfig($type);
         $entity = $this->entityId();
