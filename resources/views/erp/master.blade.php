@@ -135,10 +135,10 @@ document.addEventListener('DOMContentLoaded', () => {
             zeroRecords: 'Data tidak ditemukan',
             emptyTable: 'Belum ada data',
             paginate: {
-                first: 'Pertama',
-                last: 'Terakhir',
-                next: 'Berikutnya',
-                previous: 'Sebelumnya'
+                first: '<<',
+                last: '>>',
+                next: '>',
+                previous: '<'
             },
             processing: 'Memuat...'
         },
