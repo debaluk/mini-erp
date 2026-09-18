@@ -71,17 +71,17 @@
 @elseif($module==='sales')
 <div class="card shadow-sm mb-3">
     <div class="card-header fw-semibold">Register Penjualan</div>
-    <div class="card-body border-bottom">
-        <form id="sales-period-filter" class="row g-2 align-items-end">
-            <div class="col-sm-4 col-md-3 col-lg-2">
-                <label for="sales-start-date" class="form-label">Mulai tanggal</label>
+    <div class="card-body border-bottom py-2">
+        <form id="sales-period-filter" class="d-flex flex-wrap align-items-end gap-2">
+            <div>
+                <label for="sales-start-date" class="form-label mb-1">Mulai tanggal</label>
                 <input type="date" id="sales-start-date" class="form-control" value="{{ request('start_date', now()->startOfMonth()->format('Y-m-d')) }}">
             </div>
-            <div class="col-sm-4 col-md-3 col-lg-2">
-                <label for="sales-end-date" class="form-label">Sampai tanggal</label>
+            <div>
+                <label for="sales-end-date" class="form-label mb-1">Sampai tanggal</label>
                 <input type="date" id="sales-end-date" class="form-control" value="{{ request('end_date', now()->endOfMonth()->format('Y-m-d')) }}">
             </div>
-            <div class="col-sm-4 col-md-2">
+            <div>
                 <button type="submit" class="btn btn-primary">Tampilkan</button>
             </div>
         </form>
