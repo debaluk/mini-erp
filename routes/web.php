@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BomController;
+use App\Http\Controllers\AccountController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ErpController;
 use App\Http\Controllers\ModuleController;
@@ -159,7 +160,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/armada/order-jasa', fn () => app(ModuleController::class)->show('deliveries'))->middleware('role:owner,inventori')->name('armada.order-jasa');
     Route::get('/armada/surat-jalan', fn () => app(ModuleController::class)->show('deliveries'))->middleware('role:owner,inventori')->name('armada.surat-jalan');
     Route::get('/armada/perjalanan', fn () => app(ModuleController::class)->show('operations'))->middleware('role:owner,inventori')->name('armada.perjalanan');
-    Route::get('/akuntansi/akun', fn () => view('akuntansi.blank', ['title' => 'Akun']))->middleware('role:owner,akuntansi')->name('akuntansi.akun');
+    Route::get('/akuntansi/akun', [AccountController::class, 'index'])->middleware('role:owner,akuntansi')->name('akuntansi.akun');
+    Route::post('/akuntansi/akun', [AccountController::class, 'store'])->middleware('role:owner,akuntansi')->name('akuntansi.akun.store');
+    Route::put('/akuntansi/akun/{id}', [AccountController::class, 'update'])->middleware('role:owner,akuntansi')->name('akuntansi.akun.update');
+    Route::delete('/akuntansi/akun/{id}', [AccountController::class, 'destroy'])->middleware('role:owner,akuntansi')->name('akuntansi.akun.delete');
     Route::get('/akuntansi/jurnal', fn () => app(ModuleController::class)->show('journals'))->middleware('role:owner,akuntansi')->name('akuntansi.jurnal');
     Route::get('/akuntansi/buku-besar', fn () => app(ModuleController::class)->show('ledger'))->middleware('role:owner,akuntansi')->name('akuntansi.buku-besar');
     Route::get('/akuntansi/kas-bank', fn () => app(ModuleController::class)->show('cashbank'))->middleware('role:owner,akuntansi')->name('akuntansi.kas-bank');
