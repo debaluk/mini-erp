@@ -37,6 +37,8 @@ class ModuleController extends Controller
                 ->select(
                     'p.*',
                     'pu.unit_id as selling_unit_id',
+                    'u.code as selling_unit_code',
+                    'u.name as selling_unit_name',
                     DB::raw('COALESCE(ws.stock_qty, 0) as stock_qty')
                 )
                 ->get(),
@@ -97,6 +99,16 @@ class ModuleController extends Controller
         if (in_array($module, ['ledger','receivables','cashbank','cogs','profit-loss','balance-sheet','cash-flow'], true)) {
             $data['report'] = $this->report($module, $entity);
         }
+        if ($module === 'pos') {
+            $data['openShift'] = DB::table('cash_shifts')->where('entity_id',$entity)->where('user_id',auth()->id())->where('status','open')->latest('id')->first();
+            $data['posCart'] = request()->session()->get('pos_cart', []);
+            $data['posSubtotal'] = 0;
+            foreach ($data['posCart'] as $item) {
+                $data['posSubtotal'] += (float) $item['price'] * (float) $item['qty'];
+            }
+            $data['posTotal'] = $data['posSubtotal'];
+        }
+
         if ($module === 'shifts') {
             $data['openShift'] = DB::table('cash_shifts')->where('entity_id',$entity)->where('user_id',auth()->id())->where('status','open')->latest('id')->first();
         }
