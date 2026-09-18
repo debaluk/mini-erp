@@ -9,29 +9,42 @@
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#return-modal">+ Tambah Retur</button>
 </div>
 
-<div class="card shadow-sm">
-    <div class="card-header fw-semibold">Riwayat Retur</div>
-    <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-            <thead><tr><th>No. Retur</th><th>Tanggal</th><th>No. Struk</th><th>Customer</th><th>Gudang</th><th class="text-end">Total</th><th>User</th></tr></thead>
-            <tbody>
-            @forelse($rows as $r)
+<div class="card shadow-sm mb-3">
+    <div class="card-header fw-semibold">Riwayat Retur Penjualan</div>
+    <div class="card-body border-bottom py-2">
+        <form id="return-period-filter" class="d-flex align-items-end gap-2 flex-nowrap" style="white-space:nowrap;">
+            <div>
+                <label for="return-start-date" class="form-label mb-1">Mulai tanggal</label>
+                <input type="date" id="return-start-date" class="form-control" value="{{ request('start_date', now()->startOfMonth()->format('Y-m-d')) }}">
+            </div>
+            <div>
+                <label for="return-end-date" class="form-label mb-1">Sampai tanggal</label>
+                <input type="date" id="return-end-date" class="form-control" value="{{ request('end_date', now()->endOfMonth()->format('Y-m-d')) }}">
+            </div>
+            <div>
+                <button type="submit" class="btn btn-primary">Tampilkan</button>
+            </div>
+            <div>
+                <button type="button" id="return-export-excel" class="btn btn-success">Export Excel</button>
+            </div>
+        </form>
+    </div>
+    <div class="table-responsive px-2">
+        <table id="return-datatable" class="table table-hover align-middle w-100 mb-0">
+            <thead>
                 <tr>
-                    <td class="fw-semibold">{{ $r->return_no }}</td>
-                    <td>{{ Carbon\Carbon::parse($r->return_date)->format('d-m-Y H:i') }}</td>
-                    <td>{{ $r->invoice_no }}</td>
-                    <td>{{ $r->customer_name }}</td>
-                    <td>{{ $r->warehouse_name }}</td>
-                    <td class="text-end">Rp {{ number_format($r->total, 0, ',', '.') }}</td>
-                    <td>{{ $r->user_name }}</td>
+                    <th>No. Retur</th>
+                    <th>Tanggal</th>
+                    <th>No. Struk</th>
+                    <th>Customer</th>
+                    <th>Gudang</th>
+                    <th class="text-end">Total</th>
+                    <th>User</th>
+                    <th>Status</th>
                 </tr>
-            @empty
-                <tr><td colspan="7" class="text-center text-secondary py-4">Belum ada retur.</td></tr>
-            @endforelse
-            </tbody>
+            </thead>
         </table>
     </div>
-    <div class="card-footer">{{ $rows->links() }}</div>
 </div>
 
 <div class="modal fade" id="return-modal" tabindex="-1" aria-hidden="true">
@@ -205,4 +218,63 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 </script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const table = new DataTable('#return-datatable', {
+        processing: true,
+        serverSide: true,
+        pageLength: 15,
+        lengthMenu: [[15, 25, 50, 100], [15, 25, 50, 100]],
+        ajax: {
+            url: @json(route('pos.retur.data')),
+            data: function (d) {
+                d.start_date = document.getElementById('return-start-date').value;
+                d.end_date = document.getElementById('return-end-date').value;
+            }
+        },
+        order: [[1, 'desc']],
+        columns: [
+            { data: 'return_no', className: 'fw-semibold' },
+            { data: 'return_date', render: function (data) {
+                if (!data) return '-';
+                const d = new Date(data.replace(' ', 'T'));
+                return isNaN(d) ? data : d.toLocaleString('id-ID');
+            }},
+            { data: 'invoice_no', defaultContent: '-' },
+            { data: 'customer_name', defaultContent: '-' },
+            { data: 'warehouse_name', defaultContent: '-' },
+            { data: 'total', className: 'text-end fw-semibold', render: data => 'Rp ' + Number(data || 0).toLocaleString('id-ID') },
+            { data: 'user_name', defaultContent: '-' },
+            { data: 'status', render: data => '<span class="badge text-bg-success">' + String(data || '-').toUpperCase() + '</span>' }
+        ]
+    });
+
+    document.getElementById('return-period-filter').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const start = document.getElementById('return-start-date').value;
+        const end = document.getElementById('return-end-date').value;
+        if (!start || !end || start > end) {
+            alert('Periode tanggal tidak valid.');
+            return;
+        }
+        table.ajax.reload(null, true);
+    });
+
+    document.getElementById('return-export-excel').addEventListener('click', function () {
+        const start = document.getElementById('return-start-date').value;
+        const end = document.getElementById('return-end-date').value;
+        if (!start || !end) {
+            alert('Periode tanggal wajib diisi.');
+            return;
+        }
+        if (start > end) {
+            alert('Tanggal mulai tidak boleh lebih besar dari tanggal sampai.');
+            return;
+        }
+        window.location.href = @json(url('/pos/retur/export-excel')) + '?start_date=' + encodeURIComponent(start) + '&end_date=' + encodeURIComponent(end);
+    });
+});
+</script>
+
+
 @endpush
