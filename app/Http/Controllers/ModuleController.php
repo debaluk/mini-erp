@@ -257,7 +257,6 @@ class ModuleController extends Controller
             table{border-collapse:collapse}
             th,td{border:1px solid #000;padding:5px}
             th{font-weight:700}
-            th,td{mso-number-format:"General";}
         </style></head><body>';
         $html .= '<div class="kop">' . e($entityData->name ?? 'MINI ERP') . '</div>';
         if (!empty($entityData->address)) $html .= '<div>' . e($entityData->address) . '</div>';
@@ -287,13 +286,17 @@ class ModuleController extends Controller
                 $row->change_amount,
                 $row->status
             ] as $index => $value) {
-                $html .= '<td>' . e((string) $value) . '</td>';
+                if (in_array($index, [6, 7, 8, 9, 10], true) && is_numeric($value)) {
+                    $html .= '<td x:num="' . e((string) $value) . '">' . e((string) $value) . '</td>';
+                } else {
+                    $html .= '<td>' . e((string) $value) . '</td>';
+                }
             }
             $html .= '</tr>';
         }
 
         $html .= '</tbody><tfoot>';
-        $html .= '<tr><th colspan="8" style="text-align:right">TOTAL PENJUALAN</th><th>' . $totalPenjualan . '</th><th colspan="3"></th></tr>';
+        $html .= '<tr><th colspan="8" style="text-align:right">TOTAL PENJUALAN</th><th x:num="' . e((string) $totalPenjualan) . '">' . e((string) $totalPenjualan) . '</th><th colspan="3"></th></tr>';
         $html .= '</tfoot></table></body></html>';
 
         return response($html, 200, [
