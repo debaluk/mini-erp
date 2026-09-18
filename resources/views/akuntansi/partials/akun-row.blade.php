@@ -20,14 +20,14 @@
                     title="Edit akun"
                     aria-label="Edit akun"
                     data-bs-toggle="modal"
-                    data-bs-target="#account-edit-{{ $account->id }}"><i class="bi bi-pencil"></i></button>
+                    data-bs-target="#account-edit-{{ $account->id }}">✎</button>
             <form method="POST" action="{{ route('akuntansi.akun.delete', $account->id) }}" class="d-inline"
                   onsubmit="return confirm('Hapus akun {{ addslashes($account->code) }} — {{ addslashes($account->name) }}?');">
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="btn btn-sm btn-outline-danger"
                         title="Hapus akun"
-                        aria-label="Hapus akun"><i class="bi bi-trash"></i></button>
+                        aria-label="Hapus akun">🗑</button>
             </form>
         @endif
     </td>
