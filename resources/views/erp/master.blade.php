@@ -126,6 +126,22 @@ document.addEventListener('DOMContentLoaded', () => {
         serverSide: true,
         pageLength: 15,
         lengthMenu: [[15, 25, 50, 100], [15, 25, 50, 100]],
+        language: {
+            lengthMenu: 'Tampilkan _MENU_ data per halaman',
+            search: 'Cari:',
+            info: 'Menampilkan _START_ sampai _END_ dari _TOTAL_ data',
+            infoEmpty: 'Tidak ada data',
+            infoFiltered: '(disaring dari _MAX_ data)',
+            zeroRecords: 'Data tidak ditemukan',
+            emptyTable: 'Belum ada data',
+            paginate: {
+                first: 'Pertama',
+                last: 'Terakhir',
+                next: 'Berikutnya',
+                previous: 'Sebelumnya'
+            },
+            processing: 'Memuat...'
+        },
         order: [[0, 'desc']],
         ajax: {
             url: baseUrl,
