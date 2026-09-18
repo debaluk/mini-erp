@@ -10,6 +10,30 @@ use Illuminate\Validation\Rule;
 
 class SettingsController extends Controller
 {
+    private function moduleCatalog(): array
+    {
+        return [
+            'master_data' => 'Master Data',
+            'pos_retail' => 'POS Retail',
+            'produksi' => 'Produksi',
+            'armada_jasa' => 'Armada & Jasa',
+            'inventori' => 'Inventori',
+            'akuntansi' => 'Akuntansi',
+            'laporan' => 'Laporan',
+            'konfigurasi' => 'Konfigurasi',
+        ];
+    }
+
+    private function defaultModulesForRole(string $role): array
+    {
+        return match ($role) {
+            'admin' => ['master_data', 'konfigurasi'],
+            'kasir' => ['pos_retail'],
+            'inventori' => ['produksi', 'armada_jasa', 'inventori'],
+            'akuntansi' => ['akuntansi', 'laporan'],
+            default => [],
+        };
+    }
     private function entityId(Request $request): ?int
     {
         if ($request->user()?->role === 'superadmin') {
@@ -78,7 +102,14 @@ class SettingsController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('settings.users', compact('users'));
+        $moduleCatalog = $this->moduleCatalog();
+        $userModules = DB::table('user_module_permissions')
+            ->whereIn('user_id', $users->pluck('id'))
+            ->get()
+            ->groupBy('user_id')
+            ->map(fn ($rows) => $rows->pluck('module')->values()->all());
+
+        return view('settings.users', compact('users', 'moduleCatalog', 'userModules'));
     }
 
     public function userStore(Request $request)
@@ -90,9 +121,11 @@ class SettingsController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'role' => ['required', Rule::in(['admin', 'kasir', 'inventori', 'akuntansi'])],
+            'modules' => ['required', 'array', 'min:1'],
+            'modules.*' => ['string', Rule::in(array_keys($this->moduleCatalog()))],
         ]);
 
-        DB::table('users')->insert([
+        $userId = DB::table('users')->insertGetId([
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
@@ -102,6 +135,13 @@ class SettingsController extends Controller
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+
+        DB::table('user_module_permissions')->insert(array_map(fn ($module) => [
+            'user_id' => $userId,
+            'module' => $module,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ], array_values(array_unique($data['modules']))));
 
         return back()->with('success', 'User berhasil ditambahkan.');
     }
@@ -120,6 +160,8 @@ class SettingsController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($id)],
             'role' => ['required', Rule::in(['admin', 'kasir', 'inventori', 'akuntansi'])],
+            'modules' => ['required', 'array', 'min:1'],
+            'modules.*' => ['string', Rule::in(array_keys($this->moduleCatalog()))],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
         ]);
 
@@ -135,6 +177,14 @@ class SettingsController extends Controller
         }
 
         DB::table('users')->where('id', $id)->update($payload);
+
+        DB::table('user_module_permissions')->where('user_id', $id)->delete();
+        DB::table('user_module_permissions')->insert(array_map(fn ($module) => [
+            'user_id' => $id,
+            'module' => $module,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ], array_values(array_unique($data['modules']))));
 
         return back()->with('success', 'User berhasil diperbarui.');
     }
