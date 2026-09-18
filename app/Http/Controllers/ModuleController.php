@@ -170,7 +170,7 @@ class ModuleController extends Controller
                 DB::raw("COALESCE(s.invoice_no, '-') as reference_no"),
                 DB::raw("COALESCE(c.name, 'Umum') as customer_name"),
                 DB::raw("COALESCE(u.name, '-') as user_name"),
-                DB::raw("COALESCE(p.status, 'posted') as payment_status"));
+                DB::raw("'posted' as payment_status"));
         $recordsTotal = (clone $base)->count();
         $search = trim((string) $request->input('search.value', ''));
         if ($search !== '') {
@@ -180,7 +180,7 @@ class ModuleController extends Controller
             });
         }
         $recordsFiltered = (clone $base)->count();
-        $columns = [0=>'p.id',1=>'p.payment_date',2=>'source_name',3=>'s.invoice_no',4=>'c.name',5=>'p.amount',6=>'p.method',7=>'p.method',8=>'u.name',9=>'p.status'];
+        $columns = [0=>'p.id',1=>'p.payment_date',2=>'source_name',3=>'s.invoice_no',4=>'c.name',5=>'p.amount',6=>'p.method',7=>'p.method',8=>'u.name',9=>DB::raw("'posted'")];
         $orderCol = (int) $request->input('order.0.column', 1);
         $orderDir = strtolower($request->input('order.0.dir','desc')) === 'asc' ? 'asc' : 'desc';
         $base->orderBy($columns[$orderCol] ?? 'p.id', $orderDir);
