@@ -58,6 +58,7 @@
     </style>
 </head>
 <body class="bg-light">
+@if(!request()->routeIs('erp.pos'))
 <nav class="navbar navbar-expand-xl navbar-dark bg-dark sticky-top shadow-sm">
     <div class="container-fluid px-3">
         <a class="navbar-brand fw-bold" href="{{ route('dashboard') }}">Mini ERP</a>
@@ -167,8 +168,9 @@
         </div>
     </div>
 </nav>
+@endif
 
-<main class="container-fluid p-3 p-lg-4">
+<main class="{{ request()->routeIs('erp.pos') ? 'p-0' : 'container-fluid p-3 p-lg-4' }}">
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show">{{ session('success') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
     @endif
