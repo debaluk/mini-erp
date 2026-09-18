@@ -48,7 +48,11 @@ class ErpController extends Controller
         $rules=[];
         foreach ($config['fields'] as $key=>$field) if (($field['required'] ?? false)) $rules[$key]=['required'];
         $data=$request->validate($rules);
-        foreach ($config['fields'] as $key=>$field) if (!array_key_exists($key,$data)) $data[$key]=$request->input($key);
+        foreach ($config['fields'] as $key=>$field) {
+            if (array_key_exists($key, $data)) continue;
+            $value = $request->input($key);
+            if ($value !== null && $value !== '') $data[$key] = $value;
+        }
         $data['entity_id']=$this->entityId();
         if (Schema::hasColumn($config['table'], 'is_active')) $data['is_active']=1;
         $data['created_at']=now();
@@ -66,7 +70,11 @@ class ErpController extends Controller
         $rules=[];
         foreach ($config['fields'] as $key=>$field) if (($field['required'] ?? false)) $rules[$key]=['required'];
         $data=$request->validate($rules);
-        foreach ($config['fields'] as $key=>$field) if (!array_key_exists($key,$data)) $data[$key]=$request->input($key);
+        foreach ($config['fields'] as $key=>$field) {
+            if (array_key_exists($key, $data)) continue;
+            $value = $request->input($key);
+            if ($value !== null && $value !== '') $data[$key] = $value;
+        }
         unset($data['entity_id']);
         $data['updated_at']=now();
         DB::table($config['table'])
