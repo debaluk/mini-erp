@@ -164,6 +164,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/akuntansi/akun', [AccountController::class, 'store'])->middleware('role:owner,akuntansi')->name('akuntansi.akun.store');
     Route::put('/akuntansi/akun/{id}', [AccountController::class, 'update'])->middleware('role:owner,akuntansi')->name('akuntansi.akun.update');
     Route::delete('/akuntansi/akun/{id}', [AccountController::class, 'destroy'])->middleware('role:owner,akuntansi')->name('akuntansi.akun.delete');
+    Route::get('/akuntansi/akun/export-excel', [AccountController::class, 'exportExcel'])->middleware('role:owner,akuntansi')->name('akuntansi.akun.export-excel');
     Route::get('/akuntansi/jurnal', fn () => app(ModuleController::class)->show('journals'))->middleware('role:owner,akuntansi')->name('akuntansi.jurnal');
     Route::get('/akuntansi/buku-besar', fn () => app(ModuleController::class)->show('ledger'))->middleware('role:owner,akuntansi')->name('akuntansi.buku-besar');
     Route::get('/akuntansi/kas-bank', fn () => app(ModuleController::class)->show('cashbank'))->middleware('role:owner,akuntansi')->name('akuntansi.kas-bank');
