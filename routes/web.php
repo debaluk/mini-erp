@@ -170,7 +170,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/akuntansi/kas-bank', fn () => app(ModuleController::class)->show('cashbank'))->middleware('role:owner,akuntansi')->name('akuntansi.kas-bank');
     Route::get('/akuntansi/laba-rugi', fn () => app(ModuleController::class)->show('profit-loss'))->middleware('role:owner,akuntansi')->name('akuntansi.laba-rugi');
     Route::get('/akuntansi/laba-rugi/export-excel', [ModuleController::class, 'exportProfitLossExcel'])->middleware('role:owner,akuntansi')->name('akuntansi.laba-rugi.export-excel');
-    Route::get('/akuntansi/neraca-saldo', fn () => view('akuntansi.blank', ['title' => 'Neraca Saldo']))->middleware('role:owner,akuntansi')->name('akuntansi.neraca-saldo');
+    Route::get('/akuntansi/neraca-saldo', fn () => app(ModuleController::class)->show('trial-balance'))->middleware('role:owner,akuntansi')->name('akuntansi.neraca-saldo');
     Route::get('/akuntansi/neraca', fn () => app(ModuleController::class)->show('balance-sheet'))->middleware('role:owner,akuntansi')->name('akuntansi.neraca');
     Route::get('/akuntansi/arus-kas', fn () => app(ModuleController::class)->show('cash-flow'))->middleware('role:owner,akuntansi')->name('akuntansi.arus-kas');
     Route::get('/laporan/penjualan', fn () => app(ModuleController::class)->show('sales'))->middleware('role:owner,kasir,akuntansi')->name('laporan.penjualan');
