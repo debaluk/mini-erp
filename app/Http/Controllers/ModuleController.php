@@ -31,6 +31,7 @@ class ModuleController extends Controller
                     $join->on('pu.product_id', '=', 'p.id')
                         ->where('pu.is_default', 1);
                 })
+                ->leftJoin('units as u', 'u.id', '=', 'pu.unit_id')
                 ->leftJoin(DB::raw('(SELECT product_id, SUM(qty) AS stock_qty FROM warehouses_stocks GROUP BY product_id) AS ws'), 'ws.product_id', '=', 'p.id')
                 ->orderBy('p.name')
                 ->select(
