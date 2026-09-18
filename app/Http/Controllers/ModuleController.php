@@ -75,6 +75,10 @@ class ModuleController extends Controller
                 ->leftJoin('customers as c', 'c.id', '=', 's.customer_id')
                 ->leftJoin('users as u', 'u.id', '=', 's.user_id')
                 ->where('s.entity_id', $entity)
+                ->whereBetween('s.sale_date', [
+                    request()->input('start_date', now()->startOfMonth()->toDateString()) . ' 00:00:00',
+                    request()->input('end_date', now()->endOfMonth()->toDateString()) . ' 23:59:59',
+                ])
                 ->select(
                     's.id', 's.invoice_no', 's.sale_date', 's.subtotal', 's.discount', 's.total', 's.status',
                     's.shift_id',
@@ -180,6 +184,73 @@ class ModuleController extends Controller
             $result['total'] = $in-$out;
         }
         return $result;
+    }
+
+    public function salesData(Request $request)
+    {
+        $entity = $this->entityId();
+        $start = $request->input('start_date', now()->startOfMonth()->toDateString());
+        $end = $request->input('end_date', now()->endOfMonth()->toDateString());
+
+        $query = DB::table('sales as s')
+            ->leftJoin('customers as c', 'c.id', '=', 's.customer_id')
+            ->leftJoin('users as u', 'u.id', '=', 's.user_id')
+            ->where('s.entity_id', $entity)
+            ->whereBetween('s.sale_date', [$start . ' 00:00:00', $end . ' 23:59:59']);
+
+        $recordsTotal = (clone $query)->count('s.id');
+
+        $search = trim((string) $request->input('search.value', ''));
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $like = '%' . $search . '%';
+                $q->where('s.invoice_no', 'like', $like)
+                    ->orWhere('c.name', 'like', $like)
+                    ->orWhere('u.name', 'like', $like)
+                    ->orWhere('s.status', 'like', $like);
+            });
+        }
+
+        $recordsFiltered = (clone $query)->count('s.id');
+
+        $columns = [
+            0 => 's.invoice_no',
+            1 => 's.sale_date',
+            2 => 'c.name',
+            3 => 'u.name',
+            4 => 's.shift_id',
+            5 => 's.total',
+            6 => 's.status',
+        ];
+        $orderColumn = (int) $request->input('order.0.column', 1);
+        $orderDir = strtolower((string) $request->input('order.0.dir', 'desc')) === 'asc' ? 'asc' : 'desc';
+        $query->orderBy($columns[$orderColumn] ?? 's.sale_date', $orderDir);
+
+        $startRow = max(0, (int) $request->input('start', 0));
+        $length = (int) $request->input('length', 15);
+        if ($length < 1) $length = 15;
+        if ($length > 100) $length = 100;
+
+        $rows = $query
+            ->select(
+                's.id', 's.invoice_no', 's.sale_date', 's.subtotal', 's.discount', 's.total', 's.status', 's.shift_id',
+                DB::raw("COALESCE(c.name, 'Umum') as customer_name"),
+                DB::raw("COALESCE(u.name, '-') as cashier_name"),
+                DB::raw("(SELECT GROUP_CONCAT(DISTINCT p.method ORDER BY p.id SEPARATOR ', ') FROM payments p WHERE p.sale_id = s.id) as payment_methods"),
+                DB::raw("(SELECT COALESCE(SUM(p.paid_amount), SUM(p.amount), 0) FROM payments p WHERE p.sale_id = s.id) as paid_amount"),
+                DB::raw("(SELECT COALESCE(SUM(p.change_amount), 0) FROM payments p WHERE p.sale_id = s.id) as change_amount")
+            )
+            ->orderByDesc('s.id')
+            ->skip($startRow)
+            ->take($length)
+            ->get();
+
+        return response()->json([
+            'draw' => (int) $request->input('draw', 0),
+            'recordsTotal' => $recordsTotal,
+            'recordsFiltered' => $recordsFiltered,
+            'data' => $rows,
+        ]);
     }
 
     public function posStore(Request $request)
