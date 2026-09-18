@@ -215,7 +215,62 @@ class ModuleController extends Controller
             ->orderBy('si.id')
             ->get();
 
-        return response()->json(['sale' => $sale, 'items' => $items]);
+        $entityData = DB::table('entities')->where('id', $entity)->first(['name', 'address', 'phone']);
+        return response()->json(['sale' => $sale, 'items' => $items, 'entity' => $entityData]);
+    }
+
+    public function exportSalesExcel(Request $request)
+    {
+        $entity = $this->entityId();
+        $start = $request->input('start_date', now()->startOfMonth()->toDateString());
+        $end = $request->input('end_date', now()->endOfMonth()->toDateString());
+
+        abort_if($start > $end, 422, 'Periode tanggal tidak valid.');
+
+        $rows = DB::table('sales as s')
+            ->leftJoin('customers as c', 'c.id', '=', 's.customer_id')
+            ->leftJoin('users as u', 'u.id', '=', 's.user_id')
+            ->where('s.entity_id', $entity)
+            ->whereBetween('s.sale_date', [$start . ' 00:00:00', $end . ' 23:59:59'])
+            ->select(
+                's.invoice_no', 's.sale_date', 's.subtotal', 's.discount', 's.total', 's.status',
+                's.shift_id',
+                DB::raw("COALESCE(c.name, 'Umum') as customer_name"),
+                DB::raw("COALESCE(u.name, '-') as cashier_name"),
+                DB::raw("(SELECT GROUP_CONCAT(DISTINCT p.method ORDER BY p.id SEPARATOR ', ') FROM payments p WHERE p.sale_id = s.id) as payment_methods"),
+                DB::raw("(SELECT COALESCE(SUM(p.paid_amount), SUM(p.amount), 0) FROM payments p WHERE p.sale_id = s.id) as paid_amount"),
+                DB::raw("(SELECT COALESCE(SUM(p.change_amount), 0) FROM payments p WHERE p.sale_id = s.id) as change_amount")
+            )
+            ->orderBy('s.sale_date')
+            ->orderBy('s.id')
+            ->get();
+
+        $filename = 'penjualan_' . $start . '_' . $end . '.xls';
+        $html = '<html><head><meta charset="UTF-8"></head><body>';
+        $html .= '<table border="1"><tr>';
+        foreach (['No. Invoice','Tanggal','Customer','Kasir','Shift','Pembayaran','Subtotal','Diskon','Total','Dibayar','Kembalian','Status'] as $heading) {
+            $html .= '<th>' . e($heading) . '</th>';
+        }
+        $html .= '</tr>';
+
+        foreach ($rows as $row) {
+            $html .= '<tr>';
+            foreach ([
+                $row->invoice_no, $row->sale_date, $row->customer_name, $row->cashier_name, $row->shift_id,
+                $row->payment_methods ?: '-', $row->subtotal, $row->discount, $row->total,
+                $row->paid_amount, $row->change_amount, $row->status
+            ] as $value) {
+                $html .= '<td>' . e((string) $value) . '</td>';
+            }
+            $html .= '</tr>';
+        }
+
+        $html .= '</table></body></html>';
+
+        return response($html, 200, [
+            'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
     }
 
     public function salesData(Request $request)
