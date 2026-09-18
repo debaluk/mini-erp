@@ -37,6 +37,9 @@
                     <th>Tanggal</th>
                     <th>No. Struk</th>
                     <th>Customer</th>
+                    <th>Barang</th>
+                    <th class="text-end">Qty</th>
+                    <th class="text-end">Harga Retur</th>
                     <th>Gudang</th>
                     <th class="text-end">Total</th>
                     <th>User</th>
@@ -242,6 +245,11 @@ document.addEventListener('DOMContentLoaded', function () {
             }},
             { data: 'invoice_no', defaultContent: '-' },
             { data: 'customer_name', defaultContent: '-' },
+            { data: 'product_names', defaultContent: '-' },
+            { data: 'return_qty', className: 'text-end', render: data => Number(data || 0).toLocaleString('id-ID') },
+            { data: 'return_prices', className: 'text-end', defaultContent: '-', render: function (data) {
+                return data ? esc(data).replace(/ @ /g, ' @ ') : '-';
+            }},
             { data: 'warehouse_name', defaultContent: '-' },
             { data: 'total', className: 'text-end fw-semibold', render: data => 'Rp ' + Number(data || 0).toLocaleString('id-ID') },
             { data: 'user_name', defaultContent: '-' },
