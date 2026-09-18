@@ -97,8 +97,7 @@
                     <th>Tanggal</th>
                     <th>Customer</th>
                     <th>Kasir</th>
-                    <th>Shift</th>
-                    <th>Pembayaran</th>
+                    <th>Shift</th>                    <th>Pembayaran</th>
                     <th class="text-end">Subtotal</th>
                     <th class="text-end">Diskon</th>
                     <th class="text-end">Total</th>
@@ -197,8 +196,7 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('sale-detail-change').textContent = 'Rp ' + Number(sale.change_amount || 0).toLocaleString('id-ID');
             document.getElementById('sale-detail-payment').textContent = sale.payment_methods || '-';
             window.currentSaleDetail = {
-                invoice_no: sale.invoice_no,
-                sale_date: sale.sale_date,
+                invoice_no: sale.invoice_no,                sale_date: sale.sale_date,
                 cashier: sale.cashier_name || '-',
                 shift_id: sale.shift_id || '-',
                 customer: sale.customer_name || 'Umum',
@@ -296,8 +294,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         <div class="d-flex justify-content-between"><span>Pembayaran</span><strong id="sale-detail-payment">-</strong></div>
                     </div>
                 </div>
-            </div>
-            <div class="modal-footer justify-content-between">
+            </div>            <div class="modal-footer justify-content-between">
                 <button type="button" class="btn btn-primary" id="sale-detail-print">Cetak</button>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
             </div>
@@ -306,15 +303,30 @@ document.addEventListener('DOMContentLoaded', function () {
 </div>
 
 @elseif($module === 'payments')
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div><h4 class="mb-1">Penerimaan Pembayaran</h4><div class="text-secondary small">Semua penerimaan uang tercatat dalam satu daftar.</div></div>
-    <div class="d-flex gap-2"><a id="payments-export" href="{{ route('pos.pembayaran.export-excel') }}" class="btn btn-success btn-sm">Export Excel</a><button class="btn btn-primary btn-sm" disabled>+ Pembayaran</button></div>
+<div class="card shadow-sm mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="fw-semibold">Pembayaran</span>
+        <button class="btn btn-primary btn-sm" disabled>+ Pembayaran</button>
+    </div>
+    <div class="card-body border-bottom py-2">
+        <form id="payments-period-filter" class="d-flex align-items-end gap-2 flex-nowrap" style="white-space:nowrap;">
+            <div>
+                <label for="payments-start-date" class="form-label mb-1">Mulai tanggal</label>
+                <input type="date" id="payments-start-date" class="form-control" value="{{ now()->startOfMonth()->toDateString() }}">
+            </div>
+            <div>
+                <label for="payments-end-date" class="form-label mb-1">Sampai tanggal</label>
+                <input type="date" id="payments-end-date" class="form-control" value="{{ now()->endOfMonth()->toDateString() }}">
+            </div>
+            <div>
+                <button type="submit" class="btn btn-primary">Tampilkan</button>
+            </div>
+            <div>
+                <a id="payments-export" href="{{ route('pos.pembayaran.export-excel') }}" class="btn btn-success">Export Excel</a>
+            </div>
+        </form>
+    </div>
 </div>
-<form id="payments-period-filter" class="row g-2 align-items-end mb-3">
-    <div class="col-auto"><label class="form-label mb-1">Dari</label><input id="payments-start-date" type="date" class="form-control form-control-sm" value="{{ now()->startOfMonth()->toDateString() }}"></div>
-    <div class="col-auto"><label class="form-label mb-1">Sampai</label><input id="payments-end-date" type="date" class="form-control form-control-sm" value="{{ now()->endOfMonth()->toDateString() }}"></div>
-    <div class="col-auto"><button class="btn btn-primary btn-sm">Tampilkan</button></div>
-</form>
 <div class="card shadow-sm"><div class="table-responsive"><table id="payments-datatable" class="table table-hover align-middle w-100 mb-0"><thead><tr>
 <th>No Pembayaran</th><th>Tanggal</th><th>Sumber</th><th>Referensi</th><th>Customer</th><th class="text-end">Jumlah</th><th>Metode</th><th>Kas/Bank</th><th>User</th><th>Status</th>
 </tr></thead></table></div></div>
