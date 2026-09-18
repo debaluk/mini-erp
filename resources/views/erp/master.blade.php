@@ -107,9 +107,11 @@ document.addEventListener('DOMContentLoaded', () => {
             form.querySelector('[data-required="1"].is-invalid')?.focus();
             return;
         }
-        const url=editId?baseUrl+'/'+editId:baseUrl, method=editId?'PUT':'POST';
+        const url=editId?baseUrl+'/'+editId:baseUrl;
+        const payload=new FormData(form);
+        if(editId) payload.append('_method','PUT');
         try{
-            const response=await fetch(url,{method,headers:{'X-Requested-With':'XMLHttpRequest','Accept':'application/json','X-CSRF-TOKEN':csrf},body:new FormData(form)});
+            const response=await fetch(url,{method:'POST',headers:{'X-Requested-With':'XMLHttpRequest','Accept':'application/json','X-CSRF-TOKEN':csrf},body:payload});
             const data=await response.json().catch(()=>({}));
             if(!response.ok){const errors=Object.values(data.errors||{}).flat();showMessage(data.message||errors.join('<br>')||'Gagal menyimpan data.','danger');return;}
             modal.hide();await reloadTable();showMessage(data.message||'Data berhasil disimpan.');
