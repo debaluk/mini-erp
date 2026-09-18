@@ -216,6 +216,32 @@ class ModuleController extends Controller
         return response($html)->header('Content-Type','application/vnd.ms-excel; charset=UTF-8')->header('Content-Disposition','attachment; filename="penerimaan-pembayaran-'.$start.'-'.$end.'.xls"');
     }
 
+    public function exportTrialBalanceExcel(Request $request)
+    {
+        $entity = $this->entityId();
+        $start = $request->input('start_date', now()->startOfMonth()->toDateString());
+        $end = $request->input('end_date', now()->endOfMonth()->toDateString());
+        abort_if($start > $end, 422, 'Periode tanggal tidak valid.');
+
+        $accounts = DB::table('chart_of_accounts')->where('entity_id',$entity)->where('is_active',1)->where('level',3)->orderBy('code')->get(['id','code','name']);
+        $base = DB::table('journal_entries as e')->join('journals as j','j.id','=','e.journal_id')->where('j.entity_id',$entity)->where('j.status','posted');
+        $opening = (clone $base)->where('j.journal_date','<',$start)->groupBy('e.account_id')->select('e.account_id',DB::raw('SUM(e.debit) debit'),DB::raw('SUM(e.credit) credit'))->get()->keyBy('account_id');
+        $period = (clone $base)->whereBetween('j.journal_date',[$start,$end])->groupBy('e.account_id')->select('e.account_id',DB::raw('SUM(e.debit) debit'),DB::raw('SUM(e.credit) credit'))->get()->keyBy('account_id');
+
+        $entityRow=DB::table('entities')->where('id',$entity)->first();
+        $e=fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');
+        $num=fn($v)=>number_format((float)$v,2,'.','');
+        $html='<html><head><meta charset="UTF-8"><style>body{font-family:Arial}table{border-collapse:collapse}th,td{border:1px solid #000;padding:5px}.right{text-align:right}.bold{font-weight:700}</style></head><body>';
+        $html.='<div><b>'.$e($entityRow?->name ?? 'MINI ERP').'</b></div>';
+        if(!empty($entityRow?->address)) $html.='<div>'.$e($entityRow->address).'</div>';
+        $html.='<h4>NERACA SALDO</h4><div>Periode: '.$e(date('d-m-Y',strtotime($start))).' s/d '.$e(date('d-m-Y',strtotime($end))).'</div><br>';
+        $html.='<table><tr><th>Kode</th><th>Nama Akun</th><th>Saldo Awal</th><th>Debit</th><th>Kredit</th><th>Saldo Akhir</th></tr>';
+        $openTotal=0;$debitTotal=0;$creditTotal=0;$balanceTotal=0;
+        foreach($accounts as $a){$op=$opening->get($a->id);$pr=$period->get($a->id);$o=(float)($op->debit??0)-(float)($op->credit??0);$d=(float)($pr->debit??0);$cr=(float)($pr->credit??0);$b=$o+$d-$cr;$openTotal+=$o;$debitTotal+=$d;$creditTotal+=$cr;$balanceTotal+=$b;$html.='<tr><td>'.$e($a->code).'</td><td>'.$e($a->name).'</td><td class="right">'.$num(abs($o)).' '.($o>=0?'D':'K').'</td><td class="right">'.$num($d).'</td><td class="right">'.$num($cr).'</td><td class="right">'.$num(abs($b)).' '.($b>=0?'D':'K').'</td></tr>';}
+        $html.='<tr class="bold"><td colspan="2">TOTAL</td><td class="right">'.$num(abs($openTotal)).' '.($openTotal>=0?'D':'K').'</td><td class="right">'.$num($debitTotal).'</td><td class="right">'.$num($creditTotal).'</td><td class="right">'.$num(abs($balanceTotal)).' '.($balanceTotal>=0?'D':'K').'</td></tr></table></body></html>';
+        return response($html)->header('Content-Type','application/vnd.ms-excel; charset=UTF-8')->header('Content-Disposition','attachment; filename="neraca-saldo_'.$start.'_'.$end.'.xls"');
+    }
+
     public function exportProfitLossExcel(Request $request)
     {
         $entity = $this->entityId();
