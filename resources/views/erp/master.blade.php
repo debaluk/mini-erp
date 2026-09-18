@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
     form.addEventListener('submit',async e=>{
         e.preventDefault();
         const missing=validateRequired();
-        if(missing.length){showMessage('Field wajib diisi:<br><strong>'+missing.join('<br>')+'</strong>','danger');return;}
+        if(missing.length){return;}
         const url=editId?baseUrl+'/'+editId:baseUrl, method=editId?'PUT':'POST';
         try{
             const response=await fetch(url,{method,headers:{'X-Requested-With':'XMLHttpRequest','Accept':'application/json','X-CSRF-TOKEN':csrf},body:new FormData(form)});
