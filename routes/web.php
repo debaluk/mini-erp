@@ -81,8 +81,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/erp/movement', [ModuleController::class, 'movementStore'])->middleware('access:inventori')->name('erp.movement.store');
     Route::post('/erp/opname', [ModuleController::class, 'opnameStore'])->middleware('access:inventori')->name('erp.opname.store');
 
-    Route::get('/erp/bom', [BomController::class, 'show'])->middleware('access:inventori')->name('erp.bom');
-    Route::post('/erp/bom', [BomController::class, 'store'])->middleware('access:inventori')->name('erp.bom.store');
+    Route::get('/erp/bom', [BomController::class, 'show'])->middleware('access:produksi')->name('erp.bom');
+    Route::post('/erp/bom', [BomController::class, 'store'])->middleware('access:produksi')->name('erp.bom.store');
 
     $productionModules = ['production','production-results','material-usage','production-cost'];
     foreach ($productionModules as $module) {
@@ -194,7 +194,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/pengaturan/user/{id}', [SettingsController::class, 'userUpdate'])->middleware('role:owner')->name('pengaturan.user.update');
     Route::patch('/pengaturan/user/{id}/toggle', [SettingsController::class, 'userToggle'])->middleware('role:owner')->name('pengaturan.user.toggle');
     Route::get('/pengaturan/role', [SettingsController::class, 'roles'])->middleware('role:superadmin,owner')->name('pengaturan.role');
-    Route::get('/pengaturan/konfigurasi', [SettingsController::class, 'configuration'])->middleware('role:superadmin,owner,admin')->name('pengaturan.konfigurasi');
+    Route::get('/pengaturan/konfigurasi', [SettingsController::class, 'configuration'])->middleware('access:konfigurasi')->name('pengaturan.konfigurasi');
 
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
