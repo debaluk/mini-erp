@@ -27,7 +27,7 @@
                     <th>Nama Akun</th>
                     <th style="width:170px">Type</th>
                     <th style="width:160px">Normal Balance</th>
-                    <th class="text-end" style="width:150px">Aksi</th>
+                    <th class="text-end" style="width:220px">Aksi</th>
                 </tr>
             </thead>
             <tbody>
