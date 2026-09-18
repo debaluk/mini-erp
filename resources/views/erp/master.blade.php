@@ -7,6 +7,25 @@
 
 <div class="card shadow-sm" id="masterTableContainer">
     <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle mb-0" id="masterDataTable">
+            <thead><tr>
+                @foreach($config['columns'] as $column)<th>{{ ucwords(str_replace('_',' ',$column)) }}</th>@endforeach
+                <th class="text-end" style="width:130px">Aksi</th>
+            </tr></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+ds('layouts.app')
+@section('content')
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div><h3 class="mb-1">{{ $config['title'] }}</h3><div class="text-secondary">Master data</div></div>
+    <button type="button" class="btn btn-primary btn-sm" id="btnAddMaster">+ Tambah</button>
+</div>
+
+<div class="card shadow-sm" id="masterTableContainer">
+    <div class="table-responsive">
         <table class="table table-sm table-hover align-middle mb-0">
             <thead><tr>
                 @foreach($config['columns'] as $column)<th>{{ ucwords(str_replace('_',' ',$column)) }}</th>@endforeach
@@ -87,12 +106,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const messageModal=new bootstrap.Modal(document.getElementById('masterMessageModal'));
     const confirmModal=new bootstrap.Modal(document.getElementById('masterConfirmModal'));
     const form=document.getElementById('masterForm'), title=document.getElementById('masterModalTitle');
-    const tableBox=document.getElementById('masterTableContainer'), messageTitle=document.getElementById('masterMessageTitle'), messageBody=document.getElementById('masterMessageBody');
+    const messageTitle=document.getElementById('masterMessageTitle'), messageBody=document.getElementById('masterMessageBody');
     const baseUrl=@json(url('/master/'.$type)), csrf=document.querySelector('meta[name="csrf-token"]')?.content || @json(csrf_token());
     let editId=null, deleteId=null;
 
     const showMessage=(message,type='success')=>{messageTitle.textContent=type==='danger'?'Gagal':(type==='warning'?'Peringatan':'Berhasil');messageBody.innerHTML=message;messageModal.show();};
-    const reloadTable=async(url=window.location.href)=>{const response=await fetch(url,{headers:{'X-Requested-With':'XMLHttpRequest'}});const html=await response.text();const doc=new DOMParser().parseFromString(html,'text/html');const fresh=doc.querySelector('#masterTableContainer');if(fresh)tableBox.replaceWith(fresh);};
+    const dataTable=new DataTable('#masterDataTable',{
+        processing:true,
+        serverSide:true,
+        pageLength:15,
+        lengthMenu:[[15,25,50,100],[15,25,50,100]],
+        order:[[0,'desc']],
+        ajax:{url:baseUrl,method:'GET'},
+        columns:[
+            @foreach($config['columns'] as $column){data:@json($column),defaultContent:''},@endforeach
+            {data:null,orderable:false,searchable:false,className:'text-end text-nowrap',render:(data,type,row)=>{
+                const json=encodeURIComponent(JSON.stringify(row));
+                return '<button type="button" class="btn btn-outline-primary btn-sm btn-edit-master" data-id="'+row.id+'" data-row="'+json+'">Edit</button> '+
+                       '<button type="button" class="btn btn-outline-danger btn-sm btn-delete-master" data-id="'+row.id+'">Hapus</button>';
+            }}
+        ]
+    });
     const resetForm=()=>{form.reset();editId=null;form.querySelectorAll('.required-field').forEach(i=>i.classList.remove('is-invalid'));title.textContent='Tambah {{ $config['title'] }}';document.getElementById('masterSubmit').textContent='Simpan';};
     const validateRequired=()=>{const missing=[];form.querySelectorAll('[data-required="1"]').forEach(input=>{const empty=!String(input.value??'').trim();input.classList.toggle('is-invalid',empty);if(empty){const label=input.closest('.col-md-4')?.querySelector('.form-label')?.textContent?.trim()||input.name;missing.push(label);}});return missing;};
 
@@ -114,13 +148,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const response=await fetch(url,{method:'POST',headers:{'X-Requested-With':'XMLHttpRequest','Accept':'application/json','X-CSRF-TOKEN':csrf},body:payload});
             const data=await response.json().catch(()=>({}));
             if(!response.ok){const errors=Object.values(data.errors||{}).flat();showMessage(data.message||errors.join('<br>')||'Gagal menyimpan data.','danger');return;}
-            modal.hide();await reloadTable();showMessage(data.message||'Data berhasil disimpan.');
+            modal.hide();dataTable.ajax.reload(null,false);showMessage(data.message||'Data berhasil disimpan.');
         }catch(error){showMessage('Terjadi kesalahan saat menyimpan data.','danger');}
     });
 
     document.addEventListener('click',async e=>{
         const edit=e.target.closest('.btn-edit-master');
-        if(edit){const row=JSON.parse(edit.dataset.row);resetForm();editId=edit.dataset.id;Object.keys(row).forEach(key=>{const input=form.elements.namedItem(key);if(input)input.value=row[key]??'';});title.textContent='Edit {{ $config['title'] }}';document.getElementById('masterSubmit').textContent='Update';modal.show();return;}
+        if(edit){const row=JSON.parse(decodeURIComponent(edit.dataset.row));resetForm();editId=edit.dataset.id;Object.keys(row).forEach(key=>{const input=form.elements.namedItem(key);if(input)input.value=row[key]??'';});title.textContent='Edit {{ $config['title'] }}';document.getElementById('masterSubmit').textContent='Update';modal.show();return;}
         const del=e.target.closest('.btn-delete-master');if(del){deleteId=del.dataset.id;confirmModal.show();}
     });
 
@@ -130,11 +164,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const response=await fetch(baseUrl+'/'+deleteId,{method:'DELETE',headers:{'X-Requested-With':'XMLHttpRequest','Accept':'application/json','X-CSRF-TOKEN':csrf}});
             const data=await response.json().catch(()=>({}));
             if(!response.ok){showMessage(data.message||'Data tidak dapat dihapus karena sudah digunakan oleh data lain.','danger');return;}
-            await reloadTable();showMessage(data.message||'Data berhasil dihapus.');
+            dataTable.ajax.reload(null,false);showMessage(data.message||'Data berhasil dihapus.');
         }catch(error){showMessage('Terjadi kesalahan saat menghapus data.','danger');}finally{deleteId=null;}
     });
 
-    document.addEventListener('click',async e=>{const link=e.target.closest('#masterTableContainer .pagination a');if(!link)return;e.preventDefault();await reloadTable(link.href);});
 });
 </script>
 @endsection
