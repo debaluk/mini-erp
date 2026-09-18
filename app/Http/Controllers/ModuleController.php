@@ -150,7 +150,7 @@ class ModuleController extends Controller
         if ($module === 'shifts') {
             $data['openShift'] = DB::table('cash_shifts')->where('entity_id',$entity)->where('user_id',auth()->id())->where('status','open')->latest('id')->first();
         }
-        return view('erp.module', $data);
+        return $module === 'pos' ? view('erp.pos-page', $data) : view('erp.module', $data);
     }
 
     private function report(string $module, int $entity): array
