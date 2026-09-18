@@ -1,12 +1,24 @@
 @extends('layouts.app')
 @section('content')
+<style>
+    /* Mini ERP compact form UI */
+    .erp-compact .form-label { font-size: .82rem; margin-bottom: .25rem; font-weight: 600; }
+    .erp-compact .form-control,
+    .erp-compact .form-select { min-height: 34px; padding: .3rem .55rem; font-size: .875rem; }
+    .erp-compact .btn { font-size: .875rem; padding: .3rem .7rem; }
+    .erp-compact .card-body { padding: .85rem; }
+    .erp-compact .card-header { padding: .55rem .85rem; }
+    .erp-compact .row { --bs-gutter-x: .65rem; --bs-gutter-y: .55rem; }
+    .erp-compact textarea.form-control { min-height: 58px; }
+</style>
+@section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div><h3 class="mb-1">{{ $title }}</h3><div class="text-secondary">Mini ERP · {{ ucfirst(str_replace('-', ' ', $module)) }}</div></div>
     <a href="{{ route('dashboard') }}" class="btn btn-outline-secondary btn-sm">Dashboard</a>
 </div>
 
 @if($module === 'pos')
-<div class="card shadow-sm mb-4"><div class="card-header fw-semibold">Transaksi Penjualan Retail</div><div class="card-body"><form method="POST" action="{{ route('erp.pos.store') }}" class="row g-3">@csrf
+<div class="erp-compact"><div class="card shadow-sm mb-4"><div class="card-header fw-semibold">Transaksi Penjualan Retail</div><div class="card-body"><form method="POST" action="{{ route('erp.pos.store') }}" class="row g-3">@csrf
 <div class="col-lg-5"><label class="form-label">Produk</label><select name="product_id" class="form-select" required><option value="">Pilih produk</option>@foreach($products as $p)<option value="{{ $p->id }}">{{ $p->sku }} — {{ $p->name }} · Rp {{ number_format($p->selling_price,0,',','.') }}</option>@endforeach</select></div>
 <div class="col-sm-3 col-lg-2"><label class="form-label">Qty</label><input name="qty" type="number" min="0.001" step="0.001" class="form-control" required></div>
 <div class="col-sm-5 col-lg-3"><label class="form-label">Pembayaran</label><select name="payment_method" class="form-select"><option>Tunai</option><option>Transfer</option><option>QRIS</option></select></div>
@@ -49,6 +61,7 @@
 @else @forelse($report['lines'] as $r)<tr><td>{{ $r->invoice_no ?? $r->payment_date ?? $r->production_no ?? $r->id }}</td><td class="text-end">Rp {{ number_format($r->total ?? $r->amount ?? $r->total_cost ?? 0,0,',','.') }}</td><td class="text-end">{{ $r->status ?? $r->method ?? '' }}</td></tr>@empty<tr><td colspan="3" class="text-center text-secondary py-4">Belum ada data.</td></tr>@endforelse @endif
 </tbody></table></div></div>
 @endif
+</div>
 
 @if($module==='stock')
 <div class="card shadow-sm"><div class="card-header fw-semibold">Posisi Stok</div><div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>Gudang</th><th>Produk</th><th class="text-end">Qty</th><th class="text-end">HPP Rata-rata</th><th class="text-end">Nilai</th></tr></thead><tbody>@forelse($rows as $r)<tr><td>{{ optional(DB::table('warehouses')->find($r->warehouse_id))->name ?? '-' }}</td><td>{{ optional(DB::table('products')->find($r->product_id))->name ?? '-' }}</td><td class="text-end">{{ $r->qty }}</td><td class="text-end">Rp {{ number_format($r->avg_cost,0,',','.') }}</td><td class="text-end">Rp {{ number_format($r->qty*$r->avg_cost,0,',','.') }}</td></tr>@empty<tr><td colspan="5" class="text-center text-secondary py-4">Belum ada stok.</td></tr>@endforelse</tbody></table></div><div class="card-footer">{{ $rows->links() }}</div></div>
