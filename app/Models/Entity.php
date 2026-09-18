@@ -15,6 +15,9 @@ class Entity extends Model
         'phone',
         'email',
         'is_active',
+        'npwp',
+        'nib',
+        'logo_path',
     ];
 
     protected $casts = [
