@@ -18,11 +18,44 @@
 </div>
 
 @if($module === 'pos')
-<div class="erp-compact"><div class="card shadow-sm mb-4"><div class="card-header fw-semibold">Transaksi Penjualan Retail</div><div class="card-body"><form method="POST" action="{{ route('erp.pos.store') }}" class="row g-3">@csrf
-<div class="col-lg-5"><label class="form-label">Produk</label><select name="product_id" class="form-select" required><option value="">Pilih produk</option>@foreach($products as $p)<option value="{{ $p->id }}">{{ $p->sku }} — {{ $p->name }} · Rp {{ number_format($p->selling_price,0,',','.') }}</option>@endforeach</select></div>
-<div class="col-sm-3 col-lg-2"><label class="form-label">Qty</label><input name="qty" type="number" min="0.001" step="0.001" class="form-control" required></div>
-<div class="col-sm-5 col-lg-3"><label class="form-label">Pembayaran</label><select name="payment_method" class="form-select"><option>Tunai</option><option>Transfer</option><option>QRIS</option></select></div>
-<div class="col-sm-4 col-lg-2 d-flex align-items-end"><button class="btn btn-primary w-100">Bayar & Posting</button></div></form></div></div>
+<div class="erp-compact">
+<div class="card shadow-sm mb-4">
+<div class="card-header d-flex justify-content-between align-items-center"><span class="fw-semibold">POS Retail</span>@if($openShift)<span class="badge text-bg-success">Shift Aktif</span>@else<span class="badge text-bg-warning">Shift Belum Dibuka</span>@endif</div>
+<div class="card-body">
+<form method="POST" action="{{ route('erp.pos.add') }}" class="row g-2 mb-3">@csrf
+<div class="col-md-7"><label class="form-label">Cari / pilih barang</label><select name="product_id" class="form-select" required><option value="">Ketik / pilih kode atau nama barang</option>@foreach($products as $p)<option value="{{ $p->id }}">{{ $p->sku }} — {{ $p->name }} · Rp {{ number_format($p->selling_price,0,',','.') }}</option>@endforeach</select></div>
+<div class="col-md-2"><label class="form-label">Qty</label><input name="qty" type="number" min="0.001" step="0.001" class="form-control" value="1" required></div>
+<div class="col-md-3 d-flex align-items-end"><button class="btn btn-primary w-100" @disabled(!$openShift)>+ Tambah Barang</button></div>
+</form>
+<div class="table-responsive border rounded"><table class="table table-hover align-middle mb-0"><thead class="table-light"><tr><th>Kode</th><th>Nama Barang</th><th class="text-end">Harga</th><th class="text-end">Qty</th><th class="text-end">Diskon</th><th class="text-end">Sub Total</th></tr></thead><tbody>
+@php($posSubtotal=0)
+@forelse($posCart as $key=>$item)
+@php($line=(float)$item['price']*(float)$item['qty']; $posSubtotal+=$line)
+<tr data-bs-toggle="modal" data-bs-target="#posEditModal{{ $key }}" style="cursor:pointer"><td>{{ $item['code'] }}</td><td>{{ $item['name'] }}</td><td class="text-end">Rp {{ number_format($item['price'],0,',','.') }}</td><td class="text-end">{{ rtrim(rtrim(number_format($item['qty'],3,',','.'),'0'),',') }}</td><td class="text-end">—</td><td class="text-end fw-semibold">Rp {{ number_format($line,0,',','.') }}</td></tr>
+@empty<tr><td colspan="6" class="text-center text-secondary py-5">Belum ada barang. Pilih barang lalu klik Tambah Barang.</td></tr>@endforelse
+</tbody></table></div>
+@foreach($posCart as $key=>$item)
+<div class="modal fade" id="posEditModal{{ $key }}" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-sm modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Edit Barang</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+<form method="POST" action="{{ route('erp.pos.update',$key) }}">@csrf @method('PUT')
+<div class="modal-body"><div class="small text-secondary mb-3">{{ $item['code'] }} · {{ $item['name'] }}</div><label class="form-label">Harga Transaksi</label><input name="price" type="number" min="0" step="0.01" class="form-control mb-3" value="{{ $item['price'] }}" required><label class="form-label">Qty</label><input name="qty" type="number" min="0.001" step="0.001" class="form-control" value="{{ $item['qty'] }}" required></div>
+<div class="modal-footer justify-content-between"><button type="submit" formaction="{{ route('erp.pos.remove',$key) }}" formmethod="POST" class="btn btn-outline-danger" onclick="return confirm('Hapus barang ini dari transaksi?')">Hapus</button><button class="btn btn-primary">Simpan</button></div></form></div></div></div>
+@endforeach
+@php($posDiscount=old('discount',0)); $posTotal=max(0,$posSubtotal-(float)$posDiscount)
+<div class="row justify-content-end mt-3"><div class="col-lg-5"><div class="border rounded p-3 bg-light">
+<div class="d-flex justify-content-between mb-2"><span>Subtotal</span><strong>Rp {{ number_format($posSubtotal,0,',','.') }}</strong></div>
+<form method="POST" action="{{ route('erp.pos.store') }}">@csrf
+<label class="form-label">Diskon Global</label><input id="posDiscount" name="discount" type="number" min="0" step="0.01" class="form-control text-end mb-2" value="{{ $posDiscount }}">
+<div class="d-flex justify-content-between fs-5 border-top pt-2 mb-3"><span>Total</span><strong id="posTotal">Rp {{ number_format($posTotal,0,',','.') }}</strong></div>
+<label class="form-label">Pembayaran</label><select name="payment_method" class="form-select mb-2"><option>Tunai</option><option>Transfer</option><option>QRIS</option></select>
+<label class="form-label">Nominal Bayar</label><input id="posPayment" name="payment_amount" type="number" min="0" step="0.01" class="form-control text-end mb-3" value="{{ $posTotal }}" required>
+<div class="d-flex gap-2"><button formaction="{{ route('erp.pos.clear') }}" formmethod="POST" class="btn btn-outline-secondary flex-fill" @disabled(empty($posCart))>Kosongkan</button><button class="btn btn-success flex-fill" @disabled(empty($posCart)||!$openShift)>Bayar & Posting</button></div>
+</form>
+@if(!$openShift)<div class="small text-danger mt-2">Buka Shift Kasir sebelum transaksi diposting.</div>@endif
+</div></div></div>
+</div></div></div>
+<script>
+document.addEventListener('DOMContentLoaded',()=>{const d=document.getElementById('posDiscount'),t=document.getElementById('posTotal'),p=document.getElementById('posPayment');if(!d||!t)return;const s={{ $posSubtotal }};d.addEventListener('input',()=>{const v=Math.min(Math.max(parseFloat(d.value)||0,0),s);t.textContent='Rp '+Math.round(s-v).toLocaleString('id-ID');if(p)p.value=Math.round(s-v);});});
+</script>
 @elseif($module === 'shifts')
 <div class="row g-3 mb-4"><div class="col-lg-6"><div class="card shadow-sm h-100"><div class="card-header fw-semibold">Buka Shift</div><div class="card-body"><form method="POST" action="{{ route('erp.shift.store') }}" class="row g-3">@csrf<input type="hidden" name="action" value="open"><div class="col-8"><label class="form-label">Kas Awal</label><input name="opening_cash" type="number" step="0.01" min="0" class="form-control" value="0"></div><div class="col-4 d-flex align-items-end"><button class="btn btn-primary w-100" @if($openShift) disabled @endif>Buka Shift</button></div></form>@if($openShift)<div class="alert alert-success mt-3 mb-0">Shift aktif sejak {{ $openShift->opened_at }}.</div>@endif</div></div></div><div class="col-lg-6"><div class="card shadow-sm h-100"><div class="card-header fw-semibold">Tutup Shift</div><div class="card-body"><form method="POST" action="{{ route('erp.shift.store') }}" class="row g-3">@csrf<input type="hidden" name="action" value="close"><div class="col-8"><label class="form-label">Kas Akhir</label><input name="closing_cash" type="number" step="0.01" min="0" class="form-control" value="0"></div><div class="col-4 d-flex align-items-end"><button class="btn btn-warning w-100" @if(!$openShift) disabled @endif>Tutup Shift</button></div></form></div></div></div></div>
 @elseif($module === 'purchases')
