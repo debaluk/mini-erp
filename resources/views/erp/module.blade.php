@@ -326,10 +326,14 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
         </form>
     </div>
+    <div class="table-responsive">
+        <table id="payments-datatable" class="table table-hover align-middle w-100 mb-0">
+            <thead><tr>
+                <th>No Pembayaran</th><th>Tanggal</th><th>Sumber</th><th>Referensi</th><th>Customer</th><th class="text-end">Jumlah</th><th>Metode</th><th>Kas/Bank</th><th>User</th><th>Status</th>
+            </tr></thead>
+        </table>
+    </div>
 </div>
-    <div class="table-responsive"><table id="payments-datatable" class="table table-hover align-middle w-100 mb-0"><thead><tr>
-<th>No Pembayaran</th><th>Tanggal</th><th>Sumber</th><th>Referensi</th><th>Customer</th><th class="text-end">Jumlah</th><th>Metode</th><th>Kas/Bank</th><th>User</th><th>Status</th>
-</tr></thead></table></div></div>
 <div class="modal fade" id="payment-detail-modal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
 <div class="modal-header"><h5 class="modal-title" id="payment-detail-title">Detail Pembayaran</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
 <div class="modal-body" id="payment-detail-body"></div>
