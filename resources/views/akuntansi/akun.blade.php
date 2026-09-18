@@ -13,27 +13,24 @@
 @if(session('error'))<div class="alert alert-danger">{{ session('error') }}</div>@endif
 @if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
 
+@php
+    $children = $accounts->groupBy('parent_id');
+@endphp
+
 <div class="card shadow-sm">
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
             <thead>
                 <tr>
-                    <th style="width:150px">Kode</th>
+                    <th style="width:170px">Kode</th>
                     <th>Nama Akun</th>
                     <th style="width:150px">Normal Balance</th>
                     <th class="text-end" style="width:100px">Aksi</th>
                 </tr>
             </thead>
             <tbody>
-            @forelse($accounts as $a)
-                <tr>
-                    <td class="fw-semibold">{{ $a->code }}</td>
-                    <td>{{ $a->name }}</td>
-                    <td>{{ ucfirst($a->normal_balance) }}</td>
-                    <td class="text-end">
-                        <button class="btn btn-sm btn-primary px-3" data-bs-toggle="modal" data-bs-target="#account-add-{{ $a->id }}">+</button>
-                    </td>
-                </tr>
+            @forelse($children->get(null, collect()) as $a)
+                @include('akuntansi.partials.akun-row', ['account' => $a, 'children' => $children, 'nextCodes' => $nextCodes, 'depth' => 0])
             @empty
                 <tr><td colspan="4" class="text-center text-secondary py-4">Belum ada akun utama.</td></tr>
             @endforelse
@@ -43,55 +40,57 @@
 </div>
 
 @foreach($accounts as $a)
-<div class="modal fade" id="account-add-{{ $a->id }}" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form method="POST" action="{{ route('akuntansi.akun.store') }}">
-                @csrf
-                <input type="hidden" name="parent_id" value="{{ $a->id }}">
+    @if((int) $a->level < 3)
+        <div class="modal fade" id="account-add-{{ $a->id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form method="POST" action="{{ route('akuntansi.akun.store') }}">
+                        @csrf
+                        <input type="hidden" name="parent_id" value="{{ $a->id }}">
 
-                <div class="modal-header">
-                    <h5 class="modal-title">Tambah Akun</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        <div class="modal-header">
+                            <h5 class="modal-title">Tambah Akun</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">Parent Akun</label>
+                                <input class="form-control" value="{{ $a->code }} — {{ $a->name }}" disabled>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Nomor Akun</label>
+                                <input class="form-control fw-semibold" value="{{ $nextCodes[$a->id] ?? '' }}" disabled>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Nama Akun</label>
+                                <input name="name" class="form-control" placeholder="Contoh: Kas" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Normal Balance</label>
+                                <select name="normal_balance" class="form-select" required>
+                                    <option value="debit" @selected($a->normal_balance === 'debit')>Debit</option>
+                                    <option value="credit" @selected($a->normal_balance === 'credit')>Credit</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="form-label">Keterangan</label>
+                                <textarea name="description" class="form-control" rows="2"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                            <button class="btn btn-primary">Simpan</button>
+                        </div>
+                    </form>
                 </div>
-
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Parent Akun</label>
-                        <input class="form-control" value="{{ $a->code }} — {{ $a->name }}" disabled>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Nomor Akun</label>
-                        <input class="form-control fw-semibold" value="{{ $nextCodes[$a->id] ?? '' }}" disabled>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Nama Akun</label>
-                        <input name="name" class="form-control" placeholder="Contoh: Kas" required>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Normal Balance</label>
-                        <select name="normal_balance" class="form-select" required>
-                            <option value="debit" @selected($a->normal_balance === 'debit')>Debit</option>
-                            <option value="credit" @selected($a->normal_balance === 'credit')>Credit</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="form-label">Keterangan</label>
-                        <textarea name="description" class="form-control" rows="2"></textarea>
-                    </div>
-                </div>
-
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button class="btn btn-primary">Simpan</button>
-                </div>
-            </form>
+            </div>
         </div>
-    </div>
-</div>
+    @endif
 @endforeach
 @endsection
