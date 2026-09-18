@@ -59,14 +59,12 @@
 <div class="card shadow-sm mb-4">
     <div class="card-header fw-semibold">Neraca Saldo</div>
     <div class="card-body border-bottom py-2">
-        <div class="d-flex align-items-end gap-2 flex-nowrap" style="white-space:nowrap;">
-            <form method="GET" class="d-flex align-items-end gap-2 flex-nowrap">
-                <div><label class="form-label mb-1">Mulai tanggal</label><input type="date" name="start_date" class="form-control" value="{{ request('start_date', now()->startOfMonth()->toDateString()) }}"></div>
-                <div><label class="form-label mb-1">Sampai tanggal</label><input type="date" name="end_date" class="form-control" value="{{ request('end_date', now()->endOfMonth()->toDateString()) }}"></div>
-                <button class="btn btn-primary">Tampilkan</button>
-            </form>
+        <form method="GET" class="d-flex align-items-end gap-2 flex-nowrap" style="white-space:nowrap;">
+            <div><label class="form-label mb-1">Mulai tanggal</label><input type="date" name="start_date" class="form-control" value="{{ request('start_date', now()->startOfMonth()->toDateString()) }}"></div>
+            <div><label class="form-label mb-1">Sampai tanggal</label><input type="date" name="end_date" class="form-control" value="{{ request('end_date', now()->endOfMonth()->toDateString()) }}"></div>
+            <button class="btn btn-primary">Tampilkan</button>
             <a href="{{ route('akuntansi.neraca-saldo.export-excel', request()->only(['start_date','end_date'])) }}" class="btn btn-success text-nowrap" title="Export Excel">⬇ Export Excel</a>
-        </div>
+        </form>
     </div>
     <div class="card-body">
         <div class="text-center mb-4">
