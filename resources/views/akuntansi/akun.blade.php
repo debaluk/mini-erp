@@ -64,6 +64,7 @@
     </div>
     @endif
 
+    @if((int)$a->level > 0)
     <div class="modal fade" id="account-edit-{{ $a->id }}" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow">
@@ -81,6 +82,7 @@
             </div>
         </div>
     </div>
+    @endif
 @endforeach
 
 @if(session('success') || session('error') || $errors->any())
