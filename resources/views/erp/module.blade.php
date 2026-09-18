@@ -11,12 +11,11 @@
     .erp-compact textarea.form-control { min-height: 58px; }
 </style>
 @section('content')
-@if($module !== 'pos')
+@if($module !== 'pos' && $module !== 'profit-loss')
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div><h3 class="mb-1">{{ $title }}</h3><div class="text-secondary">Mini ERP · {{ ucfirst(str_replace('-', ' ', $module)) }}</div></div>
     <a href="{{ route('dashboard') }}" class="btn btn-outline-secondary btn-sm">Dashboard</a>
 </div>
-
 @endif
 
 @includeWhen($module === 'pos', 'erp.pos')
