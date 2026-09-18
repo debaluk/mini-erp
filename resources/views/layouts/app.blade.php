@@ -123,6 +123,21 @@
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.datatables.net/2.3.3/js/dataTables.js"></script>
 <script src="https://cdn.datatables.net/2.3.3/js/dataTables.bootstrap5.js"></script>
+<script>
+    DataTable.defaults.language = {
+        ...DataTable.defaults.language,
+        processing: 'Memproses...',
+        search: 'Cari:',
+        lengthMenu: 'Tampilkan _MENU_ data',
+        info: 'Menampilkan _START_ sampai _END_ dari _TOTAL_ data',
+        infoEmpty: 'Menampilkan 0 sampai 0 dari 0 data',
+        infoFiltered: '(disaring dari _MAX_ total data)',
+        loadingRecords: 'Memuat...',
+        zeroRecords: 'Data tidak ditemukan',
+        emptyTable: 'Belum ada data',
+        paginate: { first: '<<', previous: '<', next: '>', last: '>>' }
+    };
+</script>
 @stack('scripts')
 </body>
 </html>
