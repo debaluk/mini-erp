@@ -13,45 +13,17 @@
         /* Compact ERP forms: consistent Bootstrap sizing across all modules */
         main .form-label { font-size: .8rem; margin-bottom: .2rem; font-weight: 600; }
         main .form-control,
-        main .form-select {
-            min-height: 32px;
-            height: 32px;
-            padding: .2rem .5rem;
-            font-size: .82rem;
-            line-height: 1.2;
-        }
+        main .form-select { min-height: 32px; height: 32px; padding: .2rem .5rem; font-size: .82rem; line-height: 1.2; }
         main textarea.form-control { height: auto; min-height: 52px; }
         main .btn:not(.btn-close) { padding: .3rem .65rem; font-size: .8rem; line-height: 1.2; }
         main .table { font-size: .82rem; }
         main .table thead th { font-size: .82rem; font-weight: 600; padding: .45rem .5rem; }
         main .table tbody td { font-size: .82rem; padding: .4rem .5rem; }
-        main .dataTables_wrapper,
-        main .dataTables_wrapper .dt-info,
-        main .dataTables_wrapper .dt-paging,
-        main .dataTables_wrapper .dt-length,
-        main .dataTables_wrapper .dt-search { font-size: .82rem; }
-        main .dataTables_wrapper .dt-length select,
-        main .dataTables_wrapper .dt-search input { font-size: .82rem; padding: .2rem .45rem; min-height: 30px; }
-        main .dataTables_wrapper .dt-paging .pagination {
-            margin: 0 !important;
-            gap: 1px !important;
-        }
-        main .dataTables_wrapper .dt-paging .pagination .page-item,
-        main .dataTables_wrapper .dt-paging .pagination .page-link {
-            margin: 0 !important;
-            padding: 0 !important;
-            width: 22px !important;
-            min-width: 22px !important;
-            max-width: 22px !important;
-            height: 22px !important;
-            min-height: 22px !important;
-            font-size: .65rem !important;
-            line-height: 20px !important;
-            text-align: center !important;
-        }
-        main .dataTables_wrapper .dt-paging .pagination .page-link {
-            display: block !important;
-        }
+        main .dataTables_wrapper, main .dataTables_wrapper .dt-info, main .dataTables_wrapper .dt-paging, main .dataTables_wrapper .dt-length, main .dataTables_wrapper .dt-search { font-size: .82rem; }
+        main .dataTables_wrapper .dt-length select, main .dataTables_wrapper .dt-search input { font-size: .82rem; padding: .2rem .45rem; min-height: 30px; }
+        main .dataTables_wrapper .dt-paging .pagination { margin: 0 !important; gap: 1px !important; }
+        main .dataTables_wrapper .dt-paging .pagination .page-item, main .dataTables_wrapper .dt-paging .pagination .page-link { margin: 0 !important; padding: 0 !important; width: 22px !important; min-width: 22px !important; max-width: 22px !important; height: 22px !important; min-height: 22px !important; font-size: .65rem !important; line-height: 20px !important; text-align: center !important; }
+        main .dataTables_wrapper .dt-paging .pagination .page-link { display: block !important; }
         main .card-body { padding: .75rem; }
         main .card-header { padding: .5rem .75rem; }
         main form.row { --bs-gutter-x: .6rem; --bs-gutter-y: .45rem; }
@@ -72,7 +44,7 @@
                 @endif
                 @if(in_array(auth()->user()->role, ['owner','kasir']))
                 <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">POS RETAIL</a><ul class="dropdown-menu">
-                    <li><a class="dropdown-item fw-semibold" href="{{ route('pos.pos') }}">POS</a></li><li><a class="dropdown-item" href="{{ route('pos.penjualan') }}">Penjualan</a></li><li><a class="dropdown-item" href="{{ route('pos.pembayaran') }}">Pembayaran</a></li><li><a class="dropdown-item" href="{{ route('pos.retur') }}">Retur</a></li><li><a class="dropdown-item" href="{{ route('pos.shift') }}">Kasir / Shift</a></li>
+                    <li><a class="dropdown-item fw-semibold" href="{{ route('pos.pos') }}" target="_blank" rel="noopener">POS</a></li><li><a class="dropdown-item" href="{{ route('pos.penjualan') }}">Penjualan</a></li><li><a class="dropdown-item" href="{{ route('pos.pembayaran') }}">Pembayaran</a></li><li><a class="dropdown-item" href="{{ route('pos.retur') }}">Retur</a></li><li><a class="dropdown-item" href="{{ route('pos.shift') }}">Kasir / Shift</a></li>
                 </ul></li>
                 @endif
                 @if(in_array(auth()->user()->role, ['owner','inventori']))
@@ -108,17 +80,11 @@
         </div>
     </div>
 </nav>
-
 <main class="container-fluid p-3 p-lg-4">
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show">{{ session('success') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
-    @endif
-    @if($errors->any())
-        <div class="alert alert-danger"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
-    @endif
+    @if(session('success'))<div class="alert alert-success alert-dismissible fade show">{{ session('success') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>@endif
+    @if($errors->any())<div class="alert alert-danger"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
     @yield('content')
 </main>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.datatables.net/2.3.3/js/dataTables.js"></script>
@@ -126,16 +92,7 @@
 <script>
     DataTable.defaults.language = {
         ...DataTable.defaults.language,
-        processing: 'Memproses...',
-        search: 'Cari:',
-        lengthMenu: 'Tampilkan _MENU_ data',
-        info: 'Menampilkan _START_ sampai _END_ dari _TOTAL_ data',
-        infoEmpty: 'Menampilkan 0 sampai 0 dari 0 data',
-        infoFiltered: '(disaring dari _MAX_ total data)',
-        loadingRecords: 'Memuat...',
-        zeroRecords: 'Data tidak ditemukan',
-        emptyTable: 'Belum ada data',
-        paginate: { first: '<<', previous: '<', next: '>', last: '>>' }
+        processing: 'Memproses...', search: 'Cari:', lengthMenu: 'Tampilkan _MENU_ data', info: 'Menampilkan _START_ sampai _END_ dari _TOTAL_ data', infoEmpty: 'Menampilkan 0 sampai 0 dari 0 data', infoFiltered: '(disaring dari _MAX_ total data)', loadingRecords: 'Memuat...', zeroRecords: 'Data tidak ditemukan', emptyTable: 'Belum ada data', paginate: { first: '<<', previous: '<', next: '>', last: '>>' }
     };
 </script>
 @stack('scripts')
