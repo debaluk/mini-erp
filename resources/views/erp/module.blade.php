@@ -119,6 +119,23 @@ document.addEventListener('DOMContentLoaded', function () {
         serverSide: true,
         pageLength: 15,
         lengthMenu: [[15, 25, 50, 100], [15, 25, 50, 100]],
+        language: {
+            processing: 'Memproses...',
+            search: 'Cari:',
+            lengthMenu: 'Tampilkan _MENU_ data',
+            info: 'Menampilkan _START_ sampai _END_ dari _TOTAL_ data',
+            infoEmpty: 'Menampilkan 0 sampai 0 dari 0 data',
+            infoFiltered: '(disaring dari _MAX_ total data)',
+            loadingRecords: 'Memuat...',
+            zeroRecords: 'Data tidak ditemukan',
+            emptyTable: 'Belum ada data',
+            paginate: {
+                first: 'Pertama',
+                previous: 'Sebelumnya',
+                next: 'Berikutnya',
+                last: 'Terakhir'
+            }
+        },
         ajax: {
             url: @json(route('pos.penjualan.data')),
             data: function (d) {
@@ -276,10 +293,7 @@ document.addEventListener('DOMContentLoaded', function () {
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="sale-detail-title">Detail Penjualan</h5>
-                <div class="d-flex align-items-center gap-2">
-                    <button type="button" class="btn btn-primary btn-sm" id="sale-detail-print">Cetak</button>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
-                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
             </div>
             <div class="modal-body">
                 <div id="sale-detail-meta" class="row g-2 small mb-3"></div>
@@ -299,6 +313,10 @@ document.addEventListener('DOMContentLoaded', function () {
                         <div class="d-flex justify-content-between"><span>Pembayaran</span><strong id="sale-detail-payment">-</strong></div>
                     </div>
                 </div>
+            </div>
+            <div class="modal-footer justify-content-between">
+                <button type="button" class="btn btn-primary" id="sale-detail-print">Cetak</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
             </div>
         </div>
     </div>
