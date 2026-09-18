@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use App\Models\Entity;
 
 class User extends Authenticatable
 {
@@ -15,12 +16,18 @@ class User extends Authenticatable
         'password',
         'role',
         'is_active',
+        'entity_id',
     ];
 
     protected $hidden = [
         'password',
         'remember_token',
     ];
+
+    public function entity()
+    {
+        return $this->belongsTo(Entity::class);
+    }
 
     protected function casts(): array
     {
