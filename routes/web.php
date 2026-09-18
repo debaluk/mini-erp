@@ -7,6 +7,7 @@ use App\Http\Controllers\ErpController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\PosController;
 use App\Http\Controllers\ProductionController;
+use App\Http\Controllers\SalesReturnController;
 use App\Http\Controllers\UnitConversionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -130,7 +131,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/pos/penjualan/export-excel', [ModuleController::class, 'exportSalesExcel'])->middleware('role:owner,kasir,akuntansi')->name('pos.penjualan.export-excel');
     Route::get('/pos/penjualan/{id}/detail', [ModuleController::class, 'salesDetail'])->middleware('role:owner,kasir,akuntansi')->name('pos.penjualan.detail');
     Route::get('/pos/pembayaran', fn () => app(ModuleController::class)->show('payments'))->middleware('role:owner,kasir')->name('pos.pembayaran');
-    Route::get('/pos/retur', fn () => abort(501, 'Modul Retur belum diimplementasikan.'))->middleware('role:owner,kasir')->name('pos.retur');
+    Route::get('/pos/retur', [SalesReturnController::class, 'index'])->middleware('role:owner,kasir')->name('pos.retur');
+    Route::get('/pos/retur/lookup', [SalesReturnController::class, 'saleLookup'])->middleware('role:owner,kasir')->name('pos.retur.lookup');
+    Route::post('/pos/retur', [SalesReturnController::class, 'store'])->middleware('role:owner,kasir')->name('pos.retur.store');
     Route::get('/pos/shift', fn () => app(ModuleController::class)->show('shifts'))->middleware('role:owner,kasir')->name('pos.shift');
     Route::get('/pos', fn () => app(ModuleController::class)->show('pos'))->middleware('role:owner,kasir')->name('pos');
     Route::get('/penjualan', fn () => app(ModuleController::class)->show('sales'))->middleware('role:owner,kasir,akuntansi')->name('penjualan');
