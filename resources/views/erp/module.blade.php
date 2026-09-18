@@ -119,23 +119,6 @@ document.addEventListener('DOMContentLoaded', function () {
         serverSide: true,
         pageLength: 15,
         lengthMenu: [[15, 25, 50, 100], [15, 25, 50, 100]],
-        language: {
-            processing: 'Memproses...',
-            search: 'Cari:',
-            lengthMenu: 'Tampilkan _MENU_ data',
-            info: 'Menampilkan _START_ sampai _END_ dari _TOTAL_ data',
-            infoEmpty: 'Menampilkan 0 sampai 0 dari 0 data',
-            infoFiltered: '(disaring dari _MAX_ total data)',
-            loadingRecords: 'Memuat...',
-            zeroRecords: 'Data tidak ditemukan',
-            emptyTable: 'Belum ada data',
-            paginate: {
-                first: '<<',
-                previous: '<',
-                next: '>',
-                last: '>>'
-            }
-        },
         ajax: {
             url: @json(route('pos.penjualan.data')),
             data: function (d) {
