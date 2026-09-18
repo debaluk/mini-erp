@@ -56,6 +56,7 @@
         main .card-header { padding: .5rem .75rem; }
         main form.row { --bs-gutter-x: .6rem; --bs-gutter-y: .45rem; }
     </style>
+<script>function openPosWindow(url){window.open(url,'miniErpPos','width=1400,height=900,left=40,top=30,toolbar=no,location=no,menubar=no,status=no,resizable=yes,scrollbars=yes');return false;}</script>
 </head>
 <body class="bg-light">
 @if(!request()->routeIs('erp.pos'))
@@ -85,7 +86,7 @@
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">PENJUALAN / POS</a>
                     <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="{{ route('erp.pos') }}">POS</a></li>
+                        <li><a class="dropdown-item" href="{{ route('erp.pos') }}" onclick="return openPosWindow(this.href);">POS</a></li>
                         <li><a class="dropdown-item" href="{{ route('erp.sales') }}">Transaksi Penjualan</a></li>
                         <li><a class="dropdown-item" href="{{ route('erp.payments') }}">Pembayaran</a></li>
                         <li><a class="dropdown-item" href="{{ route('erp.shifts') }}">Shift Kasir</a></li>
