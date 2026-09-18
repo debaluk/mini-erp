@@ -49,6 +49,7 @@ class PosController extends Controller
             'qty' => (float) $data['qty'],
         ];
         $request->session()->put('pos_cart',$cart);
+        if ($request->expectsJson()) return response()->json(['ok'=>true,'cart'=>$cart]);
         return back();
     }
 
@@ -60,6 +61,7 @@ class PosController extends Controller
         $cart[$id]['qty']=(float)$data['qty'];
         $cart[$id]['price']=(float)$data['price'];
         $request->session()->put('pos_cart',$cart);
+        if ($request->expectsJson()) return response()->json(['ok'=>true,'cart'=>$cart]);
         return back()->with('success','Item transaksi berhasil diperbarui.');
     }
 
@@ -69,12 +71,14 @@ class PosController extends Controller
         abort_unless(isset($cart[$id]),404,'Item transaksi tidak ditemukan.');
         unset($cart[$id]);
         $request->session()->put('pos_cart',$cart);
+        if ($request->expectsJson()) return response()->json(['ok'=>true,'cart'=>$cart]);
         return back()->with('success','Barang dihapus dari transaksi.');
     }
 
     public function clear(Request $request)
     {
         $request->session()->forget('pos_cart');
+        if ($request->expectsJson()) return response()->json(['ok'=>true,'cart'=>[]]);
         return back()->with('success','Transaksi sementara dikosongkan.');
     }
 
@@ -90,7 +94,8 @@ class PosController extends Controller
         $discount=min((float)($data['discount']??0),$subtotal);
         $total=$subtotal-$discount;
         abort_if((float)$data['payment_amount']<$total,422,'Nominal pembayaran kurang.');
-        DB::transaction(function()use($cart,$entity,$shift,$subtotal,$discount,$total,$data){
+        $invoiceNo = 'POS-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4));
+        DB::transaction(function()use($cart,$entity,$shift,$subtotal,$discount,$total,$data,$invoiceNo){
             $stockRows=[];
             foreach($cart as $item){
                 $stock=DB::table('warehouses_stocks')->where('entity_id',$entity)->where('product_id',$item['product_id'])->orderBy('id')->lockForUpdate()->first();
@@ -99,7 +104,7 @@ class PosController extends Controller
                 $stockRows[]=['stock_id'=>$stock->id,'warehouse_id'=>$stock->warehouse_id,'product_id'=>$item['product_id'],'qty'=>$qty,'avg_cost'=>(float)$stock->avg_cost];
             }
             $customerId=DB::table('customers')->where('entity_id',$entity)->where('code','CUST-UMUM')->value('id');
-            $sale=DB::table('sales')->insertGetId(['entity_id'=>$entity,'customer_id'=>$customerId,'user_id'=>auth()->id(),'shift_id'=>$shift->id,'invoice_no'=>'POS-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4)),'sale_date'=>now(),'subtotal'=>$subtotal,'discount'=>$discount,'total'=>$total,'status'=>'posted','created_at'=>now(),'updated_at'=>now()]);
+            $sale=DB::table('sales')->insertGetId(['entity_id'=>$entity,'customer_id'=>$customerId,'user_id'=>auth()->id(),'shift_id'=>$shift->id,'invoice_no'=>$invoiceNo,'sale_date'=>now(),'subtotal'=>$subtotal,'discount'=>$discount,'total'=>$total,'status'=>'posted','created_at'=>now(),'updated_at'=>now()]);
             foreach($cart as $item){DB::table('sale_items')->insert(['sale_id'=>$sale,'product_id'=>$item['product_id'],'qty'=>$item['qty'],'unit_price'=>$item['price'],'discount'=>0,'total'=>(float)$item['price']*(float)$item['qty'],'created_at'=>now(),'updated_at'=>now()]);}
             DB::table('payments')->insert(['entity_id'=>$entity,'sale_id'=>$sale,'user_id'=>auth()->id(),'payment_date'=>now(),'method'=>$data['payment_method'],'amount'=>$total,'created_at'=>now(),'updated_at'=>now()]);
             foreach($stockRows as $row){
@@ -108,6 +113,7 @@ class PosController extends Controller
             }
         });
         $request->session()->forget('pos_cart');
+        if ($request->expectsJson()) return response()->json(['ok'=>true,'invoice_no'=>$invoiceNo,'subtotal'=>$subtotal,'discount'=>$discount,'total'=>$total,'items'=>array_values($cart)]);
         return back()->with('success','Transaksi POS berhasil diposting.');
     }
 }
