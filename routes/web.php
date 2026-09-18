@@ -9,6 +9,7 @@ use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\PosController;
 use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\SalesReturnController;
+use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\UnitConversionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -184,6 +185,16 @@ Route::middleware('auth')->group(function () {
     Route::get('/laporan/piutang', fn () => app(ModuleController::class)->show('receivables'))->middleware('role:owner,akuntansi')->name('laporan.piutang');
     Route::get('/laporan/hutang', fn () => app(ModuleController::class)->show('payables'))->middleware('role:owner,inventori,akuntansi')->name('laporan.hutang');
     Route::get('/laporan/keuangan', fn () => app(ModuleController::class)->show('profit-loss'))->middleware('role:owner,akuntansi')->name('laporan.keuangan');
+
+    // Pengaturan
+    Route::get('/pengaturan/entitas', [SettingsController::class, 'entity'])->middleware('role:superadmin,owner')->name('pengaturan.entitas');
+    Route::put('/pengaturan/entitas', [SettingsController::class, 'entityUpdate'])->middleware('role:superadmin,owner')->name('pengaturan.entitas.update');
+    Route::get('/pengaturan/user', [SettingsController::class, 'users'])->middleware('role:owner')->name('pengaturan.user');
+    Route::post('/pengaturan/user', [SettingsController::class, 'userStore'])->middleware('role:owner')->name('pengaturan.user.store');
+    Route::put('/pengaturan/user/{id}', [SettingsController::class, 'userUpdate'])->middleware('role:owner')->name('pengaturan.user.update');
+    Route::patch('/pengaturan/user/{id}/toggle', [SettingsController::class, 'userToggle'])->middleware('role:owner')->name('pengaturan.user.toggle');
+    Route::get('/pengaturan/role', [SettingsController::class, 'roles'])->middleware('role:superadmin,owner')->name('pengaturan.role');
+    Route::get('/pengaturan/konfigurasi', [SettingsController::class, 'configuration'])->middleware('role:superadmin,owner,admin')->name('pengaturan.konfigurasi');
 
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
