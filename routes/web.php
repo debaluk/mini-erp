@@ -23,6 +23,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/master/unit-conversions', [UnitConversionController::class, 'index'])->middleware('role:owner,admin')->name('master.unit-conversions');
     Route::post('/master/unit-conversions', [UnitConversionController::class, 'store'])->middleware('role:owner,admin')->name('master.unit-conversions.store');
+    Route::put('/master/unit-conversions/{id}', [UnitConversionController::class, 'update'])->middleware('role:owner,admin')->name('master.unit-conversions.update');
     Route::delete('/master/unit-conversions/{id}', [UnitConversionController::class, 'destroy'])->middleware('role:owner,admin')->name('master.unit-conversions.delete');
 
     $masterTypes = ['products','customers','suppliers','warehouses','units','tariffs','vehicles','drivers'];
