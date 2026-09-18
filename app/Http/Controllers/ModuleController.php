@@ -216,6 +216,110 @@ class ModuleController extends Controller
         return response($html)->header('Content-Type','application/vnd.ms-excel; charset=UTF-8')->header('Content-Disposition','attachment; filename="penerimaan-pembayaran-'.$start.'-'.$end.'.xls"');
     }
 
+    public function exportProfitLossExcel(Request $request)
+    {
+        $entity = $this->entityId();
+        $start = $request->input('start_date', now()->startOfMonth()->toDateString());
+        $end = $request->input('end_date', now()->endOfMonth()->toDateString());
+
+        abort_if($start > $end, 422, 'Periode tanggal tidak valid.');
+
+        $journalTotals = DB::table('journal_entries as e')
+            ->join('journals as j','j.id','=','e.journal_id')
+            ->where('j.entity_id',$entity)
+            ->where('j.status','posted')
+            ->whereBetween('j.journal_date',[$start,$end])
+            ->groupBy('e.account_id')
+            ->select('e.account_id',
+                DB::raw('SUM(e.debit) as debit'),
+                DB::raw('SUM(e.credit) as credit'));
+
+        $accounts = DB::table('chart_of_accounts as a')
+            ->leftJoinSub($journalTotals, 'jt', function ($join) {
+                $join->on('jt.account_id','=','a.id');
+            })
+            ->where('a.entity_id',$entity)
+            ->where('a.is_active',1)
+            ->whereIn('a.type',['revenue','cogs','expense'])
+            ->orderBy('a.code')
+            ->select('a.id','a.parent_id','a.code','a.name','a.type','a.level',
+                DB::raw('COALESCE(jt.debit,0) as debit'),
+                DB::raw('COALESCE(jt.credit,0) as credit'))
+            ->get();
+
+        $lines = [];
+        $totals = ['revenue'=>0, 'cogs'=>0, 'expense'=>0];
+
+        foreach ($accounts as $a) {
+            $amount = $a->type === 'revenue'
+                ? (float)$a->credit - (float)$a->debit
+                : (float)$a->debit - (float)$a->credit;
+
+            if ((int)$a->level === 3) {
+                $totals[$a->type] += $amount;
+                $lines[$a->code] = $amount;
+            }
+        }
+
+        $entityRow = DB::table('entities')->where('id',$entity)->first();
+        $e = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
+        $num = fn($v) => number_format((float)$v, 2, '.', '');
+
+        $html = '<html><head><meta charset="UTF-8"><style>
+            body{font-family:Arial,sans-serif}
+            .kop{font-size:16px;font-weight:700}
+            .judul{font-size:14px;font-weight:700}
+            .periode{font-size:12px}
+            table{border-collapse:collapse}
+            th,td{border:1px solid #000;padding:5px}
+            th{font-weight:700}
+            .right{text-align:right}
+            .bold{font-weight:700}
+        </style></head><body>';
+        $html .= '<div class="kop">'.$e($entityRow?->name ?? 'MINI ERP').'</div>';
+        if (!empty($entityRow?->address)) $html .= '<div>'.$e($entityRow->address).'</div>';
+        if (!empty($entityRow?->phone)) $html .= '<div>Telp. '.$e($entityRow->phone).'</div>';
+        $html .= '<br><div class="judul">LAPORAN LABA RUGI</div>';
+        $html .= '<div class="periode">Periode: '.$e(date('d-m-Y', strtotime($start))).' s/d '.$e(date('d-m-Y', strtotime($end))).'</div>';
+        $html .= '<br><table><thead><tr><th>Kode</th><th>Nama Akun</th><th>Jumlah</th></tr></thead><tbody>';
+
+        $groups = [
+            'revenue' => 'PENDAPATAN',
+            'cogs' => 'HPP',
+            'expense' => 'BIAYA',
+        ];
+
+        foreach ($groups as $type => $label) {
+            $html .= '<tr class="bold"><td colspan="2">'.$e($label).'</td><td></td></tr>';
+            foreach ($accounts as $a) {
+                if ($a->type !== $type) continue;
+                $level = (int)$a->level;
+                $amount = $level === 3 ? ($lines[$a->code] ?? 0) : null;
+                $indent = max(0, $level - 1) * 20;
+                $html .= '<tr>';
+                $html .= '<td style="padding-left:'.(5 + $indent).'px">'.$e($a->code).'</td>';
+                $html .= '<td class="'.($level < 3 ? 'bold' : '').'" style="padding-left:'.(5 + $indent).'px">'.$e($a->name).'</td>';
+                $html .= '<td class="right">'.($amount === null ? '' : $num($amount)).'</td>';
+                $html .= '</tr>';
+            }
+            $total = $totals[$type];
+            $html .= '<tr class="bold"><td colspan="2">TOTAL '.$e($label).'</td><td class="right">'.$num($total).'</td></tr>';
+            if ($type === 'cogs') {
+                $gross = $totals['revenue'] - $totals['cogs'];
+                $html .= '<tr class="bold"><td colspan="2">LABA KOTOR</td><td class="right">'.$num($gross).'</td></tr>';
+            }
+        }
+
+        $net = $totals['revenue'] - $totals['cogs'] - $totals['expense'];
+        $html .= '<tr class="bold"><td colspan="2">LABA / (RUGI) BERSIH</td><td class="right">'.$num($net).'</td></tr>';
+        $html .= '</tbody></table></body></html>';
+
+        return response($html, 200, [
+            'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="laba-rugi_'.$start.'_'.$end.'.xls"',
+        ]);
+    }
+
     private function report(string $module, int $entity): array
     {
         $result = ['lines'=>[], 'total'=>0];
