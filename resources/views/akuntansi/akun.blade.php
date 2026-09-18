@@ -64,7 +64,7 @@
     </div>
     @endif
 
-    @if((int)$a->level > 0)
+    @if(strlen((string)$a->code) > 3)
     <div class="modal fade" id="account-edit-{{ $a->id }}" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow">
