@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use App\Models\Entity;
+use Illuminate\Support\Facades\DB;
 
 class User extends Authenticatable
 {
@@ -23,6 +24,29 @@ class User extends Authenticatable
         'password',
         'remember_token',
     ];
+
+    public function hasModuleAccess(string $module): bool
+    {
+        if (in_array($this->role, ['superadmin', 'owner'], true)) {
+            return true;
+        }
+
+        return DB::table('user_module_permissions')
+            ->where('user_id', $this->id)
+            ->where('module', $module)
+            ->exists();
+    }
+
+    public function hasAnyModuleAccess(array $modules): bool
+    {
+        foreach ($modules as $module) {
+            if ($this->hasModuleAccess($module)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     public function entity()
     {
