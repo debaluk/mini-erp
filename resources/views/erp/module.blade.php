@@ -134,49 +134,51 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr class="table-light fw-semibold"><td colspan="2">ASET</td></tr>
+                    <tr class="table-light fw-semibold"><td colspan="2">AKTIVA</td></tr>
+                    <tr class="fw-semibold"><td colspan="2">Asset</td></tr>
                     @forelse(($report['balance_sheet_lines']['asset'] ?? []) as $r)
                         <tr>
                             <td class="ps-4">{{ $r['code'] }} {{ $r['label'] }}</td>
                             <td class="text-end">Rp {{ number_format($r['amount'],0,',','.') }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="2" class="text-secondary ps-4">Belum ada saldo aset.</td></tr>
+                        <tr><td colspan="2" class="text-secondary ps-4">Belum ada saldo asset.</td></tr>
                     @endforelse
                     <tr class="fw-semibold border-top">
-                        <td>TOTAL ASET</td>
+                        <td>TOTAL AKTIVA</td>
                         <td class="text-end">Rp {{ number_format($report['total_assets'] ?? 0,0,',','.') }}</td>
                     </tr>
 
-                    <tr class="table-light fw-semibold"><td colspan="2">LIABILITAS</td></tr>
+                    <tr class="table-light fw-semibold"><td colspan="2">PASSIVA</td></tr>
+                    <tr class="fw-semibold"><td colspan="2">Hutang</td></tr>
                     @forelse(($report['balance_sheet_lines']['liability'] ?? []) as $r)
                         <tr>
                             <td class="ps-4">{{ $r['code'] }} {{ $r['label'] }}</td>
                             <td class="text-end">Rp {{ number_format($r['amount'],0,',','.') }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="2" class="text-secondary ps-4">Belum ada saldo liabilitas.</td></tr>
+                        <tr><td colspan="2" class="text-secondary ps-4">Belum ada saldo hutang.</td></tr>
                     @endforelse
                     <tr class="fw-semibold border-top">
-                        <td>TOTAL LIABILITAS</td>
+                        <td>TOTAL HUTANG</td>
                         <td class="text-end">Rp {{ number_format($report['balance_sheet_totals']['liability'] ?? 0,0,',','.') }}</td>
                     </tr>
 
-                    <tr class="table-light fw-semibold"><td colspan="2">EKUITAS</td></tr>
+                    <tr class="fw-semibold"><td colspan="2">Modal</td></tr>
                     @forelse(($report['balance_sheet_lines']['equity'] ?? []) as $r)
                         <tr>
                             <td class="ps-4">{{ $r['code'] }} {{ $r['label'] }}</td>
                             <td class="text-end">Rp {{ number_format($r['amount'],0,',','.') }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="2" class="text-secondary ps-4">Belum ada saldo ekuitas.</td></tr>
+                        <tr><td colspan="2" class="text-secondary ps-4">Belum ada saldo modal.</td></tr>
                     @endforelse
                     <tr class="fw-semibold border-top">
-                        <td>TOTAL EKUITAS</td>
+                        <td>TOTAL MODAL</td>
                         <td class="text-end">Rp {{ number_format($report['balance_sheet_totals']['equity'] ?? 0,0,',','.') }}</td>
                     </tr>
                     <tr class="fw-semibold border-top">
-                        <td>TOTAL LIABILITAS + EKUITAS</td>
+                        <td>TOTAL PASSIVA</td>
                         <td class="text-end">Rp {{ number_format($report['total_liabilities_equity'] ?? 0,0,',','.') }}</td>
                     </tr>
                 </tbody>
