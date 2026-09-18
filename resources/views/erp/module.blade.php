@@ -194,7 +194,7 @@
     </div>
 </div>
 @endif
-@if(in_array($module,['ledger','receivables','cashbank','cogs','cash-flow'],true))
+@if(in_array($module,['ledger','receivables','cashbank','cogs'],true))
 <div class="card shadow-sm mb-4"><div class="card-header d-flex justify-content-between"><span class="fw-semibold">Laporan {{ $title }}</span><span class="badge text-bg-primary">Total Rp {{ number_format($report['total'] ?? 0,0,',','.') }}</span></div><div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>Uraian</th><th class="text-end">Debit / Nilai</th><th class="text-end">Kredit / Saldo</th></tr></thead><tbody>
 @if($module==='ledger') @forelse($report['lines'] as $r)<tr><td>{{ $r->journal_date }} · {{ $r->journal_no }} · {{ $r->description }} · {{ $r->code }} {{ $r->name }}</td><td class="text-end">Rp {{ number_format($r->debit,0,',','.') }}</td><td class="text-end">Rp {{ number_format($r->credit,0,',','.') }}</td></tr>@empty<tr><td colspan="3" class="text-center text-secondary py-4">Belum ada jurnal.</td></tr>@endforelse
 @elseif(in_array($module,['profit-loss','balance-sheet','cash-flow'],true)) @foreach($report['lines'] as $r)<tr><td>{{ $r['label'] }}</td><td class="text-end">Rp {{ number_format($r['amount'],0,',','.') }}</td><td class="text-end">—</td></tr>@endforeach
