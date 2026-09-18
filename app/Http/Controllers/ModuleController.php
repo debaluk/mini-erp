@@ -32,6 +32,8 @@ class ModuleController extends Controller
             'customers' => DB::table('customers')->where('entity_id', $entity)->where('is_active', 1)->orderBy('name')->get(),
             'accounts' => DB::table('chart_of_accounts')->where('entity_id', $entity)->where('is_active', 1)->orderBy('code')->get(),
             'rows' => collect(),
+            'posCart' => session('pos_cart', []),
+            'openShift' => DB::table('cash_shifts')->where('entity_id', $entity)->where('user_id', auth()->id())->where('status', 'open')->latest('id')->first(),
         ];
     }
 
