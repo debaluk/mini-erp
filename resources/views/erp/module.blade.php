@@ -305,7 +305,47 @@ document.addEventListener('DOMContentLoaded', function () {
     </div>
 </div>
 
-@elseif(in_array($module,['payments','purchases','receipts','payables','shifts','movements','opname','bom','production','production-results','material-usage','production-cost','fleet','deliveries','operations','fleet-costs','journals'],true))
+@elseif($module === 'payments')
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div><h4 class="mb-1">Penerimaan Pembayaran</h4><div class="text-secondary small">Semua penerimaan uang tercatat dalam satu daftar.</div></div>
+    <div class="d-flex gap-2"><a id="payments-export" href="{{ route('pos.pembayaran.export-excel') }}" class="btn btn-success btn-sm">Export Excel</a><button class="btn btn-primary btn-sm" disabled>+ Pembayaran</button></div>
+</div>
+<form id="payments-period-filter" class="row g-2 align-items-end mb-3">
+    <div class="col-auto"><label class="form-label mb-1">Dari</label><input id="payments-start-date" type="date" class="form-control form-control-sm" value="{{ now()->startOfMonth()->toDateString() }}"></div>
+    <div class="col-auto"><label class="form-label mb-1">Sampai</label><input id="payments-end-date" type="date" class="form-control form-control-sm" value="{{ now()->endOfMonth()->toDateString() }}"></div>
+    <div class="col-auto"><button class="btn btn-primary btn-sm">Tampilkan</button></div>
+</form>
+<div class="card shadow-sm"><div class="table-responsive"><table id="payments-datatable" class="table table-hover align-middle w-100 mb-0"><thead><tr>
+<th>No Pembayaran</th><th>Tanggal</th><th>Sumber</th><th>Referensi</th><th>Customer</th><th class="text-end">Jumlah</th><th>Metode</th><th>Kas/Bank</th><th>User</th><th>Status</th>
+</tr></thead></table></div></div>
+<div class="modal fade" id="payment-detail-modal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
+<div class="modal-header"><h5 class="modal-title" id="payment-detail-title">Detail Pembayaran</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+<div class="modal-body" id="payment-detail-body"></div>
+<div class="modal-footer"><button type="button" class="btn btn-primary" id="payment-print">Cetak Kwitansi</button><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button></div>
+</div></div></div>
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const table = new DataTable('#payments-datatable', {
+        processing:true, serverSide:true, pageLength:15, lengthMenu:[[15,25,50,100],[15,25,50,100]],
+        ajax:{url:@json(route('pos.pembayaran.data')),data:function(d){d.start_date=document.getElementById('payments-start-date').value;d.end_date=document.getElementById('payments-end-date').value;}},
+        order:[[1,'desc']],
+        rowCallback:function(row,data){row.style.cursor='pointer';row.onclick=function(){fetch(@json(url('/pos/pembayaran')).replace('/pos/pembayaran','/pos/pembayaran/'+data.id+'/detail')).then(r=>r.json()).then(showPayment);};},
+        columns:[
+            {data:'payment_no',className:'fw-semibold'}, {data:'payment_date',render:d=>d?new Date(d.replace(' ','T')).toLocaleString('id-ID'):'-'},
+            {data:'source_name'}, {data:'reference_no'}, {data:'customer_name'}, {data:'amount',className:'text-end',render:d=>Number(d||0).toLocaleString('id-ID',{minimumFractionDigits:2,maximumFractionDigits:2})},
+            {data:'method'}, {data:'method',render:d=>d==='Tunai'?'Kas':'Bank'}, {data:'user_name'}, {data:'payment_status',render:d=>'<span class="badge text-bg-success">'+String(d||'posted')+'</span>'}
+        ]
+    });
+    document.getElementById('payments-period-filter').addEventListener('submit',function(e){e.preventDefault();const s=document.getElementById('payments-start-date').value,e2=document.getElementById('payments-end-date').value;if(!s||!e2||s>e2){alert('Periode tanggal tidak valid.');return;}table.ajax.reload(null,true);});
+    document.getElementById('payments-export').addEventListener('click',function(e){e.preventDefault();const u=new URL(this.href,window.location.href);u.searchParams.set('start_date',document.getElementById('payments-start-date').value);u.searchParams.set('end_date',document.getElementById('payments-end-date').value);window.location.href=u.toString();});
+    let paymentData=null;
+    function showPayment(r){paymentData=r;const p=r.payment;document.getElementById('payment-detail-title').textContent='Pembayaran '+p.payment_no;document.getElementById('payment-detail-body').innerHTML='<div class="row g-3"><div class="col-md-6"><div><b>No Pembayaran</b><br>'+p.payment_no+'</div><div class="mt-2"><b>Tanggal</b><br>'+p.payment_date+'</div><div class="mt-2"><b>Sumber</b><br>'+(p.sale_id?'POS / Penjualan':'Lainnya')+'</div><div class="mt-2"><b>Referensi</b><br>'+(p.invoice_no||'-')+'</div></div><div class="col-md-6"><div><b>Customer</b><br>'+(p.customer_name||'Umum')+'</div><div class="mt-2"><b>Jumlah</b><br>Rp '+Number(p.amount||0).toLocaleString('id-ID',{minimumFractionDigits:2})+'</div><div class="mt-2"><b>Metode</b><br>'+p.method+'</div><div class="mt-2"><b>User</b><br>'+(p.user_name||'-')+'</div></div></div>';new bootstrap.Modal(document.getElementById('payment-detail-modal')).show();}
+    document.getElementById('payment-print').addEventListener('click',function(){if(!paymentData)return;const p=paymentData.payment,e=paymentData.entity;const w=window.open('','_blank','width=420,height=700');if(!w)return;const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Kwitansi '+esc(p.payment_no)+'</title><style>@page{size:80mm auto;margin:5mm}body{font-family:Arial,sans-serif;font-size:12px;margin:0}.receipt{width:70mm;margin:auto}.center{text-align:center}.line{border-top:1px dashed #000;margin:8px 0}.row{display:flex;justify-content:space-between;margin:4px 0}.amount{font-size:18px;font-weight:700;text-align:center;margin:12px 0}.sign{margin-top:35px;text-align:right}</style></head><body><div class="receipt"><div class="center"><b>'+esc(e?.name||'MINI ERP')+'</b><br>'+esc(e?.address||'')+'</div><div class="line"></div><div class="center"><b>KWITANSI PENERIMAAN</b></div><div class="line"></div><div class="row"><span>No</span><b>'+esc(p.payment_no)+'</b></div><div class="row"><span>Tanggal</span><span>'+esc(p.payment_date)+'</span></div><div class="row"><span>Dari</span><span>'+esc(p.customer_name||'Umum')+'</span></div><div class="row"><span>Referensi</span><span>'+esc(p.invoice_no||'-')+'</span></div><div class="row"><span>Metode</span><span>'+esc(p.method)+'</span></div><div class="amount">Rp '+Number(p.amount||0).toLocaleString('id-ID',{minimumFractionDigits:2})+'</div><div class="line"></div><div class="center">Terima kasih</div><div class="sign">Penerima<br><br><b>'+esc(p.user_name||'')+'</b></div></div><script>window.onload=function(){window.focus();window.print()}<\/script></body></html>');w.document.close();});
+});
+</script>
+@endpush
+@elseif(in_array($module,['purchases','receipts','payables','shifts','movements','opname','bom','production','production-results','material-usage','production-cost','fleet','deliveries','operations','fleet-costs','journals'],true))
 <div class="card shadow-sm"><div class="card-header fw-semibold">Data {{ $title }}</div><div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>ID</th><th>Referensi</th><th>Tanggal</th><th>Status</th><th class="text-end">Nilai</th></tr></thead><tbody>@forelse($rows as $r)<tr><td>{{ $r->id }}</td><td>{{ $r->invoice_no ?? $r->purchase_no ?? $r->delivery_no ?? $r->production_no ?? $r->journal_no ?? ($r->code ?? '-') }}</td><td>{{ $r->sale_date ?? $r->purchase_date ?? $r->payment_date ?? $r->operation_date ?? $r->cost_date ?? $r->journal_date ?? $r->created_at ?? '-' }}</td><td><span class="badge text-bg-secondary">{{ $r->status ?? $r->method ?? $r->movement_type ?? 'data' }}</span></td><td class="text-end">Rp {{ number_format($r->total ?? $r->amount ?? $r->total_cost ?? 0,0,',','.') }}</td></tr>@empty<tr><td colspan="5" class="text-center text-secondary py-4">Belum ada data.</td></tr>@endforelse</tbody></table></div>@if(is_object($rows) && method_exists($rows,'links'))<div class="card-footer">{{ $rows->links() }}</div>@endif</div>
 @endif
 @endsection
