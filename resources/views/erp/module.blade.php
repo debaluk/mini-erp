@@ -17,91 +17,50 @@
 </div>
 
 @if($module === 'pos')
-<div class="erp-compact">
-<div class="card shadow-sm mb-4">
-<div class="card-header d-flex justify-content-between align-items-center"><span class="fw-semibold">POS Retail</span>@if($openShift)<span class="badge text-bg-success">Shift Aktif</span>@else<span class="badge text-bg-warning">Shift Belum Dibuka</span>@endif</div>
-<div class="card-body">
-<form method="POST" action="{{ route('erp.pos.add') }}" class="row g-2 mb-3" id="posAddForm">@csrf
-<div class="col-md-5">
-<label class="form-label">Cari / Pilih Barang</label>
-<input id="posProductSearch" type="text" class="form-control" list="posProductList" placeholder="Ketik nama atau barcode..." autocomplete="off" required>
-<datalist id="posProductList">
-@foreach($products as $p)
-@if((float)$p->stock_qty > 0)
-<option value="{{ $p->name }}" data-id="{{ $p->id }}">{{ $p->name }} — {{ $p->sku }}{{ $p->barcode ? ' · '.$p->barcode : '' }}</option>
-<option value="{{ $p->barcode }}" data-id="{{ $p->id }}">{{ $p->name }} — {{ $p->barcode }}</option>
-@endif
-@endforeach
-</datalist>
-<input type="hidden" id="posProduct" name="product_id">
-</div>
-<div class="col-md-2">
-<label class="form-label">Satuan Jual</label>
-<input id="posUnit" type="text" class="form-control" value="-" readonly>
-</div>
-<div class="col-md-2">
-<label class="form-label">Qty</label>
-<input id="posQty" name="qty" type="number" min="0.001" step="0.001" class="form-control" value="1" required>
-</div>
-<div class="col-md-3 d-flex align-items-end">
-<button id="posAddButton" class="btn btn-primary w-100" @disabled(!$openShift)>+ Tambah Barang</button>
-</div>
-<div class="col-12"><div id="posStockInfo" class="small text-secondary">Ketik nama barang atau barcode untuk memilih barang.</div></div>
+<div class="pos-screen" id="posScreen">
+<div class="pos-topbar"><div><strong>MINI ERP POS</strong><span class="ms-3 text-secondary">{{ auth()->user()->name }}</span></div><div>@if($openShift)<span class="badge text-bg-success">SHIFT AKTIF</span>@else<span class="badge text-bg-warning">SHIFT BELUM DIBUKA</span>@endif</div></div>
+<div class="pos-main">
+<div class="pos-entry">
+<form method="POST" action="{{ route('erp.pos.add') }}" id="posAddForm" autocomplete="off">@csrf
+<div class="row g-2 align-items-end">
+<div class="col-md-5"><label class="form-label">Cari / Barcode</label><input id="posProductSearch" type="text" class="form-control form-control-lg" list="posProductList" placeholder="Ketik nama, SKU, barcode..." autofocus required><datalist id="posProductList">@foreach($products as $p)@if((float)$p->stock_qty>0)<option value="{{ $p->name }}">{{ $p->name }} — {{ $p->sku }}{{ $p->barcode ? ' · '.$p->barcode : '' }}</option>@if($p->barcode)<option value="{{ $p->barcode }}">{{ $p->name }} — {{ $p->barcode }}</option>@endif<option value="{{ $p->sku }}">{{ $p->name }} — {{ $p->sku }}</option>@endif@endforeach</datalist><input type="hidden" id="posProduct" name="product_id"></div>
+<div class="col-md-2"><label class="form-label">Satuan</label><input id="posUnit" class="form-control form-control-lg" value="-" readonly></div>
+<div class="col-md-2"><label class="form-label">Qty</label><input id="posQty" name="qty" type="number" min="0.001" step="0.001" class="form-control form-control-lg" value="1" required></div>
+<div class="col-md-3"><button id="posAddButton" class="btn btn-primary btn-lg w-100" @disabled(!$openShift)>+ TAMBAH BARANG</button></div>
+</div><div id="posStockInfo" class="small text-secondary mt-1">Scan barcode atau cari barang.</div>
 </form>
-<div class="table-responsive border rounded"><table class="table table-hover align-middle mb-0"><thead class="table-light"><tr><th>Kode</th><th>Nama Barang</th><th class="text-end">Harga</th><th class="text-end">Qty</th><th>Satuan</th><th class="text-end">Diskon</th><th class="text-end">Sub Total</th></tr></thead><tbody>
-@php
-    $posSubtotal = 0;
-@endphp
-@forelse($posCart as $key=>$item)
-@php
-    $line = (float) $item['price'] * (float) $item['qty'];
-    $posSubtotal += $line;
-@endphp
-<tr data-bs-toggle="modal" data-bs-target="#posEditModal{{ $key }}" style="cursor:pointer"><td>{{ $item['code'] }}</td><td>{{ $item['name'] }}</td><td class="text-end">Rp {{ number_format($item['price'],0,',','.') }}</td><td class="text-end">{{ rtrim(rtrim(number_format($item['qty'],3,',','.'),'0'),',') }}</td><td>{{ $item['selling_unit_code'] ?? '-' }}</td><td class="text-end">—</td><td class="text-end fw-semibold">Rp {{ number_format($line,0,',','.') }}</td></tr>
-@empty<tr><td colspan="7" class="text-center text-secondary py-5">Belum ada barang. Pilih barang lalu klik Tambah Barang.</td></tr>@endforelse
-</tbody></table></div>
-@foreach($posCart as $key=>$item)
-<div class="modal fade" id="posEditModal{{ $key }}" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-sm modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Edit Barang</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-<form method="POST" action="{{ route('erp.pos.update',$key) }}">@csrf @method('PUT')
-<div class="modal-body"><div class="small text-secondary mb-3">{{ $item['code'] }} · {{ $item['name'] }}</div><label class="form-label">Harga Transaksi</label><input name="price" type="number" min="0" step="0.01" class="form-control mb-3" value="{{ $item['price'] }}" required><label class="form-label">Qty</label><input name="qty" type="number" min="0.001" step="0.001" class="form-control" value="{{ $item['qty'] }}" required></div>
-<div class="modal-footer justify-content-between"><button type="submit" formaction="{{ route('erp.pos.remove',$key) }}" formmethod="POST" class="btn btn-outline-danger" onclick="if(!confirm('Hapus barang ini dari transaksi?')) return false; this.form.querySelector('[name=_method]').value='POST';">Hapus</button><button class="btn btn-primary">Simpan</button></div></form></div></div></div>
-@endforeach
-@php
-    $posDiscount = old('discount', 0);
-    $posTotal = max(0, $posSubtotal - (float) $posDiscount);
-@endphp
-<div class="row justify-content-end mt-3"><div class="col-lg-5"><div class="border rounded p-3 bg-light">
-<div class="d-flex justify-content-between mb-2"><span>Subtotal</span><strong>Rp {{ number_format($posSubtotal,0,',','.') }}</strong></div>
-<form method="POST" action="{{ route('erp.pos.store') }}">@csrf
-<label class="form-label">Diskon Global</label><input id="posDiscount" name="discount" type="number" min="0" step="0.01" class="form-control text-end mb-2" value="{{ $posDiscount }}">
-<div class="d-flex justify-content-between fs-5 border-top pt-2 mb-3"><span>Total</span><strong id="posTotal">Rp {{ number_format($posTotal,0,',','.') }}</strong></div>
-<label class="form-label">Pembayaran</label><select name="payment_method" class="form-select mb-2"><option>Tunai</option><option>Transfer</option><option>QRIS</option></select>
-<label class="form-label">Nominal Bayar</label><input id="posPayment" name="payment_amount" type="number" min="0" step="0.01" class="form-control text-end mb-3" value="{{ $posTotal }}" required>
-<div class="d-flex gap-2"><button formaction="{{ route('erp.pos.clear') }}" formmethod="POST" class="btn btn-outline-secondary flex-fill" @disabled(empty($posCart))>Kosongkan</button><button class="btn btn-success flex-fill" @disabled(empty($posCart)||!$openShift)>Bayar & Posting</button></div>
-</form>
-@if(!$openShift)<div class="small text-danger mt-2">Buka Shift Kasir sebelum transaksi diposting.</div>@endif
-</div></div></div>
-</div></div></div>
+</div>
+<div class="table-responsive pos-table-wrap"><table class="table table-hover align-middle mb-0"><thead><tr><th>Kode</th><th>Nama Barang</th><th class="text-end">Harga</th><th class="text-end">Qty</th><th>Satuan</th><th class="text-end">Diskon</th><th class="text-end">Sub Total</th></tr></thead><tbody id="posCartBody">@forelse($posCart as $key=>$item)@php $line=(float)$item['price']*(float)$item['qty']; $posSubtotal += $line; @endphp<tr class="pos-cart-row" data-key="{{ $key }}"><td>{{ $item['code'] }}</td><td>{{ $item['name'] }}</td><td class="text-end">Rp {{ number_format($item['price'],0,',','.') }}</td><td class="text-end">{{ rtrim(rtrim(number_format($item['qty'],3,',','.'),'0'),',') }}</td><td>{{ $item['selling_unit_code'] ?? '-' }}</td><td class="text-end">—</td><td class="text-end fw-semibold">Rp {{ number_format($line,0,',','.') }}</td></tr>@empty<tr id="posEmpty"><td colspan="7" class="text-center text-secondary py-5">Belum ada barang.</td></tr>@endforelse</tbody></table></div>
+<div class="pos-bottom">
+<div class="pos-help"><strong>Shortcut:</strong> F2 = Edit barang &nbsp; | &nbsp; F4 = Fokus cari barang &nbsp; | &nbsp; F5 = Cetak terakhir &nbsp; | &nbsp; Esc = Tutup popup</div>
+<div class="pos-summary"><div class="row g-2"><div class="col-sm-4"><label class="form-label">Diskon</label><input id="posDiscount" type="number" min="0" step="0.01" class="form-control text-end" value="{{ old('discount',0) }}"></div><div class="col-sm-4"><label class="form-label">Pembayaran</label><select id="posPaymentMethod" class="form-select"><option>Tunai</option><option>Transfer</option><option>QRIS</option></select></div><div class="col-sm-4"><label class="form-label">Nominal Bayar</label><input id="posPayment" type="number" min="0" step="0.01" class="form-control text-end" value="{{ $posTotal }}"></div></div><div class="d-flex justify-content-between mt-3"><span>SUBTOTAL</span><strong id="posSubtotalText">Rp {{ number_format($posSubtotal,0,',','.') }}</strong></div><div class="d-flex justify-content-between fs-3"><span>TOTAL</span><strong id="posTotal">Rp {{ number_format($posTotal,0,',','.') }}</strong></div><div class="d-flex gap-2 mt-3"><button id="posClear" class="btn btn-outline-secondary flex-fill" @disabled(empty($posCart))>Kosongkan</button><button id="posPay" class="btn btn-success btn-lg flex-fill" @disabled(empty($posCart)||!$openShift)>BAYAR & POSTING</button></div></div>
+</div>
+</div>
+<div class="modal fade" id="posEditModal" tabindex="-1"><div class="modal-dialog modal-sm modal-dialog-centered"><div class="modal-content"><form id="posEditForm" method="POST">@csrf @method('PUT')<div class="modal-header"><h5 class="modal-title">Edit Barang</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div id="posEditName" class="fw-semibold mb-3"></div><label class="form-label">Harga Transaksi</label><input id="posEditPrice" name="price" type="number" min="0" step="0.01" class="form-control mb-3" required><label class="form-label">Qty</label><input id="posEditQty" name="qty" type="number" min="0.001" step="0.001" class="form-control" required></div><div class="modal-footer justify-content-between"><button type="button" id="posEditDelete" class="btn btn-outline-danger">Hapus</button><button class="btn btn-primary">Simpan</button></div></form></div></div></div>
+<div class="modal fade" id="posPrintModal" tabindex="-1"><div class="modal-dialog modal-sm modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Cetak Struk</h5></div><div class="modal-body text-center">Transaksi berhasil diposting.<br><strong id="posPrintInvoice"></strong><div class="mt-3">Cetak struk sekarang?</div></div><div class="modal-footer justify-content-center"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tidak</button><button type="button" class="btn btn-primary" id="posPrintYes">Ya, Cetak</button></div></div></div></div>
 <script>
 document.addEventListener('DOMContentLoaded',()=>{
- const d=document.getElementById('posDiscount'),t=document.getElementById('posTotal'),p=document.getElementById('posPayment');
- const search=document.getElementById('posProductSearch'),product=document.getElementById('posProduct'),unit=document.getElementById('posUnit'),stockInfo=document.getElementById('posStockInfo'),addForm=document.getElementById('posAddForm');
- const products=@json($products);
- const s={{ $posSubtotal }};
- if(d&&t)d.addEventListener('input',()=>{const v=Math.min(Math.max(parseFloat(d.value)||0,0),s);t.textContent='Rp '+Math.round(s-v).toLocaleString('id-ID');if(p)p.value=Math.round(s-v);});
- function selectProduct(){
-   const value=(search?.value||'').trim().toLowerCase();
-   const item=products.find(x=>String(x.name).toLowerCase()===value||String(x.barcode||'').toLowerCase()===value||String(x.sku||'').toLowerCase()===value);
-   if(!item){product.value='';unit.value='-';stockInfo.textContent='Barang tidak ditemukan. Pilih nama barang atau barcode dari hasil pencarian.';return false;}
-   product.value=item.id;unit.value=item.unit||'-';
-   if(item.stock<=0){stockInfo.textContent='STOK HABIS — barang tidak dapat ditambahkan.';product.value='';return false;}
-   stockInfo.textContent='Stok tersedia: '+item.stock.toLocaleString('id-ID')+' '+(item.unit||'');
-   return true;
- }
- if(search){search.addEventListener('input',selectProduct);search.addEventListener('change',selectProduct);search.addEventListener('keydown',e=>{if(e.key==='Enter'&&!selectProduct())e.preventDefault();});}
- if(addForm)addForm.addEventListener('submit',e=>{if(!selectProduct()){e.preventDefault();search?.focus();}});
+const root=document.getElementById('posScreen'),search=document.getElementById('posProductSearch'),product=document.getElementById('posProduct'),unit=document.getElementById('posUnit'),stock=document.getElementById('posStockInfo'),addForm=document.getElementById('posAddForm'),body=document.getElementById('posCartBody'),discount=document.getElementById('posDiscount'),payment=document.getElementById('posPayment'),method=document.getElementById('posPaymentMethod'),subtotalText=document.getElementById('posSubtotalText'),totalText=document.getElementById('posTotal'),clearBtn=document.getElementById('posClear'),payBtn=document.getElementById('posPay');
+const products=@json($products),csrf=document.querySelector('meta[name="csrf-token"]')?.content||'{{ csrf_token() }}'; let cart=@json(array_values($posCart)); let currentKey=null,lastReceipt=null;
+const money=n=>'Rp '+Math.round(n||0).toLocaleString('id-ID'), esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+function recalc(){let sub=cart.reduce((a,x)=>a+(+x.price||0)*(+x.qty||0),0),dis=Math.min(Math.max(+discount.value||0,0),sub),tot=sub-dis;subtotalText.textContent=money(sub);totalText.textContent=money(tot);if(!payment.dataset.userEdited)payment.value=Math.round(tot);clearBtn.disabled=!cart.length;payBtn.disabled=!cart.length;return {sub,dis,tot};}
+function render(){if(!cart.length){body.innerHTML='<tr><td colspan="7" class="text-center text-secondary py-5">Belum ada barang.</td></tr>';recalc();return;}body.innerHTML=cart.map((x,i)=>{let line=(+x.price||0)*(+x.qty||0);return '<tr class="pos-cart-row" data-key="'+i+'"><td>'+esc(x.code)+'</td><td>'+esc(x.name)+'</td><td class="text-end">'+money(x.price)+'</td><td class="text-end">'+Number(x.qty).toLocaleString('id-ID')+'</td><td>'+esc(x.selling_unit_code||'-')+'</td><td class="text-end">—</td><td class="text-end fw-semibold">'+money(line)+'</td></tr>';}).join('');recalc();}
+async function api(url,opts={}){opts.headers={...(opts.headers||{}),'X-CSRF-TOKEN':csrf,'Accept':'application/json','X-Requested-With':'XMLHttpRequest'};let r=await fetch(url,opts),j=await r.json();if(!r.ok)throw new Error(j.message||Object.values(j.errors||{}).flat()[0]||'Terjadi kesalahan.');return j;}
+function selectProduct(){let v=(search.value||'').trim().toLowerCase(),x=products.find(p=>String(p.name).toLowerCase()===v||String(p.barcode||'').toLowerCase()===v||String(p.sku||'').toLowerCase()===v);if(!x){product.value='';unit.value='-';stock.textContent='Barang tidak ditemukan.';return false;}product.value=x.id;unit.value=x.unit||x.selling_unit_code||'-';stock.textContent='Stok tersedia: '+Number(x.stock||x.stock_qty||0).toLocaleString('id-ID')+' '+unit.value;return Number(x.stock||x.stock_qty||0)>0;}
+addForm.addEventListener('submit',async e=>{e.preventDefault();if(!selectProduct())return;try{let j=await api(addForm.action,{method:'POST',body:new URLSearchParams({product_id:product.value,qty:document.getElementById('posQty').value})});cart=Object.values(j.cart||{});render();search.value='';product.value='';unit.value='-';stock.textContent='Scan barcode atau cari barang.';search.focus();}catch(e){alert(e.message);}});
+body.addEventListener('click',()=>{let tr=event.target.closest('.pos-cart-row');if(!tr)return;currentKey=tr.dataset.key;let x=cart[currentKey];if(!x)return;document.getElementById('posEditName').textContent=x.code+' · '+x.name;document.getElementById('posEditPrice').value=x.price;document.getElementById('posEditQty').value=x.qty;document.getElementById('posEditForm').action='{{ url('/erp/pos/item') }}/'+x.product_id;new bootstrap.Modal(document.getElementById('posEditModal')).show();});
+document.getElementById('posEditForm').addEventListener('submit',async e=>{e.preventDefault();let f=e.target;try{let j=await api(f.action,{method:'PUT',body:new URLSearchParams(new FormData(f))});cart=Object.values(j.cart||{});bootstrap.Modal.getInstance(document.getElementById('posEditModal')).hide();render();}catch(e){alert(e.message);}});
+document.getElementById('posEditDelete').addEventListener('click',async()=>{if(!confirm('Hapus barang ini dari transaksi?'))return;let x=cart[currentKey];try{let j=await api('{{ url('/erp/pos/item') }}/'+x.product_id+'/remove',{method:'POST'});cart=Object.values(j.cart||{});bootstrap.Modal.getInstance(document.getElementById('posEditModal')).hide();render();}catch(e){alert(e.message);}});
+discount.addEventListener('input',recalc);payment.addEventListener('input',()=>payment.dataset.userEdited='1');clearBtn.addEventListener('click',async()=>{if(!confirm('Kosongkan transaksi?'))return;try{await api('{{ route('erp.pos.clear') }}',{method:'POST'});cart=[];render();search.focus();}catch(e){alert(e.message);}});
+payBtn.addEventListener('click',async()=>{let z=recalc();if(+payment.value<z.tot){alert('Nominal pembayaran kurang.');payment.focus();return;}payBtn.disabled=true;try{let j=await api('{{ route('erp.pos.store') }}',{method:'POST',body:new URLSearchParams({payment_method:method.value,discount:z.dis,payment_amount:payment.value})});lastReceipt=j;document.getElementById('posPrintInvoice').textContent=j.invoice_no;cart=[];payment.dataset.userEdited='';render();new bootstrap.Modal(document.getElementById('posPrintModal')).show();}catch(e){alert(e.message);payBtn.disabled=false;}});
+document.getElementById('posPrintYes').addEventListener('click',()=>printReceipt(lastReceipt));
+function printReceipt(r){let w=window.open('','_blank','width=420,height=650');if(!w){alert('Popup diblokir browser. Izinkan popup untuk mencetak.');return;}let rows=r.items.map(x=>'<tr><td>'+esc(x.name)+'</td><td style="text-align:right">'+x.qty+' x '+Math.round(x.price).toLocaleString('id-ID')+'</td></tr>').join('');w.document.write('<html><head><title>'+r.invoice_no+'</title><style>body{font:12px Arial;padding:18px}h3{text-align:center;margin:0 0 8px}table{width:100%;border-collapse:collapse}td{padding:3px 0}.total{border-top:1px dashed #000;padding-top:6px;margin-top:6px}</style></head><body><h3>MINI ERP</h3><div style="text-align:center">'+r.invoice_no+'</div><hr><table>'+rows+'</table><div class="total"><b>TOTAL</b><span style="float:right">Rp '+Math.round(r.total).toLocaleString('id-ID')+'</span></div><script>window.onload=()=>window.print()<\/script></body></html>');w.document.close();}
+document.addEventListener('keydown',e=>{if(e.key==='F2'){e.preventDefault();if(currentKey!==null)document.querySelector('.pos-cart-row[data-key="'+currentKey+'"]')?.click();}if(e.key==='F4'){e.preventDefault();search.focus();}if(e.key==='F5'){e.preventDefault();if(lastReceipt)printReceipt(lastReceipt);}});
+search.addEventListener('input',selectProduct);search.addEventListener('change',selectProduct);search.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addForm.requestSubmit();}});
+recalc();
 });
 </script>
+</div>
 @elseif($module === 'shifts')
 <div class="row g-3 mb-4"><div class="col-lg-6"><div class="card shadow-sm h-100"><div class="card-header fw-semibold">Buka Shift</div><div class="card-body"><form method="POST" action="{{ route('erp.shift.store') }}" class="row g-3">@csrf<input type="hidden" name="action" value="open"><div class="col-8"><label class="form-label">Kas Awal</label><input name="opening_cash" type="number" step="0.01" min="0" class="form-control" value="0"></div><div class="col-4 d-flex align-items-end"><button class="btn btn-primary w-100" @if($openShift) disabled @endif>Buka Shift</button></div></form>@if($openShift)<div class="alert alert-success mt-3 mb-0">Shift aktif sejak {{ $openShift->opened_at }}.</div>@endif</div></div></div><div class="col-lg-6"><div class="card shadow-sm h-100"><div class="card-header fw-semibold">Tutup Shift</div><div class="card-body"><form method="POST" action="{{ route('erp.shift.store') }}" class="row g-3">@csrf<input type="hidden" name="action" value="close"><div class="col-8"><label class="form-label">Kas Akhir</label><input name="closing_cash" type="number" step="0.01" min="0" class="form-control" value="0"></div><div class="col-4 d-flex align-items-end"><button class="btn btn-warning w-100" @if(!$openShift) disabled @endif>Tutup Shift</button></div></form></div></div></div></div>
 @elseif($module === 'purchases')
