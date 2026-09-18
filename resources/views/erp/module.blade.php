@@ -86,7 +86,7 @@
 document.addEventListener('DOMContentLoaded',()=>{
  const d=document.getElementById('posDiscount'),t=document.getElementById('posTotal'),p=document.getElementById('posPayment');
  const search=document.getElementById('posProductSearch'),product=document.getElementById('posProduct'),unit=document.getElementById('posUnit'),stockInfo=document.getElementById('posStockInfo'),addForm=document.getElementById('posAddForm');
- const products=@json($products->map(fn($x)=>['id'=>$x->id,'name'=>$x->name,'sku'=>$x->sku,'barcode'=>$x->barcode,'unit'=>$x->selling_unit_code ?? '-','stock'=>(float)$x->stock_qty])->values());
+ const products=@json($products);
  const s={{ $posSubtotal }};
  if(d&&t)d.addEventListener('input',()=>{const v=Math.min(Math.max(parseFloat(d.value)||0,0),s);t.textContent='Rp '+Math.round(s-v).toLocaleString('id-ID');if(p)p.value=Math.round(s-v);});
  function selectProduct(){
