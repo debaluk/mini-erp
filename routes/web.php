@@ -23,7 +23,7 @@ Route::middleware('auth')->group(function () {
     $masterTypes = ['products','customers','suppliers','warehouses','units','tariffs','vehicles','drivers'];
     foreach ($masterTypes as $type) {
         Route::get('/master/'.$type, function () use ($type) {
-            return app(ErpController::class)->master($type);
+            return app(ErpController::class)->master($request, $type);
         })->middleware('role:owner,admin')->name('master.'.$type);
 
         Route::post('/master/'.$type, function (Request $request) use ($type) {
