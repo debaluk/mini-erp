@@ -65,7 +65,7 @@ class ModuleController extends Controller
             'material-usage'=>'Pemakaian Bahan', 'production-cost'=>'HPP Produksi',
             'fleet'=>'Kendaraan', 'deliveries'=>'Pengiriman', 'operations'=>'Operasional Armada', 'fleet-costs'=>'Biaya Armada',
             'journals'=>'Jurnal', 'ledger'=>'Buku Besar', 'receivables'=>'Piutang', 'cashbank'=>'Kas & Bank',
-            'cogs'=>'HPP', 'profit-loss'=>'Laba Rugi', 'balance-sheet'=>'Neraca', 'cash-flow'=>'Arus Kas',
+            'cogs'=>'HPP', 'profit-loss'=>'Laba Rugi', 'trial-balance'=>'Neraca Saldo', 'balance-sheet'=>'Neraca', 'cash-flow'=>'Arus Kas',
         ];
         abort_unless(isset($titles[$module]), 404);
         $data = $this->base($module, $titles[$module]);
@@ -135,7 +135,7 @@ class ModuleController extends Controller
         if ($module === 'bom') {
             $data['boms'] = DB::table('boms')->where('entity_id',$entity)->latest('id')->get();
         }
-        if (in_array($module, ['ledger','receivables','cashbank','cogs','profit-loss','balance-sheet','cash-flow'], true)) {
+        if (in_array($module, ['ledger','receivables','cashbank','cogs','trial-balance','profit-loss','balance-sheet','cash-flow'], true)) {
             $data['report'] = $this->report($module, $entity);
         }
         if ($module === 'pos') {
@@ -420,6 +420,47 @@ class ModuleController extends Controller
             $result['gross_profit'] = $grossProfit;
             $result['net_profit'] = $netProfit;
             $result['total'] = $netProfit;
+        } elseif ($module === 'trial-balance') {
+            // Neraca saldo berdasarkan seluruh jurnal posted sampai akhir periode.
+            $accounts = DB::table('chart_of_accounts as a')
+                ->where('a.entity_id',$entity)
+                ->where('a.is_active',1)
+                ->where('a.level',3)
+                ->orderBy('a.code')
+                ->get(['a.id','a.code','a.name']);
+
+            $journalTotals = DB::table('journal_entries as e')
+                ->join('journals as j','j.id','=','e.journal_id')
+                ->where('j.entity_id',$entity)
+                ->where('j.status','posted')
+                ->where('j.journal_date','<=',$endDate)
+                ->groupBy('e.account_id')
+                ->select('e.account_id',
+                    DB::raw('SUM(e.debit) as debit'),
+                    DB::raw('SUM(e.credit) as credit'));
+
+            $totals = $journalTotals->pluck('debit','account_id');
+            $credits = $journalTotals->pluck('credit','account_id');
+            $debitTotal = 0;
+            $creditTotal = 0;
+
+            foreach ($accounts as $a) {
+                $debit = (float)($totals[$a->id] ?? 0);
+                $credit = (float)($credits[$a->id] ?? 0);
+                $debitTotal += $debit;
+                $creditTotal += $credit;
+                $result['lines'][] = [
+                    'code'=>$a->code,
+                    'label'=>$a->name,
+                    'debit'=>$debit,
+                    'credit'=>$credit,
+                    'balance'=>$debit-$credit,
+                ];
+            }
+
+            $result['debit_total'] = $debitTotal;
+            $result['credit_total'] = $creditTotal;
+            $result['total'] = $debitTotal;
         } elseif ($module === 'balance-sheet') {
             $stock = (float) DB::table('warehouses_stocks')->where('entity_id',$entity)->selectRaw('COALESCE(SUM(qty * avg_cost),0) v')->value('v');
             $cash = (float) DB::table('payments')->where('entity_id',$entity)->sum('amount');
