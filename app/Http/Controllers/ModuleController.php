@@ -186,6 +186,38 @@ class ModuleController extends Controller
         return $result;
     }
 
+
+    public function salesDetail(int $id)
+    {
+        $entity = $this->entityId();
+
+        $sale = DB::table('sales as s')
+            ->leftJoin('customers as c', 'c.id', '=', 's.customer_id')
+            ->leftJoin('users as u', 'u.id', '=', 's.user_id')
+            ->where('s.entity_id', $entity)
+            ->where('s.id', $id)
+            ->select(
+                's.id', 's.invoice_no', 's.sale_date', 's.subtotal', 's.discount', 's.total', 's.status', 's.shift_id',
+                DB::raw("COALESCE(c.name, 'Umum') as customer_name"),
+                DB::raw("COALESCE(u.name, '-') as cashier_name"),
+                DB::raw("(SELECT GROUP_CONCAT(DISTINCT p.method ORDER BY p.id SEPARATOR ', ') FROM payments p WHERE p.sale_id = s.id) as payment_methods"),
+                DB::raw("(SELECT COALESCE(SUM(p.paid_amount), SUM(p.amount), 0) FROM payments p WHERE p.sale_id = s.id) as paid_amount"),
+                DB::raw("(SELECT COALESCE(SUM(p.change_amount), 0) FROM payments p WHERE p.sale_id = s.id) as change_amount")
+            )
+            ->first();
+
+        abort_unless($sale, 404);
+
+        $items = DB::table('sale_items as si')
+            ->join('products as p', 'p.id', '=', 'si.product_id')
+            ->where('si.sale_id', $id)
+            ->select('p.sku', 'p.name', 'si.qty', 'si.unit_price', 'si.discount', 'si.total')
+            ->orderBy('si.id')
+            ->get();
+
+        return response()->json(['sale' => $sale, 'items' => $items]);
+    }
+
     public function salesData(Request $request)
     {
         $entity = $this->entityId();
