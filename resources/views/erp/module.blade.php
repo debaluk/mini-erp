@@ -1,7 +1,6 @@
 @extends('layouts.app')
 <style>
-    .pos-screen{min-height:100vh;background:#f8f9fa;display:flex;flex-direction:column}.pos-topbar{height:48px;background:#212529;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 16px}.pos-main{display:flex;flex-direction:column;flex:1;padding:10px 14px 0}.pos-entry{background:#fff;border:1px solid #dee2e6;border-radius:6px;padding:10px}.pos-table-wrap{flex:1;min-height:0;margin-top:10px;border:1px solid #dee2e6;border-radius:6px;background:#fff}.pos-table-wrap table{margin:0}.pos-cart-row{cursor:pointer}.pos-cart-row:hover{background:#fff3cd}.pos-bottom{border-top:1px solid #dee2e6;background:#fff;margin:10px -14px 0;padding:8px 14px}.pos-help{font-size:.75rem;color:#6c757d;margin-bottom:6px}.pos-summary{max-width:720px;margin-left:auto}.pos-screen .form-control-lg,.pos-screen .btn-lg{min-height:40px}.pos-screen .table th{font-size:.78rem;padding:.5rem}.pos-screen .table td{font-size:.82rem;padding:.45rem}.pos-screen .modal{z-index:1080}
-    /* Mini ERP compact form UI */
+    .pos-screen{height:100vh;background:#f8f9fa;display:flex;flex-direction:column;overflow:hidden}.pos-topbar{height:48px;flex:0 0 48px;background:#212529;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 16px}.pos-main{height:calc(100vh - 48px);display:flex;flex-direction:column;min-height:0;padding:10px 14px 0;overflow:hidden}.pos-entry{background:#fff;border:1px solid #dee2e6;border-radius:6px;padding:10px;flex:0 0 auto}.pos-table-wrap{flex:1 1 auto;min-height:0;margin-top:10px;border:1px solid #dee2e6;border-radius:6px;background:#fff;overflow:auto}.pos-table-wrap table{margin:0}.pos-table-wrap thead th{position:sticky;top:0;z-index:2;background:#fff;box-shadow:0 1px 0 #dee2e6}.pos-cart-row{cursor:pointer}.pos-cart-row:hover{background:#fff3cd}.pos-bottom{flex:0 0 auto;border-top:1px solid #dee2e6;background:#fff;margin:10px -14px 0;padding:8px 14px}.pos-help{font-size:.75rem;color:#6c757d;margin-bottom:6px}.pos-summary{max-width:720px;margin-left:auto}.pos-screen .form-control-lg,.pos-screen .btn-lg{min-height:40px}.pos-screen .table th{font-size:.78rem;padding:.5rem}.pos-screen .table td{font-size:.82rem;padding:.45rem}.pos-screen .modal{z-index:1080}
     .erp-compact .form-label { font-size: .82rem; margin-bottom: .25rem; font-weight: 600; }
     .erp-compact .form-control,
     .erp-compact .form-select { min-height: 34px; padding: .3rem .55rem; font-size: .875rem; }
@@ -64,6 +63,7 @@
 @else @forelse($report['lines'] as $r)<tr><td>{{ $r->invoice_no ?? $r->payment_date ?? $r->production_no ?? $r->id }}</td><td class="text-end">Rp {{ number_format($r->total ?? $r->amount ?? $r->total_cost ?? 0,0,',','.') }}</td><td class="text-end">{{ $r->status ?? $r->method ?? '' }}</td></tr>@empty<tr><td colspan="3" class="text-center text-secondary py-4">Belum ada data.</td></tr>@endforelse @endif
 </tbody></table></div></div>
 @endif
+
 </div>
 
 @if($module==='stock')
