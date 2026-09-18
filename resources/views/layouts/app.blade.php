@@ -67,12 +67,12 @@
                 <li class="nav-item"><a class="nav-link" href="{{ route('dashboard') }}">Dashboard</a></li>
                 @if(in_array(auth()->user()->role, ['owner','admin']))
                 <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">MASTER DATA</a><ul class="dropdown-menu">
-                    @foreach(['products'=>'Produk','customers'=>'Customer','suppliers'=>'Supplier','warehouses'=>'Gudang','units'=>'Satuan','unit-conversions'=>'Konversi Satuan','tariffs'=>'Tarif','vehicles'=>'Kendaraan','drivers'=>'Driver'] as $route=>$label)<li><a class="dropdown-item" href="{{ route('master.'.$route) }}">{{ $label }}</a></li>@endforeach
+                    @foreach(['products'=>'Produk','customers'=>'Customer','suppliers'=>'Supplier','warehouses'=>'Gudang','units'=>'Satuan','unit-conversions'=>'Konversi Satuan','tariffs'=>'Tarif','vehicles'=>'Kendaraan','drivers'=>'Driver'] as $route=>$label)<li><a class="dropdown-item" href="{{ route('master.menu.'.match ($route) { 'products' => 'produk', 'customers' => 'customer', 'suppliers' => 'supplier', 'warehouses' => 'gudang', 'units' => 'satuan', 'unit-conversions' => 'konversi-satuan', 'tariffs' => 'tarif', 'vehicles' => 'kendaraan', 'drivers' => 'driver' }) }}">{{ $label }}</a></li>@endforeach
                 </ul></li>
                 @endif
                 @if(in_array(auth()->user()->role, ['owner','kasir']))
                 <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">POS RETAIL</a><ul class="dropdown-menu">
-                    <li><a class="dropdown-item fw-semibold" href="{{ route('pos') }}">POS</a></li><li><a class="dropdown-item" href="{{ route('penjualan') }}">Penjualan</a></li><li><a class="dropdown-item" href="{{ route('pembayaran') }}">Pembayaran</a></li><li><a class="dropdown-item text-secondary" href="#">Retur</a></li><li><a class="dropdown-item" href="{{ route('shift') }}">Kasir / Shift</a></li>
+                    <li><a class="dropdown-item fw-semibold" href="{{ route('pos.pos') }}">POS</a></li><li><a class="dropdown-item" href="{{ route('pos.penjualan') }}">Penjualan</a></li><li><a class="dropdown-item" href="{{ route('pos.pembayaran') }}">Pembayaran</a></li><li><a class="dropdown-item" href="{{ route('pos.retur') }}">Retur</a></li><li><a class="dropdown-item" href="{{ route('pos.shift') }}">Kasir / Shift</a></li>
                 </ul></li>
                 @endif
                 @if(in_array(auth()->user()->role, ['owner','inventori']))
@@ -100,7 +100,7 @@
                 @endif
                 @if(in_array(auth()->user()->role, ['owner','admin']))
                 <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">PENGATURAN</a><ul class="dropdown-menu">
-                    <li><a class="dropdown-item text-secondary" href="#">User</a></li><li><a class="dropdown-item text-secondary" href="#">Role &amp; Hak Akses</a></li><li><a class="dropdown-item text-secondary" href="#">Entitas</a></li><li><a class="dropdown-item text-secondary" href="#">Konfigurasi</a></li>
+                    <li><a class="dropdown-item" href="{{ url('/pengaturan/user') }}">User</a></li><li><a class="dropdown-item" href="{{ url('/pengaturan/role') }}">Role &amp; Hak Akses</a></li><li><a class="dropdown-item" href="{{ url('/pengaturan/entitas') }}">Entitas</a></li><li><a class="dropdown-item" href="{{ url('/pengaturan/konfigurasi') }}">Konfigurasi</a></li>
                 </ul></li>
                 @endif
             </ul>
