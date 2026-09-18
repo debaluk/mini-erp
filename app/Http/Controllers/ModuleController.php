@@ -242,6 +242,60 @@ class ModuleController extends Controller
         return response($html)->header('Content-Type','application/vnd.ms-excel; charset=UTF-8')->header('Content-Disposition','attachment; filename="neraca-saldo_'.$start.'_'.$end.'.xls"');
     }
 
+    public function exportBalanceSheetExcel(Request $request)
+    {
+        $entity = $this->entityId();
+        $asOf = $request->input('end_date', now()->endOfMonth()->toDateString());
+
+        $totals = DB::table('journal_entries as e')
+            ->join('journals as j','j.id','=','e.journal_id')
+            ->where('j.entity_id',$entity)->where('j.status','posted')
+            ->where('j.journal_date','<=',$asOf)
+            ->groupBy('e.account_id')
+            ->select('e.account_id',DB::raw('SUM(e.debit) as debit'),DB::raw('SUM(e.credit) as credit'));
+
+        $accounts = DB::table('chart_of_accounts as a')
+            ->leftJoinSub($totals,'jt',fn($join)=>$join->on('jt.account_id','=','a.id'))
+            ->where('a.entity_id',$entity)->where('a.is_active',1)->where('a.level',3)
+            ->whereIn('a.type',['asset','liability','equity'])->orderBy('a.code')
+            ->select('a.code','a.name','a.type',DB::raw('COALESCE(jt.debit,0) as debit'),DB::raw('COALESCE(jt.credit,0) as credit'))->get();
+
+        $groups=['asset'=>[],'liability'=>[],'equity'=>[]];
+        $tot=['asset'=>0,'liability'=>0,'equity'=>0];
+        foreach($accounts as $a){
+            $amount=$a->type==='asset'?(float)$a->debit-(float)$a->credit:(float)$a->credit-(float)$a->debit;
+            $groups[$a->type][]=[$a->code,$a->name,$amount];
+            $tot[$a->type]+=$amount;
+        }
+
+        $profitRows=DB::table('journal_entries as e')
+            ->join('journals as j','j.id','=','e.journal_id')
+            ->join('chart_of_accounts as a','a.id','=','e.account_id')
+            ->where('j.entity_id',$entity)->where('j.status','posted')->where('j.journal_date','<=',$asOf)
+            ->whereIn('a.type',['revenue','cogs','expense'])
+            ->select('a.type',DB::raw('SUM(e.debit) as debit'),DB::raw('SUM(e.credit) as credit'))
+            ->groupBy('a.type')->get();
+        $profit=0;
+        foreach($profitRows as $p) $profit += $p->type==='revenue'?(float)$p->credit-(float)$p->debit:(float)$p->debit-(float)$p->credit;
+        if(abs($profit)>0.00001){$groups['equity'][]=['','Laba Tahun Berjalan',$profit];$tot['equity']+=$profit;}
+
+        $entityRow=DB::table('entities')->where('id',$entity)->first();
+        $e=fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');
+        $num=fn($v)=>number_format((float)$v,2,'.','');
+        $html='<html><head><meta charset="UTF-8"><style>body{font-family:Arial}table{border-collapse:collapse}th,td{border:1px solid #000;padding:5px}.right{text-align:right}.bold{font-weight:700}</style></head><body>';
+        $html.='<div><b>'.$e($entityRow?->name??'MINI ERP').'</b></div>';
+        if(!empty($entityRow?->address))$html.='<div>'.$e($entityRow->address).'</div>';
+        $html.='<h4>NERACA</h4><div>Per tanggal: '.$e(date('d-m-Y',strtotime($asOf))).'</div><br><table><tr><th colspan="2">ASET</th><th>Jumlah</th></tr>';
+        foreach($groups['asset'] as $x)$html.='<tr><td>'.$e($x[0]).'</td><td>'.$e($x[1]).'</td><td class="right">'.$num($x[2]).'</td></tr>';
+        $html.='<tr class="bold"><td colspan="2">TOTAL ASET</td><td class="right">'.$num($tot['asset']).'</td></tr><tr><th colspan="2">LIABILITAS</th><th>Jumlah</th></tr>';
+        foreach($groups['liability'] as $x)$html.='<tr><td>'.$e($x[0]).'</td><td>'.$e($x[1]).'</td><td class="right">'.$num($x[2]).'</td></tr>';
+        $html.='<tr class="bold"><td colspan="2">TOTAL LIABILITAS</td><td class="right">'.$num($tot['liability']).'</td></tr><tr><th colspan="2">EKUITAS</th><th>Jumlah</th></tr>';
+        foreach($groups['equity'] as $x)$html.='<tr><td>'.$e($x[0]).'</td><td>'.$e($x[1]).'</td><td class="right">'.$num($x[2]).'</td></tr>';
+        $html.='<tr class="bold"><td colspan="2">TOTAL EKUITAS</td><td class="right">'.$num($tot['equity']).'</td></tr><tr class="bold"><td colspan="2">TOTAL LIABILITAS + EKUITAS</td><td class="right">'.$num($tot['liability']+$tot['equity']).'</td></tr>';
+        $html.='</table></body></html>';
+        return response($html)->header('Content-Type','application/vnd.ms-excel; charset=UTF-8')->header('Content-Disposition','attachment; filename="neraca_'.$asOf.'.xls"');
+    }
+
     public function exportProfitLossExcel(Request $request)
     {
         $entity = $this->entityId();
