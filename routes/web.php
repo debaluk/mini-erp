@@ -29,6 +29,14 @@ Route::middleware('auth')->group(function () {
         Route::post('/master/'.$type, function (Request $request) use ($type) {
             return app(ErpController::class)->masterStore($request, $type);
         })->middleware('role:owner,admin')->name('master.store.'.$type);
+
+        Route::put('/master/'.$type.'/{id}', function (Request $request, int $id) use ($type) {
+            return app(ErpController::class)->masterUpdate($request, $type, $id);
+        })->middleware('role:owner,admin')->name('master.update.'.$type);
+
+        Route::delete('/master/'.$type.'/{id}', function (Request $request, int $id) use ($type) {
+            return app(ErpController::class)->masterDelete($request, $type, $id);
+        })->middleware('role:owner,admin')->name('master.delete.'.$type);
     }
 
     $kasirModules = ['pos','sales','payments','shifts'];
