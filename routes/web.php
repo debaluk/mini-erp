@@ -175,6 +175,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/akuntansi/neraca', fn () => app(ModuleController::class)->show('balance-sheet'))->middleware('role:owner,akuntansi')->name('akuntansi.neraca');
     Route::get('/akuntansi/neraca/export-excel', [ModuleController::class, 'exportBalanceSheetExcel'])->middleware('role:owner,akuntansi')->name('akuntansi.neraca.export-excel');
     Route::get('/akuntansi/arus-kas', fn () => app(ModuleController::class)->show('cash-flow'))->middleware('role:owner,akuntansi')->name('akuntansi.arus-kas');
+    Route::get('/akuntansi/arus-kas/export-excel', [ModuleController::class, 'exportCashFlowExcel'])->middleware('role:owner,akuntansi')->name('akuntansi.arus-kas.export-excel');
     Route::get('/laporan/penjualan', fn () => app(ModuleController::class)->show('sales'))->middleware('role:owner,kasir,akuntansi')->name('laporan.penjualan');
     Route::get('/laporan/pembelian', fn () => app(ModuleController::class)->show('purchases'))->middleware('role:owner,inventori,akuntansi')->name('laporan.pembelian');
     Route::get('/laporan/persediaan', fn () => app(ModuleController::class)->show('stock'))->middleware('role:owner,inventori,akuntansi')->name('laporan.persediaan');
