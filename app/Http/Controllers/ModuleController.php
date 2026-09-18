@@ -421,46 +421,34 @@ class ModuleController extends Controller
             $result['net_profit'] = $netProfit;
             $result['total'] = $netProfit;
         } elseif ($module === 'trial-balance') {
-            // Neraca saldo berdasarkan seluruh jurnal posted sampai akhir periode.
+            // Neraca saldo: saldo awal sebelum periode + mutasi selama periode.
             $accounts = DB::table('chart_of_accounts as a')
-                ->where('a.entity_id',$entity)
-                ->where('a.is_active',1)
-                ->where('a.level',3)
-                ->orderBy('a.code')
-                ->get(['a.id','a.code','a.name']);
+                ->where('a.entity_id',$entity)->where('a.is_active',1)->where('a.level',3)
+                ->orderBy('a.code')->get(['a.id','a.code','a.name']);
 
-            $journalTotals = DB::table('journal_entries as e')
+            $baseQuery = DB::table('journal_entries as e')
                 ->join('journals as j','j.id','=','e.journal_id')
-                ->where('j.entity_id',$entity)
-                ->where('j.status','posted')
-                ->where('j.journal_date','<=',$endDate)
-                ->groupBy('e.account_id')
-                ->select('e.account_id',
-                    DB::raw('SUM(e.debit) as debit'),
-                    DB::raw('SUM(e.credit) as credit'));
+                ->where('j.entity_id',$entity)->where('j.status','posted');
 
-            $totals = $journalTotals->pluck('debit','account_id');
-            $credits = $journalTotals->pluck('credit','account_id');
-            $debitTotal = 0;
-            $creditTotal = 0;
+            $opening = (clone $baseQuery)->where('j.journal_date','<',$startDate)
+                ->groupBy('e.account_id')->select('e.account_id',DB::raw('SUM(e.debit) debit'),DB::raw('SUM(e.credit) credit'))->get()->keyBy('account_id');
 
+            $period = (clone $baseQuery)->whereBetween('j.journal_date',[$startDate,$endDate])
+                ->groupBy('e.account_id')->select('e.account_id',DB::raw('SUM(e.debit) debit'),DB::raw('SUM(e.credit) credit'))->get()->keyBy('account_id');
+
+            $openingTotal = 0; $debitTotal = 0; $creditTotal = 0; $balanceTotal = 0;
             foreach ($accounts as $a) {
-                $debit = (float)($totals[$a->id] ?? 0);
-                $credit = (float)($credits[$a->id] ?? 0);
-                $debitTotal += $debit;
-                $creditTotal += $credit;
-                $result['lines'][] = [
-                    'code'=>$a->code,
-                    'label'=>$a->name,
-                    'debit'=>$debit,
-                    'credit'=>$credit,
-                    'balance'=>$debit-$credit,
-                ];
+                $op = $opening->get($a->id);
+                $pr = $period->get($a->id);
+                $saldoAwal = (float)($op->debit ?? 0) - (float)($op->credit ?? 0);
+                $debit = (float)($pr->debit ?? 0);
+                $credit = (float)($pr->credit ?? 0);
+                $saldoAkhir = $saldoAwal + $debit - $credit;
+                $openingTotal += $saldoAwal; $debitTotal += $debit; $creditTotal += $credit; $balanceTotal += $saldoAkhir;
+                $result['lines'][] = ['code'=>$a->code,'label'=>$a->name,'opening'=>$saldoAwal,'debit'=>$debit,'credit'=>$credit,'balance'=>$saldoAkhir];
             }
-
-            $result['debit_total'] = $debitTotal;
-            $result['credit_total'] = $creditTotal;
-            $result['total'] = $debitTotal;
+            $result['opening_total']=$openingTotal; $result['debit_total']=$debitTotal; $result['credit_total']=$creditTotal; $result['balance_total']=$balanceTotal;
+            $result['total']=$balanceTotal;
         } elseif ($module === 'balance-sheet') {
             $stock = (float) DB::table('warehouses_stocks')->where('entity_id',$entity)->selectRaw('COALESCE(SUM(qty * avg_cost),0) v')->value('v');
             $cash = (float) DB::table('payments')->where('entity_id',$entity)->sum('amount');
