@@ -11,6 +11,7 @@ use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\SalesReturnController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\UnitConversionController;
+use App\Http\Controllers\ShiftController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -52,7 +53,7 @@ Route::middleware('auth')->group(function () {
     foreach ($kasirModules as $module) {
         Route::get('/erp/'.$module, function () use ($module) {
             return app(ModuleController::class)->show($module);
-        })->middleware($module === 'sales' ? 'access:pos_retail' : 'access:pos_retail')->name('erp.'.$module);
+        })->middleware('access:pos_retail')->name('erp.'.$module);
     }
     Route::post('/erp/pos/add', [PosController::class, 'add'])->middleware('access:pos_retail')->name('erp.pos.add');
     Route::put('/erp/pos/item/{id}', [PosController::class, 'updateItem'])->middleware('access:pos_retail')->name('erp.pos.update');
@@ -67,9 +68,7 @@ Route::middleware('auth')->group(function () {
             return app(ModuleController::class)->show($module);
         })->middleware('access:inventori')->name('erp.'.$module);
     }
-    Route::get('/erp/payables', function () {
-        return app(ModuleController::class)->show('payables');
-    })->middleware('access:laporan')->name('erp.payables');
+    Route::get('/erp/payables', function () { return app(ModuleController::class)->show('payables'); })->middleware('access:laporan')->name('erp.payables');
     Route::post('/erp/purchase', [ErpController::class, 'purchaseStore'])->middleware('access:inventori')->name('erp.purchase.store');
 
     $inventoryModules = ['stock','movements','opname'];
@@ -110,9 +109,6 @@ Route::middleware('auth')->group(function () {
     }
     Route::post('/erp/journal', [ModuleController::class, 'journalStore'])->middleware('access:akuntansi')->name('erp.journal.store');
 
-
-    // Clean menu URL aliases — existing /erp endpoints remain for backward compatibility.
-    // Final menu paths use singular, business-readable URLs.
     $masterMenuPaths = [
         'produk' => 'products', 'customer' => 'customers', 'supplier' => 'suppliers',
         'gudang' => 'warehouses', 'satuan' => 'units', 'konversi-satuan' => 'unit-conversions',
@@ -127,6 +123,7 @@ Route::middleware('auth')->group(function () {
             })->middleware('role:owner,admin')->name('master.menu.'.$path);
         }
     }
+
     Route::get('/pos/pos', fn () => app(ModuleController::class)->show('pos'))->middleware('access:pos_retail')->name('pos.pos');
     Route::get('/pos/penjualan', fn () => app(ModuleController::class)->show('sales'))->middleware('access:pos_retail')->name('pos.penjualan');
     Route::get('/pos/penjualan/data', [ModuleController::class, 'salesData'])->middleware('access:pos_retail')->name('pos.penjualan.data');
@@ -141,11 +138,18 @@ Route::middleware('auth')->group(function () {
     Route::get('/pos/retur/export-excel', [SalesReturnController::class, 'exportExcel'])->middleware('access:pos_retail')->name('pos.retur.export-excel');
     Route::get('/pos/retur/lookup', [SalesReturnController::class, 'saleLookup'])->middleware('access:pos_retail')->name('pos.retur.lookup');
     Route::post('/pos/retur', [SalesReturnController::class, 'store'])->middleware('access:pos_retail')->name('pos.retur.store');
-    Route::get('/pos/shift', fn () => app(ModuleController::class)->show('shifts'))->middleware('access:pos_retail')->name('pos.shift');
+
+    Route::get('/pos/shift', [ShiftController::class, 'index'])->middleware('access:pos_retail')->name('pos.shift');
+    Route::post('/pos/shift/open', [ShiftController::class, 'open'])->middleware('access:pos_retail')->name('pos.shift.open');
+    Route::post('/pos/shift/movement', [ShiftController::class, 'movement'])->middleware('access:pos_retail')->name('pos.shift.movement');
+    Route::post('/pos/shift/close', [ShiftController::class, 'close'])->middleware('access:pos_retail')->name('pos.shift.close');
+    Route::get('/pos/shift/{id}/detail', [ShiftController::class, 'detail'])->middleware('access:pos_retail')->name('pos.shift.detail');
+
     Route::get('/pos', fn () => app(ModuleController::class)->show('pos'))->middleware('access:pos_retail')->name('pos');
     Route::get('/penjualan', fn () => app(ModuleController::class)->show('sales'))->middleware('access:pos_retail')->name('penjualan');
     Route::get('/pembayaran', fn () => app(ModuleController::class)->show('payments'))->middleware('access:pos_retail')->name('pembayaran');
-    Route::get('/shift', fn () => app(ModuleController::class)->show('shifts'))->middleware('access:pos_retail')->name('shift');
+    Route::get('/shift', fn () => redirect()->route('pos.shift'))->middleware('access:pos_retail')->name('shift');
+
     Route::get('/inventori/pembelian', fn () => app(ModuleController::class)->show('purchases'))->middleware('access:inventori')->name('inventori.pembelian');
     Route::get('/inventori/penerimaan', fn () => app(ModuleController::class)->show('receipts'))->middleware('access:inventori')->name('inventori.penerimaan');
     Route::get('/inventori/stok', fn () => app(ModuleController::class)->show('stock'))->middleware('access:inventori')->name('inventori.stok');
@@ -177,6 +181,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/akuntansi/neraca/export-excel', [ModuleController::class, 'exportBalanceSheetExcel'])->middleware('access:akuntansi')->name('akuntansi.neraca.export-excel');
     Route::get('/akuntansi/arus-kas', fn () => app(ModuleController::class)->show('cash-flow'))->middleware('access:akuntansi')->name('akuntansi.arus-kas');
     Route::get('/akuntansi/arus-kas/export-excel', [ModuleController::class, 'exportCashFlowExcel'])->middleware('access:akuntansi')->name('akuntansi.arus-kas.export-excel');
+
     Route::get('/laporan/penjualan', fn () => app(ModuleController::class)->show('sales'))->middleware('access:laporan')->name('laporan.penjualan');
     Route::get('/laporan/pembelian', fn () => app(ModuleController::class)->show('purchases'))->middleware('access:laporan')->name('laporan.pembelian');
     Route::get('/laporan/persediaan', fn () => app(ModuleController::class)->show('stock'))->middleware('access:laporan')->name('laporan.persediaan');
@@ -186,7 +191,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/laporan/hutang', fn () => app(ModuleController::class)->show('payables'))->middleware('access:laporan')->name('laporan.hutang');
     Route::get('/laporan/keuangan', fn () => app(ModuleController::class)->show('profit-loss'))->middleware('access:laporan')->name('laporan.keuangan');
 
-    // Pengaturan
     Route::get('/pengaturan/entitas', [SettingsController::class, 'entity'])->middleware('role:superadmin,owner')->name('pengaturan.entitas');
     Route::put('/pengaturan/entitas', [SettingsController::class, 'entityUpdate'])->middleware('role:superadmin,owner')->name('pengaturan.entitas.update');
     Route::get('/pengaturan/user', [SettingsController::class, 'users'])->middleware('role:owner')->name('pengaturan.user');
