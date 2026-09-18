@@ -61,8 +61,20 @@ class AccountController extends Controller
         $account=DB::table('chart_of_accounts')->where('entity_id',$entity)->where('id',$id)->first();
         abort_unless($account,404);
         $data=$request->validate(['name'=>['required','string','max:150'],'normal_balance'=>['required','in:debit,credit'],'description'=>['nullable','string']]);
-        DB::table('chart_of_accounts')->where('entity_id',$entity)->where('id',$id)->update(['name'=>$data['name'],'normal_balance'=>$data['normal_balance'],'description'=>$data['description']??null,'updated_at'=>now()]);
-        return back()->with('success','Akun berhasil diperbarui.');
+        DB::table('chart_of_accounts')
+            ->where('entity_id',$entity)
+            ->where('id',$id)
+            ->update([
+                'name'=>$data['name'],
+                'normal_balance'=>$data['normal_balance'],
+                'description'=>$data['description']??null,
+                'is_active'=>true,
+                'updated_at'=>now(),
+            ]);
+
+        return redirect()
+            ->route('akuntansi.akun')
+            ->with('success','Akun berhasil diperbarui.');
     }
 
     public function destroy(int $id)
