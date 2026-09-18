@@ -13,42 +13,31 @@ class AccountController extends Controller
         return (int) (DB::table('entities')->value('id') ?? 0);
     }
 
-    private function resolveLevel(string $code): int
+    private function level(?object $account): int
     {
-        return match (strlen($code)) {
-            3 => 1,
-            5 => 2,
-            7 => 3,
-            default => 0,
-        };
+        return $account ? (int) $account->level : 0;
     }
 
-    private function validateStructure(int $entity, string $code, ?int $parentId, ?int $currentId = null): array
+    private function nextCode(int $entity, object $parent): string
     {
-        $level = $this->resolveLevel($code);
-        if (!$level) {
-            throw ValidationException::withMessages(['code' => 'Kode akun harus 3, 5, atau 7 digit.']);
+        $prefix = $parent->code;
+        $children = DB::table('chart_of_accounts')
+            ->where('entity_id', $entity)
+            ->where('parent_id', $parent->id)
+            ->pluck('code');
+
+        $max = 0;
+        foreach ($children as $code) {
+            $suffix = substr((string) $code, strlen($prefix));
+            if (ctype_digit($suffix)) $max = max($max, (int) $suffix);
         }
 
-        $parent = null;
-        if ($level > 1) {
-            $parent = DB::table('chart_of_accounts')
-                ->where('entity_id', $entity)
-                ->where('id', $parentId ?? 0)
-                ->first();
-
-            if (!$parent || $parent->level !== $level - 1 || ($currentId && $parent->id === $currentId)) {
-                throw ValidationException::withMessages(['parent_id' => 'Parent akun harus satu level di atas akun ini.']);
-            }
-
-            if (!str_starts_with($code, $parent->code)) {
-                throw ValidationException::withMessages(['code' => 'Kode akun harus mengikuti kode parent.']);
-            }
-        } elseif ($parentId) {
-            throw ValidationException::withMessages(['parent_id' => 'Level 1 tidak boleh memiliki parent.']);
+        $next = $max + 1;
+        if ($next > 99) {
+            throw ValidationException::withMessages(['name' => 'Jumlah akun turunan untuk parent ini sudah mencapai batas.']);
         }
 
-        return [$level, $parent];
+        return $prefix . str_pad((string) $next, 2, '0', STR_PAD_LEFT);
     }
 
     public function index()
@@ -61,47 +50,78 @@ class AccountController extends Controller
             ->orderBy('a.code')
             ->get();
 
-        $parents = $accounts->whereIn('level', [1, 2])->where('is_active', 1)->values();
+        return view('akuntansi.akun', compact('accounts'));
+    }
 
-        return view('akuntansi.akun', compact('accounts', 'parents'));
+    public function exportExcel()
+    {
+        $entity = DB::table('entities')->where('id', $this->entityId())->first();
+        $accounts = DB::table('chart_of_accounts')
+            ->where('entity_id', $this->entityId())
+            ->orderBy('code')
+            ->get();
+
+        $entityName = $entity->name ?? 'Entitas';
+        $filename = 'coa-' . now()->format('Ymd-His') . '.xls';
+
+        return response()->streamDownload(function () use ($accounts, $entityName) {
+            echo '<html><head><meta charset="UTF-8"></head><body>';
+            echo '<table border="0"><tr><th colspan="6">' . e($entityName) . '</th></tr>';
+            echo '<tr><th colspan="6">CHART OF ACCOUNTS</th></tr>';
+            echo '<tr><th colspan="6">Struktur 3 Level</th></tr></table>';
+            echo '<br><table border="1">';
+            echo '<tr><th>Kode</th><th>Nama Akun</th><th>Level</th><th>Normal Balance</th><th>Posting</th><th>Status</th></tr>';
+            foreach ($accounts as $a) {
+                echo '<tr>';
+                echo '<td>' . e($a->code) . '</td>';
+                echo '<td>' . e(str_repeat('    ', max(0, ((int) $a->level) - 1)) . $a->name) . '</td>';
+                echo '<td>' . (int) $a->level . '</td>';
+                echo '<td>' . e(ucfirst($a->normal_balance)) . '</td>';
+                echo '<td>' . ($a->is_postable ? 'Ya' : 'Tidak') . '</td>';
+                echo '<td>' . ($a->is_active ? 'Aktif' : 'Nonaktif') . '</td>';
+                echo '</tr>';
+            }
+            echo '</table></body></html>';
+        }, $filename, ['Content-Type' => 'application/vnd.ms-excel']);
     }
 
     public function store(Request $request)
     {
         $entity = $this->entityId();
         $data = $request->validate([
-            'code' => ['required', 'regex:/^\d{3}(?:\d{2})?(?:\d{2})?$/', 'max:7'],
+            'parent_id' => ['required', 'integer'],
             'name' => ['required', 'string', 'max:150'],
-            'type' => ['required', 'in:asset,liability,equity,revenue,cogs,expense'],
-            'parent_id' => ['nullable', 'integer'],
             'normal_balance' => ['required', 'in:debit,credit'],
             'description' => ['nullable', 'string'],
-            'is_cash_bank' => ['nullable', 'boolean'],
         ]);
 
-        [$level, $parent] = $this->validateStructure($entity, $data['code'], $data['parent_id'] ?? null);
+        $parent = DB::table('chart_of_accounts')
+            ->where('entity_id', $entity)->where('id', $data['parent_id'])->first();
 
-        if (DB::table('chart_of_accounts')->where('entity_id', $entity)->where('code', $data['code'])->exists()) {
-            throw ValidationException::withMessages(['code' => 'Kode akun sudah digunakan.']);
+        if (!$parent || $this->level($parent) >= 3) {
+            throw ValidationException::withMessages(['parent_id' => 'Akun ini tidak dapat memiliki turunan.']);
         }
+
+        $code = $this->nextCode($entity, $parent);
+        $level = $this->level($parent) + 1;
 
         DB::table('chart_of_accounts')->insert([
             'entity_id' => $entity,
-            'code' => $data['code'],
+            'code' => $code,
             'name' => $data['name'],
             'level' => $level,
-            'type' => $data['type'],
+            'type' => $parent->type,
             'normal_balance' => $data['normal_balance'],
-            'parent_id' => $parent?->id,
+            'parent_id' => $parent->id,
             'is_postable' => $level === 3,
-            'is_cash_bank' => (bool) ($data['is_cash_bank'] ?? false),
+            'is_cash_bank' => false,
             'description' => $data['description'] ?? null,
             'is_active' => true,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        return back()->with('success', 'Akun berhasil ditambahkan.');
+        return back()->with('success', "Akun {$code} berhasil ditambahkan.");
     }
 
     public function update(Request $request, int $id)
@@ -111,36 +131,15 @@ class AccountController extends Controller
         abort_unless($account, 404);
 
         $data = $request->validate([
-            'code' => ['required', 'regex:/^\d{3}(?:\d{2})?(?:\d{2})?$/', 'max:7'],
             'name' => ['required', 'string', 'max:150'],
-            'type' => ['required', 'in:asset,liability,equity,revenue,cogs,expense'],
-            'parent_id' => ['nullable', 'integer'],
             'normal_balance' => ['required', 'in:debit,credit'],
             'description' => ['nullable', 'string'],
-            'is_cash_bank' => ['nullable', 'boolean'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
-        [$level, $parent] = $this->validateStructure($entity, $data['code'], $data['parent_id'] ?? null, $id);
-
-        $hasChildren = DB::table('chart_of_accounts')->where('parent_id', $id)->exists();
-        if ($hasChildren && $level === 3) {
-            throw ValidationException::withMessages(['code' => 'Akun yang memiliki turunan tidak dapat diubah menjadi Level 3.']);
-        }
-
-        if (DB::table('chart_of_accounts')->where('entity_id', $entity)->where('code', $data['code'])->where('id', '<>', $id)->exists()) {
-            throw ValidationException::withMessages(['code' => 'Kode akun sudah digunakan.']);
-        }
-
         DB::table('chart_of_accounts')->where('id', $id)->update([
-            'code' => $data['code'],
             'name' => $data['name'],
-            'level' => $level,
-            'type' => $data['type'],
             'normal_balance' => $data['normal_balance'],
-            'parent_id' => $parent?->id,
-            'is_postable' => $level === 3,
-            'is_cash_bank' => (bool) ($data['is_cash_bank'] ?? false),
             'description' => $data['description'] ?? null,
             'is_active' => (bool) ($data['is_active'] ?? false),
             'updated_at' => now(),
