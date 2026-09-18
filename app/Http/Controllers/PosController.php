@@ -32,7 +32,8 @@ class PosController extends Controller
             })
             ->leftJoin('units as u', 'u.id', '=', 'pu.unit_id')
             ->select('p.*', 'u.code as selling_unit_code', 'u.name as selling_unit_name')
-            ->find($data['product_id']);
+            ->where('p.id', $data['product_id'])
+            ->first();
         abort_unless($product,404,'Produk tidak ditemukan.');
         $cart = $this->cart($request);
         $id = (string)$product->id;
