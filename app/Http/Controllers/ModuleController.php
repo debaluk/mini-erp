@@ -153,6 +153,68 @@ class ModuleController extends Controller
         return $module === 'pos' ? view('erp.pos-page', $data) : view('erp.module', $data);
     }
 
+    public function paymentsData(Request $request)
+    {
+        $entity = $this->entityId();
+        $start = $request->input('start_date', now()->startOfMonth()->toDateString());
+        $end = $request->input('end_date', now()->endOfMonth()->toDateString());
+        $base = DB::table('payments as p')
+            ->leftJoin('sales as s', 's.id', '=', 'p.sale_id')
+            ->leftJoin('customers as c', 'c.id', '=', 's.customer_id')
+            ->leftJoin('users as u', 'u.id', '=', 'p.user_id')
+            ->where('p.entity_id', $entity)
+            ->whereBetween('p.payment_date', [$start.' 00:00:00', $end.' 23:59:59'])
+            ->select('p.id','p.payment_date','p.method','p.amount','p.paid_amount','p.change_amount','p.sale_id','p.user_id',
+                DB::raw("CONCAT('PAY-', LPAD(p.id, 6, '0')) as payment_no"),
+                DB::raw("CASE WHEN p.sale_id IS NOT NULL THEN 'POS / Penjualan' ELSE 'Lainnya' END as source_name"),
+                DB::raw("COALESCE(s.invoice_no, '-') as reference_no"),
+                DB::raw("COALESCE(c.name, 'Umum') as customer_name"),
+                DB::raw("COALESCE(u.name, '-') as user_name"),
+                DB::raw("COALESCE(p.status, 'posted') as payment_status"));
+        $recordsTotal = (clone $base)->count();
+        $search = trim((string) $request->input('search.value', ''));
+        if ($search !== '') {
+            $base->where(function ($q) use ($search) {
+                $like = '%'.$search.'%';
+                $q->where('s.invoice_no','like',$like)->orWhere('c.name','like',$like)->orWhere('u.name','like',$like)->orWhere('p.method','like',$like)->orWhereRaw("CONCAT('PAY-', LPAD(p.id, 6, '0')) like ?", [$like]);
+            });
+        }
+        $recordsFiltered = (clone $base)->count();
+        $columns = [0=>'p.id',1=>'p.payment_date',2=>'source_name',3=>'s.invoice_no',4=>'c.name',5=>'p.amount',6=>'p.method',7=>'p.method',8=>'u.name',9=>'p.status'];
+        $orderCol = (int) $request->input('order.0.column', 1);
+        $orderDir = strtolower($request->input('order.0.dir','desc')) === 'asc' ? 'asc' : 'desc';
+        $base->orderBy($columns[$orderCol] ?? 'p.id', $orderDir);
+        $startRow = max(0, (int) $request->input('start', 0));
+        $length = (int) $request->input('length', 15);
+        if ($length !== -1) $base->skip($startRow)->take($length);
+        return response()->json(['draw'=>(int)$request->input('draw'), 'recordsTotal'=>$recordsTotal, 'recordsFiltered'=>$recordsFiltered, 'data'=>$base->get()]);
+    }
+
+    public function paymentDetail(int $id)
+    {
+        $entity = $this->entityId();
+        $row = DB::table('payments as p')->leftJoin('sales as s','s.id','=','p.sale_id')->leftJoin('customers as c','c.id','=','s.customer_id')->leftJoin('users as u','u.id','=','p.user_id')->where('p.entity_id',$entity)->where('p.id',$id)->select('p.*',DB::raw("CONCAT('PAY-', LPAD(p.id, 6, '0')) as payment_no"),'s.invoice_no','s.total as sale_total','c.name as customer_name','u.name as user_name')->first();
+        abort_unless($row,404);
+        $entityRow = DB::table('entities')->where('id',$entity)->first();
+        return response()->json(['payment'=>$row,'entity'=>$entityRow]);
+    }
+
+    public function exportPaymentsExcel(Request $request)
+    {
+        $entity = $this->entityId();
+        $start = $request->input('start_date', now()->startOfMonth()->toDateString());
+        $end = $request->input('end_date', now()->endOfMonth()->toDateString());
+        $rows = DB::table('payments as p')->leftJoin('sales as s','s.id','=','p.sale_id')->leftJoin('customers as c','c.id','=','s.customer_id')->leftJoin('users as u','u.id','=','p.user_id')->where('p.entity_id',$entity)->whereBetween('p.payment_date',[$start.' 00:00:00',$end.' 23:59:59'])->orderBy('p.id')->select('p.*',DB::raw("CONCAT('PAY-', LPAD(p.id, 6, '0')) as payment_no"),DB::raw("CASE WHEN p.sale_id IS NOT NULL THEN 'POS / Penjualan' ELSE 'Lainnya' END as source_name"),DB::raw("COALESCE(s.invoice_no, '-') as reference_no"),DB::raw("COALESCE(c.name, 'Umum') as customer_name"),DB::raw("COALESCE(u.name, '-') as user_name"),DB::raw("COALESCE(p.status, 'posted') as payment_status"))->get();
+        $entityRow=DB::table('entities')->where('id',$entity)->first();
+        $e=fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');
+        $num=fn($v)=>'<span x:num="'.number_format((float)$v,2,'.','').'">'.number_format((float)$v,2,'.','').'</span>';
+        $html='<html><head><meta charset="UTF-8"><style>td,th{border:1px solid #999;padding:5px}th{background:#eee}</style></head><body>';
+        $html.='<h3>'. $e($entityRow?->name ?? 'MINI ERP') .'</h3><div>'. $e($entityRow?->address ?? '') .'</div><h4>Penerimaan Pembayaran</h4><div>Periode: '.$e($start).' s/d '.$e($end).'</div><br><table><tr><th>No Pembayaran</th><th>Tanggal</th><th>Sumber</th><th>Referensi</th><th>Customer</th><th>Jumlah</th><th>Metode</th><th>Kas/Bank</th><th>User</th><th>Status</th></tr>';
+        foreach($rows as $r){$html.='<tr><td>'.$e($r->payment_no).'</td><td>'.$e($r->payment_date).'</td><td>'.$e($r->source_name).'</td><td>'.$e($r->reference_no).'</td><td>'.$e($r->customer_name).'</td><td>'.$num($r->amount).'</td><td>'.$e($r->method).'</td><td>'.$e($r->method).'</td><td>'.$e($r->user_name).'</td><td>'.$e($r->payment_status).'</td></tr>';}
+        $html.='</table></body></html>';
+        return response($html)->header('Content-Type','application/vnd.ms-excel; charset=UTF-8')->header('Content-Disposition','attachment; filename="penerimaan-pembayaran-'.$start.'-'.$end.'.xls"');
+    }
+
     private function report(string $module, int $entity): array
     {
         $result = ['lines'=>[], 'total'=>0];
