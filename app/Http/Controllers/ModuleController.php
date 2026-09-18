@@ -240,19 +240,35 @@ class ModuleController extends Controller
             $result['lines'] = DB::table('productions')->where('entity_id',$entity)->orderByDesc('production_date')->paginate(15)->withQueryString();
             $result['total'] = (float) DB::table('productions')->where('entity_id',$entity)->sum('total_cost');
         } elseif ($module === 'profit-loss') {
-            $accounts = DB::table('chart_of_accounts as a')
-                ->join('journal_entries as e','e.account_id','=','a.id')
+            // Tampilkan seluruh akun detail Laba Rugi sesuai COA aktif, termasuk akun bernilai 0.
+            $journalTotals = DB::table('journal_entries as e')
                 ->join('journals as j','j.id','=','e.journal_id')
+                ->where('j.entity_id',$entity)
+                ->where('j.status','posted')
+                ->whereBetween('j.journal_date',[$startDate,$endDate])
+                ->groupBy('e.account_id')
+                ->select(
+                    'e.account_id',
+                    DB::raw('SUM(e.debit) as debit'),
+                    DB::raw('SUM(e.credit) as credit')
+                );
+
+            $accounts = DB::table('chart_of_accounts as a')
+                ->leftJoinSub($journalTotals, 'jt', function ($join) {
+                    $join->on('jt.account_id','=','a.id');
+                })
                 ->where('a.entity_id',$entity)
                 ->where('a.is_active',1)
                 ->where('a.is_postable',1)
                 ->whereIn('a.type',['revenue','cogs','expense'])
-                ->where('j.entity_id',$entity)
-                ->where('j.status','posted')
-                ->whereBetween('j.journal_date',[$startDate,$endDate])
-                ->groupBy('a.id','a.code','a.name','a.type')
                 ->orderBy('a.code')
-                ->select('a.code','a.name','a.type',DB::raw('SUM(e.debit) as debit'),DB::raw('SUM(e.credit) as credit'))
+                ->select(
+                    'a.code',
+                    'a.name',
+                    'a.type',
+                    DB::raw('COALESCE(jt.debit,0) as debit'),
+                    DB::raw('COALESCE(jt.credit,0) as credit')
+                )
                 ->get();
 
             $revenueTotal = 0;
@@ -260,10 +276,9 @@ class ModuleController extends Controller
             $expenseTotal = 0;
 
             foreach ($accounts as $a) {
-                $amount = in_array($a->type,['revenue'],true)
+                $amount = $a->type === 'revenue'
                     ? (float)$a->credit - (float)$a->debit
                     : (float)$a->debit - (float)$a->credit;
-                if (abs($amount) < 0.005) continue;
 
                 if ($a->type === 'revenue') $revenueTotal += $amount;
                 elseif ($a->type === 'cogs') $cogsTotal += $amount;
