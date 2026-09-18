@@ -32,17 +32,25 @@
         main .dataTables_wrapper .dt-search { font-size: .82rem; }
         main .dataTables_wrapper .dt-length select,
         main .dataTables_wrapper .dt-search input { font-size: .82rem; padding: .2rem .45rem; min-height: 30px; }
-        main .dataTables_wrapper .dt-paging .dt-paging-button .page-link {
-            padding: .15rem .35rem !important;
-            font-size: .68rem !important;
-            line-height: 1 !important;
-            min-width: 24px !important;
-            min-height: 24px !important;
-            height: 24px !important;
-        }
         main .dataTables_wrapper .dt-paging .pagination {
-            margin-bottom: 0;
-            gap: 1px;
+            margin: 0 !important;
+            gap: 1px !important;
+        }
+        main .dataTables_wrapper .dt-paging .pagination .page-item,
+        main .dataTables_wrapper .dt-paging .pagination .page-link {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 22px !important;
+            min-width: 22px !important;
+            max-width: 22px !important;
+            height: 22px !important;
+            min-height: 22px !important;
+            font-size: .65rem !important;
+            line-height: 20px !important;
+            text-align: center !important;
+        }
+        main .dataTables_wrapper .dt-paging .pagination .page-link {
+            display: block !important;
         }
         main .card-body { padding: .75rem; }
         main .card-header { padding: .5rem .75rem; }
