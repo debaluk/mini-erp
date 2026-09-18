@@ -35,20 +35,144 @@ class SalesReturnController extends Controller
     {
         $entity = $this->entityId();
 
+        $warehouses = DB::table('warehouses')
+            ->where('entity_id', $entity)
+            ->where('is_active', 1)
+            ->orderBy('name')
+            ->get();
+
+        return view('erp.retur', compact('warehouses'));
+    }
+
+    public function data(Request $request)
+    {
+        $entity = $this->entityId();
+        $start = $request->input('start_date', now()->startOfMonth()->toDateString());
+        $end = $request->input('end_date', now()->endOfMonth()->toDateString());
+
+        $query = DB::table('sales_returns as r')
+            ->join('sales as s', 's.id', '=', 'r.sale_id')
+            ->leftJoin('customers as c', 'c.id', '=', 'r.customer_id')
+            ->leftJoin('users as u', 'u.id', '=', 'r.user_id')
+            ->leftJoin('warehouses as w', 'w.id', '=', 'r.warehouse_id')
+            ->where('r.entity_id', $entity)
+            ->whereBetween('r.return_date', [$start . ' 00:00:00', $end . ' 23:59:59']);
+
+        $recordsTotal = (clone $query)->count('r.id');
+
+        $search = trim((string) $request->input('search.value', ''));
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $like = '%' . $search . '%';
+                $q->where('r.return_no', 'like', $like)
+                    ->orWhere('s.invoice_no', 'like', $like)
+                    ->orWhere('c.name', 'like', $like)
+                    ->orWhere('u.name', 'like', $like)
+                    ->orWhere('w.name', 'like', $like);
+            });
+        }
+
+        $recordsFiltered = (clone $query)->count('r.id');
+
+        $columns = [
+            0 => 'r.return_no',
+            1 => 'r.return_date',
+            2 => 's.invoice_no',
+            3 => 'c.name',
+            4 => 'w.name',
+            5 => 'r.total',
+            6 => 'u.name',
+            7 => 'r.status',
+        ];
+
+        $orderColumn = (int) $request->input('order.0.column', 1);
+        $orderDir = strtolower((string) $request->input('order.0.dir', 'desc')) === 'asc' ? 'asc' : 'desc';
+        $query->orderBy($columns[$orderColumn] ?? 'r.return_date', $orderDir);
+
+        $startRow = max(0, (int) $request->input('start', 0));
+        $length = (int) $request->input('length', 15);
+        if ($length < 1) $length = 15;
+        if ($length > 100) $length = 100;
+
+        $rows = $query
+            ->select(
+                'r.id', 'r.return_no', 'r.return_date', 'r.total', 'r.status',
+                's.invoice_no',
+                DB::raw("COALESCE(c.name, 'Umum') as customer_name"),
+                DB::raw("COALESCE(u.name, '-') as user_name"),
+                DB::raw("COALESCE(w.name, '-') as warehouse_name")
+            )
+            ->skip($startRow)
+            ->take($length)
+            ->get();
+
+        return response()->json([
+            'draw' => (int) $request->input('draw', 0),
+            'recordsTotal' => $recordsTotal,
+            'recordsFiltered' => $recordsFiltered,
+            'data' => $rows,
+        ]);
+    }
+
+    public function exportExcel(Request $request)
+    {
+        $entity = $this->entityId();
+        $start = $request->input('start_date', now()->startOfMonth()->toDateString());
+        $end = $request->input('end_date', now()->endOfMonth()->toDateString());
+
+        abort_if(!$start || !$end || $start > $end, 422, 'Periode tanggal tidak valid.');
+
+        $entityData = DB::table('entities')->where('id', $entity)->first(['name', 'address', 'phone']);
+
         $rows = DB::table('sales_returns as r')
             ->join('sales as s', 's.id', '=', 'r.sale_id')
             ->leftJoin('customers as c', 'c.id', '=', 'r.customer_id')
             ->leftJoin('users as u', 'u.id', '=', 'r.user_id')
             ->leftJoin('warehouses as w', 'w.id', '=', 'r.warehouse_id')
             ->where('r.entity_id', $entity)
-            ->orderByDesc('r.id')
-            ->select('r.*', 's.invoice_no', DB::raw("COALESCE(c.name, 'Umum') as customer_name"), 'u.name as user_name', 'w.name as warehouse_name')
-            ->paginate(15)
-            ->withQueryString();
+            ->whereBetween('r.return_date', [$start . ' 00:00:00', $end . ' 23:59:59'])
+            ->orderByDesc('r.return_date')
+            ->select(
+                'r.return_no', 'r.return_date', 's.invoice_no',
+                DB::raw("COALESCE(c.name, 'Umum') as customer_name"),
+                DB::raw("COALESCE(w.name, '-') as warehouse_name"),
+                'r.total',
+                DB::raw("COALESCE(u.name, '-') as user_name"),
+                'r.status'
+            )
+            ->get();
 
-        $warehouses = DB::table('warehouses')->where('entity_id', $entity)->where('is_active', 1)->orderBy('name')->get();
+        $safe = fn ($v) => e((string) ($v ?? ''));
+        $filename = 'retur-penjualan-' . $start . '-sd-' . $end . '.xls';
 
-        return view('erp.retur', compact('rows', 'warehouses'));
+        $html = '<html><head><meta charset="UTF-8"></head><body>';
+        $html .= '<table><tr><th colspan="8">' . $safe($entityData->name ?? 'MINI ERP') . '</th></tr>';
+        if (!empty($entityData->address)) $html .= '<tr><td colspan="8">' . $safe($entityData->address) . '</td></tr>';
+        if (!empty($entityData->phone)) $html .= '<tr><td colspan="8">Telp. ' . $safe($entityData->phone) . '</td></tr>';
+        $html .= '<tr><th colspan="8">LAPORAN RETUR PENJUALAN</th></tr>';
+        $html .= '<tr><td colspan="8">Periode: ' . $safe($start) . ' s/d ' . $safe($end) . '</td></tr>';
+        $html .= '<tr><th>No. Retur</th><th>Tanggal</th><th>No. Struk</th><th>Customer</th><th>Gudang</th><th>Total</th><th>User</th><th>Status</th></tr>';
+
+        foreach ($rows as $row) {
+            $total = (float) $row->total;
+            $html .= '<tr>';
+            $html .= '<td>' . $safe($row->return_no) . '</td>';
+            $html .= '<td>' . $safe($row->return_date) . '</td>';
+            $html .= '<td>' . $safe($row->invoice_no) . '</td>';
+            $html .= '<td>' . $safe($row->customer_name) . '</td>';
+            $html .= '<td>' . $safe($row->warehouse_name) . '</td>';
+            $html .= '<td x:num="' . $total . '">' . $total . '</td>';
+            $html .= '<td>' . $safe($row->user_name) . '</td>';
+            $html .= '<td>' . $safe($row->status) . '</td>';
+            $html .= '</tr>';
+        }
+
+        $html .= '</table></body></html>';
+
+        return response($html, 200, [
+            'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
     }
 
     public function saleLookup(Request $request)
