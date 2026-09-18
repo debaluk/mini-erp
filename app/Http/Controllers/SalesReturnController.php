@@ -100,7 +100,10 @@ class SalesReturnController extends Controller
                 's.invoice_no',
                 DB::raw("COALESCE(c.name, 'Umum') as customer_name"),
                 DB::raw("COALESCE(u.name, '-') as user_name"),
-                DB::raw("COALESCE(w.name, '-') as warehouse_name")
+                DB::raw("COALESCE(w.name, '-') as warehouse_name"),
+                DB::raw("(SELECT GROUP_CONCAT(DISTINCT p.name ORDER BY p.name SEPARATOR ', ') FROM sales_return_items ri JOIN products p ON p.id = ri.product_id WHERE ri.sales_return_id = r.id) as product_names"),
+                DB::raw("(SELECT COALESCE(SUM(ri.qty), 0) FROM sales_return_items ri WHERE ri.sales_return_id = r.id) as return_qty"),
+                DB::raw("(SELECT GROUP_CONCAT(CONCAT(p.name, ' @ ', FORMAT(ri.unit_price, 2)) ORDER BY ri.id SEPARATOR ' | ') FROM sales_return_items ri JOIN products p ON p.id = ri.product_id WHERE ri.sales_return_id = r.id) as return_prices")
             )
             ->skip($startRow)
             ->take($length)
