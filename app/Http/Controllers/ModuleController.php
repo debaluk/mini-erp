@@ -24,6 +24,7 @@ class ModuleController extends Controller
         return [
             'module' => $module,
             'title' => $title,
+            'entity' => DB::table('entities')->where('id', $entity)->first(),
             'products' => DB::table('products as p')
                 ->where('p.entity_id', $entity)
                 ->where('p.is_active', 1)
@@ -218,8 +219,17 @@ class ModuleController extends Controller
     private function report(string $module, int $entity): array
     {
         $result = ['lines'=>[], 'total'=>0];
+        $startDate = request()->input('start_date', now()->startOfMonth()->toDateString());
+        $endDate = request()->input('end_date', now()->endOfMonth()->toDateString());
+
         if ($module === 'ledger') {
-            $result['lines'] = DB::table('journal_entries as e')->join('journals as j','j.id','=','e.journal_id')->join('chart_of_accounts as a','a.id','=','e.account_id')->where('j.entity_id',$entity)->orderBy('j.journal_date')->orderBy('e.id')->select('j.journal_date','j.journal_no','j.description','a.code','a.name','e.debit','e.credit')->get();
+            $result['lines'] = DB::table('journal_entries as e')
+                ->join('journals as j','j.id','=','e.journal_id')
+                ->join('chart_of_accounts as a','a.id','=','e.account_id')
+                ->where('j.entity_id',$entity)->where('j.status','posted')
+                ->whereBetween('j.journal_date',[$startDate,$endDate])
+                ->orderBy('j.journal_date')->orderBy('e.id')
+                ->select('j.journal_date','j.journal_no','j.description','a.code','a.name','e.debit','e.credit')->get();
         } elseif ($module === 'receivables') {
             $result['lines'] = DB::table('sales')->where('entity_id',$entity)->orderByDesc('sale_date')->get();
             $result['total'] = (float) DB::table('sales')->where('entity_id',$entity)->sum('total');
@@ -227,13 +237,55 @@ class ModuleController extends Controller
             $result['lines'] = DB::table('payments')->where('entity_id',$entity)->orderByDesc('payment_date')->get();
             $result['total'] = (float) DB::table('payments')->where('entity_id',$entity)->sum('amount');
         } elseif ($module === 'cogs') {
-            $result['lines'] = DB::table('productions')->where('entity_id',$entity)->orderByDesc('production_date')->get();
+            $result['lines'] = DB::table('productions')->where('entity_id',$entity)->orderByDesc('production_date')->paginate(15)->withQueryString();
             $result['total'] = (float) DB::table('productions')->where('entity_id',$entity)->sum('total_cost');
         } elseif ($module === 'profit-loss') {
-            $sales = (float) DB::table('sales')->where('entity_id',$entity)->where('status','posted')->sum('total');
-            $cogs = (float) DB::table('productions')->where('entity_id',$entity)->sum('total_cost');
-            $result['lines'] = [['label'=>'Penjualan','amount'=>$sales],['label'=>'HPP Produksi','amount'=>-$cogs],['label'=>'Laba Kotor','amount'=>$sales-$cogs]];
-            $result['total'] = $sales-$cogs;
+            $accounts = DB::table('chart_of_accounts as a')
+                ->join('journal_entries as e','e.account_id','=','a.id')
+                ->join('journals as j','j.id','=','e.journal_id')
+                ->where('a.entity_id',$entity)
+                ->where('a.is_active',1)
+                ->where('a.is_postable',1)
+                ->whereIn('a.type',['revenue','cogs','expense'])
+                ->where('j.entity_id',$entity)
+                ->where('j.status','posted')
+                ->whereBetween('j.journal_date',[$startDate,$endDate])
+                ->groupBy('a.id','a.code','a.name','a.type')
+                ->orderBy('a.code')
+                ->select('a.code','a.name','a.type',DB::raw('SUM(e.debit) as debit'),DB::raw('SUM(e.credit) as credit'))
+                ->get();
+
+            $revenueTotal = 0;
+            $cogsTotal = 0;
+            $expenseTotal = 0;
+
+            foreach ($accounts as $a) {
+                $amount = in_array($a->type,['revenue'],true)
+                    ? (float)$a->credit - (float)$a->debit
+                    : (float)$a->debit - (float)$a->credit;
+                if (abs($amount) < 0.005) continue;
+
+                if ($a->type === 'revenue') $revenueTotal += $amount;
+                elseif ($a->type === 'cogs') $cogsTotal += $amount;
+                else $expenseTotal += $amount;
+
+                $result['lines'][] = [
+                    'code'=>$a->code,
+                    'label'=>$a->name,
+                    'type'=>$a->type,
+                    'amount'=>$amount,
+                ];
+            }
+
+            $grossProfit = $revenueTotal - $cogsTotal;
+            $netProfit = $grossProfit - $expenseTotal;
+
+            $result['revenue'] = $revenueTotal;
+            $result['cogs'] = $cogsTotal;
+            $result['expense'] = $expenseTotal;
+            $result['gross_profit'] = $grossProfit;
+            $result['net_profit'] = $netProfit;
+            $result['total'] = $netProfit;
         } elseif ($module === 'balance-sheet') {
             $stock = (float) DB::table('warehouses_stocks')->where('entity_id',$entity)->selectRaw('COALESCE(SUM(qty * avg_cost),0) v')->value('v');
             $cash = (float) DB::table('payments')->where('entity_id',$entity)->sum('amount');
