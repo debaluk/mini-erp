@@ -38,7 +38,46 @@ class ErpController extends Controller
     public function master(string $type)
     {
         $config = $this->masterConfig($type);
-        $rows = DB::table($config['table'])->where('entity_id',$this->entityId())->latest('id')->paginate(15)->withQueryString();
+        $entity = $this->entityId();
+
+        if ($request->ajax() && $request->has('draw')) {
+            $columns = $config['columns'];
+            $query = DB::table($config['table'])->where('entity_id', $entity);
+
+            $search = trim((string) $request->input('search.value', ''));
+            if ($search !== '') {
+                $query->where(function ($q) use ($columns, $search) {
+                    foreach ($columns as $column) {
+                        $q->orWhere($column, 'like', '%'.$search.'%');
+                    }
+                });
+            }
+
+            $total = DB::table($config['table'])->where('entity_id', $entity)->count();
+            $filtered = $query->count();
+
+            $orderIndex = (int) $request->input('order.0.column', 0);
+            $orderDir = strtolower((string) $request->input('order.0.dir', 'desc')) === 'asc' ? 'asc' : 'desc';
+            $orderColumn = $columns[$orderIndex] ?? 'id';
+
+            $length = (int) $request->input('length', 15);
+            $start = max(0, (int) $request->input('start', 0));
+
+            $rows = $query->orderBy($orderColumn, $orderDir)
+                ->orderBy('id', 'desc')
+                ->offset($start)
+                ->limit($length > 0 ? $length : 15)
+                ->get();
+
+            return response()->json([
+                'draw' => (int) $request->input('draw'),
+                'recordsTotal' => $total,
+                'recordsFiltered' => $filtered,
+                'data' => $rows,
+            ]);
+        }
+
+        $rows = DB::table($config['table'])->where('entity_id',$entity)->latest('id')->paginate(15)->withQueryString();
         return view('erp.master', compact('config','rows','type'));
     }
 
