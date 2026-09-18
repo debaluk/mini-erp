@@ -16,13 +16,32 @@ return new class extends Migration
             '6000',
         ];
 
+        // COA legacy masih direferensikan journal_entries.
+        // Jangan hapus agar histori jurnal tetap valid.
         DB::table('chart_of_accounts')
             ->whereIn('code', $legacyCodes)
-            ->delete();
+            ->update([
+                'is_active' => false,
+                'updated_at' => now(),
+            ]);
     }
 
     public function down(): void
     {
-        // Data COA legacy yang dihapus tidak dikembalikan.
+        $legacyCodes = [
+            '1000', '1100', '1200',
+            '2000',
+            '3000',
+            '4000',
+            '5000',
+            '6000',
+        ];
+
+        DB::table('chart_of_accounts')
+            ->whereIn('code', $legacyCodes)
+            ->update([
+                'is_active' => true,
+                'updated_at' => now(),
+            ]);
     }
 };
