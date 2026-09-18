@@ -327,7 +327,7 @@ document.addEventListener('DOMContentLoaded', function () {
         </form>
     </div>
 </div>
-<div class="card shadow-sm"><div class="table-responsive"><table id="payments-datatable" class="table table-hover align-middle w-100 mb-0"><thead><tr>
+    <div class="table-responsive"><table id="payments-datatable" class="table table-hover align-middle w-100 mb-0"><thead><tr>
 <th>No Pembayaran</th><th>Tanggal</th><th>Sumber</th><th>Referensi</th><th>Customer</th><th class="text-end">Jumlah</th><th>Metode</th><th>Kas/Bank</th><th>User</th><th>Status</th>
 </tr></thead></table></div></div>
 <div class="modal fade" id="payment-detail-modal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
