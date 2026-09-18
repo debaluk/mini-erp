@@ -22,7 +22,21 @@ class DatabaseSeeder extends Seeder
 
         $entity=DB::table('entities')->first();
         $eid=$entity?->id;
-        if(!$eid) $eid=DB::table('entities')->insertGetId(['code'=>'ENT-001','name'=>'Entitas Utama','is_active'=>1,'created_at'=>now(),'updated_at'=>now()]);
+        if(!$eid) {
+            do {
+                $entityCode = now()->format('Ym') . strtoupper(\Illuminate\Support\Str::random(6));
+            } while (DB::table('entities')->where('code', $entityCode)->exists());
+
+            $eid=DB::table('entities')->insertGetId(['code'=>$entityCode,'name'=>'Entitas Utama','is_active'=>1,'created_at'=>now(),'updated_at'=>now()]);
+        } elseif (str_starts_with($entity->code, 'ENT-')) {
+            do {
+                $entityCode = $entity->created_at
+                    ? date('Ym', strtotime($entity->created_at)) . strtoupper(\Illuminate\Support\Str::random(6))
+                    : now()->format('Ym') . strtoupper(\Illuminate\Support\Str::random(6));
+            } while (DB::table('entities')->where('code', $entityCode)->where('id', '!=', $eid)->exists());
+
+            DB::table('entities')->where('id', $eid)->update(['code'=>$entityCode,'updated_at'=>now()]);
+        }
         foreach($users as $data) {
             DB::table('users')->where('email',$data['email'])->update(['entity_id' => $data['role'] === 'superadmin' ? null : $eid, 'updated_at' => now()]);
         }
