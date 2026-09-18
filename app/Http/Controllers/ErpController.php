@@ -50,14 +50,51 @@ class ErpController extends Controller
         $data=$request->validate($rules);
         foreach ($config['fields'] as $key=>$field) if (!array_key_exists($key,$data)) $data[$key]=$request->input($key);
         $data['entity_id']=$this->entityId();
-        if (Schema::hasColumn($config['table'], 'is_active')) {
-            $data['is_active']=1;
-        }
+        if (Schema::hasColumn($config['table'], 'is_active')) $data['is_active']=1;
         $data['created_at']=now();
         $data['updated_at']=now();
         if ($type==='products') { $data['unit_id']=$data['unit_id']??null; $data['category_id']=$data['category_id']??null; }
         DB::table($config['table'])->insert($data);
-        return back()->with('success',$config['title'].' berhasil disimpan.');
+        return $request->expectsJson()
+            ? response()->json(['message'=>$config['title'].' berhasil disimpan.'])
+            : back()->with('success',$config['title'].' berhasil disimpan.');
+    }
+
+    public function masterUpdate(Request $request, string $type, int $id)
+    {
+        $config = $this->masterConfig($type);
+        $rules=[];
+        foreach ($config['fields'] as $key=>$field) if (($field['required'] ?? false)) $rules[$key]=['required'];
+        $data=$request->validate($rules);
+        foreach ($config['fields'] as $key=>$field) if (!array_key_exists($key,$data)) $data[$key]=$request->input($key);
+        unset($data['entity_id']);
+        $data['updated_at']=now();
+        DB::table($config['table'])
+            ->where('entity_id',$this->entityId())
+            ->where('id',$id)
+            ->update($data);
+        return $request->expectsJson()
+            ? response()->json(['message'=>$config['title'].' berhasil diperbarui.'])
+            : back()->with('success',$config['title'].' berhasil diperbarui.');
+    }
+
+    public function masterDelete(Request $request, string $type, int $id)
+    {
+        $config = $this->masterConfig($type);
+        try {
+            $deleted=DB::table($config['table'])
+                ->where('entity_id',$this->entityId())
+                ->where('id',$id)
+                ->delete();
+            abort_unless($deleted,404,'Data tidak ditemukan.');
+        } catch (\Throwable $e) {
+            return $request->expectsJson()
+                ? response()->json(['message'=>'Data tidak dapat dihapus karena sudah digunakan oleh transaksi/data lain.'],422)
+                : back()->withErrors(['delete'=>'Data tidak dapat dihapus karena sudah digunakan oleh transaksi/data lain.']);
+        }
+        return $request->expectsJson()
+            ? response()->json(['message'=>$config['title'].' berhasil dihapus.'])
+            : back()->with('success',$config['title'].' berhasil dihapus.');
     }
 
     public function module(string $module)
