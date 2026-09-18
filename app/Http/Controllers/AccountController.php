@@ -44,16 +44,17 @@ class AccountController extends Controller
     {
         $entity = $this->entityId();
 
-        // Tampilan awal hanya akun utama agar mudah dipahami user UKM.
         $accounts = DB::table('chart_of_accounts')
             ->where('entity_id', $entity)
-            ->where('level', 1)
+            ->where('is_active', true)
             ->orderBy('code')
             ->get();
 
         $nextCodes = [];
         foreach ($accounts as $account) {
-            $nextCodes[$account->id] = $this->nextCode($entity, $account);
+            if ((int) $account->level < 3) {
+                $nextCodes[$account->id] = $this->nextCode($entity, $account);
+            }
         }
 
         return view('akuntansi.akun', compact('accounts', 'nextCodes'));
