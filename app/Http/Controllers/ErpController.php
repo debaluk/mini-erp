@@ -66,11 +66,12 @@ class ErpController extends Controller
 
         $items = DB::table('products')
             ->leftJoin('units as base_units', 'base_units.id', '=', 'products.base_unit_id')
-            ->join('product_units', function ($join) {
-                $join->on('product_units.product_id', '=', 'products.id');
+            ->when($request->filled('business_unit_id'), function ($query) use ($request) {
+                $query->join('product_units', function ($join) {
+                    $join->on('product_units.product_id', '=', 'products.id');
+                })->where('product_units.business_unit_id', (int) $request->business_unit_id);
             })
             ->where('products.entity_id', $entity)
-            ->when($request->filled('business_unit_id'), fn ($query) => $query->where('product_units.business_unit_id', (int) $request->business_unit_id))
             ->select(
                 'products.id',
                 'products.code',
@@ -291,6 +292,26 @@ class ErpController extends Controller
         }
 
         return redirect()->route('master.menu.produk')->with('success', 'Item berhasil disimpan.');
+    }
+
+    public function itemDelete(Request $request, int $id)
+    {
+        $entity = $this->entityId();
+        $item = DB::table('products')->where('entity_id', $entity)->find($id);
+        abort_unless($item, 404);
+
+        $hasTransactions = DB::table('stock_movements')->where('product_id', $id)->exists()
+            || DB::table('purchase_items')->where('product_id', $id)->exists()
+            || DB::table('sale_items')->where('product_id', $id)->exists();
+        abort_if($hasTransactions, 422, 'Item sudah digunakan dalam transaksi dan tidak dapat dihapus. Nonaktifkan item jika tidak digunakan lagi.');
+
+        DB::transaction(function () use ($id, $entity): void {
+            DB::table('unit_conversions')->where('product_id', $id)->delete();
+            DB::table('product_units')->where('product_id', $id)->delete();
+            DB::table('products')->where('entity_id', $entity)->where('id', $id)->delete();
+        });
+
+        return response()->json(['message' => 'Item berhasil dihapus.']);
     }
 
     public function itemEdit(Request $request, int $id)
