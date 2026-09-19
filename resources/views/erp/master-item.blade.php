@@ -55,7 +55,7 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Kode Item</label>
-                            <input type="text" id="item-code" class="form-control" value="Otomatis oleh sistem" readonly>
+                            <input type="text" id="item-code" class="form-control" value="Otomatis" readonly>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Barcode</label>
@@ -149,7 +149,6 @@
     const form = document.getElementById('item-form');
     const rows = document.getElementById('conversion-rows');
     const units = @json($units);
-    const prefixes = { barang: 'BRG', jasa: 'JSA', aset: 'AST' };
     const dt = new DataTable('#items-table', {
         ajax: '{{ route('master.menu.produk') }}',
         processing: true,
@@ -178,11 +177,6 @@
         return Number.isFinite(n) ? n.toString() : String(value ?? '');
     }
 
-    function updateCode() {
-        const type = document.getElementById('item-type').value;
-        document.getElementById('item-code').value = (prefixes[type] || 'BRG') + '-00001';
-    }
-
     function addConversion(unitId = '', factor = '') {
         const row = document.createElement('div');
         row.className = 'row g-1 align-items-end mb-1 conversion-row';
@@ -207,7 +201,7 @@
         document.querySelector('input[name="manage_stock"][value="1"]').checked = true;
         document.querySelector('input[name="status"][value="1"]').checked = true;
         document.getElementById('item-minimum-stock').disabled = false;
-        updateCode();
+        document.getElementById('item-code').value = 'Otomatis';
     }
 
     document.getElementById('btn-add-item').addEventListener('click', () => {
@@ -216,7 +210,6 @@
         setTimeout(() => document.getElementById('item-name').focus(), 250);
     });
 
-    document.getElementById('item-type').addEventListener('change', updateCode);
     document.getElementById('add-conversion').addEventListener('click', () => addConversion());
 
     document.querySelectorAll('input[name="manage_stock"]').forEach(input => input.addEventListener('change', function () {
