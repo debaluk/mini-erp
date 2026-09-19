@@ -146,6 +146,7 @@
 <script>
 (function () {
     const products = @json($products);
+    const exportRows = @json($rows);
     const modalEl = document.getElementById('setupAwalModal');
     const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
     const detailModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('detailHargaJualModal'));
@@ -191,23 +192,20 @@
             return;
         }
 
-        const rows = priceTable.rows({ search: 'applied' }).data().toArray();
-        const data = rows.map(r => {
-            const raw = value => String(value ?? '').replace(/<[^>]*>/g, '').trim();
-            const money = value => {
-                const s = raw(value).replace(/[^0-9-]/g, '');
-                return s ? Number(s) : null;
-            };
-            const percent = value => {
-                const s = raw(value).replace(/%/g, '').replace(',', '.').replace(/[^0-9.-]/g, '');
-                return s ? Number(s) / 100 : null;
-            };
-            const stock = value => {
-                const s = raw(value).replace(/\./g, '').replace(',', '.').replace(/[^0-9.-]/g, '');
-                return s ? Number(s) : null;
-            };
-            return [raw(r[0]), raw(r[1]), raw(r[2]), money(r[3]), percent(r[4]), money(r[5]), stock(r[6]), raw(r[7])];
-        });
+        const visibleRows = priceTable.rows({ search: 'applied' }).data().toArray();
+        const visibleCodes = new Set(visibleRows.map(r => String(r[0] ?? '').replace(/<[^>]*>/g, '').trim()));
+        const data = exportRows
+            .filter(r => visibleCodes.has(String(r.code ?? '').trim()))
+            .map(r => [
+                String(r.code ?? ''),
+                String(r.name ?? ''),
+                String(r.unit_code ?? '-'),
+                r.initial_purchase_price === null ? null : Number(r.initial_purchase_price),
+                r.markup_percent === null ? null : Number(r.markup_percent) / 100,
+                Number(r.selling_price ?? 0) || null,
+                r.initial_stock === null ? null : Number(r.initial_stock),
+                r.setup_date ? String(r.setup_date).slice(0, 10) : ''
+            ]);
 
         const printDate = new Intl.DateTimeFormat('id-ID', {
             day: '2-digit', month: '2-digit', year: 'numeric'
