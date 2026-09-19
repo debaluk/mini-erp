@@ -40,6 +40,7 @@ class SellingPriceController extends Controller
                 's.markup_percent'
             )
             ->orderBy('p.name')
+            ->distinct()
             ->get();
 
         $retailUnitId = DB::table('business_units')
