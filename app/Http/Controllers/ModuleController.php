@@ -28,16 +28,15 @@ class ModuleController extends Controller
             'products' => DB::table('products as p')
                 ->where('p.entity_id', $entity)
                 ->where('p.is_active', 1)
-                ->leftJoin('product_units as pu', function ($join) {
-                    $join->on('pu.product_id', '=', 'p.id')
-                        ->where('pu.is_default', 1);
+                ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
+                ->leftJoin(DB::raw('(SELECT entity_id, product_id, SUM(qty) AS stock_qty FROM warehouses_stocks GROUP BY entity_id, product_id) AS ws'), function ($join) {
+                    $join->on('ws.product_id', '=', 'p.id')
+                        ->on('ws.entity_id', '=', 'p.entity_id');
                 })
-                ->leftJoin('units as u', 'u.id', '=', 'pu.unit_id')
-                ->leftJoin(DB::raw('(SELECT product_id, SUM(qty) AS stock_qty FROM warehouses_stocks GROUP BY product_id) AS ws'), 'ws.product_id', '=', 'p.id')
                 ->orderBy('p.name')
                 ->select(
                     'p.*',
-                    'pu.unit_id as selling_unit_id',
+                    'p.base_unit_id as selling_unit_id',
                     'u.code as selling_unit_code',
                     'u.name as selling_unit_name',
                     DB::raw('COALESCE(ws.stock_qty, 0) as stock_qty')
