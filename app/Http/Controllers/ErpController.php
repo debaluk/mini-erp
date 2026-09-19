@@ -717,6 +717,122 @@ class ErpController extends Controller
         return response()->json(['message'=>'Customer berhasil dihapus.']);
     }
 
+    public function supplierMaster(Request $request)
+    {
+        $entity = $this->entityId();
+
+        if ($request->has('draw')) {
+            $query = DB::table('suppliers')->where('entity_id', $entity);
+            $search = trim((string) $request->input('search.value', ''));
+            if ($search !== '') {
+                $query->where(function ($q) use ($search) {
+                    $q->where('code', 'like', '%'.$search.'%')
+                        ->orWhere('name', 'like', '%'.$search.'%')
+                        ->orWhere('phone', 'like', '%'.$search.'%')
+                        ->orWhere('address', 'like', '%'.$search.'%');
+                });
+            }
+
+            $total = DB::table('suppliers')->where('entity_id', $entity)->count();
+            $filtered = $query->count();
+            $length = (int) $request->input('length', 15);
+            $length = $length > 0 ? $length : 15;
+
+            $rows = $query->orderByDesc('id')
+                ->offset(max(0, (int) $request->input('start', 0)))
+                ->limit($length)
+                ->get(['id', 'code', 'name', 'phone', 'address', 'is_active']);
+
+            return response()->json([
+                'draw' => (int) $request->input('draw'),
+                'recordsTotal' => $total,
+                'recordsFiltered' => $filtered,
+                'data' => $rows,
+            ]);
+        }
+
+        return view('erp.master-supplier');
+    }
+
+    public function supplierStore(Request $request)
+    {
+        $entity = $this->entityId();
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:100'],
+            'address' => ['nullable', 'string'],
+            'is_active' => ['required', 'boolean'],
+        ]);
+
+        $lastNumber = DB::table('suppliers')
+            ->where('entity_id', $entity)
+            ->where('code', 'like', 'SUP-%')
+            ->get(['code'])
+            ->map(function ($row) {
+                return preg_match('/^SUP-(\\d+)$/', $row->code, $m) ? (int) $m[1] : 0;
+            })
+            ->max() ?? 0;
+
+        do {
+            $lastNumber++;
+            $code = 'SUP-'.str_pad((string) $lastNumber, 5, '0', STR_PAD_LEFT);
+        } while (DB::table('suppliers')->where('entity_id', $entity)->where('code', $code)->exists());
+
+        DB::table('suppliers')->insert([
+            'entity_id' => $entity,
+            'code' => $code,
+            'name' => trim($data['name']),
+            'phone' => isset($data['phone']) ? trim($data['phone']) : null,
+            'address' => isset($data['address']) ? trim($data['address']) : null,
+            'credit_limit' => 0,
+            'is_active' => (int) $data['is_active'],
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return response()->json(['message' => 'Supplier berhasil disimpan.']);
+    }
+
+    public function supplierUpdate(Request $request, int $id)
+    {
+        $entity = $this->entityId();
+        abort_unless(DB::table('suppliers')->where('entity_id', $entity)->where('id', $id)->exists(), 404, 'Supplier tidak ditemukan.');
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:100'],
+            'address' => ['nullable', 'string'],
+            'is_active' => ['required', 'boolean'],
+        ]);
+
+        DB::table('suppliers')
+            ->where('entity_id', $entity)
+            ->where('id', $id)
+            ->update([
+                'name' => trim($data['name']),
+                'phone' => isset($data['phone']) ? trim($data['phone']) : null,
+                'address' => isset($data['address']) ? trim($data['address']) : null,
+                'is_active' => (int) $data['is_active'],
+                'updated_at' => now(),
+            ]);
+
+        return response()->json(['message' => 'Supplier berhasil diperbarui.']);
+    }
+
+    public function supplierDelete(Request $request, int $id)
+    {
+        $entity = $this->entityId();
+        abort_unless(DB::table('suppliers')->where('entity_id', $entity)->where('id', $id)->exists(), 404, 'Supplier tidak ditemukan.');
+
+        try {
+            DB::table('suppliers')->where('entity_id', $entity)->where('id', $id)->delete();
+        } catch (\\Throwable $e) {
+            return response()->json(['message' => 'Supplier sudah digunakan dalam transaksi dan tidak dapat dihapus. Nonaktifkan supplier jika masih diperlukan untuk histori.'], 422);
+        }
+
+        return response()->json(['message' => 'Supplier berhasil dihapus.']);
+    }
+
     public function master(Request $request, string $type)    {
         $config = $this->masterConfig($type);
         $entity = $this->entityId();
