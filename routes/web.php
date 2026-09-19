@@ -42,7 +42,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/master/customer/{id}', [ErpController::class, 'customerUpdate'])->middleware('role:owner,admin')->name('master.customer.update');
     Route::delete('/master/customer/{id}', [ErpController::class, 'customerDelete'])->middleware('role:owner,admin')->name('master.customer.delete');
 
-    $masterTypes = ['products','customers','suppliers','warehouses','units','tariffs','vehicles','drivers'];
+    $masterTypes = ['products','suppliers','warehouses','units','tariffs','vehicles','drivers'];
     foreach ($masterTypes as $type) {
         if ($type === 'units') {
             Route::get('/master/units', [ErpController::class, 'unitMaster'])->middleware('access:master_data')->name('master.units');
