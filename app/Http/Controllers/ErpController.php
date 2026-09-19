@@ -247,8 +247,7 @@ class ErpController extends Controller
             $productId = DB::table('products')->insertGetId([
                 'entity_id' => $entity,
                 'code' => $code,
-                'sku' => $code,
-                'barcode' => $barcode,
+                'sku' => $code,                'barcode' => $barcode,
                 'name' => $data['name'],
                 'item_type' => $data['item_type'],
                 'type' => $legacyType,
@@ -497,8 +496,164 @@ class ErpController extends Controller
         return response()->json(['message' => 'Satuan berhasil dihapus.']);
     }
 
-    public function master(Request $request, string $type)
+    public function businessUnitMaster(Request $request)
     {
+        $entity = $this->entityId();
+
+        if ($request->ajax() && $request->has('draw')) {
+            $query = DB::table('business_units')->where('entity_id', $entity);
+
+            $search = trim((string) $request->input('search.value', ''));
+            if ($search !== '') {
+                $query->where(function ($q) use ($search) {
+                    $q->where('code', 'like', '%'.$search.'%')
+                        ->orWhere('name', 'like', '%'.$search.'%');
+                });
+            }
+
+            $total = DB::table('business_units')->where('entity_id', $entity)->count();
+            $filtered = $query->count();
+
+            $length = (int) $request->input('length', 15);
+            $length = $length > 0 ? $length : 15;
+
+            $rows = $query->orderByDesc('id')
+                ->offset(max(0, (int) $request->input('start', 0)))
+                ->limit($length)
+                ->get();
+
+            return response()->json([
+                'draw' => (int) $request->input('draw'),
+                'recordsTotal' => $total,
+                'recordsFiltered' => $filtered,
+                'data' => $rows,
+            ]);
+        }
+
+        return view('erp.master-business-unit');
+    }
+
+    public function businessUnitStore(Request $request)
+    {
+        $entity = $this->entityId();
+
+        $data = $request->validate([
+            'code' => ['required', 'string', 'max:50'],
+            'name' => ['required', 'string', 'max:100'],
+            'is_active' => ['required', 'boolean'],
+        ]);
+
+        $code = trim($data['code']);
+        $name = trim($data['name']);
+
+        abort_if(
+            DB::table('business_units')
+                ->where('entity_id', $entity)
+                ->where('code', $code)
+                ->exists(),
+            422,
+            'Kode unit sudah digunakan.'
+        );
+
+        $id = DB::table('business_units')->insertGetId([
+            'entity_id' => $entity,
+            'code' => $code,
+            'name' => $name,
+            'is_active' => (int) $data['is_active'],
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return response()->json([
+            'message' => 'Unit berhasil disimpan.',
+            'unit' => [
+                'id' => $id,
+                'code' => $code,
+                'name' => $name,
+                'is_active' => (int) $data['is_active'],
+            ],
+        ]);
+    }
+
+    public function businessUnitUpdate(Request $request, int $id)
+    {
+        $entity = $this->entityId();
+
+        $unit = DB::table('business_units')
+            ->where('entity_id', $entity)
+            ->where('id', $id)
+            ->first();
+
+        abort_unless($unit, 404, 'Unit tidak ditemukan.');
+
+        $data = $request->validate([
+            'code' => ['required', 'string', 'max:50'],
+            'name' => ['required', 'string', 'max:100'],
+            'is_active' => ['required', 'boolean'],
+        ]);
+
+        $code = trim($data['code']);
+        $name = trim($data['name']);
+
+        abort_if(
+            DB::table('business_units')
+                ->where('entity_id', $entity)
+                ->where('code', $code)
+                ->where('id', '<>', $id)
+                ->exists(),
+            422,
+            'Kode unit sudah digunakan.'
+        );
+
+        DB::table('business_units')
+            ->where('entity_id', $entity)
+            ->where('id', $id)
+            ->update([
+                'code' => $code,
+                'name' => $name,
+                'is_active' => (int) $data['is_active'],
+                'updated_at' => now(),
+            ]);
+
+        return response()->json([
+            'message' => 'Unit berhasil diperbarui.',
+        ]);
+    }
+
+    public function businessUnitDelete(Request $request, int $id)
+    {
+        $entity = $this->entityId();
+
+        $unit = DB::table('business_units')
+            ->where('entity_id', $entity)
+            ->where('id', $id)
+            ->first();
+
+        abort_unless($unit, 404, 'Unit tidak ditemukan.');
+
+        $inUse = DB::table('product_units')
+            ->join('products', 'products.id', '=', 'product_units.product_id')
+            ->where('products.entity_id', $entity)
+            ->where('product_units.business_unit_id', $id)
+            ->exists();
+
+        abort_if(
+            $inUse,
+            422,
+            'Unit sudah digunakan oleh Item dan tidak dapat dihapus. Nonaktifkan unit jika tidak digunakan lagi.'
+        );
+
+        DB::table('business_units')
+            ->where('entity_id', $entity)
+            ->where('id', $id)
+            ->delete();
+
+        return response()->json([
+            'message' => 'Unit berhasil dihapus.',
+        ]);
+    }
+
+    public function master(Request $request, string $type)    {
         $config = $this->masterConfig($type);
         $entity = $this->entityId();
 
