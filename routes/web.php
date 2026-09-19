@@ -115,7 +115,8 @@ Route::middleware('auth')->group(function () {
 
     $masterMenuPaths = [
         'produk' => 'products', 'customer' => 'customers', 'supplier' => 'suppliers',
-        'gudang' => 'warehouses', 'satuan' => 'units', 'konversi-satuan' => 'unit-conversions',
+        'gudang' => 'warehouses', 'satuan' => 'units',
+        'unit' => 'units', 'konversi-satuan' => 'unit-conversions',
         'tarif' => 'tariffs', 'kendaraan' => 'vehicles', 'driver' => 'drivers',
     ];
     foreach ($masterMenuPaths as $path => $type) {
