@@ -39,21 +39,28 @@ Route::middleware('auth')->group(function () {
 
     $masterTypes = ['products','customers','suppliers','warehouses','units','tariffs','vehicles','drivers'];
     foreach ($masterTypes as $type) {
-        Route::get('/master/'.$type, function (Request $request) use ($type) {
-            return app(ErpController::class)->master($request, $type);
-        })->middleware('access:master_data')->name('master.'.$type);
+        if ($type === 'units') {
+            Route::get('/master/units', [ErpController::class, 'unitMaster'])->middleware('access:master_data')->name('master.units');
+            Route::post('/master/units', [ErpController::class, 'unitStore'])->middleware('role:owner,admin')->name('master.store.units');
+            Route::put('/master/units/{id}', [ErpController::class, 'unitUpdate'])->middleware('role:owner,admin')->name('master.update.units');
+            Route::delete('/master/units/{id}', [ErpController::class, 'unitDelete'])->middleware('role:owner,admin')->name('master.delete.units');
+        } else {
+            Route::get('/master/'.$type, function (Request $request) use ($type) {
+                return app(ErpController::class)->master($request, $type);
+            })->middleware('access:master_data')->name('master.'.$type);
 
-        Route::post('/master/'.$type, function (Request $request) use ($type) {
-            return app(ErpController::class)->masterStore($request, $type);
-        })->middleware('role:owner,admin')->name('master.store.'.$type);
+            Route::post('/master/'.$type, function (Request $request) use ($type) {
+                return app(ErpController::class)->masterStore($request, $type);
+            })->middleware('role:owner,admin')->name('master.store.'.$type);
 
-        Route::put('/master/'.$type.'/{id}', function (Request $request, int $id) use ($type) {
-            return app(ErpController::class)->masterUpdate($request, $type, $id);
-        })->middleware('role:owner,admin')->name('master.update.'.$type);
+            Route::put('/master/'.$type.'/{id}', function (Request $request, int $id) use ($type) {
+                return app(ErpController::class)->masterUpdate($request, $type, $id);
+            })->middleware('role:owner,admin')->name('master.update.'.$type);
 
-        Route::delete('/master/'.$type.'/{id}', function (Request $request, int $id) use ($type) {
-            return app(ErpController::class)->masterDelete($request, $type, $id);
-        })->middleware('role:owner,admin')->name('master.delete.'.$type);
+            Route::delete('/master/'.$type.'/{id}', function (Request $request, int $id) use ($type) {
+                return app(ErpController::class)->masterDelete($request, $type, $id);
+            })->middleware('role:owner,admin')->name('master.delete.'.$type);
+        }
     }
 
     $kasirModules = ['pos','sales','payments','shifts'];
@@ -129,6 +136,8 @@ Route::middleware('auth')->group(function () {
     foreach ($masterMenuPaths as $path => $type) {
         if ($type === 'unit-conversions') {
             Route::get('/master/'.$path, [UnitConversionController::class, 'index'])->middleware('role:owner,admin')->name('master.menu.'.$path);
+        } elseif ($path === 'satuan') {
+            Route::get('/master/satuan', [ErpController::class, 'unitMaster'])->middleware('role:owner,admin')->name('master.menu.satuan');
         } else {
             if ($path === 'produk') {
                 Route::get('/master/'.$path, [ErpController::class, 'itemMaster'])->middleware('role:owner,admin')->name('master.menu.'.$path);
