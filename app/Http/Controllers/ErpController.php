@@ -59,6 +59,148 @@ class ErpController extends Controller
         return view('erp.master-item', compact('items'));
     }
 
+    public function itemCreate()
+    {
+        $entity = $this->entityId();
+        $units = DB::table('units')
+            ->where('entity_id', $entity)
+            ->where('is_active', 1)
+            ->orderBy('name')
+            ->get();
+        $businessUnits = DB::table('business_units')
+            ->where('entity_id', $entity)
+            ->where('is_active', 1)
+            ->orderBy('id')
+            ->get();
+
+        return view('erp.master-item-create', compact('units', 'businessUnits'));
+    }
+
+    public function itemStore(Request $request)
+    {
+        $entity = $this->entityId();
+
+        $data = $request->validate([
+            'item_type' => ['required', 'in:barang,jasa,aset'],
+            'barcode' => ['nullable', 'string', 'max:100'],
+            'name' => ['required', 'string', 'max:255'],
+            'business_unit_ids' => ['required', 'array', 'min:1'],
+            'business_unit_ids.*' => ['integer'],
+            'base_unit_id' => ['required', 'integer'],
+            'manage_stock' => ['required', 'boolean'],
+            'minimum_stock' => ['nullable', 'numeric', 'min:0'],
+            'status' => ['required', 'boolean'],
+            'conversion_unit_id' => ['nullable', 'array'],
+            'conversion_unit_id.*' => ['nullable', 'integer'],
+            'conversion_factor' => ['nullable', 'array'],
+            'conversion_factor.*' => ['nullable', 'numeric', 'gt:0'],
+        ]);
+
+        $unitIds = array_values(array_unique(array_map('intval', $data['business_unit_ids'])));
+        $validBusinessUnits = DB::table('business_units')
+            ->where('entity_id', $entity)
+            ->where('is_active', 1)
+            ->whereIn('id', $unitIds)
+            ->count();
+        abort_unless($validBusinessUnits === count($unitIds), 422, 'Unit tidak valid.');
+
+        abort_unless(
+            DB::table('units')->where('entity_id', $entity)->where('is_active', 1)->where('id', $data['base_unit_id'])->exists(),
+            422,
+            'Satuan dasar tidak valid.'
+        );
+
+        $barcode = trim((string) ($data['barcode'] ?? ''));
+        if ($barcode !== '') {
+            abort_if(
+                DB::table('products')->where('entity_id', $entity)->where('barcode', $barcode)->exists(),
+                422,
+                'Barcode sudah digunakan oleh item lain.'
+            );
+        } else {
+            $barcode = null;
+        }
+
+        $prefix = match ($data['item_type']) {
+            'barang' => 'BRG',
+            'jasa' => 'JSA',
+            'aset' => 'AST',
+        };
+        $last = DB::table('products')
+            ->where('entity_id', $entity)
+            ->where('code', 'like', $prefix.'-%')
+            ->orderByDesc('id')
+            ->pluck('code')
+            ->first();
+        $number = 1;
+        if ($last && preg_match('/-(\\d+)$/', $last, $match)) {
+            $number = ((int) $match[1]) + 1;
+        }
+        do {
+            $code = $prefix.'-'.str_pad((string) $number, 5, '0', STR_PAD_LEFT);
+            $number++;
+        } while (DB::table('products')->where('entity_id', $entity)->where('code', $code)->exists());
+
+        $legacyType = match ($data['item_type']) {
+            'barang' => 'merchandise',
+            'jasa' => 'service',
+            'aset' => 'asset',
+        };
+        $minimumStock = (float) ($data['minimum_stock'] ?? 0);
+        if (!(bool) $data['manage_stock']) {
+            $minimumStock = 0;
+        }
+
+        $conversionUnits = $data['conversion_unit_id'] ?? [];
+        $conversionFactors = $data['conversion_factor'] ?? [];
+
+        DB::transaction(function () use ($entity, $data, $unitIds, $barcode, $code, $legacyType, $minimumStock, $conversionUnits, $conversionFactors): void {
+            $productId = DB::table('products')->insertGetId([
+                'entity_id' => $entity,
+                'code' => $code,
+                'sku' => $code,
+                'barcode' => $barcode,
+                'name' => $data['name'],
+                'item_type' => $data['item_type'],
+                'type' => $legacyType,
+                'unit_id' => $data['base_unit_id'],
+                'base_unit_id' => $data['base_unit_id'],
+                'minimum_stock' => $minimumStock,
+                'manage_stock' => (bool) $data['manage_stock'],
+                'is_active' => (bool) $data['status'],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            foreach ($unitIds as $businessUnitId) {
+                DB::table('product_units')->insert([
+                    'product_id' => $productId,
+                    'business_unit_id' => $businessUnitId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            foreach ($conversionUnits as $index => $conversionUnitId) {
+                if (!$conversionUnitId || empty($conversionFactors[$index])) {
+                    continue;
+                }
+                if ((int) $conversionUnitId === (int) $data['base_unit_id']) {
+                    continue;
+                }
+                DB::table('unit_conversions')->insert([
+                    'product_id' => $productId,
+                    'unit_id' => $conversionUnitId,
+                    'conversion_factor' => $conversionFactors[$index],
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        });
+
+        return redirect()->route('master.menu.produk')->with('success', 'Item berhasil disimpan.');
+    }
+
     public function master(Request $request, string $type)
     {
         $config = $this->masterConfig($type);
@@ -167,7 +309,6 @@ class ErpController extends Controller
             ? response()->json(['message'=>$config['title'].' berhasil dihapus.'])
             : back()->with('success',$config['title'].' berhasil dihapus.');
     }
-
     public function module(string $module)
     {
         $titles=['pos'=>'POS Retail','sales'=>'Transaksi Penjualan','payments'=>'Pembayaran','shifts'=>'Shift Kasir','purchases'=>'Pembelian','receipts'=>'Penerimaan Barang','payables'=>'Hutang','stock'=>'Stok','movements'=>'Mutasi Stok','opname'=>'Stock Opname','bom'=>'Formula / BOM','production'=>'Produksi Batako','production-results'=>'Hasil Produksi','material-usage'=>'Pemakaian Bahan','production-cost'=>'HPP Produksi','fleet'=>'Armada & Jasa','deliveries'=>'Pengiriman','operations'=>'Operasional Armada','fleet-costs'=>'Biaya Armada','journals'=>'Jurnal','ledger'=>'Buku Besar','receivables'=>'Piutang','cashbank'=>'Kas & Bank','cogs'=>'HPP','profit-loss'=>'Laba Rugi','balance-sheet'=>'Neraca','cash-flow'=>'Arus Kas'];
