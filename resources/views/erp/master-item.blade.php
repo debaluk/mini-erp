@@ -15,6 +15,7 @@
             <thead>
                 <tr>
                     <th>Kode Item</th>
+                    <th>Aksi</th>
                     <th>Barcode</th>
                     <th>Nama Item</th>
                     <th>Jenis</th>
@@ -28,6 +29,7 @@
                 @forelse($items as $item)
                     <tr>
                         <td class="fw-semibold">{{ $item->code }}</td>
+                        <td><a href="{{ route('master.item.edit', $item->id) }}" class="btn btn-outline-primary btn-sm">Edit</a></td>
                         <td>{{ $item->barcode ?: '-' }}</td>
                         <td>{{ $item->name }}</td>
                         <td>{{ ucfirst($item->item_type) }}</td>
@@ -44,7 +46,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="text-center text-secondary py-4">Belum ada item.</td>
+                        <td colspan="9" class="text-center text-secondary py-4">Belum ada item.</td>
                     </tr>
                 @endforelse
             </tbody>
