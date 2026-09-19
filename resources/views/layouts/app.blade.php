@@ -45,15 +45,13 @@
                     <li><a class="dropdown-item fw-semibold" href="{{ route('pos.pos') }}" onclick="window.open(this.href, 'POSKasir', 'width=1400,height=900,resizable=yes,scrollbars=yes'); return false;">POS</a></li><li><a class="dropdown-item" href="{{ route('pos.penjualan') }}">Penjualan</a></li><li><a class="dropdown-item" href="{{ route('pos.pembayaran') }}">Pembayaran</a></li><li><a class="dropdown-item" href="{{ route('pos.retur') }}">Retur</a></li><li><a class="dropdown-item" href="{{ route('pos.shift') }}">Kasir / Shift</a></li>
                 </ul></li>
                 @endif
-                @if(auth()->user()->hasAnyModuleAccess(['produksi','armada_jasa','inventori']))
-                <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">PRODUKSI</a><ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="{{ route('produksi.bom') }}">BOM / Formula</a></li><li><a class="dropdown-item" href="{{ route('produksi') }}">Produksi</a></li><li><a class="dropdown-item" href="{{ route('produksi.pemakaian-bahan') }}">Pemakaian Bahan</a></li><li><a class="dropdown-item" href="{{ route('produksi.hasil-produksi') }}">Hasil Produksi</a></li><li><a class="dropdown-item" href="{{ route('produksi.reject') }}">Reject</a></li><li><a class="dropdown-item" href="{{ route('produksi.hpp') }}">HPP Produksi</a></li>
-                </ul></li>
-                <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">ARMADA &amp; JASA</a><ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="{{ route('armada.order-jasa') }}">Order Jasa</a></li><li><a class="dropdown-item" href="{{ route('armada.surat-jalan') }}">Surat Jalan</a></li><li><a class="dropdown-item" href="{{ route('armada.perjalanan') }}">Perjalanan</a></li>
-                </ul></li>
+                @if(auth()->user()->hasAnyModuleAccess(['produksi','inventori']))
                 <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">INVENTORI</a><ul class="dropdown-menu">
                     <li><a class="dropdown-item" href="{{ route('inventori.pembelian') }}">Pembelian</a></li><li><a class="dropdown-item" href="{{ route('inventori.penerimaan') }}">Penerimaan</a></li><li><a class="dropdown-item" href="{{ route('inventori.stok') }}">Stok</a></li><li><a class="dropdown-item" href="{{ route('inventori.transfer') }}">Transfer</a></li><li><a class="dropdown-item" href="{{ route('inventori.adjustment') }}">Adjustment</a></li><li><a class="dropdown-item" href="{{ route('inventori.stock-opname') }}">Stock Opname</a></li>
+                    @if(auth()->user()->hasModuleAccess('produksi'))
+                    <li><hr class="dropdown-divider"></li><li><h6 class="dropdown-header">PRODUKSI</h6></li>
+                    <li><a class="dropdown-item" href="{{ route('produksi.bom') }}">BOM / Formula</a></li><li><a class="dropdown-item" href="{{ route('produksi') }}">Produksi</a></li><li><a class="dropdown-item" href="{{ route('produksi.pemakaian-bahan') }}">Pemakaian Bahan</a></li><li><a class="dropdown-item" href="{{ route('produksi.hasil-produksi') }}">Hasil Produksi</a></li><li><a class="dropdown-item" href="{{ route('produksi.reject') }}">Reject</a></li><li><a class="dropdown-item" href="{{ route('produksi.hpp') }}">HPP Produksi</a></li>
+                    @endif
                 </ul></li>
                 @endif
                 @if(auth()->user()->hasModuleAccess('laporan'))
