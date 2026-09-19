@@ -123,19 +123,22 @@ Route::middleware('auth')->group(function () {
     }
     Route::post('/erp/journal', [ModuleController::class, 'journalStore'])->middleware('access:akuntansi')->name('erp.journal.store');
 
-    Route::get('/master/unit', function (Request $request) {
-        return app(ErpController::class)->master($request, 'units');
-    })->middleware('role:owner,admin')->name('master.menu.unit');
+    Route::get('/master/unit', [ErpController::class, 'businessUnitMaster'])->middleware('role:owner,admin')->name('master.menu.unit');
+    Route::post('/master/unit', [ErpController::class, 'businessUnitStore'])->middleware('role:owner,admin')->name('master.business-unit.store');
+    Route::put('/master/unit/{id}', [ErpController::class, 'businessUnitUpdate'])->middleware('role:owner,admin')->name('master.business-unit.update');
+    Route::delete('/master/unit/{id}', [ErpController::class, 'businessUnitDelete'])->middleware('role:owner,admin')->name('master.business-unit.delete');
 
     $masterMenuPaths = [
         'produk' => 'products', 'customer' => 'customers', 'supplier' => 'suppliers',
-        'gudang' => 'warehouses', 'satuan' => 'units',
+        'gudang' => 'warehouses', 'unit' => 'business-units', 'satuan' => 'units',
         'konversi-satuan' => 'unit-conversions',
         'tarif' => 'tariffs', 'kendaraan' => 'vehicles', 'driver' => 'drivers',
     ];
     foreach ($masterMenuPaths as $path => $type) {
         if ($type === 'unit-conversions') {
             Route::get('/master/'.$path, [UnitConversionController::class, 'index'])->middleware('role:owner,admin')->name('master.menu.'.$path);
+        } elseif ($path === 'unit') {
+            Route::get('/master/unit', [ErpController::class, 'businessUnitMaster'])->middleware('role:owner,admin')->name('master.menu.unit');
         } elseif ($path === 'satuan') {
             Route::get('/master/satuan', [ErpController::class, 'unitMaster'])->middleware('role:owner,admin')->name('master.menu.satuan');
         } else {
