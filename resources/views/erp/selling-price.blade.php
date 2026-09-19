@@ -14,7 +14,10 @@
 <div class="card shadow-sm">
     <div class="card-body border-bottom py-2">
         <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
-            <div class="small text-secondary">Daftar harga jual item Retail</div>
+            <div>
+                <div class="fw-semibold">Daftar Harga Jual</div>
+                <div class="small text-secondary">Item yang sudah Setup Awal dapat diedit selama belum ada transaksi.</div>
+            </div>
             <button type="button" class="btn btn-outline-success btn-sm" id="btn-export-excel">Export Excel</button>
         </div>
     </div>
@@ -25,11 +28,12 @@
                     <th>Kode</th>
                     <th>Item</th>
                     <th>Satuan</th>
-                    <th class="text-end">Harga Jual</th>
                     <th class="text-end">HPP Awal</th>
                     <th class="text-end">UP %</th>
+                    <th class="text-end">Harga Jual</th>
                     <th class="text-end">Stok Awal</th>
                     <th>Tgl Setup</th>
+                    <th class="text-center">Status</th>
                     <th class="text-center">Aksi</th>
                 </tr>
             </thead>
@@ -39,16 +43,23 @@
                     <td class="fw-semibold">{{ $row->code }}</td>
                     <td>{{ $row->name }}</td>
                     <td>{{ $row->unit_code ?: '-' }}</td>
-                    <td class="text-end">{{ (float) $row->selling_price > 0 ? 'Rp '.number_format((float) $row->selling_price, 0, ',', '.') : '-' }}</td>
-                    <td class="text-end">{{ $row->initial_purchase_price !== null ? 'Rp '.number_format((float) $row->initial_purchase_price, 0, ',', '.') : '-' }}</td>
+                    <td class="text-end fw-semibold">{{ $row->initial_purchase_price !== null ? 'Rp '.number_format((float) $row->initial_purchase_price, 0, ',', '.') : '-' }}</td>
                     <td class="text-end">{{ $row->markup_percent !== null ? number_format((float) $row->markup_percent, 2, ',', '.') : '-' }}</td>
+                    <td class="text-end fw-semibold">{{ (float) $row->selling_price > 0 ? 'Rp '.number_format((float) $row->selling_price, 0, ',', '.') : '-' }}</td>
                     <td class="text-end">{{ $row->initial_stock !== null ? number_format((float) $row->initial_stock, 3, ',', '.') : '-' }}</td>
                     <td>{{ $row->setup_date ? date('d/m/Y', strtotime($row->setup_date)) : '-' }}</td>
                     <td class="text-center">
 @if($row->setup_date)
+<span class="badge text-bg-success">Sudah Setup</span>
+@else
+<span class="badge text-bg-secondary">Belum Setup</span>
+@endif
+</td>
+<td class="text-center">
+@if($row->setup_date)
 <button type="button" class="btn btn-outline-primary btn-sm btn-edit" data-id="{{ $row->id }}" data-name="{{ $row->name }}" data-price="{{ $row->selling_price }}" data-hpp="{{ $row->initial_purchase_price }}" data-stock="{{ $row->initial_stock }}" data-up="{{ $row->markup_percent }}" data-date="{{ $row->setup_date }}">Edit</button>
 @else
-<span class="text-secondary">Belum Setup</span>
+<span class="text-secondary">-</span>
 @endif
 </td>
                 </tr>
@@ -140,9 +151,10 @@
     const detailModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('detailHargaJualModal'));
     const priceTable = new DataTable('#selling-price-table', {
         pageLength: 10,
+        autoWidth: false,
         lengthMenu: [10, 25, 50, 100],
         order: [[1, 'asc']],
-        columnDefs: [{ targets: [3,4,5,6], className: 'text-end' }, { targets: [8], orderable: false, searchable: false }]
+        columnDefs: [{ targets: [3,4,5,6], className: 'text-end' }, { targets: [9], orderable: false, searchable: false }]
     });
     const form = document.getElementById('setup-awal-form');
     const search = document.getElementById('setup-product-search');
@@ -156,9 +168,21 @@
     const setupPurchase = document.getElementById('setup-purchase-price');
     let editMode = false;
     let syncing = false;
-    const parseNumber = value => { let s=String(value??'').trim().replace(/\s/g,''); if(!s) return 0; if(s.includes(',')) s=s.replace(/\./g,'').replace(',','.'); else if((s.match(/\./g)||[]).length>1) s=s.replace(/\./g,''); return Number(s.replace(/[^0-9.-]/g,''))||0; };
-    const fmtMoney = value => new Intl.NumberFormat('id-ID',{maximumFractionDigits:2}).format(parseNumber(value));
-    const fmtNum = value => new Intl.NumberFormat('id-ID',{maximumFractionDigits:3}).format(parseNumber(value));
+    const parseDecimal = value => {
+        let s = String(value ?? '').trim().replace(/\s/g, '');
+        if (!s) return 0;
+        if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+        return Number(s.replace(/[^0-9.-]/g, '')) || 0;
+    };
+    const parseMoney = value => {
+        let s = String(value ?? '').trim().replace(/\s/g, '');
+        if (!s) return 0;
+        // Harga Rupiah ditampilkan dengan titik sebagai pemisah ribuan.
+        s = s.replace(/[^0-9-]/g, '');
+        return Number(s) || 0;
+    };
+    const fmtMoney = value => new Intl.NumberFormat('id-ID',{maximumFractionDigits:0}).format(parseMoney(value));
+    const fmtNum = value => new Intl.NumberFormat('id-ID',{maximumFractionDigits:3}).format(parseDecimal(value));
 
     document.getElementById('btn-export-excel').addEventListener('click', () => {
         if (typeof XLSX === 'undefined') {
@@ -250,8 +274,8 @@
     function calcFromMarkup() {
         if (syncing) return;
         syncing = true;
-        const hpp = Number(purchase.value || 0);
-        const up = Number(markup.value || 0);
+        const hpp = parseMoney(purchase.value);
+        const up = parseDecimal(markup.value);
         if (hpp > 0) selling.value = fmtMoney(hpp * (1 + up / 100));
         syncing = false;
     }
@@ -259,8 +283,8 @@
     function calcFromSelling() {
         if (syncing) return;
         syncing = true;
-        const hpp = Number(purchase.value || 0);
-        const jual = Number(selling.value || 0);
+        const hpp = parseMoney(purchase.value);
+        const jual = parseMoney(selling.value);
         markup.value = hpp > 0 ? fmtNum(((jual - hpp) / hpp) * 100) : '0';
         syncing = false;
     }
@@ -314,7 +338,7 @@
         const response = await fetch(url, {
             method: editMode ? 'PUT' : 'POST',
             headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
-            body: (()=>{const fd=new FormData(form); fd.set('purchase_price',parseNumber(purchase.value)); fd.set('initial_stock',parseNumber(initialStock.value)); fd.set('markup_percent',parseNumber(markup.value)); fd.set('selling_price',parseNumber(selling.value)); return fd;})()
+            body: (()=>{const fd=new FormData(form); fd.set('purchase_price',parseMoney(purchase.value)); fd.set('initial_stock',parseDecimal(initialStock.value)); fd.set('markup_percent',parseDecimal(markup.value)); fd.set('selling_price',parseMoney(selling.value)); return fd;})()
         });
         const payload = await response.json();
         if (!response.ok) {
