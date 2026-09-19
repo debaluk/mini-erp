@@ -37,7 +37,7 @@
                 <li class="nav-item"><a class="nav-link" href="{{ route('dashboard') }}">Dashboard</a></li>
                 @if(auth()->user()->hasModuleAccess('master_data'))
                 <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">MASTER DATA</a><ul class="dropdown-menu">
-                    @foreach(['products'=>'Produk','customers'=>'Customer','suppliers'=>'Supplier','warehouses'=>'Gudang','units'=>'Satuan','unit-conversions'=>'Konversi Satuan','tariffs'=>'Tarif','vehicles'=>'Kendaraan','drivers'=>'Driver'] as $route=>$label)<li><a class="dropdown-item" href="{{ route('master.menu.'.match ($route) { 'products' => 'produk', 'customers' => 'customer', 'suppliers' => 'supplier', 'warehouses' => 'gudang', 'units' => 'satuan', 'unit-conversions' => 'konversi-satuan', 'tariffs' => 'tarif', 'vehicles' => 'kendaraan', 'drivers' => 'driver' }) }}">{{ $label }}</a></li>@endforeach
+                    @foreach(['products'=>'Produk','customers'=>'Customer','suppliers'=>'Supplier','warehouses'=>'Gudang','units'=>'Satuan','business-units'=>'Unit','unit-conversions'=>'Konversi Satuan','tariffs'=>'Tarif','vehicles'=>'Kendaraan','drivers'=>'Driver'] as $route=>$label)<li><a class="dropdown-item" href="{{ route('master.menu.'.match ($route) { 'products' => 'produk', 'customers' => 'customer', 'suppliers' => 'supplier', 'warehouses' => 'gudang', 'units' => 'satuan', 'business-units' => 'unit', 'unit-conversions' => 'konversi-satuan', 'tariffs' => 'tarif', 'vehicles' => 'kendaraan', 'drivers' => 'driver' }) }}">{{ $label }}</a></li>@endforeach
                 </ul></li>
                 @endif
                 @if(auth()->user()->hasModuleAccess('pos_retail'))
