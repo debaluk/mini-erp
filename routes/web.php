@@ -43,6 +43,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/master/customer/{id}', [ErpController::class, 'customerDelete'])->middleware('role:owner,admin')->name('master.customer.delete');
 
     Route::get('/master/supplier', [ErpController::class, 'supplierMaster'])->middleware('role:owner,admin')->name('master.supplier.index');
+    Route::get('/master/suppliers', [ErpController::class, 'supplierMaster'])->middleware('role:owner,admin')->name('master.suppliers');
     Route::post('/master/supplier', [ErpController::class, 'supplierStore'])->middleware('role:owner,admin')->name('master.supplier.store');
     Route::put('/master/supplier/{id}', [ErpController::class, 'supplierUpdate'])->middleware('role:owner,admin')->name('master.supplier.update');
     Route::delete('/master/supplier/{id}', [ErpController::class, 'supplierDelete'])->middleware('role:owner,admin')->name('master.supplier.delete');
