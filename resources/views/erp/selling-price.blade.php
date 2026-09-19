@@ -39,14 +39,14 @@
                     <td class="fw-semibold">{{ $row->code }}</td>
                     <td>{{ $row->name }}</td>
                     <td>{{ $row->unit_code ?: '-' }}</td>
-                    <td class="text-end">Rp {{ number_format((float) $row->selling_price, 0, ',', '.') }}</td>
+                    <td class="text-end">{{ (float) $row->selling_price > 0 ? 'Rp '.number_format((float) $row->selling_price, 0, ',', '.') : '-' }}</td>
                     <td class="text-end">{{ $row->initial_purchase_price !== null ? 'Rp '.number_format((float) $row->initial_purchase_price, 0, ',', '.') : '-' }}</td>
                     <td class="text-end">{{ $row->markup_percent !== null ? number_format((float) $row->markup_percent, 2, ',', '.') : '-' }}</td>
                     <td class="text-end">{{ $row->initial_stock !== null ? number_format((float) $row->initial_stock, 3, ',', '.') : '-' }}</td>
                     <td>{{ $row->setup_date ? date('d/m/Y', strtotime($row->setup_date)) : '-' }}</td>
                     <td class="text-center">
 @if($row->setup_date)
-<button type="button" class="btn btn-outline-primary btn-sm btn-edit" data-id="{{ $row->id }}" data-name="{{ $row->name }}" data-price="{{ $row->selling_price }}" data-hpp="{{ $row->initial_purchase_price }}" data-up="{{ $row->markup_percent }}">Edit</button>
+<button type="button" class="btn btn-outline-primary btn-sm btn-edit" data-id="{{ $row->id }}" data-name="{{ $row->name }}" data-price="{{ $row->selling_price }}" data-hpp="{{ $row->initial_purchase_price }}" data-stock="{{ $row->initial_stock }}" data-up="{{ $row->markup_percent }}" data-date="{{ $row->setup_date }}">Edit</button>
 @else
 <span class="text-secondary">Belum Setup</span>
 @endif
@@ -101,22 +101,22 @@
 
                     <div class="mb-2">
                         <label class="form-label">Harga Beli / HPP Awal <span class="text-danger">*</span></label>
-                        <input type="number" name="purchase_price" id="setup-purchase-price" class="form-control" min="0.01" step="0.01" inputmode="decimal" required>
+                        <input type="text" name="purchase_price" id="setup-purchase-price" class="form-control" inputmode="numeric" autocomplete="off" required>
                     </div>
 
                     <div class="mb-2">
                         <label class="form-label">Stok Awal <span class="text-danger">*</span></label>
-                        <input type="number" name="initial_stock" id="setup-initial-stock" class="form-control" min="0" step="0.001" inputmode="decimal" required>
+                        <input type="text" name="initial_stock" id="setup-initial-stock" class="form-control" inputmode="decimal" autocomplete="off" required>
                     </div>
 
                     <div class="mb-2">
                         <label class="form-label">UP (%)</label>
-                        <input type="number" name="markup_percent" id="setup-markup" class="form-control" min="0" step="0.01" value="0" inputmode="decimal">
+                        <input type="text" name="markup_percent" id="setup-markup" class="form-control" inputmode="decimal" autocomplete="off" value="0">
                     </div>
 
                     <div class="mb-1">
                         <label class="form-label">Harga Jual <span class="text-danger">*</span></label>
-                        <input type="number" name="selling_price" id="setup-selling-price" class="form-control" min="0.01" step="0.01" inputmode="decimal" required>
+                        <input type="text" name="selling_price" id="setup-selling-price" class="form-control" inputmode="numeric" autocomplete="off" required>
                     </div>
                     <div class="small text-secondary">Harga Jual = Harga Beli + (Harga Beli × UP%). UP dan Harga Jual bisa diubah dua arah.</div>
                 </div>
@@ -156,6 +156,9 @@
     const setupPurchase = document.getElementById('setup-purchase-price');
     let editMode = false;
     let syncing = false;
+    const parseNumber = value => { let s=String(value??'').trim().replace(/\s/g,''); if(!s) return 0; if(s.includes(',')) s=s.replace(/\./g,'').replace(',','.'); else if((s.match(/\./g)||[]).length>1) s=s.replace(/\./g,''); return Number(s.replace(/[^0-9.-]/g,''))||0; };
+    const fmtMoney = value => new Intl.NumberFormat('id-ID',{maximumFractionDigits:2}).format(parseNumber(value));
+    const fmtNum = value => new Intl.NumberFormat('id-ID',{maximumFractionDigits:3}).format(parseNumber(value));
 
     document.getElementById('btn-export-excel').addEventListener('click', () => {
         if (typeof XLSX === 'undefined') {
@@ -249,7 +252,7 @@
         syncing = true;
         const hpp = Number(purchase.value || 0);
         const up = Number(markup.value || 0);
-        if (hpp > 0) selling.value = (hpp * (1 + up / 100)).toFixed(2);
+        if (hpp > 0) selling.value = fmtMoney(hpp * (1 + up / 100));
         syncing = false;
     }
 
@@ -258,7 +261,7 @@
         syncing = true;
         const hpp = Number(purchase.value || 0);
         const jual = Number(selling.value || 0);
-        markup.value = hpp > 0 ? (((jual - hpp) / hpp) * 100).toFixed(2) : '0';
+        markup.value = hpp > 0 ? fmtNum(((jual - hpp) / hpp) * 100) : '0';
         syncing = false;
     }
 
@@ -273,6 +276,10 @@
     purchase.addEventListener('input', calcFromMarkup);
     markup.addEventListener('input', calcFromMarkup);
     selling.addEventListener('input', calcFromSelling);
+    purchase.addEventListener('blur',()=>purchase.value=fmtMoney(purchase.value));
+    initialStock.addEventListener('blur',()=>initialStock.value=fmtNum(initialStock.value));
+    markup.addEventListener('blur',()=>markup.value=fmtNum(markup.value));
+    selling.addEventListener('blur',()=>selling.value=fmtMoney(selling.value));
 
     document.getElementById('btn-setup-awal').addEventListener('click', () => {
         editMode=false; modalTitle.textContent='Setup Awal'; setupPurchase.readOnly=false; initialStock.readOnly=false;
@@ -287,7 +294,7 @@
 
     document.querySelector('#selling-price-table tbody').addEventListener('click', e => {
         const edit=e.target.closest('.btn-edit');
-        if(edit){ editMode=true; modalTitle.textContent='Edit Harga Jual'; form.reset(); search.value=edit.dataset.name; productId.value=edit.dataset.id; setupPurchase.value=edit.dataset.hpp; setupPurchase.readOnly=true; initialStock.value=''; initialStock.readOnly=true; markup.value=edit.dataset.up||'0'; selling.value=edit.dataset.price; document.getElementById('setup-form-alert').innerHTML='<div class="alert alert-info py-2 small">HPP Awal dan Stok Awal tidak diubah. Edit hanya UP / Harga Jual.</div>'; popup.style.display='none'; modal.show(); return; }
+        if(edit){ editMode=true; modalTitle.textContent='Edit Setup Awal'; form.reset(); search.value=edit.dataset.name; productId.value=edit.dataset.id; setupPurchase.value=fmtMoney(edit.dataset.hpp); setupPurchase.readOnly=false; initialStock.value=fmtNum(edit.dataset.stock); initialStock.readOnly=false; markup.value=fmtNum(edit.dataset.up||'0'); selling.value=fmtMoney(edit.dataset.price); form.querySelector('[name="setup_date"]').value=edit.dataset.date||'{{ now()->toDateString() }}'; document.getElementById('setup-form-alert').innerHTML='<div class="alert alert-info py-2 small">Bisa diedit selama item belum memiliki transaksi Pembelian atau Penjualan.</div>'; popup.style.display='none'; modal.show(); return; }
 
         const btn = e.target.closest('.btn-detail');
         if (!btn) return;
@@ -307,7 +314,7 @@
         const response = await fetch(url, {
             method: editMode ? 'PUT' : 'POST',
             headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
-            body: new FormData(form)
+            body: (()=>{const fd=new FormData(form); fd.set('purchase_price',parseNumber(purchase.value)); fd.set('initial_stock',parseNumber(initialStock.value)); fd.set('markup_percent',parseNumber(markup.value)); fd.set('selling_price',parseNumber(selling.value)); return fd;})()
         });
         const payload = await response.json();
         if (!response.ok) {
