@@ -42,7 +42,12 @@ Route::middleware('auth')->group(function () {
     Route::put('/master/customer/{id}', [ErpController::class, 'customerUpdate'])->middleware('role:owner,admin')->name('master.customer.update');
     Route::delete('/master/customer/{id}', [ErpController::class, 'customerDelete'])->middleware('role:owner,admin')->name('master.customer.delete');
 
-    $masterTypes = ['products','suppliers','warehouses','units','tariffs','vehicles','drivers'];
+    Route::get('/master/supplier', [ErpController::class, 'supplierMaster'])->middleware('role:owner,admin')->name('master.supplier.index');
+    Route::post('/master/supplier', [ErpController::class, 'supplierStore'])->middleware('role:owner,admin')->name('master.supplier.store');
+    Route::put('/master/supplier/{id}', [ErpController::class, 'supplierUpdate'])->middleware('role:owner,admin')->name('master.supplier.update');
+    Route::delete('/master/supplier/{id}', [ErpController::class, 'supplierDelete'])->middleware('role:owner,admin')->name('master.supplier.delete');
+
+    $masterTypes = ['products','warehouses','units','tariffs','vehicles','drivers'];
     foreach ($masterTypes as $type) {
         if ($type === 'units') {
             Route::get('/master/units', [ErpController::class, 'unitMaster'])->middleware('access:master_data')->name('master.units');
