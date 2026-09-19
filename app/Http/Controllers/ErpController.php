@@ -656,7 +656,7 @@ class ErpController extends Controller
     public function customerMaster(Request $request)
     {
         $entity = $this->entityId();
-        if ($request->ajax() && $request->has('draw')) {
+        if ($request->has('draw')) {
             $query = DB::table('customers')->where('entity_id', $entity);
             $search = trim((string) $request->input('search.value', ''));
             if ($search !== '') {
