@@ -1,390 +1,202 @@
-@extends('layouts.app')
+<?php
 
-@section('content')
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <h3 class="mb-1">Harga Jual</h3>
-        <div class="text-secondary">Harga jual item Retail</div>
-    </div>
-    <button type="button" class="btn btn-primary" id="btn-setup-awal" data-bs-toggle="modal" data-bs-target="#setupAwalModal">+ Setup Awal</button>
-</div>
+namespace App\Http\Controllers;
 
-<div id="price-alert"></div>
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
-<div class="card shadow-sm">
-    <div class="card-body border-bottom py-2">
-        <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
-            <div>
-                <div class="fw-semibold">Daftar Harga Jual</div>
-                <div class="small text-secondary">Item yang sudah Setup Awal dapat diedit selama belum ada transaksi.</div>
-            </div>
-            <button type="button" class="btn btn-outline-success btn-sm" id="btn-export-excel">Export Excel</button>
-        </div>
-    </div>
-    <div class="table-responsive">
-        <table class="table table-sm table-hover align-middle mb-0" id="selling-price-table">
-            <thead>
-                <tr>
-                    <th>Kode</th>
-                    <th>Item</th>
-                    <th>Satuan</th>
-                    <th class="text-end">HPP Awal</th>
-                    <th class="text-end">UP %</th>
-                    <th class="text-end">Harga Jual</th>
-                    <th class="text-end">Stok Awal</th>
-                    <th>Tgl Setup</th>
-                    <th class="text-center">Status</th>
-                    <th class="text-center">Aksi</th>
-                </tr>
-            </thead>
-            <tbody>
-            @foreach($rows as $row)
-                <tr>
-                    <td class="fw-semibold">{{ $row->code }}</td>
-                    <td>{{ $row->name }}</td>
-                    <td>{{ $row->unit_code ?: '-' }}</td>
-                    <td class="text-end fw-semibold">{{ $row->initial_purchase_price !== null ? 'Rp '.number_format((float) $row->initial_purchase_price, 0, ',', '.') : '-' }}</td>
-                    <td class="text-end">{{ $row->markup_percent !== null ? number_format((float) $row->markup_percent, 2, ',', '.') : '-' }}%</td>
-                    <td class="text-end fw-semibold">{{ (float) $row->selling_price > 0 ? 'Rp '.number_format((float) $row->selling_price, 0, ',', '.') : '-' }}</td>
-                    <td class="text-end">{{ $row->initial_stock !== null ? rtrim(rtrim(number_format((float) $row->initial_stock, 3, ',', '.'), '0'), ',') : '-' }}</td>
-                    <td>{{ $row->setup_date ? date('d/m/Y', strtotime($row->setup_date)) : '-' }}</td>
-                    <td class="text-center">
-@if($row->setup_date)
-<span class="badge text-bg-success">Sudah Setup</span>
-@else
-<span class="badge text-bg-secondary">Belum Setup</span>
-@endif
-</td>
-<td class="text-center">
-@if($row->setup_date)
-<button type="button" class="btn btn-outline-primary btn-sm btn-edit" data-id="{{ $row->id }}" data-name="{{ $row->name }}" data-price="{{ (float) $row->selling_price }}" data-hpp="{{ (float) $row->initial_purchase_price }}" data-stock="{{ (float) $row->initial_stock }}" data-up="{{ (float) $row->markup_percent }}" data-date="{{ $row->setup_date }}">Edit</button>
-@else
-<span class="text-secondary">-</span>
-@endif
-</td>
-                </tr>
-            @endforeach
-            </tbody>
-        </table>
-    </div>
-</div>
+class SellingPriceController extends Controller
+{
+    private function entityId(): int
+    {
+        $entity = DB::table('entities')->first();
+        abort_unless($entity, 500, 'Entitas belum tersedia.');
+        return (int) $entity->id;
+    }
 
-<div class="modal fade" id="detailHargaJualModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content">
-        <div class="modal-header"><h5 class="modal-title">Detail Harga Jual</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body"><div class="row g-3">
-            <div class="col-md-6"><label class="form-label text-secondary">Kode</label><div id="d-code" class="fw-semibold"></div></div>
-            <div class="col-md-6"><label class="form-label text-secondary">Item</label><div id="d-name" class="fw-semibold"></div></div>
-            <div class="col-md-4"><label class="form-label text-secondary">Satuan</label><div id="d-unit"></div></div>
-            <div class="col-md-4"><label class="form-label text-secondary">HPP Awal</label><div id="d-hpp"></div></div>
-            <div class="col-md-4"><label class="form-label text-secondary">UP</label><div id="d-up"></div></div>
-            <div class="col-md-4"><label class="form-label text-secondary">Harga Jual</label><div id="d-price" class="fw-semibold"></div></div>
-            <div class="col-md-4"><label class="form-label text-secondary">Stok Awal</label><div id="d-stock"></div></div>
-            <div class="col-md-4"><label class="form-label text-secondary">Tanggal Setup</label><div id="d-date"></div></div>
-        </div></div>
-        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button></div>
-    </div></div>
-</div>
+    public function index(Request $request)
+    {
+        $entity = $this->entityId();
+        $entityName = DB::table('entities')->where('id', $entity)->value('name') ?? 'NAMA ENTITAS';
 
-<div class="modal fade" id="setupAwalModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <form id="setup-awal-form">
-                <div class="modal-header py-2">
-                    <h5 class="modal-title" id="setup-modal-title">Setup Awal</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <div id="setup-form-alert"></div>
+        $rows = DB::table('products as p')
+            ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
+            ->leftJoin('item_initial_setups as s', function ($join) use ($entity) {
+                $join->on('s.product_id', '=', 'p.id')
+                    ->where('s.entity_id', $entity);
+            })
+            ->where('p.entity_id', $entity)
+            ->where('p.is_active', 1)
+            ->select(
+                'p.id',
+                'p.code',
+                'p.name',
+                'p.item_type',
+                'p.selling_price',
+                'u.code as unit_code',
+                'u.name as unit_name',
+                's.setup_date',
+                's.purchase_price as initial_purchase_price',
+                's.initial_stock',
+                's.markup_percent'
+            )
+            ->orderBy('p.name')
+            ->distinct()
+            ->get();
 
-                    <div class="mb-2">
-                        <label class="form-label">Tanggal <span class="text-danger">*</span></label>
-                        <input type="date" name="setup_date" class="form-control" value="{{ now()->toDateString() }}" required>
-                    </div>
+        $retailUnitId = DB::table('business_units')
+            ->where('entity_id', $entity)
+            ->where('code', 'RET')
+            ->where('is_active', 1)
+            ->value('id');
 
-                    <div class="mb-2 position-relative">
-                        <label class="form-label">Cari Barang <span class="text-danger">*</span></label>
-                        <input type="text" id="setup-product-search" class="form-control" autocomplete="off" placeholder="Ketik nama / kode / barcode..." required>
-                        <input type="hidden" name="product_id" id="setup-product-id">
-                        <div id="setup-product-popup" class="list-group position-absolute w-100 shadow-sm" style="z-index:1080;display:none;max-height:260px;overflow-y:auto;"></div>
-                        <div id="setup-product-unit" class="small text-secondary mt-1"></div>
-                    </div>
+        $products = DB::table('products as p')
+            ->join('product_units as pu', 'pu.product_id', '=', 'p.id')
+            ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
+            ->where('p.entity_id', $entity)
+            ->where('p.is_active', 1)
+            ->where('p.item_type', 'barang')
+            ->whereNotExists(function ($q) use ($entity) {
+                $q->select(DB::raw(1))
+                    ->from('item_initial_setups as existing')
+                    ->whereColumn('existing.product_id', 'p.id')
+                    ->where('existing.entity_id', $entity);
+            })
+            ->when($retailUnitId, fn ($q) => $q->where('pu.business_unit_id', $retailUnitId))
+            ->select('p.id', 'p.code', 'p.barcode', 'p.name', 'p.selling_price', 'u.code as unit_code', 'u.name as unit_name')
+            ->orderBy('p.name')
+            ->distinct()
+            ->get();
 
-                    <div class="mb-2">
-                        <label class="form-label">Harga Beli / HPP Awal <span class="text-danger">*</span></label>
-                        <input type="text" name="purchase_price" id="setup-purchase-price" class="form-control" inputmode="numeric" autocomplete="off" required>
-                    </div>
+        return view('erp.selling-price', compact('rows', 'products', 'entityName'));
+    }
 
-                    <div class="mb-2">
-                        <label class="form-label">Stok Awal <span class="text-danger">*</span></label>
-                        <input type="text" name="initial_stock" id="setup-initial-stock" class="form-control" inputmode="decimal" autocomplete="off" required>
-                    </div>
+    public function storeInitial(Request $request)
+    {
+        $entity = $this->entityId();
 
-                    <div class="mb-2">
-                        <label class="form-label">UP (%)</label>
-                        <input type="text" name="markup_percent" id="setup-markup" class="form-control" inputmode="decimal" autocomplete="off" value="0">
-                    </div>
-
-                    <div class="mb-1">
-                        <label class="form-label">Harga Jual <span class="text-danger">*</span></label>
-                        <input type="text" name="selling_price" id="setup-selling-price" class="form-control" inputmode="numeric" autocomplete="off" required>
-                    </div>
-                    <div class="small text-secondary">Harga Jual = Harga Beli + (Harga Beli × UP%). UP dan Harga Jual bisa diubah dua arah.</div>
-                </div>
-                <div class="modal-footer py-2">
-                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary btn-sm" id="setup-save">Simpan</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-@endsection
-
-@push('scripts')
-<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-<script>
-(function () {
-    const products = @json($products);
-    const modalEl = document.getElementById('setupAwalModal');
-    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-    const detailModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('detailHargaJualModal'));
-    const priceTable = new DataTable('#selling-price-table', {
-        pageLength: 10,
-        autoWidth: false,
-        lengthMenu: [10, 25, 50, 100],
-        order: [[1, 'asc']],
-        columnDefs: [{ targets: [3,4,5,6], className: 'text-end' }, { targets: [9], orderable: false, searchable: false }]
-    });
-    const form = document.getElementById('setup-awal-form');
-    const search = document.getElementById('setup-product-search');
-    const productId = document.getElementById('setup-product-id');
-    const popup = document.getElementById('setup-product-popup');
-    const purchase = document.getElementById('setup-purchase-price');
-    const markup = document.getElementById('setup-markup');
-    const selling = document.getElementById('setup-selling-price');
-    const modalTitle = document.getElementById('setup-modal-title');
-    const initialStock = document.getElementById('setup-initial-stock');
-    const setupPurchase = document.getElementById('setup-purchase-price');
-    let editMode = false;
-    let syncing = false;
-    const parseDecimal = value => {
-        let s = String(value ?? '').trim().replace(/\s/g, '');
-        if (!s) return 0;
-        if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
-        return Number(s.replace(/[^0-9.-]/g, '')) || 0;
-    };
-    const parseMoney = value => {
-        if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
-        let s = String(value ?? '').trim().replace(/\s/g, '');
-        if (!s) return 0;
-        // Input tampilan Rupiah memakai titik sebagai pemisah ribuan.
-        s = s.replace(/[^0-9-]/g, '');
-        return Number(s) || 0;
-    };
-    const fmtMoney = value => new Intl.NumberFormat('id-ID',{maximumFractionDigits:0}).format(parseMoney(value));
-    const fmtNum = value => new Intl.NumberFormat('id-ID',{minimumFractionDigits:0, maximumFractionDigits:3}).format(parseDecimal(value));
-
-    document.getElementById('btn-export-excel').addEventListener('click', () => {
-        if (typeof XLSX === 'undefined') {
-            alert('Library Excel belum termuat. Silakan refresh halaman lalu coba lagi.');
-            return;
-        }
-
-        const rows = priceTable.rows({ search: 'applied' }).data().toArray();
-        const data = rows.map(r => {
-            const raw = value => String(value ?? '').replace(/<[^>]*>/g, '').trim();
-            const money = value => {
-                const s = raw(value).replace(/[^0-9-]/g, '');
-                return s ? Number(s) : null;
-            };
-            const percent = value => {
-                const s = raw(value).replace(/%/g, '').replace(',', '.').replace(/[^0-9.-]/g, '');
-                return s ? Number(s) / 100 : null;
-            };
-            const stock = value => {
-                const s = raw(value).replace(/\./g, '').replace(',', '.').replace(/[^0-9.-]/g, '');
-                return s ? Number(s) : null;
-            };
-            return [raw(r[0]), raw(r[1]), raw(r[2]), money(r[3]), percent(r[4]), money(r[5]), stock(r[6]), raw(r[7])];
-        });
-
-        const printDate = new Intl.DateTimeFormat('id-ID', {
-            day: '2-digit', month: '2-digit', year: 'numeric'
-        }).format(new Date());
-
-        const ws = XLSX.utils.aoa_to_sheet([
-            ['NAMA ENTITAS'],
-            ['Data Setup Harga Jual'],
-            ['Tgl Cetak : ' + printDate],
-            [],
-            ['Kode','Item','Satuan','HPP Awal','UP (%)','Harga Jual','Stok Awal','Tgl Setup'],
-            ...data
+        $data = $request->validate([
+            'setup_date' => ['required', 'date'],
+            'product_id' => ['required', 'integer'],
+            'purchase_price' => ['required', 'numeric', 'gt:0'],
+            'initial_stock' => ['required', 'numeric', 'gt:0'],
+            'markup_percent' => ['nullable', 'numeric', 'min:0'],
+            'selling_price' => ['required', 'numeric', 'gt:0'],
         ]);
 
-        ws['!merges'] = [
-            { s: { r: 0, c: 0 }, e: { r: 0, c: 7 } },
-            { s: { r: 1, c: 0 }, e: { r: 1, c: 7 } },
-            { s: { r: 2, c: 0 }, e: { r: 2, c: 7 } }
-        ];
+        $product = DB::table('products')->where('entity_id', $entity)->where('id', $data['product_id'])->where('is_active', 1)->first();
+        abort_unless($product, 422, 'Item tidak valid.');
 
-        ws['!cols'] = [
-            {wch:15},{wch:32},{wch:12},{wch:18},
-            {wch:12},{wch:18},{wch:14},{wch:14}
-        ];
+        $retailUnitId = DB::table('business_units')
+            ->where('entity_id', $entity)
+            ->where('code', 'RET')
+            ->where('is_active', 1)
+            ->value('id');
 
-        data.forEach((row, i) => {
-            const excelRow = i + 6;
-            if (row[3] !== null) ws['D'+excelRow].z = 'Rp #,##0';
-            if (row[4] !== null) ws['E'+excelRow].z = '0.00%';
-            if (row[5] !== null) ws['F'+excelRow].z = 'Rp #,##0';
-            if (row[6] !== null) ws['G'+excelRow].z = '#,##0.###';
-            if (row[7]) {
-                const parts = row[7].split('/');
-                if (parts.length === 3) {
-                    ws['H'+excelRow].v = new Date(Number(parts[2]), Number(parts[1])-1, Number(parts[0]));
-                    ws['H'+excelRow].t = 'd';
-                    ws['H'+excelRow].z = 'dd/mm/yyyy';
-                }
+        abort_unless(
+            $retailUnitId && DB::table('product_units')->where('product_id', $product->id)->where('business_unit_id', $retailUnitId)->exists(),
+            422,
+            'Item belum dipilih untuk Unit Retail.'
+        );
+
+        abort_if(
+            DB::table('item_initial_setups')->where('entity_id', $entity)->where('product_id', $product->id)->exists(),
+            422,
+            'Setup awal item ini sudah ada. Setup awal tidak dapat diulang atau ditimpa.'
+        );
+
+        $warehouse = DB::table('warehouses')
+            ->where('entity_id', $entity)
+            ->where('is_active', 1)
+            ->orderBy('id')
+            ->first();
+
+        abort_unless($warehouse, 422, 'Belum ada gudang aktif untuk menerima stok awal.');
+
+        DB::transaction(function () use ($entity, $data, $product, $warehouse): void {
+            DB::table('item_initial_setups')->insert([
+                'entity_id' => $entity,
+                'product_id' => $product->id,
+                'warehouse_id' => $warehouse->id,
+                'setup_date' => $data['setup_date'],
+                'purchase_price' => $data['purchase_price'],
+                'initial_stock' => $data['initial_stock'],
+                'markup_percent' => $data['markup_percent'] ?? 0,
+                'selling_price' => $data['selling_price'],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            DB::table('products')->where('id', $product->id)->update([
+                'selling_price' => $data['selling_price'],
+                'cost_price' => $data['purchase_price'],
+                'updated_at' => now(),
+            ]);
+
+            $stock = DB::table('warehouses_stocks')
+                ->where('entity_id', $entity)
+                ->where('warehouse_id', $warehouse->id)
+                ->where('product_id', $product->id)
+                ->first();
+
+            if ($stock) {
+                abort_unless((float) $stock->qty == 0.0, 422, 'Item sudah memiliki stok. Setup awal tidak dapat menambah stok ke stok yang sudah ada.');
+                DB::table('warehouses_stocks')->where('id', $stock->id)->update([
+                    'qty' => $data['initial_stock'],
+                    'avg_cost' => $data['purchase_price'],
+                    'updated_at' => now(),
+                ]);
+            } else {
+                DB::table('warehouses_stocks')->insert([
+                    'entity_id' => $entity,
+                    'warehouse_id' => $warehouse->id,
+                    'product_id' => $product->id,
+                    'qty' => $data['initial_stock'],
+                    'avg_cost' => $data['purchase_price'],
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
             }
+
+            DB::table('stock_movements')->insert([
+                'entity_id' => $entity,
+                'warehouse_id' => $warehouse->id,
+                'product_id' => $product->id,
+                'movement_type' => 'opening',
+                'qty' => $data['initial_stock'],
+                'unit_cost' => $data['purchase_price'],
+                'reference_type' => 'item_initial_setup',
+                'reference_id' => $product->id,
+                'occurred_at' => $data['setup_date'].' 00:00:00',
+                'created_by' => auth()->id(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
         });
 
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Harga Jual');
-        XLSX.writeFile(wb, 'harga-jual-' + new Date().toISOString().slice(0,10) + '.xlsx');
-    });
-
-    function esc(v) {
-        return String(v ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[s]));
+        return response()->json(['message' => 'Setup awal item berhasil disimpan.']);
     }
-
-    function chooseProduct(p) {
-        productId.value = p.id;
-        search.value = p.name;
-        document.getElementById('setup-product-unit').textContent = p.unit_code ? 'Satuan: ' + p.unit_code : '';
-        if (Number(p.selling_price || 0) > 0) selling.value = Number(p.selling_price);
-        popup.style.display = 'none';
-    }
-
-    function showPopup() {
-        const q = search.value.trim().toLowerCase();
-        const rows = products
-            .filter(p => !q || [p.name, p.code, p.barcode].some(v => String(v || '').toLowerCase().includes(q)))
-            .slice(0, 30);
-
-        popup.innerHTML = rows.length
-            ? rows.map((p, i) =>
-                '<button type="button" class="list-group-item list-group-item-action text-start px-3 py-2" data-i="' + i + '">' +
-                    '<div class="fw-semibold">' + esc(p.name) + '</div>' +
-                    '<div class="small text-secondary">' + esc(p.code) +
-                    (p.barcode ? ' · ' + esc(p.barcode) : '') +
-                    (p.unit_code ? ' · ' + esc(p.unit_code) : '') +
-                    '</div></button>'
-              ).join('')
-            : '<div class="list-group-item text-secondary">Barang tidak ditemukan.</div>';
-
-        popup.style.display = 'block';
-        popup.querySelectorAll('[data-i]').forEach(btn => {
-            btn.addEventListener('mousedown', e => {
-                e.preventDefault();
-                chooseProduct(rows[Number(btn.dataset.i)]);
-            });
+    public function update(Request $request, int $product)
+    {
+        $entity = $this->entityId();
+        $data = $request->validate([
+            'setup_date' => ['required','date'],
+            'purchase_price' => ['required','numeric','gt:0'],
+            'initial_stock' => ['required','numeric','min:0'],
+            'markup_percent' => ['required','numeric','min:0'],
+            'selling_price' => ['required','numeric','gt:0'],
+        ]);
+        $setup = DB::table('item_initial_setups')->where('entity_id',$entity)->where('product_id',$product)->first();
+        abort_unless($setup, 404, 'Setup awal item belum ada.');
+        $hasTransaction = DB::table('sale_items')->where('product_id',$product)->exists() || DB::table('purchase_items')->where('product_id',$product)->exists();
+        abort_if($hasTransaction, 422, 'Harga jual tidak dapat diedit karena item sudah memiliki transaksi Pembelian atau Penjualan.');
+        DB::transaction(function () use ($entity,$product,$data,$setup): void {
+            DB::table('item_initial_setups')->where('entity_id',$entity)->where('product_id',$product)->update(['setup_date'=>$data['setup_date'],'purchase_price'=>$data['purchase_price'],'initial_stock'=>$data['initial_stock'],'markup_percent'=>$data['markup_percent'],'selling_price'=>$data['selling_price'],'updated_at'=>now()]);
+            DB::table('products')->where('entity_id',$entity)->where('id',$product)->update(['selling_price'=>$data['selling_price'],'cost_price'=>$data['purchase_price'],'updated_at'=>now()]);
+            $stock=DB::table('warehouses_stocks')->where('entity_id',$entity)->where('warehouse_id',$setup->warehouse_id)->where('product_id',$product)->first();
+            if($stock){ $delta=(float)$data['initial_stock']-(float)$setup->initial_stock; DB::table('warehouses_stocks')->where('id',$stock->id)->update(['qty'=>(float)$stock->qty+$delta,'avg_cost'=>$data['purchase_price'],'updated_at'=>now()]); }
+            DB::table('stock_movements')->where('entity_id',$entity)->where('product_id',$product)->where('reference_type','item_initial_setup')->where('reference_id',$product)->update(['qty'=>$data['initial_stock'],'unit_cost'=>$data['purchase_price'],'occurred_at'=>$data['setup_date'].' 00:00:00','updated_at'=>now()]);
         });
+        return response()->json(['message'=>'Harga jual item berhasil diperbarui.']);
     }
-
-    function calcFromMarkup() {
-        if (syncing) return;
-        syncing = true;
-        const hpp = parseMoney(purchase.value);
-        const up = parseDecimal(markup.value);
-        if (hpp > 0) selling.value = fmtMoney(hpp * (1 + up / 100));
-        syncing = false;
-    }
-
-    function calcFromSelling() {
-        if (syncing) return;
-        syncing = true;
-        const hpp = parseMoney(purchase.value);
-        const jual = parseMoney(selling.value);
-        markup.value = hpp > 0 ? fmtNum(((jual - hpp) / hpp) * 100) : '0';
-        syncing = false;
-    }
-
-    search.addEventListener('input', () => { productId.value = ''; showPopup(); });
-    search.addEventListener('focus', showPopup);
-    search.addEventListener('click', showPopup);
-    search.addEventListener('blur', () => setTimeout(() => popup.style.display = 'none', 150));
-    search.addEventListener('keydown', e => {
-        if (e.key === 'Escape') popup.style.display = 'none';
-    });
-
-    purchase.addEventListener('input', calcFromMarkup);
-    markup.addEventListener('input', calcFromMarkup);
-    selling.addEventListener('input', calcFromSelling);
-    purchase.addEventListener('blur',()=>purchase.value=fmtMoney(purchase.value));
-    initialStock.addEventListener('blur',()=>initialStock.value=fmtNum(initialStock.value));
-    markup.addEventListener('blur',()=>markup.value=fmtNum(markup.value));
-    selling.addEventListener('blur',()=>selling.value=fmtMoney(selling.value));
-
-    document.getElementById('btn-setup-awal').addEventListener('click', () => {
-        editMode=false; modalTitle.textContent='Setup Awal'; setupPurchase.readOnly=false; initialStock.readOnly=false;
-        form.reset();
-        form.querySelector('[name="setup_date"]').value = '{{ now()->toDateString() }}';
-        productId.value = '';
-        document.getElementById('setup-product-unit').textContent = '';
-        document.getElementById('setup-form-alert').innerHTML = '';
-        modal.show();
-        setTimeout(() => search.focus(), 250);
-    });
-
-    document.querySelector('#selling-price-table tbody').addEventListener('click', e => {
-        const edit=e.target.closest('.btn-edit');
-        if(edit){ editMode=true; modalTitle.textContent='Edit Setup Awal'; form.reset(); search.value=edit.dataset.name; productId.value=edit.dataset.id; setupPurchase.value=fmtMoney(edit.dataset.hpp); setupPurchase.readOnly=false; initialStock.value=fmtNum(edit.dataset.stock); initialStock.readOnly=false; markup.value=fmtNum(edit.dataset.up||'0'); selling.value=fmtMoney(edit.dataset.price); form.querySelector('[name="setup_date"]').value=edit.dataset.date||'{{ now()->toDateString() }}'; document.getElementById('setup-form-alert').innerHTML='<div class="alert alert-info py-2 small">Bisa diedit selama item belum memiliki transaksi Pembelian atau Penjualan.</div>'; popup.style.display='none'; modal.show(); return; }
-
-        const btn = e.target.closest('.btn-detail');
-        if (!btn) return;
-        ['code','name','unit','hpp','up','price','stock','date'].forEach(k => document.getElementById('d-'+k).textContent = btn.dataset[k] || '-');
-        detailModal.show();
-    });
-
-    form.addEventListener('submit', async e => {
-        e.preventDefault();
-        if (!productId.value) {
-            document.getElementById('setup-form-alert').innerHTML = '<div class="alert alert-danger py-2 small">Pilih barang dari popup pencarian.</div>';
-            return;
-        }
-        const save = document.getElementById('setup-save');
-        save.disabled = true;
-        const url=editMode ? '{{ url('/master/harga-jual') }}/'+productId.value+'/edit' : '{{ route('master.harga-jual.setup-awal') }}';
-        const response = await fetch(url, {
-            method: editMode ? 'POST' : 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json'
-            },
-            body: (() => {
-                const fd = new FormData(form);
-                if (editMode) fd.append('_method', 'PUT');
-                fd.set('product_id', productId.value);
-                fd.set('purchase_price', parseMoney(purchase.value));
-                fd.set('initial_stock', parseDecimal(initialStock.value));
-                fd.set('markup_percent', parseDecimal(markup.value));
-                fd.set('selling_price', parseMoney(selling.value));
-                return fd;
-            })()
-        });
-        const payload = await response.json();
-        if (!response.ok) {
-            const errors = payload.errors ? Object.values(payload.errors).flat().join('<br>') : (payload.message || 'Setup awal gagal disimpan.');
-            document.getElementById('setup-form-alert').innerHTML = '<div class="alert alert-danger py-2 small">'+errors+'</div>';
-            save.disabled = false;
-            return;
-        }
-        modal.hide();
-        document.getElementById('price-alert').innerHTML = '<div class="alert alert-success py-2">'+payload.message+'</div>';
-        setTimeout(() => window.location.reload(), 500);
-    });
-})();
-</script>
-@endpush
+}
