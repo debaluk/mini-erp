@@ -42,7 +42,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/master/customer/{id}', [ErpController::class, 'customerUpdate'])->middleware('role:owner,admin')->name('master.customer.update');
     Route::delete('/master/customer/{id}', [ErpController::class, 'customerDelete'])->middleware('role:owner,admin')->name('master.customer.delete');
 
-    Route::get('/master/supplier', [ErpController::class, 'supplierMaster'])->middleware('role:owner,admin')->name('master.supplier.index');
+    Route::get('/master/supplier', [ErpController::class, 'supplierMaster'])->middleware('role:owner,admin')->name('master.menu.supplier');
     Route::get('/master/suppliers', [ErpController::class, 'supplierMaster'])->middleware('role:owner,admin')->name('master.suppliers');
     Route::post('/master/supplier', [ErpController::class, 'supplierStore'])->middleware('role:owner,admin')->name('master.supplier.store');
     Route::put('/master/supplier/{id}', [ErpController::class, 'supplierUpdate'])->middleware('role:owner,admin')->name('master.supplier.update');
@@ -140,7 +140,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/master/unit/{id}', [ErpController::class, 'businessUnitDelete'])->middleware('role:owner,admin')->name('master.business-unit.delete');
 
     $masterMenuPaths = [
-        'produk' => 'products', 'customer' => 'customers', 'supplier' => 'suppliers',
+        'produk' => 'products', 'customer' => 'customers',
         'gudang' => 'warehouses', 'unit' => 'business-units', 'satuan' => 'units',
         'konversi-satuan' => 'unit-conversions',
         'tarif' => 'tariffs', 'kendaraan' => 'vehicles', 'driver' => 'drivers',
