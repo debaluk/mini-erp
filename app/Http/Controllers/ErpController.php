@@ -56,6 +56,22 @@ class ErpController extends Controller
             ->orderByDesc('products.id')
             ->get();
 
+        if ($request->ajax()) {
+            return response()->json([
+                'data' => $items->map(fn ($item) => [
+                    'id' => $item->id,
+                    'code' => $item->code,
+                    'barcode' => $item->barcode,
+                    'name' => $item->name,
+                    'item_type' => $item->item_type,
+                    'base_unit_name' => $item->base_unit_name,
+                    'minimum_stock' => $item->minimum_stock,
+                    'manage_stock' => (bool) $item->manage_stock,
+                    'is_active' => (bool) $item->is_active,
+                ]),
+            ]);
+        }
+
         return view('erp.master-item', compact('items'));
     }
 
@@ -198,10 +214,14 @@ class ErpController extends Controller
             }
         });
 
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'Item berhasil disimpan.']);
+        }
+
         return redirect()->route('master.menu.produk')->with('success', 'Item berhasil disimpan.');
     }
 
-    public function itemEdit(int $id)
+    public function itemEdit(Request $request, int $id)
     {
         $entity = $this->entityId();
         $item = DB::table('products')->where('entity_id', $entity)->find($id);
@@ -210,6 +230,15 @@ class ErpController extends Controller
         $businessUnits = DB::table('business_units')->where('entity_id', $entity)->where('is_active', 1)->orderBy('id')->get();
         $selectedBusinessUnits = DB::table('product_units')->where('product_id', $id)->pluck('business_unit_id')->all();
         $conversions = DB::table('unit_conversions')->where('product_id', $id)->get();
+
+        if ($request->ajax()) {
+            return response()->json([
+                'item' => $item,
+                'selected_business_units' => $selectedBusinessUnits,
+                'conversions' => $conversions,
+            ]);
+        }
+
         return view('erp.master-item-edit', compact('item', 'units', 'businessUnits', 'selectedBusinessUnits', 'conversions'));
     }
 
@@ -241,6 +270,10 @@ class ErpController extends Controller
             DB::table('unit_conversions')->where('product_id',$id)->delete();
             foreach($conversionUnits as $index=>$conversionUnitId){ if(!$conversionUnitId || empty($conversionFactors[$index]) || (int)$conversionUnitId===(int)$data['base_unit_id']) continue; DB::table('unit_conversions')->insert(['product_id'=>$id,'unit_id'=>$conversionUnitId,'conversion_factor'=>$conversionFactors[$index],'created_at'=>now(),'updated_at'=>now()]); }
         });
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'Item berhasil diperbarui.']);
+        }
+
         return redirect()->route('master.menu.produk')->with('success','Item berhasil diperbarui.');
     }
 
