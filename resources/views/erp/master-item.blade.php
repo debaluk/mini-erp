@@ -55,7 +55,7 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Kode Item</label>
-                            <input type="text" id="item-code" class="form-control" value="BRG-00001" readonly>
+                            <input type="text" id="item-code" class="form-control" value="Otomatis oleh sistem" readonly>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Barcode</label>
