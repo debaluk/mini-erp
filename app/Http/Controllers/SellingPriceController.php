@@ -55,6 +55,12 @@ class SellingPriceController extends Controller
             ->where('p.entity_id', $entity)
             ->where('p.is_active', 1)
             ->where('p.item_type', 'barang')
+            ->whereNotExists(function ($q) use ($entity) {
+                $q->select(DB::raw(1))
+                    ->from('item_initial_setups as existing')
+                    ->whereColumn('existing.product_id', 'p.id')
+                    ->where('existing.entity_id', $entity);
+            })
             ->when($retailUnitId, fn ($q) => $q->where('pu.business_unit_id', $retailUnitId))
             ->select('p.id', 'p.code', 'p.barcode', 'p.name', 'p.selling_price', 'u.code as unit_code', 'u.name as unit_name')
             ->orderBy('p.name')
