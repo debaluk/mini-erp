@@ -29,20 +29,65 @@
 <script>
 document.addEventListener('DOMContentLoaded',()=>{
  const form=document.getElementById('customerForm'),code=document.getElementById('customer-code'),name=document.getElementById('customer-name'),type=document.getElementById('customer-type'),phone=document.getElementById('customer-phone'),address=document.getElementById('customer-address'),submit=document.getElementById('customer-submit'),cancel=document.getElementById('customer-cancel'),alertBox=document.getElementById('customer-alert');
- const baseUrl=@json(url('/master/customer')),csrf=document.querySelector('meta[name="csrf-token"]')?.content||@json(csrf_token());let editId=null;
+ const baseUrl=@json(url('/master/customer')),csrf=document.querySelector('meta[name="csrf-token"]')?.content||@json(csrf_token());let editId=null,table=null;
  const labels={umum:'Umum',proyek:'Proyek',perusahaan:'Perusahaan'};
  const alert=(m,k='success')=>{alertBox.innerHTML='<div class="alert alert-'+k+' py-2 small mb-0">'+m+'</div>';setTimeout(()=>alertBox.innerHTML='',3500)};
  const reset=()=>{form.reset();document.getElementById('customer-active').checked=true;editId=null;code.value='Otomatis';submit.textContent='Simpan';cancel.classList.add('d-none');name.classList.remove('is-invalid');name.focus()};
- const table=new DataTable('#customers-table',{processing:true,serverSide:true,ordering:false,pageLength:15,lengthMenu:[[15,25,50,100],[15,25,50,100]],language:{lengthMenu:'Tampilkan _MENU_ data per halaman',search:'Cari:',info:'Menampilkan _START_ sampai _END_ dari _TOTAL_ data',infoEmpty:'Tidak ada data',infoFiltered:'(disaring dari _MAX_ data)',zeroRecords:'Data tidak ditemukan',emptyTable:'Belum ada data',paginate:{first:'<<',last:'>>',next:'>',previous:'<'},processing:'Memuat...'},ajax:{url:baseUrl,type:'GET',dataSrc:'data'},columns:[
- {data:'code'},{data:'name'},{data:'customer_type',render:v=>labels[v]||v||''},{data:'phone',defaultContent:''},{data:'address',defaultContent:''},
- {data:'is_active',render:v=>Number(v)===1?'<span class="badge text-bg-success">Aktif</span>':'<span class="badge text-bg-secondary">Nonaktif</span>'},
- {data:null,orderable:false,searchable:false,className:'text-end text-nowrap',render:(d,t,r)=>'<button type="button" class="btn btn-outline-primary btn-sm btn-edit-customer" data-id="'+r.id+'">Edit</button> <button type="button" class="btn btn-outline-danger btn-sm btn-delete-customer" data-id="'+r.id+'">Hapus</button>'}
- ]});
- form.addEventListener('submit',async e=>{e.preventDefault();if(!name.value.trim()){name.classList.add('is-invalid');alert('Nama Customer wajib diisi.','danger');name.focus();return}const p=new FormData(form);if(editId)p.append('_method','PUT');try{const r=await fetch(editId?baseUrl+'/'+editId:baseUrl,{method:'POST',headers:{Accept:'application/json','X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':csrf},body:p}),d=await r.json().catch(()=>({}));if(!r.ok){const es=Object.values(d.errors||{}).flat();alert(d.message||es.join('<br>')||'Gagal menyimpan customer.','danger');return}alert(d.message||'Customer berhasil disimpan.');reset();table.ajax.reload(null,false)}catch(err){console.error(err);alert('Terjadi kesalahan saat menyimpan customer.','danger')}});
- document.addEventListener('click',e=>{const b=e.target.closest('.btn-edit-customer');if(b){const r=table.row(b.closest('tr')).data();if(!r)return;editId=b.dataset.id;code.value=r.code||'';name.value=r.name||'';type.value=r.customer_type||'umum';phone.value=r.phone||'';address.value=r.address||'';document.getElementById('customer-active').checked=Number(r.is_active)===1;document.getElementById('customer-inactive').checked=Number(r.is_active)!==1;submit.textContent='Update';cancel.classList.remove('d-none');name.focus();window.scrollTo({top:0,behavior:'smooth'});return}const d=e.target.closest('.btn-delete-customer');if(d){if(!confirm('Hapus customer ini? Jika sudah digunakan transaksi, customer tidak dapat dihapus. Nonaktifkan jika masih diperlukan untuk histori.'))return;d.disabled=true;fetch(baseUrl+'/'+d.dataset.id,{method:'DELETE',headers:{Accept:'application/json','X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':csrf}}).then(async r=>{const x=await r.json().catch(()=>({}));if(!r.ok){alert(x.message||'Customer tidak dapat dihapus.','danger');return}alert(x.message||'Customer berhasil dihapus.');if(editId===d.dataset.id)reset();table.ajax.reload(null,false)}).catch(err=>{console.error(err);alert('Terjadi kesalahan saat menghapus customer.','danger')}).finally(()=>d.disabled=false)}}});
- cancel.addEventListener('click',reset);reset();
+
+ // Pasang handler form TERLEBIH DAHULU. Jika DataTables gagal load, form tetap AJAX dan tidak submit native.
+ form.addEventListener('submit',async e=>{
+   e.preventDefault();
+   if(!name.value.trim()){name.classList.add('is-invalid');alert('Nama Customer wajib diisi.','danger');name.focus();return}
+   const p=new FormData(form);if(editId)p.append('_method','PUT');
+   submit.disabled=true;
+   try{
+     const r=await fetch(editId?baseUrl+'/'+editId:baseUrl,{method:'POST',headers:{Accept:'application/json','X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':csrf},body:p});
+     const d=await r.json().catch(()=>({}));
+     if(!r.ok){const es=Object.values(d.errors||{}).flat();alert(d.message||es.join('<br>')||'Gagal menyimpan customer.','danger');return}
+     alert(d.message||'Customer berhasil disimpan.');reset();
+     if(table)table.ajax.reload(null,false); else window.location.reload();
+   }catch(err){console.error(err);alert('Terjadi kesalahan saat menyimpan customer.','danger')}
+   finally{submit.disabled=false}
+ });
+
+ cancel.addEventListener('click',reset);
+
+ // DataTables bersifat enhancement; jangan sampai kegagalannya mematikan form.
+ if(typeof DataTable==='function'){
+   table=new DataTable('#customers-table',{
+     processing:true,serverSide:true,ordering:false,pageLength:15,lengthMenu:[[15,25,50,100],[15,25,50,100]],
+     language:{lengthMenu:'Tampilkan _MENU_ data per halaman',search:'Cari:',info:'Menampilkan _START_ sampai _END_ dari _TOTAL_ data',infoEmpty:'Tidak ada data',infoFiltered:'(disaring dari _MAX_ data)',zeroRecords:'Data tidak ditemukan',emptyTable:'Belum ada data',paginate:{first:'<<',last:'>>',next:'>',previous:'<'},processing:'Memuat...'},
+     ajax:{url:baseUrl,type:'GET',dataSrc:'data'},
+     columns:[
+       {data:'code'},{data:'name'},{data:'customer_type',render:v=>labels[v]||v||''},{data:'phone',defaultContent:''},{data:'address',defaultContent:''},
+       {data:'is_active',render:v=>Number(v)===1?'<span class="badge text-bg-success">Aktif</span>':'<span class="badge text-bg-secondary">Nonaktif</span>'},
+       {data:null,orderable:false,searchable:false,className:'text-end text-nowrap',render:(d,t,r)=>'<button type="button" class="btn btn-outline-primary btn-sm btn-edit-customer" data-id="'+r.id+'">Edit</button> <button type="button" class="btn btn-outline-danger btn-sm btn-delete-customer" data-id="'+r.id+'">Hapus</button>'}
+     ]
+   });
+ }else{
+   console.error('DataTables tidak tersedia. Form Customer tetap aktif.');
+ }
+
+ document.addEventListener('click',e=>{
+   const b=e.target.closest('.btn-edit-customer');
+   if(b&&table){
+     const r=table.row(b.closest('tr')).data();if(!r)return;
+     editId=b.dataset.id;code.value=r.code||'';name.value=r.name||'';type.value=r.customer_type||'umum';phone.value=r.phone||'';address.value=r.address||'';
+     document.getElementById('customer-active').checked=Number(r.is_active)===1;document.getElementById('customer-inactive').checked=Number(r.is_active)!==1;
+     submit.textContent='Update';cancel.classList.remove('d-none');name.focus();window.scrollTo({top:0,behavior:'smooth'});return;
+   }
+   const d=e.target.closest('.btn-delete-customer');
+   if(d){
+     if(!confirm('Hapus customer ini? Jika sudah digunakan transaksi, customer tidak dapat dihapus. Nonaktifkan jika masih diperlukan untuk histori.'))return;
+     d.disabled=true;
+     fetch(baseUrl+'/'+d.dataset.id,{method:'DELETE',headers:{Accept:'application/json','X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':csrf})
+       .then(async r=>{const x=await r.json().catch(()=>({}));if(!r.ok){alert(x.message||'Customer tidak dapat dihapus.','danger');return}alert(x.message||'Customer berhasil dihapus.');if(editId===d.dataset.id)reset();if(table)table.ajax.reload(null,false);})
+       .catch(err=>{console.error(err);alert('Terjadi kesalahan saat menghapus customer.','danger')})
+       .finally(()=>d.disabled=false);
+   }
+ });
+ reset();
 });
 </script>
 @endpush
-
 @endsection
