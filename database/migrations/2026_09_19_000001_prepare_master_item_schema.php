@@ -26,6 +26,14 @@ return new class extends Migration
         });
 
         /*
+         * Replace the legacy product_units table.
+         * The old table belongs to the previous Item/UOM design and is
+         * intentionally discarded because this migration introduces the
+         * business-unit relation with a clean structure.
+         */
+        Schema::dropIfExists('product_units');
+
+        /*
          * One Item can be used by more than one business unit.
          */
         Schema::create('product_units', function (Blueprint $t) {
@@ -69,9 +77,9 @@ return new class extends Migration
 
         /*
          * Preserve existing data:
-         * - code        <- legacy sku
+         * - code         <- legacy sku
          * - base_unit_id <- legacy unit_id
-         * - item_type   <- legacy product type, all mapped to Barang
+         * - item_type    <- legacy product type, all mapped to Barang
          */
         DB::statement("
             UPDATE products
@@ -82,14 +90,7 @@ return new class extends Migration
 
         DB::statement("
             UPDATE products
-            SET code = CONCAT(
-                CASE
-                    WHEN type IN ('raw_material', 'merchandise', 'wip', 'finished_goods')
-                        THEN 'BRG-'
-                    ELSE 'BRG-'
-                END,
-                LPAD(id, 5, '0')
-            )
+            SET code = CONCAT('BRG-', LPAD(id, 5, '0'))
             WHERE code IS NULL OR code = ''
         ");
 
@@ -112,15 +113,6 @@ return new class extends Migration
          * for compatibility during the transition.
          * They will be removed only after dependent modules are migrated.
          */
-        DB::statement("
-            UPDATE products p
-            JOIN (
-                SELECT entity_id, id
-                FROM products
-                WHERE manage_stock IS NULL
-            ) x ON x.id = p.id
-            SET p.manage_stock = 1
-        ");
 
         /*
          * Seed the initial business units for every existing entity.
