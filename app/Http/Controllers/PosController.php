@@ -25,6 +25,13 @@ class PosController extends Controller
         $data = $request->validate(['product_id'=>'required|integer','qty'=>'required|numeric|gt:0']);
         $entity = $this->entityId();
         $product = DB::table('products as p')
+            ->join('product_units as pu', 'pu.product_id', '=', 'p.id')
+            ->join('business_units as bu', function ($join) use ($entity) {
+                $join->on('bu.id', '=', 'pu.business_unit_id')
+                    ->where('bu.entity_id', $entity)
+                    ->where('bu.code', 'RET')
+                    ->where('bu.is_active', 1);
+            })
             ->where('p.entity_id', $entity)
             ->where('p.is_active', 1)
             ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
