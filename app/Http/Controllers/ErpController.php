@@ -51,6 +51,19 @@ class ErpController extends Controller
             ->orderBy('id')
             ->get();
 
+        $nextCodes = [];
+        foreach (['barang' => 'BRG', 'jasa' => 'JSA', 'aset' => 'AST'] as $itemType => $prefix) {
+            $lastNumber = DB::table('products')
+                ->where('entity_id', $entity)
+                ->where('code', 'like', $prefix.'-%')
+                ->get(['code'])
+                ->map(function ($row) use ($prefix) {
+                    return preg_match('/^'.preg_quote($prefix, '/').'-(\\d+)$/', $row->code, $m) ? (int) $m[1] : 0;
+                })
+                ->max() ?? 0;
+            $nextCodes[$itemType] = $prefix.'-'.str_pad((string) ($lastNumber + 1), 5, '0', STR_PAD_LEFT);
+        }
+
         $items = DB::table('products')
             ->leftJoin('units as base_units', 'base_units.id', '=', 'products.base_unit_id')
             ->where('products.entity_id', $entity)
