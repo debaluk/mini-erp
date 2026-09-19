@@ -11,6 +11,16 @@
 
 <div id="item-alert"></div>
 
+<div class="d-flex align-items-center gap-2 mb-2">
+    <label for="item-unit-filter" class="small text-secondary mb-0">Unit</label>
+    <select id="item-unit-filter" class="form-select form-select-sm" style="max-width: 220px">
+        <option value="">Semua</option>
+        @foreach($businessUnits as $businessUnit)
+            <option value="{{ $businessUnit->id }}">{{ $businessUnit->name }}</option>
+        @endforeach
+    </select>
+</div>
+
 <div class="card shadow-sm">
     <div class="table-responsive">
         <table id="items-table" class="table table-sm table-hover align-middle mb-0 w-100">
@@ -150,10 +160,15 @@
     const rows = document.getElementById('conversion-rows');
     const units = @json($units);
     const dt = new DataTable('#items-table', {
-        ajax: '{{ route('master.menu.produk') }}',
+        ajax: {
+            url: '{{ route('master.menu.produk') }}',
+            data: function (d) {
+                d.business_unit_id = document.getElementById('item-unit-filter').value;
+            }
+        },
         processing: true,
+        ordering: false,
         pageLength: 15,
-        order: [[0, 'desc']],
         columns: [
             { data: 'code', className: 'fw-semibold' },
             { data: 'barcode', render: d => d || '-' },
@@ -203,6 +218,8 @@
         document.getElementById('item-minimum-stock').disabled = false;
         document.getElementById('item-code').value = 'Otomatis';
     }
+
+    document.getElementById('item-unit-filter').addEventListener('change', () => dt.ajax.reload());
 
     document.getElementById('btn-add-item').addEventListener('click', () => {
         resetForm();
