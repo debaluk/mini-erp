@@ -34,10 +34,10 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body py-3">
-                    <div class="row g-2">
+                    <div class="row g-3">
                         @foreach($config['fields'] as $key => $field)
-                            <div class="col-md-4">
-                                <label class="form-label">{{ $field['label'] }}</label>
+                            <div class="{{ $type === 'warehouses' ? 'col-12' : 'col-md-4' }}">
+                                <label class="form-label mb-1">{{ $field['label'] }}</label>
                                 @if($field['type'] === 'textarea')
                                     <textarea name="{{ $key }}" class="form-control @if($field['required'] ?? false) required-field @endif" rows="2" @if($field['required'] ?? false) data-required="1" @endif></textarea>
                                 @elseif($field['type'] === 'select')
