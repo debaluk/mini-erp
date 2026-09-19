@@ -9,6 +9,7 @@ use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\PosController;
 use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\SalesReturnController;
+use App\Http\Controllers\SalesController;
 use App\Http\Controllers\SellingPriceController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\UnitConversionController;
@@ -154,7 +155,8 @@ Route::middleware('auth')->group(function () {
     }
 
     Route::get('/pos/pos', fn () => app(ModuleController::class)->show('pos'))->middleware('access:pos_retail')->name('pos.pos');
-    Route::get('/pos/penjualan', fn () => app(ModuleController::class)->show('sales'))->middleware('access:pos_retail')->name('pos.penjualan');
+    Route::get('/pos/penjualan', [SalesController::class, 'index'])->middleware('access:pos_retail')->name('pos.penjualan');
+    Route::get('/pos/penjualan/create', [SalesController::class, 'create'])->middleware('access:pos_retail')->name('pos.penjualan.create');
     Route::get('/pos/penjualan/data', [ModuleController::class, 'salesData'])->middleware('access:pos_retail')->name('pos.penjualan.data');
     Route::get('/pos/penjualan/export-excel', [ModuleController::class, 'exportSalesExcel'])->middleware('access:pos_retail')->name('pos.penjualan.export-excel');
     Route::get('/pos/penjualan/{id}/detail', [ModuleController::class, 'salesDetail'])->middleware('access:pos_retail')->name('pos.penjualan.detail');
