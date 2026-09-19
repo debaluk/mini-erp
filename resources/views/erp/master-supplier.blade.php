@@ -12,48 +12,54 @@
             <div class="col-md-6">
             <form id="supplierForm" method="POST" action="{{ url('/master/supplier') }}" novalidate onsubmit="return window.submitSupplierForm ? window.submitSupplierForm(event) : false;">
                 @csrf
-                <div class="mb-2">
-                    <label class="form-label">Kode Supplier <span class="text-danger">*</span></label>
-                    <input id="supplier-code" class="form-control" readonly value="Otomatis">
-                    <div class="form-text">Kode dibuat otomatis.</div>
-                </div>
-                <div class="mb-2">
-                    <label class="form-label">Nama Supplier <span class="text-danger">*</span></label>
-                    <input id="supplier-name" name="name" class="form-control" maxlength="255">
-                </div>
-                <div class="mb-2">
-                    <label class="form-label">Kategori</label>
-                    <input id="supplier-category" name="category" class="form-control" maxlength="100">
-                </div>
-                <div class="mb-2">
-                    <label class="form-label">No. Telepon</label>
-                    <input id="supplier-phone" name="phone" class="form-control" maxlength="100">
-                </div>
-                <div class="mb-2">
-                    <label class="form-label">WhatsApp</label>
-                    <input id="supplier-whatsapp" name="whatsapp" class="form-control" maxlength="100">
-                </div>
-                <div class="mb-2">
-                    <label class="form-label">Email</label>
-                    <input id="supplier-email" name="email" type="email" class="form-control" maxlength="255">
-                </div>
-                <div class="mb-2">
-                    <label class="form-label">Website</label>
-                    <input id="supplier-website" name="website" class="form-control" maxlength="255">
-                </div>
-                <div class="mb-2">
-                    <label class="form-label">Alamat</label>
-                    <textarea id="supplier-address" name="address" class="form-control" rows="3"></textarea>
-                </div>
-                <div class="mb-2">
-                    <label class="form-label">Negara</label>
-                    <input id="supplier-country" name="country" class="form-control" maxlength="100">
-                </div>
-                <div class="mb-2">
-                    <label class="form-label d-block">Status</label>
-                    <div class="d-flex gap-4">
-                        <div class="form-check"><input class="form-check-input" type="radio" name="is_active" value="1" id="supplier-active" checked><label class="form-check-label" for="supplier-active">Aktif</label></div>
-                        <div class="form-check"><input class="form-check-input" type="radio" name="is_active" value="0" id="supplier-inactive"><label class="form-check-label" for="supplier-inactive">Nonaktif</label></div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="mb-2">
+                            <label class="form-label">Kode Supplier <span class="text-danger">*</span></label>
+                            <input id="supplier-code" class="form-control" readonly value="Otomatis">
+                            <div class="form-text">Kode dibuat otomatis.</div>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Nama Supplier <span class="text-danger">*</span></label>
+                            <input id="supplier-name" name="name" class="form-control" maxlength="255">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Kategori</label>
+                            <input id="supplier-category" name="category" class="form-control" maxlength="100">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">No. Telepon</label>
+                            <input id="supplier-phone" name="phone" class="form-control" maxlength="100">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">WhatsApp</label>
+                            <input id="supplier-whatsapp" name="whatsapp" class="form-control" maxlength="100">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-2">
+                            <label class="form-label">Email</label>
+                            <input id="supplier-email" name="email" type="email" class="form-control" maxlength="255">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Website</label>
+                            <input id="supplier-website" name="website" class="form-control" maxlength="255">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Alamat</label>
+                            <textarea id="supplier-address" name="address" class="form-control" rows="3"></textarea>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Negara</label>
+                            <input id="supplier-country" name="country" class="form-control" maxlength="100">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label d-block">Status</label>
+                            <div class="d-flex gap-4">
+                                <div class="form-check"><input class="form-check-input" type="radio" name="is_active" value="1" id="supplier-active" checked><label class="form-check-label" for="supplier-active">Aktif</label></div>
+                                <div class="form-check"><input class="form-check-input" type="radio" name="is_active" value="0" id="supplier-inactive"><label class="form-check-label" for="supplier-inactive">Nonaktif</label></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div id="supplier-alert" class="mb-2"></div>
