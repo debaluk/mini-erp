@@ -25,8 +25,36 @@ class ErpController extends Controller
                 'sku'=>['label'=>'SKU','type'=>'text'],'barcode'=>['label'=>'Barcode','type'=>'text'],'name'=>['label'=>'Nama Produk','type'=>'text','required'=>true],
                 'type'=>['label'=>'Tipe','type'=>'select','options'=>['raw_material'=>'Bahan Baku','merchandise'=>'Barang Dagang','wip'=>'WIP','finished_goods'=>'Barang Jadi']],
                 'cost_price'=>['label'=>'Harga Pokok','type'=>'number','step'=>'0.01'],'selling_price'=>['label'=>'Harga Jual','type'=>'number','step'=>'0.01'],'minimum_stock'=>['label'=>'Minimum Stok','type'=>'number','step'=>'0.001']]],
-            'customers'=>['title'=>'Customer','table'=>'customers','columns'=>['code','name','phone','address','credit_limit'],'fields'=>['code'=>['label'=>'Kode','type'=>'text','required'=>true],'name'=>['label'=>'Nama','type'=>'text','required'=>true],'phone'=>['label'=>'Telepon','type'=>'text'],'address'=>['label'=>'Alamat','type'=>'textarea'],'credit_limit'=>['label'=>'Limit Kredit','type'=>'number','step'=>'0.01']]],
-            'suppliers'=>['title'=>'Supplier','table'=>'suppliers','columns'=>['code','name','phone','address','credit_limit'],'fields'=>['code'=>['label'=>'Kode','type'=>'text','required'=>true],'name'=>['label'=>'Nama','type'=>'text','required'=>true],'phone'=>['label'=>'Telepon','type'=>'text'],'address'=>['label'=>'Alamat','type'=>'textarea'],'credit_limit'=>['label'=>'Limit Kredit','type'=>'number','step'=>'0.01']]],
+            'customers'=>[
+                'title'=>'Customer','table'=>'customers',
+                'columns'=>['code','name','customer_type','phone','address','is_active'],
+                'column_labels'=>['code'=>'Kode Customer','name'=>'Nama Customer','customer_type'=>'Jenis Customer','phone'=>'No. Telepon','address'=>'Alamat','is_active'=>'Status'],
+                'fields'=>[
+                    'code'=>['label'=>'Kode Customer','type'=>'text','readonly'=>true],
+                    'name'=>['label'=>'Nama Customer','type'=>'text','required'=>true],
+                    'customer_type'=>['label'=>'Jenis Customer','type'=>'select','required'=>true,'options'=>['umum'=>'Umum','proyek'=>'Proyek','perusahaan'=>'Perusahaan']],
+                    'phone'=>['label'=>'No. Telepon','type'=>'text'],
+                    'address'=>['label'=>'Alamat','type'=>'textarea'],
+                    'is_active'=>['label'=>'Status','type'=>'select','options'=>['1'=>'Aktif','0'=>'Nonaktif']]
+                ]
+            ],
+            'suppliers'=>[
+                'title'=>'Supplier','table'=>'suppliers',
+                'columns'=>['code','name','category','phone','whatsapp','email','website','address','country','is_active'],
+                'column_labels'=>['code'=>'Kode Supplier','name'=>'Nama Supplier','category'=>'Kategori','phone'=>'No. Telepon','whatsapp'=>'WhatsApp','email'=>'Email','website'=>'Website','address'=>'Alamat','country'=>'Negara','is_active'=>'Status'],
+                'fields'=>[
+                    'code'=>['label'=>'Kode Supplier','type'=>'text','readonly'=>true],
+                    'name'=>['label'=>'Nama Supplier','type'=>'text','required'=>true],
+                    'category'=>['label'=>'Kategori','type'=>'text'],
+                    'phone'=>['label'=>'No. Telepon','type'=>'text'],
+                    'whatsapp'=>['label'=>'WhatsApp','type'=>'text'],
+                    'email'=>['label'=>'Email','type'=>'email'],
+                    'website'=>['label'=>'Website','type'=>'url'],
+                    'address'=>['label'=>'Alamat','type'=>'textarea'],
+                    'country'=>['label'=>'Negara','type'=>'text'],
+                    'is_active'=>['label'=>'Status','type'=>'select','options'=>['1'=>'Aktif','0'=>'Nonaktif']]
+                ]
+            ],
             'warehouses'=>['title'=>'Gudang','table'=>'warehouses','columns'=>['code','name','type','address'],'fields'=>['code'=>['label'=>'Kode','type'=>'text','required'=>true],'name'=>['label'=>'Nama Gudang','type'=>'text','required'=>true],'type'=>['label'=>'Tipe','type'=>'text'],'address'=>['label'=>'Alamat','type'=>'textarea']]],
             'units'=>['title'=>'Satuan','table'=>'units','columns'=>['code','name'],'fields'=>['code'=>['label'=>'Kode','type'=>'text','required'=>true],'name'=>['label'=>'Nama Satuan','type'=>'text','required'=>true]]],
             'tariffs'=>['title'=>'Tarif','table'=>'tariffs','columns'=>['code','name','tariff_type','base_price','price_per_km','price_per_hour','minimum_charge'],'fields'=>['code'=>['label'=>'Kode','type'=>'text','required'=>true],'name'=>['label'=>'Nama Tarif','type'=>'text','required'=>true],'tariff_type'=>['label'=>'Jenis','type'=>'text','required'=>true],'base_price'=>['label'=>'Harga Dasar','type'=>'number','step'=>'0.01'],'price_per_km'=>['label'=>'Harga/KM','type'=>'number','step'=>'0.01'],'price_per_hour'=>['label'=>'Harga/Jam','type'=>'number','step'=>'0.01'],'minimum_charge'=>['label'=>'Minimum Charge','type'=>'number','step'=>'0.01']]],
@@ -554,8 +582,17 @@ class ErpController extends Controller
             $value = $request->input($key);
             if ($value !== null && $value !== '') $data[$key] = $value;
         }
-        $data['entity_id']=$this->entityId();
-        if (Schema::hasColumn($config['table'], 'is_active')) $data['is_active']=1;
+        $entity = $this->entityId();
+        if (in_array($type, ['customers','suppliers'], true)) {
+            $prefix = $type === 'customers' ? 'CUS' : 'SUP';
+            $lastNumber = DB::table($config['table'])->where('entity_id', $entity)->where('code', 'like', $prefix.'-%')->get(['code'])
+                ->map(fn ($row) => preg_match('/^'.preg_quote($prefix, '/').'-(\\d+)$/', $row->code, $m) ? (int) $m[1] : 0)->max() ?? 0;
+            $data['code'] = $prefix.'-'.str_pad((string) ($lastNumber + 1), 5, '0', STR_PAD_LEFT);
+            $data['is_active'] = array_key_exists('is_active', $data) ? (int) $data['is_active'] : 1;
+            if ($type === 'customers') $data['credit_limit'] = 0;
+        }
+        $data['entity_id']=$entity;
+        if (Schema::hasColumn($config['table'], 'is_active') && !array_key_exists('is_active', $data)) $data['is_active']=1;
         $data['created_at']=now();
         $data['updated_at']=now();
         if ($type==='products') { $data['unit_id']=$data['unit_id']??null; $data['category_id']=$data['category_id']??null; }
@@ -577,11 +614,13 @@ class ErpController extends Controller
             if ($value !== null && $value !== '') $data[$key] = $value;
         }
         unset($data['entity_id']);
+        if (in_array($type, ['customers','suppliers'], true)) {
+            unset($data['code']);
+            $data['is_active'] = array_key_exists('is_active', $data) ? (int) $data['is_active'] : 1;
+            if ($type === 'customers') $data['credit_limit'] = 0;
+        }
         $data['updated_at']=now();
-        DB::table($config['table'])
-            ->where('entity_id',$this->entityId())
-            ->where('id',$id)
-            ->update($data);
+        DB::table($config['table'])->where('entity_id',$this->entityId())->where('id',$id)->update($data);
         return $request->expectsJson()
             ? response()->json(['message'=>$config['title'].' berhasil diperbarui.'])
             : back()->with('success',$config['title'].' berhasil diperbarui.');
