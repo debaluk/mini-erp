@@ -15,7 +15,7 @@
     <div class="card-body border-bottom py-2">
         <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
             <div class="small text-secondary">Daftar harga jual item Retail</div>
-            <button type="button" class="btn btn-outline-success btn-sm" id="btn-export-csv">Export CSV</button>
+            <button type="button" class="btn btn-outline-success btn-sm" id="btn-export-excel">Export Excel</button>
         </div>
     </div>
     <div class="table-responsive">
@@ -125,6 +125,7 @@
 @endsection
 
 @push('scripts')
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script>
 (function () {
     const products = @json($products);
@@ -146,19 +147,44 @@
     const selling = document.getElementById('setup-selling-price');
     let syncing = false;
 
-    document.getElementById('btn-export-csv').addEventListener('click', () => {
-        const rows = priceTable.rows({ search: 'applied' }).data().toArray().map(r => r.slice(0, 8));
-        const header = ['Kode','Item','Satuan','Harga Jual','HPP Awal','UP %','Stok Awal','Tgl Setup'];
+    document.getElementById('btn-export-excel').addEventListener('click', () => {
+        if (typeof XLSX === 'undefined') {
+            alert('Library Excel belum termuat. Silakan refresh halaman lalu coba lagi.');
+            return;
+        }
+
         const clean = v => String(v ?? '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
-        const csv = [header, ...rows.map(r => r.map(clean))]
-            .map(row => row.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(','))
-            .join('\r\n');
-        const blob = new Blob([\ufeff + csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'harga-jual-' + new Date().toISOString().slice(0,10) + '.csv';
-        document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+        const num = v => {
+            const s = clean(v).replace(/[^0-9,.-]/g, '').replace(/\./g, '').replace(',', '.');
+            const n = Number(s);
+            return Number.isFinite(n) ? n : null;
+        };
+
+        const data = priceTable.rows({ search: 'applied' }).data().toArray().map(r => [
+            clean(r[0]), clean(r[1]), clean(r[2]),
+            num(r[3]), num(r[4]), num(r[5]), num(r[6]), clean(r[7])
+        ]);
+
+        const ws = XLSX.utils.aoa_to_sheet([
+            ['Kode', 'Item', 'Satuan', 'Harga Jual', 'HPP Awal', 'UP (%)', 'Stok Awal', 'Tgl Setup'],
+            ...data
+        ]);
+        ws['!cols'] = [
+            { wch: 15 }, { wch: 32 }, { wch: 12 }, { wch: 16 },
+            { wch: 16 }, { wch: 12 }, { wch: 14 }, { wch: 14 }
+        ];
+
+        data.forEach((row, i) => {
+            const r = i + 2;
+            if (ws['D' + r]) ws['D' + r].z = '#,##0.00';
+            if (ws['E' + r]) ws['E' + r].z = '#,##0.00';
+            if (ws['F' + r]) ws['F' + r].z = '0.00';
+            if (ws['G' + r]) ws['G' + r].z = '#,##0.000';
+        });
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Harga Jual');
+        XLSX.writeFile(wb, 'harga-jual-' + new Date().toISOString().slice(0, 10) + '.xlsx');
     });
 
     function esc(v) {
@@ -175,16 +201,28 @@
 
     function showPopup() {
         const q = search.value.trim().toLowerCase();
-        if (!q) { popup.style.display = 'none'; return; }
-        const rows = products.filter(p => [p.name, p.code, p.barcode].some(v => String(v || '').toLowerCase().includes(q))).slice(0, 30);
+        const rows = products
+            .filter(p => !q || [p.name, p.code, p.barcode].some(v => String(v || '').toLowerCase().includes(q)))
+            .slice(0, 30);
+
         popup.innerHTML = rows.length
-            ? rows.map((p, i) => '<button type="button" class="list-group-item list-group-item-action text-start" data-i="'+i+'"><div class="fw-semibold">'+esc(p.name)+'</div><div class="small text-secondary">'+esc(p.code)+(p.barcode ? ' · '+esc(p.barcode) : '')+(p.unit_code ? ' · '+esc(p.unit_code) : '')+'</div></button>').join('')
+            ? rows.map((p, i) =>
+                '<button type="button" class="list-group-item list-group-item-action text-start px-3 py-2" data-i="' + i + '">' +
+                    '<div class="fw-semibold">' + esc(p.name) + '</div>' +
+                    '<div class="small text-secondary">' + esc(p.code) +
+                    (p.barcode ? ' · ' + esc(p.barcode) : '') +
+                    (p.unit_code ? ' · ' + esc(p.unit_code) : '') +
+                    '</div></button>'
+              ).join('')
             : '<div class="list-group-item text-secondary">Barang tidak ditemukan.</div>';
+
         popup.style.display = 'block';
-        popup.querySelectorAll('[data-i]').forEach(btn => btn.addEventListener('mousedown', e => {
-            e.preventDefault();
-            chooseProduct(rows[Number(btn.dataset.i)]);
-        }));
+        popup.querySelectorAll('[data-i]').forEach(btn => {
+            btn.addEventListener('mousedown', e => {
+                e.preventDefault();
+                chooseProduct(rows[Number(btn.dataset.i)]);
+            });
+        });
     }
 
     function calcFromMarkup() {
@@ -207,6 +245,7 @@
 
     search.addEventListener('input', () => { productId.value = ''; showPopup(); });
     search.addEventListener('focus', showPopup);
+    search.addEventListener('click', showPopup);
     search.addEventListener('blur', () => setTimeout(() => popup.style.display = 'none', 150));
     search.addEventListener('keydown', e => {
         if (e.key === 'Escape') popup.style.display = 'none';
