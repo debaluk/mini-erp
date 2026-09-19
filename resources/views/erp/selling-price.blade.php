@@ -101,22 +101,22 @@
 
                     <div class="mb-2">
                         <label class="form-label">Harga Beli / HPP Awal <span class="text-danger">*</span></label>
-                        <input type="number" name="purchase_price" id="setup-purchase-price" class="form-control" min="0.01" step="0.01" required>
+                        <input type="number" name="purchase_price" id="setup-purchase-price" class="form-control" min="0.01" step="0.01" inputmode="decimal" required>
                     </div>
 
                     <div class="mb-2">
                         <label class="form-label">Stok Awal <span class="text-danger">*</span></label>
-                        <input type="number" name="initial_stock" id="setup-initial-stock" class="form-control" min="0.001" step="0.001" required>
+                        <input type="number" name="initial_stock" id="setup-initial-stock" class="form-control" min="0" step="0.001" inputmode="decimal" required>
                     </div>
 
                     <div class="mb-2">
                         <label class="form-label">UP (%)</label>
-                        <input type="number" name="markup_percent" id="setup-markup" class="form-control" min="0" step="0.01" value="0">
+                        <input type="number" name="markup_percent" id="setup-markup" class="form-control" min="0" step="0.01" value="0" inputmode="decimal">
                     </div>
 
                     <div class="mb-1">
                         <label class="form-label">Harga Jual <span class="text-danger">*</span></label>
-                        <input type="number" name="selling_price" id="setup-selling-price" class="form-control" min="0.01" step="0.01" required>
+                        <input type="number" name="selling_price" id="setup-selling-price" class="form-control" min="0.01" step="0.01" inputmode="decimal" required>
                     </div>
                     <div class="small text-secondary">Harga Jual = Harga Beli + (Harga Beli × UP%). UP dan Harga Jual bisa diubah dua arah.</div>
                 </div>
