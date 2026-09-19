@@ -653,6 +653,70 @@ class ErpController extends Controller
         ]);
     }
 
+    public function customerMaster(Request $request)
+    {
+        $entity = $this->entityId();
+        if ($request->ajax() && $request->has('draw')) {
+            $query = DB::table('customers')->where('entity_id', $entity);
+            $search = trim((string) $request->input('search.value', ''));
+            if ($search !== '') {
+                $query->where(function ($q) use ($search) {
+                    $q->where('code', 'like', '%'.$search.'%')
+                        ->orWhere('name', 'like', '%'.$search.'%')
+                        ->orWhere('customer_type', 'like', '%'.$search.'%')
+                        ->orWhere('phone', 'like', '%'.$search.'%')
+                        ->orWhere('address', 'like', '%'.$search.'%');
+                });
+            }
+            $total = DB::table('customers')->where('entity_id', $entity)->count();
+            $filtered = $query->count();
+            $length = max(1, (int) $request->input('length', 15));
+            $rows = $query->orderByDesc('id')->offset(max(0, (int) $request->input('start', 0)))->limit($length)->get();
+            return response()->json(['draw'=>(int)$request->input('draw'),'recordsTotal'=>$total,'recordsFiltered'=>$filtered,'data'=>$rows]);
+        }
+        return view('erp.master-customer');
+    }
+
+    public function customerStore(Request $request)
+    {
+        $entity = $this->entityId();
+        $data = $request->validate([
+            'name'=>['required','string','max:255'],
+            'customer_type'=>['required','in:umum,proyek,perusahaan'],
+            'phone'=>['nullable','string','max:100'],
+            'address'=>['nullable','string'],
+            'is_active'=>['required','boolean'],
+        ]);
+        $last = DB::table('customers')->where('entity_id',$entity)->where('code','like','CUS-%')->orderByDesc('id')->value('code');
+        $number = 1;
+        if ($last && preg_match('/-(\\d+)$/',$last,$m)) $number=(int)$m[1]+1;
+        do { $code='CUS-'.str_pad((string)$number,5,'0',STR_PAD_LEFT); $number++; }
+        while (DB::table('customers')->where('entity_id',$entity)->where('code',$code)->exists());
+        DB::table('customers')->insert(['entity_id'=>$entity,'code'=>$code,'name'=>trim($data['name']),'customer_type'=>$data['customer_type'],'phone'=>isset($data['phone'])?trim($data['phone']):null,'address'=>isset($data['address'])?trim($data['address']):null,'credit_limit'=>0,'is_active'=>(int)$data['is_active'],'created_at'=>now(),'updated_at'=>now()]);
+        return response()->json(['message'=>'Customer berhasil disimpan.']);
+    }
+
+    public function customerUpdate(Request $request, int $id)
+    {
+        $entity = $this->entityId();
+        abort_unless(DB::table('customers')->where('entity_id',$entity)->where('id',$id)->exists(),404,'Customer tidak ditemukan.');
+        $data=$request->validate(['name'=>['required','string','max:255'],'customer_type'=>['required','in:umum,proyek,perusahaan'],'phone'=>['nullable','string','max:100'],'address'=>['nullable','string'],'is_active'=>['required','boolean']]);
+        DB::table('customers')->where('entity_id',$entity)->where('id',$id)->update(['name'=>trim($data['name']),'customer_type'=>$data['customer_type'],'phone'=>isset($data['phone'])?trim($data['phone']):null,'address'=>isset($data['address'])?trim($data['address']):null,'is_active'=>(int)$data['is_active'],'updated_at'=>now()]);
+        return response()->json(['message'=>'Customer berhasil diperbarui.']);
+    }
+
+    public function customerDelete(Request $request, int $id)
+    {
+        $entity=$this->entityId();
+        abort_unless(DB::table('customers')->where('entity_id',$entity)->where('id',$id)->exists(),404,'Customer tidak ditemukan.');
+        try {
+            DB::table('customers')->where('entity_id',$entity)->where('id',$id)->delete();
+        } catch (\\Throwable $e) {
+            return response()->json(['message'=>'Customer sudah digunakan dalam transaksi dan tidak dapat dihapus. Nonaktifkan customer jika tidak digunakan lagi.'],422);
+        }
+        return response()->json(['message'=>'Customer berhasil dihapus.']);
+    }
+
     public function master(Request $request, string $type)    {
         $config = $this->masterConfig($type);
         $entity = $this->entityId();
