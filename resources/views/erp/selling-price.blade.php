@@ -336,9 +336,22 @@
         save.disabled = true;
         const url=editMode ? '{{ url('/master/harga-jual') }}/'+productId.value+'/edit' : '{{ route('master.harga-jual.setup-awal') }}';
         const response = await fetch(url, {
-            method: editMode ? 'PUT' : 'POST',
-            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
-            body: (()=>{const fd=new FormData(form); fd.set('purchase_price',parseMoney(purchase.value)); fd.set('initial_stock',parseDecimal(initialStock.value)); fd.set('markup_percent',parseDecimal(markup.value)); fd.set('selling_price',parseMoney(selling.value)); return fd;})()
+            method: editMode ? 'POST' : 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            body: (() => {
+                const fd = new FormData(form);
+                if (editMode) fd.append('_method', 'PUT');
+                fd.set('product_id', productId.value);
+                fd.set('purchase_price', parseMoney(purchase.value));
+                fd.set('initial_stock', parseDecimal(initialStock.value));
+                fd.set('markup_percent', parseDecimal(markup.value));
+                fd.set('selling_price', parseMoney(selling.value));
+                return fd;
+            })()
         });
         const payload = await response.json();
         if (!response.ok) {
