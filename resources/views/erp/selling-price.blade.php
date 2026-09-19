@@ -163,38 +163,47 @@
             return;
         }
 
-        const clean = v => String(v ?? '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
-        const num = v => {
-            const s = clean(v).replace(/[^0-9,.-]/g, '').replace(/\./g, '').replace(',', '.');
-            const n = Number(s);
-            return Number.isFinite(n) ? n : null;
-        };
-
-        const data = priceTable.rows({ search: 'applied' }).data().toArray().map(r => [
-            clean(r[0]), clean(r[1]), clean(r[2]),
-            num(r[3]), num(r[4]), num(r[5]), num(r[6]), clean(r[7])
-        ]);
+        const rows = priceTable.rows({ search: 'applied' }).data().toArray();
+        const data = rows.map(r => {
+            const raw = value => String(value ?? '').replace(/<[^>]*>/g, '').trim();
+            const money = value => {
+                const s = raw(value).replace(/[^0-9-]/g, '');
+                return s ? Number(s) : null;
+            };
+            const percent = value => {
+                const s = raw(value).replace(',', '.').replace(/[^0-9.-]/g, '');
+                return s ? Number(s) : null;
+            };
+            const stock = value => {
+                const s = raw(value).replace(/\./g, '').replace(',', '.').replace(/[^0-9.-]/g, '');
+                return s ? Number(s) : null;
+            };
+            return [
+                raw(r[0]), raw(r[1]), raw(r[2]),
+                money(r[3]), money(r[4]), percent(r[5]), stock(r[6]), raw(r[7])
+            ];
+        });
 
         const ws = XLSX.utils.aoa_to_sheet([
-            ['Kode', 'Item', 'Satuan', 'Harga Jual', 'HPP Awal', 'UP (%)', 'Stok Awal', 'Tgl Setup'],
+            ['Kode','Item','Satuan','Harga Jual','HPP Awal','UP (%)','Stok Awal','Tgl Setup'],
             ...data
         ]);
         ws['!cols'] = [
-            { wch: 15 }, { wch: 32 }, { wch: 12 }, { wch: 16 },
-            { wch: 16 }, { wch: 12 }, { wch: 14 }, { wch: 14 }
+            {wch:15},{wch:32},{wch:12},{wch:18},
+            {wch:18},{wch:12},{wch:14},{wch:14}
         ];
 
         data.forEach((row, i) => {
-            const r = i + 2;
-            if (ws['D' + r]) ws['D' + r].z = '#,##0.00';
-            if (ws['E' + r]) ws['E' + r].z = '#,##0.00';
-            if (ws['F' + r]) ws['F' + r].z = '0.00';
-            if (ws['G' + r]) ws['G' + r].z = '#,##0.000';
+            const excelRow = i + 2;
+            if (row[3] !== null) ws['D'+excelRow].z = 'Rp #,##0';
+            if (row[4] !== null) ws['E'+excelRow].z = 'Rp #,##0';
+            if (row[5] !== null) ws['F'+excelRow].z = '0.00';
+            if (row[6] !== null) ws['G'+excelRow].z = '#,##0.000';
         });
 
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Harga Jual');
-        XLSX.writeFile(wb, 'harga-jual-' + new Date().toISOString().slice(0, 10) + '.xlsx');
+        XLSX.writeFile(wb, 'harga-jual-' + new Date().toISOString().slice(0,10) + '.xlsx');
     });
 
     function esc(v) {
