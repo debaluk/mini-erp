@@ -15,7 +15,7 @@
             <thead>
                 <tr>
                     @foreach($config['columns'] as $column)
-                        <th>{{ ucwords(str_replace('_', ' ', $column)) }}</th>
+                        <th>{{ $config['column_labels'][$column] ?? ucwords(str_replace('_', ' ', $column)) }}</th>
                     @endforeach
                     <th class="text-end">Aksi</th>
                 </tr>
@@ -36,7 +36,7 @@
                 <div class="modal-body py-3">
                     <div class="row g-3">
                         @foreach($config['fields'] as $key => $field)
-                            <div class="{{ $type === 'warehouses' ? 'col-12' : 'col-md-4' }}">
+                            <div class="{{ $type === 'warehouses' ? 'col-12' : (in_array($type, ['customers','suppliers'], true) ? 'col-md-6' : 'col-md-4') }}">
                                 <label class="form-label mb-1">{{ $field['label'] }}</label>
                                 @if($field['type'] === 'textarea')
                                     <textarea name="{{ $key }}" class="form-control @if($field['required'] ?? false) required-field @endif" rows="2" @if($field['required'] ?? false) data-required="1" @endif></textarea>
@@ -47,7 +47,7 @@
                                         @endforeach
                                     </select>
                                 @else
-                                    <input name="{{ $key }}" type="{{ $field['type'] }}" step="{{ $field['step'] ?? 'any' }}" class="form-control @if($field['required'] ?? false) required-field @endif" @if($field['required'] ?? false) data-required="1" @endif>
+                                    <input name="{{ $key }}" type="{{ $field['type'] }}" step="{{ $field['step'] ?? 'any' }}" class="form-control @if($field['required'] ?? false) required-field @endif" placeholder="{{ $field['placeholder'] ?? '' }}" @if($field['readonly'] ?? false) readonly @endif @if($field['required'] ?? false) data-required="1" @endif>
                                 @endif
                             </div>
                         @endforeach
@@ -150,7 +150,11 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         columns: [
             @foreach($config['columns'] as $column)
-                { data: @json($column), defaultContent: '' },
+                { data: @json($column), defaultContent: '', render: (data) => {
+                    if (@json($type) === 'customers' && @json($column) === 'customer_type') return ({umum:'Umum',proyek:'Proyek',perusahaan:'Perusahaan'}[data] || data || '');
+                    if ((@json($type) === 'customers' || @json($type) === 'suppliers') && @json($column) === 'is_active') return Number(data) === 1 ? '<span class="badge text-bg-success">Aktif</span>' : '<span class="badge text-bg-secondary">Nonaktif</span>';
+                    return data ?? '';
+                } },
             @endforeach
             {
                 data: null,
