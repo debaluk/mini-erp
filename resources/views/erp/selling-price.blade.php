@@ -57,7 +57,7 @@
 </td>
 <td class="text-center">
 @if($row->setup_date)
-<button type="button" class="btn btn-outline-primary btn-sm btn-edit" data-id="{{ $row->id }}" data-name="{{ $row->name }}" data-price="{{ $row->selling_price }}" data-hpp="{{ $row->initial_purchase_price }}" data-stock="{{ $row->initial_stock }}" data-up="{{ $row->markup_percent }}" data-date="{{ $row->setup_date }}">Edit</button>
+<button type="button" class="btn btn-outline-primary btn-sm btn-edit" data-id="{{ $row->id }}" data-name="{{ $row->name }}" data-price="{{ (float) $row->selling_price }}" data-hpp="{{ (float) $row->initial_purchase_price }}" data-stock="{{ (float) $row->initial_stock }}" data-up="{{ (float) $row->markup_percent }}" data-date="{{ $row->setup_date }}">Edit</button>
 @else
 <span class="text-secondary">-</span>
 @endif
@@ -175,9 +175,12 @@
         return Number(s.replace(/[^0-9.-]/g, '')) || 0;
     };
     const parseMoney = value => {
+        if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
         let s = String(value ?? '').trim().replace(/\s/g, '');
         if (!s) return 0;
-        // Harga Rupiah ditampilkan dengan titik sebagai pemisah ribuan.
+        // Nilai dari data-* dapat berupa 20000.0000; pertahankan sebagai 20000.
+        if (/^-?\d+\.0+$/.test(s)) return Number(s) || 0;
+        // Input tampilan Rupiah memakai titik sebagai pemisah ribuan.
         s = s.replace(/[^0-9-]/g, '');
         return Number(s) || 0;
     };
