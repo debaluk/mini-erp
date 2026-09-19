@@ -76,7 +76,10 @@
                             <input type="text" name="name" id="item-name" class="form-control" maxlength="255" required>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Satuan Dasar <span class="text-danger">*</span></label>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <label class="form-label mb-1">Satuan Dasar <span class="text-danger">*</span></label>
+                                <a href="{{ route('master.menu.satuan') }}" target="_blank" class="small text-decoration-none">+ Satuan</a>
+                            </div>
                             <select name="base_unit_id" id="item-base-unit" class="form-select" required>
                                 <option value="">Pilih satuan</option>
                                 @foreach($units as $unit)
@@ -89,7 +92,10 @@
                     <div class="border rounded p-2 mt-2">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <div class="fw-semibold small">Unit</div>
-                            <span class="text-secondary small">Pilih minimal satu Unit</span>
+                            <div>
+                                <span class="text-secondary small me-2">Pilih minimal satu Unit</span>
+                                <a href="{{ route('master.menu.unit') }}" target="_blank" class="small text-decoration-none">+ Unit</a>
+                            </div>
                         </div>
                         <div class="row g-1">
                             @foreach($businessUnits as $businessUnit)
