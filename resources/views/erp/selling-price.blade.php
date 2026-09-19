@@ -199,8 +199,8 @@
                 return s ? Number(s) : null;
             };
             const percent = value => {
-                const s = raw(value).replace(',', '.').replace(/[^0-9.-]/g, '');
-                return s ? Number(s) : null;
+                const s = raw(value).replace(/%/g, '').replace(',', '.').replace(/[^0-9.-]/g, '');
+                return s ? Number(s) / 100 : null;
             };
             const stock = value => {
                 const s = raw(value).replace(/\./g, '').replace(',', '.').replace(/[^0-9.-]/g, '');
@@ -227,7 +227,7 @@
             if (row[4] !== null) ws['E'+excelRow].z = '0.00%';
             if (row[5] !== null) ws['F'+excelRow].z = 'Rp #,##0';
             
-            if (row[6] !== null) ws['G'+excelRow].z = '#,##0.000';
+            if (row[6] !== null) ws['G'+excelRow].z = '#,##0.###';
         });
 
         const wb = XLSX.utils.book_new();
