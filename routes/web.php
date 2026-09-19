@@ -29,6 +29,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/master/produk/tambah', [ErpController::class, 'itemCreate'])->middleware('role:owner,admin')->name('master.item.create');
     Route::get('/master/produk/{id}/edit', [ErpController::class, 'itemEdit'])->middleware('role:owner,admin')->name('master.item.edit');
     Route::put('/master/produk/{id}/edit', [ErpController::class, 'itemUpdate'])->middleware('role:owner,admin')->name('master.item.update');
+    Route::delete('/master/produk/{id}', [ErpController::class, 'itemDelete'])->middleware('role:owner,admin')->name('master.item.delete');
     Route::post('/master/produk/tambah', [ErpController::class, 'itemStore'])->middleware('role:owner,admin')->name('master.item.store');
     Route::post('/master/produk/inline-uom', [ErpController::class, 'itemInlineUomStore'])->middleware('role:owner,admin')->name('master.item.inline-uom.store');
     Route::post('/master/produk/inline-unit', [ErpController::class, 'itemInlineBusinessUnitStore'])->middleware('role:owner,admin')->name('master.item.inline-unit.store');
