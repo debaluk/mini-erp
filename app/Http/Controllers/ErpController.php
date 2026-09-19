@@ -35,6 +35,131 @@ class ErpController extends Controller
         ][$type] ?? abort(404);
     }
 
+    public function unitMaster(Request $request)
+    {
+        $entity = $this->entityId();
+
+        if ($request->ajax() && $request->has('draw')) {
+            $query = DB::table('units')
+                ->where('entity_id', $entity);
+
+            $search = trim((string) $request->input('search.value', ''));
+            if ($search !== '') {
+                $query->where(function ($q) use ($search) {
+                    $q->where('code', 'like', '%'.$search.'%')
+                        ->orWhere('name', 'like', '%'.$search.'%');
+                });
+            }
+
+            $total = DB::table('units')->where('entity_id', $entity)->count();
+            $filtered = $query->count();
+
+            $rows = $query
+                ->orderByDesc('id')
+                ->offset(max(0, (int) $request->input('start', 0)))
+                ->limit((int) $request->input('length', 15) > 0 ? (int) $request->input('length', 15) : 15)
+                ->get();
+
+            return response()->json([
+                'draw' => (int) $request->input('draw'),
+                'recordsTotal' => $total,
+                'recordsFiltered' => $filtered,
+                'data' => $rows,
+            ]);
+        }
+
+        return view('erp.master-unit');
+    }
+
+    public function unitStore(Request $request)
+    {
+        $entity = $this->entityId();
+        $data = $request->validate([
+            'code' => ['required', 'string', 'max:50'],
+            'name' => ['required', 'string', 'max:100'],
+            'is_active' => ['required', 'boolean'],
+        ]);
+
+        $code = trim($data['code']);
+        $name = trim($data['name']);
+
+        abort_if(
+            DB::table('units')->where('entity_id', $entity)->where('code', $code)->exists(),
+            422,
+            'Kode satuan sudah digunakan.'
+        );
+
+        $id = DB::table('units')->insertGetId([
+            'entity_id' => $entity,
+            'code' => $code,
+            'name' => $name,
+            'is_active' => (int) $data['is_active'],
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return response()->json([
+            'message' => 'Satuan berhasil disimpan.',
+            'unit' => ['id' => $id, 'code' => $code, 'name' => $name, 'is_active' => (int) $data['is_active']],
+        ]);
+    }
+
+    public function unitUpdate(Request $request, int $id)
+    {
+        $entity = $this->entityId();
+        $unit = DB::table('units')->where('entity_id', $entity)->where('id', $id)->first();
+        abort_unless($unit, 404, 'Satuan tidak ditemukan.');
+
+        $data = $request->validate([
+            'code' => ['required', 'string', 'max:50'],
+            'name' => ['required', 'string', 'max:100'],
+            'is_active' => ['required', 'boolean'],
+        ]);
+
+        $code = trim($data['code']);
+        $name = trim($data['name']);
+
+        abort_if(
+            DB::table('units')
+                ->where('entity_id', $entity)
+                ->where('code', $code)
+                ->where('id', '<>', $id)
+                ->exists(),
+            422,
+            'Kode satuan sudah digunakan.'
+        );
+
+        DB::table('units')
+            ->where('entity_id', $entity)
+            ->where('id', $id)
+            ->update([
+                'code' => $code,
+                'name' => $name,
+                'is_active' => (int) $data['is_active'],
+                'updated_at' => now(),
+            ]);
+
+        return response()->json(['message' => 'Satuan berhasil diperbarui.']);
+    }
+
+    public function unitDelete(Request $request, int $id)
+    {
+        $entity = $this->entityId();
+        $unit = DB::table('units')->where('entity_id', $entity)->where('id', $id)->first();
+        abort_unless($unit, 404, 'Satuan tidak ditemukan.');
+
+        $inUse = DB::table('products')->where('entity_id', $entity)->where(function ($q) use ($id) {
+            $q->where('base_unit_id', $id)->orWhere('unit_id', $id);
+        })->exists()
+            || DB::table('unit_conversions')->where('unit_id', $id)->exists();
+
+        abort_if($inUse, 422, 'Satuan sudah digunakan oleh Item atau konversi dan tidak dapat dihapus. Nonaktifkan satuan jika tidak digunakan lagi.');
+
+        DB::table('units')->where('entity_id', $entity)->where('id', $id)->delete();
+
+        return response()->json(['message' => 'Satuan berhasil dihapus.']);
+    }
+
     public function master(Request $request, string $type)
     {
         $config = $this->masterConfig($type);
