@@ -168,4 +168,25 @@ class SellingPriceController extends Controller
 
         return response()->json(['message' => 'Setup awal item berhasil disimpan.']);
     }
+    public function update(Request $request, int $product)
+    {
+        $entity = $this->entityId();
+        $data = $request->validate([
+            'markup_percent' => ['required','numeric','min:0'],
+            'selling_price' => ['required','numeric','gt:0'],
+        ]);
+        $setup = DB::table('item_initial_setups')->where('entity_id',$entity)->where('product_id',$product)->first();
+        abort_unless($setup, 404, 'Setup awal item belum ada.');
+        DB::transaction(function () use ($entity,$product,$data): void {
+            DB::table('item_initial_setups')->where('entity_id',$entity)->where('product_id',$product)->update([
+                'markup_percent'=>$data['markup_percent'],
+                'selling_price'=>$data['selling_price'],
+                'updated_at'=>now(),
+            ]);
+            DB::table('products')->where('entity_id',$entity)->where('id',$product)->update([
+                'selling_price'=>$data['selling_price'],'updated_at'=>now()
+            ]);
+        });
+        return response()->json(['message'=>'Harga jual item berhasil diperbarui.']);
+    }
 }
