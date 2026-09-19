@@ -27,6 +27,8 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/master/unit-conversions', [UnitConversionController::class, 'index'])->middleware('access:master_data')->name('master.unit-conversions');
     Route::get('/master/produk/tambah', [ErpController::class, 'itemCreate'])->middleware('role:owner,admin')->name('master.item.create');
+    Route::get('/master/produk/{id}/edit', [ErpController::class, 'itemEdit'])->middleware('role:owner,admin')->name('master.item.edit');
+    Route::put('/master/produk/{id}/edit', [ErpController::class, 'itemUpdate'])->middleware('role:owner,admin')->name('master.item.update');
     Route::post('/master/produk/tambah', [ErpController::class, 'itemStore'])->middleware('role:owner,admin')->name('master.item.store');
     Route::post('/master/unit-conversions', [UnitConversionController::class, 'store'])->middleware('access:master_data')->name('master.unit-conversions.store');
     Route::put('/master/unit-conversions/{id}', [UnitConversionController::class, 'update'])->middleware('access:master_data')->name('master.unit-conversions.update');
