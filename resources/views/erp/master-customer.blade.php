@@ -25,6 +25,7 @@
     <div class="card-body py-2 border-bottom"><div class="fw-semibold">Daftar Customer</div></div>
     <div class="table-responsive"><table class="table table-sm table-hover align-middle mb-0" id="customers-table" style="width:100%"><thead><tr><th>Kode</th><th>Nama Customer</th><th>Jenis</th><th>Telepon</th><th>Alamat</th><th>Status</th><th class="text-end">Aksi</th></tr></thead><tbody></tbody></table></div>
 </div>
+@push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded',()=>{
  const form=document.getElementById('customerForm'),code=document.getElementById('customer-code'),name=document.getElementById('customer-name'),type=document.getElementById('customer-type'),phone=document.getElementById('customer-phone'),address=document.getElementById('customer-address'),submit=document.getElementById('customer-submit'),cancel=document.getElementById('customer-cancel'),alertBox=document.getElementById('customer-alert');
@@ -42,4 +43,6 @@ document.addEventListener('DOMContentLoaded',()=>{
  cancel.addEventListener('click',reset);reset();
 });
 </script>
+@endpush
+
 @endsection
