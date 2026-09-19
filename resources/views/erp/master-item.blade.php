@@ -207,7 +207,7 @@
             { data: 'minimum_stock', className: 'text-end', render: d => formatNumber(d) },
             { data: 'manage_stock', className: 'text-center', render: d => d ? 'Ya' : 'Tidak' },
             { data: 'is_active', className: 'text-center', render: d => d ? '<span class="badge text-bg-success">Aktif</span>' : '<span class="badge text-bg-secondary">Nonaktif</span>' },
-            { data: 'id', className: 'text-end', orderable: false, searchable: false, render: id => '<button type="button" class="btn btn-outline-primary btn-sm btn-edit-item" data-id="' + id + '">Edit</button>' }
+            { data: 'id', className: 'text-end', orderable: false, searchable: false, render: id => '<div class="d-inline-flex gap-1"><button type="button" class="btn btn-outline-primary btn-sm btn-edit-item" data-id="' + id + '">Edit</button><button type="button" class="btn btn-outline-danger btn-sm btn-delete-item" data-id="' + id + '">Hapus</button></div>' }
         ]
     });
 
@@ -280,6 +280,30 @@
     }
 
     document.getElementById('item-unit-filter').addEventListener('change', () => dt.ajax.reload());
+
+    document.getElementById('items-table').addEventListener('click', async (event) => {
+        const button = event.target.closest('.btn-delete-item');
+        if (!button) return;
+        const id = button.dataset.id;
+        if (!confirm('Hapus item ini? Data item yang sudah digunakan dalam transaksi tidak dapat dihapus.')) return;
+        button.disabled = true;
+        const response = await fetch('{{ url('/master/produk') }}/' + id, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        });
+        const payload = await response.json();
+        button.disabled = false;
+        if (!response.ok) {
+            document.getElementById('item-alert').innerHTML = '<div class="alert alert-danger py-2 small">' + (payload.message || 'Item tidak dapat dihapus.') + '</div>';
+            return;
+        }
+        document.getElementById('item-alert').innerHTML = '<div class="alert alert-success py-2 small">' + payload.message + '</div>';
+        dt.ajax.reload(null, false);
+    });
 
     document.getElementById('btn-add-item').addEventListener('click', () => {
         resetForm();
