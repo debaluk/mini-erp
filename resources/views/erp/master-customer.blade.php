@@ -6,7 +6,7 @@
 </div>
 <div class="card shadow-sm mb-2">
     <div class="card-body py-3">
-        <form id="customerForm" method="POST" action="{{ url('/master/customer') }}" novalidate>
+        <form id="customerForm" method="POST" action="{{ url('/master/customer') }}" novalidate onsubmit="return window.submitCustomerForm ? window.submitCustomerForm(event) : false;">
             @csrf
             <div class="row g-2 align-items-end">
                 <div class="col-md-2"><label class="form-label mb-1">Kode Customer</label><input id="customer-code" class="form-control form-control-sm" readonly value="Otomatis"></div>
@@ -25,69 +25,166 @@
     <div class="card-body py-2 border-bottom"><div class="fw-semibold">Daftar Customer</div></div>
     <div class="table-responsive"><table class="table table-sm table-hover align-middle mb-0" id="customers-table" style="width:100%"><thead><tr><th>Kode</th><th>Nama Customer</th><th>Jenis</th><th>Telepon</th><th>Alamat</th><th>Status</th><th class="text-end">Aksi</th></tr></thead><tbody></tbody></table></div>
 </div>
+
 @push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded',()=>{
- const form=document.getElementById('customerForm'),code=document.getElementById('customer-code'),name=document.getElementById('customer-name'),type=document.getElementById('customer-type'),phone=document.getElementById('customer-phone'),address=document.getElementById('customer-address'),submit=document.getElementById('customer-submit'),cancel=document.getElementById('customer-cancel'),alertBox=document.getElementById('customer-alert');
- const baseUrl=@json(url('/master/customer')),csrf=document.querySelector('meta[name="csrf-token"]')?.content||@json(csrf_token());let editId=null,table=null;
- const labels={umum:'Umum',proyek:'Proyek',perusahaan:'Perusahaan'};
- const alert=(m,k='success')=>{alertBox.innerHTML='<div class="alert alert-'+k+' py-2 small mb-0">'+m+'</div>';setTimeout(()=>alertBox.innerHTML='',3500)};
- const reset=()=>{form.reset();document.getElementById('customer-active').checked=true;editId=null;code.value='Otomatis';submit.textContent='Simpan';cancel.classList.add('d-none');name.classList.remove('is-invalid');name.focus()};
+(function () {
+    let editId = null;
+    let table = null;
 
- // Pasang handler form TERLEBIH DAHULU. Jika DataTables gagal load, form tetap AJAX dan tidak submit native.
- form.addEventListener('submit',async e=>{
-   e.preventDefault();
-   if(!name.value.trim()){name.classList.add('is-invalid');alert('Nama Customer wajib diisi.','danger');name.focus();return}
-   const p=new FormData(form);if(editId)p.append('_method','PUT');
-   submit.disabled=true;
-   try{
-     const r=await fetch(editId?baseUrl+'/'+editId:baseUrl,{method:'POST',headers:{Accept:'application/json','X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':csrf},body:p});
-     const d=await r.json().catch(()=>({}));
-     if(!r.ok){const es=Object.values(d.errors||{}).flat();alert(d.message||es.join('<br>')||'Gagal menyimpan customer.','danger');return}
-     alert(d.message||'Customer berhasil disimpan.');reset();
-     if(table)table.ajax.reload(null,false); else window.location.reload();
-   }catch(err){console.error(err);alert('Terjadi kesalahan saat menyimpan customer.','danger')}
-   finally{submit.disabled=false}
- });
+    function getEl(id) { return document.getElementById(id); }
+    function showAlert(message, kind) {
+        const box = getEl('customer-alert');
+        if (!box) return;
+        box.innerHTML = '<div class="alert alert-' + (kind || 'success') + ' py-2 small mb-0">' + message + '</div>';
+        setTimeout(function () { box.innerHTML = ''; }, 3500);
+    }
+    function resetForm() {
+        const form = getEl('customerForm');
+        if (!form) return;
+        form.reset();
+        getEl('customer-active').checked = true;
+        editId = null;
+        getEl('customer-code').value = 'Otomatis';
+        getEl('customer-submit').textContent = 'Simpan';
+        getEl('customer-cancel').classList.add('d-none');
+        getEl('customer-name').classList.remove('is-invalid');
+    }
 
- cancel.addEventListener('click',reset);
+    window.submitCustomerForm = async function (event) {
+        if (event) event.preventDefault();
 
- // DataTables bersifat enhancement; jangan sampai kegagalannya mematikan form.
- if(typeof DataTable==='function'){
-   table=new DataTable('#customers-table',{
-     processing:true,serverSide:true,ordering:false,pageLength:15,lengthMenu:[[15,25,50,100],[15,25,50,100]],
-     language:{lengthMenu:'Tampilkan _MENU_ data per halaman',search:'Cari:',info:'Menampilkan _START_ sampai _END_ dari _TOTAL_ data',infoEmpty:'Tidak ada data',infoFiltered:'(disaring dari _MAX_ data)',zeroRecords:'Data tidak ditemukan',emptyTable:'Belum ada data',paginate:{first:'<<',last:'>>',next:'>',previous:'<'},processing:'Memuat...'},
-     ajax:{url:baseUrl,type:'GET',dataSrc:'data'},
-     columns:[
-       {data:'code'},{data:'name'},{data:'customer_type',render:v=>labels[v]||v||''},{data:'phone',defaultContent:''},{data:'address',defaultContent:''},
-       {data:'is_active',render:v=>Number(v)===1?'<span class="badge text-bg-success">Aktif</span>':'<span class="badge text-bg-secondary">Nonaktif</span>'},
-       {data:null,orderable:false,searchable:false,className:'text-end text-nowrap',render:(d,t,r)=>'<button type="button" class="btn btn-outline-primary btn-sm btn-edit-customer" data-id="'+r.id+'">Edit</button> <button type="button" class="btn btn-outline-danger btn-sm btn-delete-customer" data-id="'+r.id+'">Hapus</button>'}
-     ]
-   });
- }else{
-   console.error('DataTables tidak tersedia. Form Customer tetap aktif.');
- }
+        const form = getEl('customerForm');
+        const name = getEl('customer-name');
+        const submit = getEl('customer-submit');
+        if (!form || !name || !submit) return false;
 
- document.addEventListener('click',e=>{
-   const b=e.target.closest('.btn-edit-customer');
-   if(b&&table){
-     const r=table.row(b.closest('tr')).data();if(!r)return;
-     editId=b.dataset.id;code.value=r.code||'';name.value=r.name||'';type.value=r.customer_type||'umum';phone.value=r.phone||'';address.value=r.address||'';
-     document.getElementById('customer-active').checked=Number(r.is_active)===1;document.getElementById('customer-inactive').checked=Number(r.is_active)!==1;
-     submit.textContent='Update';cancel.classList.remove('d-none');name.focus();window.scrollTo({top:0,behavior:'smooth'});return;
-   }
-   const d=e.target.closest('.btn-delete-customer');
-   if(d){
-     if(!confirm('Hapus customer ini? Jika sudah digunakan transaksi, customer tidak dapat dihapus. Nonaktifkan jika masih diperlukan untuk histori.'))return;
-     d.disabled=true;
-     fetch(baseUrl+'/'+d.dataset.id,{method:'DELETE',headers:{Accept:'application/json','X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':csrf})
-       .then(async r=>{const x=await r.json().catch(()=>({}));if(!r.ok){alert(x.message||'Customer tidak dapat dihapus.','danger');return}alert(x.message||'Customer berhasil dihapus.');if(editId===d.dataset.id)reset();if(table)table.ajax.reload(null,false);})
-       .catch(err=>{console.error(err);alert('Terjadi kesalahan saat menghapus customer.','danger')})
-       .finally(()=>d.disabled=false);
-   }
- });
- reset();
-});
+        if (!name.value.trim()) {
+            name.classList.add('is-invalid');
+            showAlert('Nama Customer wajib diisi.', 'danger');
+            name.focus();
+            return false;
+        }
+
+        const baseUrl = @json(url('/master/customer'));
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.content || @json(csrf_token());
+        const data = new FormData(form);
+        if (editId) data.append('_method', 'PUT');
+
+        submit.disabled = true;
+        try {
+            const response = await fetch(editId ? baseUrl + '/' + editId : baseUrl, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': csrf
+                },
+                body: data
+            });
+            const result = await response.json().catch(function () { return {}; });
+
+            if (!response.ok) {
+                const errors = Object.values(result.errors || {}).flat();
+                showAlert(result.message || errors.join('<br>') || 'Gagal menyimpan customer.', 'danger');
+                return false;
+            }
+
+            showAlert(result.message || 'Customer berhasil disimpan.');
+            resetForm();
+            if (table) {
+                table.ajax.reload(null, false);
+            } else {
+                setTimeout(function () { window.location.reload(); }, 300);
+            }
+        } catch (error) {
+            console.error(error);
+            showAlert('Terjadi kesalahan saat menyimpan customer.', 'danger');
+        } finally {
+            submit.disabled = false;
+        }
+        return false;
+    };
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const cancel = getEl('customer-cancel');
+
+        if (cancel) cancel.addEventListener('click', resetForm);
+
+        if (typeof DataTable === 'function') {
+            table = new DataTable('#customers-table', {
+                processing: true,
+                serverSide: true,
+                ordering: false,
+                pageLength: 15,
+                lengthMenu: [[15, 25, 50, 100], [15, 25, 50, 100]],
+                ajax: { url: @json(url('/master/customer')), type: 'GET', dataSrc: 'data' },
+                columns: [
+                    { data: 'code' },
+                    { data: 'name' },
+                    { data: 'customer_type', render: function (v) { return ({umum:'Umum',proyek:'Proyek',perusahaan:'Perusahaan'})[v] || v || ''; } },
+                    { data: 'phone', defaultContent: '' },
+                    { data: 'address', defaultContent: '' },
+                    { data: 'is_active', render: function (v) { return Number(v) === 1 ? '<span class="badge text-bg-success">Aktif</span>' : '<span class="badge text-bg-secondary">Nonaktif</span>'; } },
+                    { data: null, orderable: false, searchable: false, className: 'text-end text-nowrap', render: function (d,t,r) {
+                        return '<button type="button" class="btn btn-outline-primary btn-sm btn-edit-customer" data-id="' + r.id + '">Edit</button> <button type="button" class="btn btn-outline-danger btn-sm btn-delete-customer" data-id="' + r.id + '">Hapus</button>';
+                    }}
+                ]
+            });
+        }
+
+        document.addEventListener('click', function (event) {
+            const edit = event.target.closest('.btn-edit-customer');
+            if (edit && table) {
+                const row = table.row(edit.closest('tr')).data();
+                if (!row) return;
+                editId = edit.dataset.id;
+                getEl('customer-code').value = row.code || '';
+                getEl('customer-name').value = row.name || '';
+                getEl('customer-type').value = row.customer_type || 'umum';
+                getEl('customer-phone').value = row.phone || '';
+                getEl('customer-address').value = row.address || '';
+                getEl('customer-active').checked = Number(row.is_active) === 1;
+                getEl('customer-inactive').checked = Number(row.is_active) !== 1;
+                getEl('customer-submit').textContent = 'Update';
+                getEl('customer-cancel').classList.remove('d-none');
+                getEl('customer-name').focus();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                return;
+            }
+
+            const del = event.target.closest('.btn-delete-customer');
+            if (!del) return;
+            if (!confirm('Hapus customer ini? Jika sudah digunakan transaksi, customer tidak dapat dihapus. Nonaktifkan jika masih diperlukan untuk histori.')) return;
+
+            del.disabled = true;
+            fetch(@json(url('/master/customer')) + '/' + del.dataset.id, {
+                method: 'DELETE',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || @json(csrf_token())
+                }
+            }).then(async function (response) {
+                const result = await response.json().catch(function () { return {}; });
+                if (!response.ok) {
+                    showAlert(result.message || 'Customer tidak dapat dihapus.', 'danger');
+                    return;
+                }
+                showAlert(result.message || 'Customer berhasil dihapus.');
+                if (editId === del.dataset.id) resetForm();
+                if (table) table.ajax.reload(null, false);
+            }).catch(function (error) {
+                console.error(error);
+                showAlert('Terjadi kesalahan saat menghapus customer.', 'danger');
+            }).finally(function () {
+                del.disabled = false;
+            });
+        });
+
+        resetForm();
+    });
+})();
 </script>
 @endpush
 @endsection
