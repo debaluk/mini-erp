@@ -12,6 +12,12 @@
 <div id="price-alert"></div>
 
 <div class="card shadow-sm">
+    <div class="card-body border-bottom py-2">
+        <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+            <div class="small text-secondary">Daftar harga jual item Retail</div>
+            <button type="button" class="btn btn-outline-success btn-sm" id="btn-export-csv">Export CSV</button>
+        </div>
+    </div>
     <div class="table-responsive">
         <table class="table table-sm table-hover align-middle mb-0" id="selling-price-table">
             <thead>
@@ -36,7 +42,7 @@
                     <td class="text-end">{{ $row->initial_purchase_price !== null ? 'Rp '.number_format((float) $row->initial_purchase_price, 0, ',', '.') : '-' }}</td>
                     <td class="text-end">{{ $row->markup_percent !== null ? number_format((float) $row->markup_percent, 2, ',', '.') : '-' }}</td>
                     <td class="text-end">{{ $row->initial_stock !== null ? number_format((float) $row->initial_stock, 3, ',', '.') : '-' }}</td>
-                    <td>{{ $row->setup_date ? CarbonCarbon::parse($row->setup_date)->format('d/m/Y') : '-' }}</td>
+                    <td>{{ $row->setup_date ? \Carbon\Carbon::parse($row->setup_date)->format('d/m/Y') : '-' }}</td>
                 </tr>
             @endforeach
             </tbody>
@@ -45,14 +51,14 @@
 </div>
 
 <div class="modal fade" id="setupAwalModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-sm">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <form id="setup-awal-form">
                 <div class="modal-header py-2">
                     <h5 class="modal-title">Setup Awal</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body p-4">
                     <div id="setup-form-alert"></div>
 
                     <div class="mb-2">
@@ -104,6 +110,12 @@
 (function () {
     const products = @json($products);
     const modal = new bootstrap.Modal(document.getElementById('setupAwalModal'));
+    const priceTable = new DataTable('#selling-price-table', {
+        pageLength: 10,
+        lengthMenu: [10, 25, 50, 100],
+        order: [[1, 'asc']],
+        columnDefs: [{ targets: [3,4,5,6], className: 'text-end' }]
+    });
     const form = document.getElementById('setup-awal-form');
     const search = document.getElementById('setup-product-search');
     const productId = document.getElementById('setup-product-id');
@@ -112,6 +124,21 @@
     const markup = document.getElementById('setup-markup');
     const selling = document.getElementById('setup-selling-price');
     let syncing = false;
+
+    document.getElementById('btn-export-csv').addEventListener('click', () => {
+        const rows = priceTable.rows({ search: 'applied' }).data().toArray();
+        const header = ['Kode','Item','Satuan','Harga Jual','HPP Awal','UP %','Stok Awal','Tgl Setup'];
+        const clean = v => String(v ?? '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+        const csv = [header, ...rows.map(r => r.map(clean))]
+            .map(row => row.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(','))
+            .join('\r\n');
+        const blob = new Blob([\ufeff + csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'harga-jual-' + new Date().toISOString().slice(0,10) + '.csv';
+        document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    });
 
     function esc(v) {
         return String(v ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[s]));
