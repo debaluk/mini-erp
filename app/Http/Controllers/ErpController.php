@@ -84,7 +84,7 @@ class ErpController extends Controller
             ]);
         }
 
-        return view('erp.master-item', compact('items'));
+        return view('erp.master-item', compact('items', 'units', 'businessUnits'));
     }
 
     public function itemCreate()
