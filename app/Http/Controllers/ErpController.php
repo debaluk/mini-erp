@@ -201,6 +201,49 @@ class ErpController extends Controller
         return redirect()->route('master.menu.produk')->with('success', 'Item berhasil disimpan.');
     }
 
+    public function itemEdit(int $id)
+    {
+        $entity = $this->entityId();
+        $item = DB::table('products')->where('entity_id', $entity)->find($id);
+        abort_unless($item, 404);
+        $units = DB::table('units')->where('entity_id', $entity)->where('is_active', 1)->orderBy('name')->get();
+        $businessUnits = DB::table('business_units')->where('entity_id', $entity)->where('is_active', 1)->orderBy('id')->get();
+        $selectedBusinessUnits = DB::table('product_units')->where('product_id', $id)->pluck('business_unit_id')->all();
+        $conversions = DB::table('unit_conversions')->where('product_id', $id)->get();
+        return view('erp.master-item-edit', compact('item', 'units', 'businessUnits', 'selectedBusinessUnits', 'conversions'));
+    }
+
+    public function itemUpdate(Request $request, int $id)
+    {
+        $entity = $this->entityId();
+        $item = DB::table('products')->where('entity_id', $entity)->find($id);
+        abort_unless($item, 404);
+        $data = $request->validate([
+            'barcode' => ['nullable', 'string', 'max:100'], 'name' => ['required', 'string', 'max:255'],
+            'business_unit_ids' => ['required', 'array', 'min:1'], 'business_unit_ids.*' => ['integer'],
+            'base_unit_id' => ['required', 'integer'], 'manage_stock' => ['required', 'boolean'],
+            'minimum_stock' => ['nullable', 'numeric', 'min:0'], 'status' => ['required', 'boolean'],
+            'conversion_unit_id' => ['nullable', 'array'], 'conversion_unit_id.*' => ['nullable', 'integer'],
+            'conversion_factor' => ['nullable', 'array'], 'conversion_factor.*' => ['nullable', 'numeric', 'gt:0'],
+        ]);
+        $unitIds = array_values(array_unique(array_map('intval', $data['business_unit_ids'])));
+        abort_unless(DB::table('business_units')->where('entity_id',$entity)->where('is_active',1)->whereIn('id',$unitIds)->count() === count($unitIds),422,'Unit tidak valid.');
+        abort_unless(DB::table('units')->where('entity_id',$entity)->where('is_active',1)->where('id',$data['base_unit_id'])->exists(),422,'Satuan dasar tidak valid.');
+        $barcode = trim((string)($data['barcode'] ?? '')) ?: null;
+        if ($barcode !== null) abort_if(DB::table('products')->where('entity_id',$entity)->where('barcode',$barcode)->where('id','<>',$id)->exists(),422,'Barcode sudah digunakan oleh item lain.');
+        $minimumStock = (float)($data['minimum_stock'] ?? 0);
+        if (!(bool)$data['manage_stock']) $minimumStock=0;
+        $conversionUnits=$data['conversion_unit_id']??[]; $conversionFactors=$data['conversion_factor']??[];
+        DB::transaction(function() use($entity,$id,$data,$unitIds,$barcode,$minimumStock,$conversionUnits,$conversionFactors){
+            DB::table('products')->where('entity_id',$entity)->where('id',$id)->update(['barcode'=>$barcode,'name'=>$data['name'],'unit_id'=>$data['base_unit_id'],'base_unit_id'=>$data['base_unit_id'],'minimum_stock'=>$minimumStock,'manage_stock'=>(bool)$data['manage_stock'],'is_active'=>(bool)$data['status'],'updated_at'=>now()]);
+            DB::table('product_units')->where('product_id',$id)->delete();
+            foreach($unitIds as $businessUnitId) DB::table('product_units')->insert(['product_id'=>$id,'business_unit_id'=>$businessUnitId,'created_at'=>now(),'updated_at'=>now()]);
+            DB::table('unit_conversions')->where('product_id',$id)->delete();
+            foreach($conversionUnits as $index=>$conversionUnitId){ if(!$conversionUnitId || empty($conversionFactors[$index]) || (int)$conversionUnitId===(int)$data['base_unit_id']) continue; DB::table('unit_conversions')->insert(['product_id'=>$id,'unit_id'=>$conversionUnitId,'conversion_factor'=>$conversionFactors[$index],'created_at'=>now(),'updated_at'=>now()]); }
+        });
+        return redirect()->route('master.menu.produk')->with('success','Item berhasil diperbarui.');
+    }
+
     public function master(Request $request, string $type)
     {
         $config = $this->masterConfig($type);
