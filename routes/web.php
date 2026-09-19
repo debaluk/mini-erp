@@ -37,7 +37,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/master/unit-conversions/{id}', [UnitConversionController::class, 'update'])->middleware('access:master_data')->name('master.unit-conversions.update');
     Route::delete('/master/unit-conversions/{id}', [UnitConversionController::class, 'destroy'])->middleware('access:master_data')->name('master.unit-conversions.delete');
 
-    $masterTypes = ['products','customers','suppliers','warehouses','units','tariffs','vehicles','drivers'];
+    $masterTypes = ['products','customers','suppliers','warehouses','units','tariffs'];
     foreach ($masterTypes as $type) {
         if ($type === 'units') {
             Route::get('/master/units', [ErpController::class, 'unitMaster'])->middleware('access:master_data')->name('master.units');
@@ -131,7 +131,7 @@ Route::middleware('auth')->group(function () {
         'produk' => 'products', 'customer' => 'customers', 'supplier' => 'suppliers',
         'gudang' => 'warehouses', 'satuan' => 'units',
         'konversi-satuan' => 'unit-conversions',
-        'tarif' => 'tariffs', 'kendaraan' => 'vehicles', 'driver' => 'drivers',
+        'tarif' => 'tariffs',
     ];
     foreach ($masterMenuPaths as $path => $type) {
         if ($type === 'unit-conversions') {
