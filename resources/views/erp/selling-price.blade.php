@@ -206,27 +206,35 @@
                 const s = raw(value).replace(/\./g, '').replace(',', '.').replace(/[^0-9.-]/g, '');
                 return s ? Number(s) : null;
             };
-            return [
-                raw(r[0]), raw(r[1]), raw(r[2]),
-                money(r[3]), percent(r[4]), money(r[5]), stock(r[6]), raw(r[7]), raw(r[8])
-            ];
+            return [raw(r[0]), raw(r[1]), raw(r[2]), money(r[3]), percent(r[4]), money(r[5]), stock(r[6]), raw(r[7])];
         });
 
+        const printDate = new Intl.DateTimeFormat('id-ID', {
+            day: '2-digit', month: '2-digit', year: 'numeric'
+        }).format(new Date());
+
         const ws = XLSX.utils.aoa_to_sheet([
-            ['Kode','Item','Satuan','HPP Awal','UP (%)','Harga Jual','Stok Awal','Tgl Setup','Status'],
+            ['Data Setup Harga Jual'],
+            ['Tgl Cetak : ' + printDate],
+            [],
+            ['Kode','Item','Satuan','HPP Awal','UP (%)','Harga Jual','Stok Awal','Tgl Setup'],
             ...data
         ]);
+
+        ws['!merges'] = [
+            { s: { r: 0, c: 0 }, e: { r: 0, c: 7 } },
+            { s: { r: 1, c: 0 }, e: { r: 1, c: 7 } }
+        ];
         ws['!cols'] = [
             {wch:15},{wch:32},{wch:12},{wch:18},
-            {wch:18},{wch:12},{wch:14},{wch:14}
+            {wch:12},{wch:18},{wch:14},{wch:14}
         ];
 
         data.forEach((row, i) => {
-            const excelRow = i + 2;
+            const excelRow = i + 5;
             if (row[3] !== null) ws['D'+excelRow].z = 'Rp #,##0';
             if (row[4] !== null) ws['E'+excelRow].z = '0.00%';
             if (row[5] !== null) ws['F'+excelRow].z = 'Rp #,##0';
-            
             if (row[6] !== null) ws['G'+excelRow].z = '#,##0.###';
         });
 
