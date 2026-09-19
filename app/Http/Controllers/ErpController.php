@@ -375,7 +375,7 @@ class ErpController extends Controller
     {
         $entity = $this->entityId();
 
-        if ($request->ajax() && $request->has('draw')) {
+        if ($request->has('draw')) {
             $query = DB::table('units')
                 ->where('entity_id', $entity);
 
