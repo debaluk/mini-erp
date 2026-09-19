@@ -9,6 +9,7 @@ use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\PosController;
 use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\SalesReturnController;
+use App\Http\Controllers\SellingPriceController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\UnitConversionController;
 use App\Http\Controllers\ShiftController;
@@ -37,7 +38,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/master/unit-conversions/{id}', [UnitConversionController::class, 'update'])->middleware('access:master_data')->name('master.unit-conversions.update');
     Route::delete('/master/unit-conversions/{id}', [UnitConversionController::class, 'destroy'])->middleware('access:master_data')->name('master.unit-conversions.delete');
 
-    $masterTypes = ['products','customers','suppliers','warehouses','units','tariffs'];
+    $masterTypes = ['products','customers','suppliers','warehouses','units'];
     foreach ($masterTypes as $type) {
         if ($type === 'units') {
             Route::get('/master/units', [ErpController::class, 'unitMaster'])->middleware('access:master_data')->name('master.units');
@@ -131,8 +132,10 @@ Route::middleware('auth')->group(function () {
         'produk' => 'products', 'customer' => 'customers', 'supplier' => 'suppliers',
         'gudang' => 'warehouses', 'satuan' => 'units',
         'konversi-satuan' => 'unit-conversions',
-        'tarif' => 'tariffs',
     ];
+    Route::get('/master/harga-jual', [SellingPriceController::class, 'index'])->middleware('role:owner,admin')->name('master.menu.harga-jual');
+    Route::post('/master/harga-jual/setup-awal', [SellingPriceController::class, 'storeInitial'])->middleware('role:owner,admin')->name('master.harga-jual.setup-awal');
+
     foreach ($masterMenuPaths as $path => $type) {
         if ($type === 'unit-conversions') {
             Route::get('/master/'.$path, [UnitConversionController::class, 'index'])->middleware('role:owner,admin')->name('master.menu.'.$path);
