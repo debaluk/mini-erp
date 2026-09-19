@@ -10,62 +10,63 @@
     <div class="card-body">
         <form id="supplierForm" method="POST" action="{{ url('/master/supplier') }}" novalidate onsubmit="return window.submitSupplierForm ? window.submitSupplierForm(event) : false;">
             @csrf
-            <div class="row g-3">
+            <div class="row g-2 align-items-center">
                 <div class="col-md-6">
-                    <div class="mb-2">
-                        <label class="form-label">Kode Supplier <span class="text-danger">*</span></label>
-                        <input id="supplier-code" class="form-control" readonly value="Otomatis">
-                        <div class="form-text">Kode dibuat otomatis.</div>
+                    <div class="row g-2 align-items-center mb-2">
+                        <label for="supplier-code" class="col-sm-4 col-form-label">Kode Supplier</label>
+                        <div class="col-sm-8"><input id="supplier-code" class="form-control" readonly value="Otomatis"></div>
                     </div>
-                    <div class="mb-2">
-                        <label class="form-label">Nama Supplier <span class="text-danger">*</span></label>
-                        <input id="supplier-name" name="name" class="form-control" maxlength="255">
+                    <div class="row g-2 align-items-center mb-2">
+                        <label for="supplier-name" class="col-sm-4 col-form-label">Nama Supplier <span class="text-danger">*</span></label>
+                        <div class="col-sm-8"><input id="supplier-name" name="name" class="form-control" maxlength="255"></div>
                     </div>
-                    <div class="mb-2">
-                        <label class="form-label">Kategori</label>
-                        <input id="supplier-category" name="category" class="form-control" maxlength="100">
+                    <div class="row g-2 align-items-center mb-2">
+                        <label for="supplier-category" class="col-sm-4 col-form-label">Kategori</label>
+                        <div class="col-sm-8"><input id="supplier-category" name="category" class="form-control" maxlength="100"></div>
                     </div>
-                    <div class="mb-2">
-                        <label class="form-label">No. Telepon</label>
-                        <input id="supplier-phone" name="phone" class="form-control" maxlength="100">
+                    <div class="row g-2 align-items-center mb-2">
+                        <label for="supplier-phone" class="col-sm-4 col-form-label">No. Telepon</label>
+                        <div class="col-sm-8"><input id="supplier-phone" name="phone" class="form-control" maxlength="100"></div>
                     </div>
-                    <div class="mb-2">
-                        <label class="form-label">WhatsApp</label>
-                        <input id="supplier-whatsapp" name="whatsapp" class="form-control" maxlength="100">
+                    <div class="row g-2 align-items-center mb-2">
+                        <label for="supplier-whatsapp" class="col-sm-4 col-form-label">WhatsApp</label>
+                        <div class="col-sm-8"><input id="supplier-whatsapp" name="whatsapp" class="form-control" maxlength="100"></div>
                     </div>
                 </div>
 
                 <div class="col-md-6">
-                    <div class="mb-2">
-                        <label class="form-label">Email</label>
-                        <input id="supplier-email" name="email" type="email" class="form-control" maxlength="255">
+                    <div class="row g-2 align-items-center mb-2">
+                        <label for="supplier-email" class="col-sm-4 col-form-label">Email</label>
+                        <div class="col-sm-8"><input id="supplier-email" name="email" type="email" class="form-control" maxlength="255"></div>
                     </div>
-                    <div class="mb-2">
-                        <label class="form-label">Website</label>
-                        <input id="supplier-website" name="website" class="form-control" maxlength="255">
+                    <div class="row g-2 align-items-center mb-2">
+                        <label for="supplier-website" class="col-sm-4 col-form-label">Website</label>
+                        <div class="col-sm-8"><input id="supplier-website" name="website" class="form-control" maxlength="255"></div>
                     </div>
-                    <div class="mb-2">
-                        <label class="form-label">Alamat</label>
-                        <textarea id="supplier-address" name="address" class="form-control" rows="3"></textarea>
+                    <div class="row g-2 align-items-start mb-2">
+                        <label for="supplier-address" class="col-sm-4 col-form-label">Alamat</label>
+                        <div class="col-sm-8"><textarea id="supplier-address" name="address" class="form-control" rows="2"></textarea></div>
                     </div>
-                    <div class="mb-2">
-                        <label class="form-label">Negara</label>
-                        <input id="supplier-country" name="country" class="form-control" maxlength="100">
+                    <div class="row g-2 align-items-center mb-2">
+                        <label for="supplier-country" class="col-sm-4 col-form-label">Negara</label>
+                        <div class="col-sm-8"><input id="supplier-country" name="country" class="form-control" maxlength="100"></div>
                     </div>
-                    <div class="mb-2">
-                        <label class="form-label d-block">Status</label>
-                        <div class="d-flex gap-4">
-                            <div class="form-check"><input class="form-check-input" type="radio" name="is_active" value="1" id="supplier-active" checked><label class="form-check-label" for="supplier-active">Aktif</label></div>
-                            <div class="form-check"><input class="form-check-input" type="radio" name="is_active" value="0" id="supplier-inactive"><label class="form-check-label" for="supplier-inactive">Nonaktif</label></div>
+                    <div class="row g-2 align-items-center mb-2">
+                        <label class="col-sm-4 col-form-label">Status</label>
+                        <div class="col-sm-8">
+                            <div class="d-flex gap-4">
+                                <div class="form-check"><input class="form-check-input" type="radio" name="is_active" value="1" id="supplier-active" checked><label class="form-check-label" for="supplier-active">Aktif</label></div>
+                                <div class="form-check"><input class="form-check-input" type="radio" name="is_active" value="0" id="supplier-inactive"><label class="form-check-label" for="supplier-inactive">Nonaktif</label></div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div id="supplier-alert" class="mb-2"></div>
-            <div class="d-flex gap-2">
-                <button type="submit" class="btn btn-primary" id="supplier-submit">Simpan</button>
+            <div id="supplier-alert" class="mt-2 mb-2"></div>
+            <div class="d-flex justify-content-end gap-2">
                 <button type="button" class="btn btn-light d-none" id="supplier-cancel">Batal</button>
+                <button type="submit" class="btn btn-primary" id="supplier-submit">Simpan</button>
             </div>
         </form>
     </div>
