@@ -10,6 +10,7 @@ use App\Http\Controllers\PosController;
 use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\SalesReturnController;
 use App\Http\Controllers\SellingPriceController;
+use App\Http\Controllers\SellingPriceController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\UnitConversionController;
 use App\Http\Controllers\ShiftController;
@@ -133,6 +134,9 @@ Route::middleware('auth')->group(function () {
         'gudang' => 'warehouses', 'satuan' => 'units',
         'konversi-satuan' => 'unit-conversions',
     ];
+    Route::get('/master/harga-jual', [SellingPriceController::class, 'index'])->middleware('role:owner,admin')->name('master.menu.harga-jual');
+    Route::post('/master/harga-jual/setup-awal', [SellingPriceController::class, 'storeInitial'])->middleware('role:owner,admin')->name('master.harga-jual.setup-awal');
+
     Route::get('/master/harga-jual', [SellingPriceController::class, 'index'])->middleware('role:owner,admin')->name('master.menu.harga-jual');
     Route::post('/master/harga-jual/setup-awal', [SellingPriceController::class, 'storeInitial'])->middleware('role:owner,admin')->name('master.harga-jual.setup-awal');
 
