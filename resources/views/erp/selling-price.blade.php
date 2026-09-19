@@ -178,8 +178,6 @@
         if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
         let s = String(value ?? '').trim().replace(/\s/g, '');
         if (!s) return 0;
-        // Nilai dari data-* dapat berupa 20000.0000; pertahankan sebagai 20000.
-        if (/^-?\d+\.0+$/.test(s)) return Number(s) || 0;
         // Input tampilan Rupiah memakai titik sebagai pemisah ribuan.
         s = s.replace(/[^0-9-]/g, '');
         return Number(s) || 0;
