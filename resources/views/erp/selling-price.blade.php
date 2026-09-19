@@ -43,7 +43,7 @@
                     <td class="text-end">{{ $row->initial_purchase_price !== null ? 'Rp '.number_format((float) $row->initial_purchase_price, 0, ',', '.') : '-' }}</td>
                     <td class="text-end">{{ $row->markup_percent !== null ? number_format((float) $row->markup_percent, 2, ',', '.') : '-' }}</td>
                     <td class="text-end">{{ $row->initial_stock !== null ? number_format((float) $row->initial_stock, 3, ',', '.') : '-' }}</td>
-                    <td>{{ $row->setup_date ? \Carbon\Carbon::parse($row->setup_date)->format('d/m/Y') : '-' }}</td>
+                    <td>{{ $row->setup_date ? date_create($row->setup_date)->format('d/m/Y') : '-' }}</td>
                     <td class="text-center"><button type="button" class="btn btn-outline-primary btn-sm btn-detail" data-code="{{ $row->code }}" data-name="{{ $row->name }}" data-unit="{{ $row->unit_code ?: '-' }}" data-price="{{ number_format((float) $row->selling_price, 0, ',', '.') }}" data-hpp="{{ $row->initial_purchase_price !== null ? number_format((float) $row->initial_purchase_price, 0, ',', '.') : '-' }}" data-up="{{ $row->markup_percent !== null ? number_format((float) $row->markup_percent, 2, ',', '.') : '-' }}" data-stock="{{ $row->initial_stock !== null ? number_format((float) $row->initial_stock, 3, ',', '.') : '-' }}" data-date="{{ $row->setup_date ? \Carbon\Carbon\parse($row->setup_date)->format('d/m/Y') : '-' }}">Detail</button></td>
                 </tr>
             @endforeach
