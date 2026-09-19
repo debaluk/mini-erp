@@ -6,7 +6,8 @@
 </div>
 <div class="card shadow-sm mb-2">
     <div class="card-body py-3">
-        <form id="customerForm" novalidate>
+        <form id="customerForm" method="POST" action="{{ url('/master/customer') }}" novalidate>
+            @csrf
             <div class="row g-2 align-items-end">
                 <div class="col-md-2"><label class="form-label mb-1">Kode Customer</label><input id="customer-code" class="form-control form-control-sm" readonly value="Otomatis"></div>
                 <div class="col-md-3"><label class="form-label mb-1">Nama Customer <span class="text-danger">*</span></label><input id="customer-name" name="name" class="form-control form-control-sm" maxlength="255"></div>
