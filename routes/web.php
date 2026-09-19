@@ -10,7 +10,6 @@ use App\Http\Controllers\PosController;
 use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\SalesReturnController;
 use App\Http\Controllers\SellingPriceController;
-use App\Http\Controllers\SellingPriceController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\UnitConversionController;
 use App\Http\Controllers\ShiftController;
