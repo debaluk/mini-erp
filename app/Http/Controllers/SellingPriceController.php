@@ -179,20 +179,22 @@ class SellingPriceController extends Controller
     {
         $entity = $this->entityId();
         $data = $request->validate([
+            'setup_date' => ['required','date'],
+            'purchase_price' => ['required','numeric','gt:0'],
+            'initial_stock' => ['required','numeric','min:0'],
             'markup_percent' => ['required','numeric','min:0'],
             'selling_price' => ['required','numeric','gt:0'],
         ]);
         $setup = DB::table('item_initial_setups')->where('entity_id',$entity)->where('product_id',$product)->first();
         abort_unless($setup, 404, 'Setup awal item belum ada.');
-        DB::transaction(function () use ($entity,$product,$data): void {
-            DB::table('item_initial_setups')->where('entity_id',$entity)->where('product_id',$product)->update([
-                'markup_percent'=>$data['markup_percent'],
-                'selling_price'=>$data['selling_price'],
-                'updated_at'=>now(),
-            ]);
-            DB::table('products')->where('entity_id',$entity)->where('id',$product)->update([
-                'selling_price'=>$data['selling_price'],'updated_at'=>now()
-            ]);
+        $hasTransaction = DB::table('sale_items')->where('product_id',$product)->exists() || DB::table('purchase_items')->where('product_id',$product)->exists();
+        abort_if($hasTransaction, 422, 'Harga jual tidak dapat diedit karena item sudah memiliki transaksi Pembelian atau Penjualan.');
+        DB::transaction(function () use ($entity,$product,$data,$setup): void {
+            DB::table('item_initial_setups')->where('entity_id',$entity)->where('product_id',$product)->update(['setup_date'=>$data['setup_date'],'purchase_price'=>$data['purchase_price'],'initial_stock'=>$data['initial_stock'],'markup_percent'=>$data['markup_percent'],'selling_price'=>$data['selling_price'],'updated_at'=>now()]);
+            DB::table('products')->where('entity_id',$entity)->where('id',$product)->update(['selling_price'=>$data['selling_price'],'cost_price'=>$data['purchase_price'],'updated_at'=>now()]);
+            $stock=DB::table('warehouses_stocks')->where('entity_id',$entity)->where('warehouse_id',$setup->warehouse_id)->where('product_id',$product)->first();
+            if($stock){ $delta=(float)$data['initial_stock']-(float)$setup->initial_stock; DB::table('warehouses_stocks')->where('id',$stock->id)->update(['qty'=>(float)$stock->qty+$delta,'avg_cost'=>$data['purchase_price'],'updated_at'=>now()]); }
+            DB::table('stock_movements')->where('entity_id',$entity)->where('product_id',$product)->where('reference_type','item_initial_setup')->where('reference_id',$product)->update(['qty'=>$data['initial_stock'],'unit_cost'=>$data['purchase_price'],'occurred_at'=>$data['setup_date'].' 00:00:00','updated_at'=>now()]);
         });
         return response()->json(['message'=>'Harga jual item berhasil diperbarui.']);
     }
