@@ -44,9 +44,9 @@
                     <td>{{ $row->name }}</td>
                     <td>{{ $row->unit_code ?: '-' }}</td>
                     <td class="text-end fw-semibold">{{ $row->initial_purchase_price !== null ? 'Rp '.number_format((float) $row->initial_purchase_price, 0, ',', '.') : '-' }}</td>
-                    <td class="text-end">{{ $row->markup_percent !== null ? number_format((float) $row->markup_percent, 2, ',', '.') : '-' }}</td>
+                    <td class="text-end">{{ $row->markup_percent !== null ? number_format((float) $row->markup_percent, 2, ',', '.') : '-' }}%</td>
                     <td class="text-end fw-semibold">{{ (float) $row->selling_price > 0 ? 'Rp '.number_format((float) $row->selling_price, 0, ',', '.') : '-' }}</td>
-                    <td class="text-end">{{ $row->initial_stock !== null ? number_format((float) $row->initial_stock, 3, ',', '.') : '-' }}</td>
+                    <td class="text-end">{{ $row->initial_stock !== null ? rtrim(rtrim(number_format((float) $row->initial_stock, 3, ',', '.'), '0'), ',') : '-' }}</td>
                     <td>{{ $row->setup_date ? date('d/m/Y', strtotime($row->setup_date)) : '-' }}</td>
                     <td class="text-center">
 @if($row->setup_date)
@@ -182,7 +182,7 @@
         return Number(s) || 0;
     };
     const fmtMoney = value => new Intl.NumberFormat('id-ID',{maximumFractionDigits:0}).format(parseMoney(value));
-    const fmtNum = value => new Intl.NumberFormat('id-ID',{maximumFractionDigits:3}).format(parseDecimal(value));
+    const fmtNum = value => new Intl.NumberFormat('id-ID',{minimumFractionDigits:0, maximumFractionDigits:3}).format(parseDecimal(value));
 
     document.getElementById('btn-export-excel').addEventListener('click', () => {
         if (typeof XLSX === 'undefined') {
@@ -223,8 +223,9 @@
         data.forEach((row, i) => {
             const excelRow = i + 2;
             if (row[3] !== null) ws['D'+excelRow].z = 'Rp #,##0';
-            if (row[4] !== null) ws['E'+excelRow].z = 'Rp #,##0';
-            if (row[5] !== null) ws['F'+excelRow].z = '0.00';
+            if (row[4] !== null) ws['E'+excelRow].z = '0.00%';
+            if (row[5] !== null) ws['F'+excelRow].z = 'Rp #,##0';
+            
             if (row[6] !== null) ws['G'+excelRow].z = '#,##0.000';
         });
 
