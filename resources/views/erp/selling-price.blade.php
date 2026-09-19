@@ -214,6 +214,7 @@
         }).format(new Date());
 
         const ws = XLSX.utils.aoa_to_sheet([
+            ['NAMA ENTITAS'],
             ['Data Setup Harga Jual'],
             ['Tgl Cetak : ' + printDate],
             [],
@@ -223,19 +224,29 @@
 
         ws['!merges'] = [
             { s: { r: 0, c: 0 }, e: { r: 0, c: 7 } },
-            { s: { r: 1, c: 0 }, e: { r: 1, c: 7 } }
+            { s: { r: 1, c: 0 }, e: { r: 1, c: 7 } },
+            { s: { r: 2, c: 0 }, e: { r: 2, c: 7 } }
         ];
+
         ws['!cols'] = [
             {wch:15},{wch:32},{wch:12},{wch:18},
             {wch:12},{wch:18},{wch:14},{wch:14}
         ];
 
         data.forEach((row, i) => {
-            const excelRow = i + 5;
+            const excelRow = i + 6;
             if (row[3] !== null) ws['D'+excelRow].z = 'Rp #,##0';
             if (row[4] !== null) ws['E'+excelRow].z = '0.00%';
             if (row[5] !== null) ws['F'+excelRow].z = 'Rp #,##0';
             if (row[6] !== null) ws['G'+excelRow].z = '#,##0.###';
+            if (row[7]) {
+                const parts = row[7].split('/');
+                if (parts.length === 3) {
+                    ws['H'+excelRow].v = new Date(Number(parts[2]), Number(parts[1])-1, Number(parts[0]));
+                    ws['H'+excelRow].t = 'd';
+                    ws['H'+excelRow].z = 'dd/mm/yyyy';
+                }
+            }
         });
 
         const wb = XLSX.utils.book_new();
