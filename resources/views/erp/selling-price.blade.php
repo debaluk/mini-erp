@@ -235,9 +235,9 @@
 
         data.forEach((row, i) => {
             const excelRow = i + 6;
-            if (row[3] !== null) ws['D'+excelRow].z = 'Rp #,##0';
+            if (row[3] !== null) ws['D'+excelRow].z = '#,##0';
             if (row[4] !== null) ws['E'+excelRow].z = '0.00%';
-            if (row[5] !== null) ws['F'+excelRow].z = 'Rp #,##0';
+            if (row[5] !== null) ws['F'+excelRow].z = '#,##0';
             if (row[6] !== null) ws['G'+excelRow].z = '#,##0.###';
             if (row[7]) {
                 const parts = row[7].split('/');
