@@ -99,7 +99,7 @@
     const units=@json($units), existing=@json($conversions), oldIds=@json(old('conversion_unit_id', [])), oldFactors=@json(old('conversion_factor', []));
     function addRow(unitId='',factor=''){
         const row=document.createElement('div'); row.className='row g-2 align-items-end mb-2';
-        row.innerHTML=`<div class="col-md-5"><label class="form-label">Satuan Alternatif</label><select name="conversion_unit_id[]" class="form-select"><option value="">Pilih satuan</option>${units.map(u=>`<option value="${u.id}" ${String(u.id)===String(unitId)?'selected':''}>${u.name}</option>`).join('')}</select></div><div class="col-md-5"><label class="form-label">Faktor</label><input type="number" name="conversion_factor[]" class="form-control" min="0.000001" step="0.000001" value="${factor}"></div><div class="col-md-2"><button type="button" class="btn btn-outline-danger w-100 remove">Hapus</button></div>`;
+        row.innerHTML=`<div class="col-md-5"><label class="form-label">Satuan Alternatif</label><select name="conversion_unit_id[]" class="form-select"><option value="">Pilih satuan</option>${units.map(u=>`<option value="${u.id}" ${String(u.id)===String(unitId)?'selected':''}>${u.name}</option>`).join('')}</select></div><div class="col-md-5"><label class="form-label">Faktor</label><input type="text" inputmode="decimal" name="conversion_factor[]" class="form-control" value="${String(factor).replace(/(\\.\\d*?[1-9])0+$|\\.0+$/,"$1")}"}></div><div class="col-md-2"><button type="button" class="btn btn-outline-danger w-100 remove">Hapus</button></div>`;
         conversionRows.appendChild(row); row.querySelector('.remove').addEventListener('click',()=>row.remove());
     }
     addButton.addEventListener('click',()=>addRow());
