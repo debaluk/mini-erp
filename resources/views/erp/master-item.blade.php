@@ -78,7 +78,18 @@
                         <div class="col-md-4">
                             <div class="d-flex justify-content-between align-items-center">
                                 <label class="form-label mb-1">Satuan Dasar <span class="text-danger">*</span></label>
-                                <a href="{{ route('master.menu.satuan') }}" target="_blank" class="small text-decoration-none">+ Satuan</a>
+                                <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" id="btn-add-uom">+ Satuan</button>
+                            </div>
+                            <div id="new-uom-form" class="border rounded p-2 mb-2 d-none">
+                                <div class="row g-1">
+                                    <div class="col-4"><input type="text" id="new-uom-code" class="form-control form-control-sm" placeholder="Kode satuan"></div>
+                                    <div class="col-5"><input type="text" id="new-uom-name" class="form-control form-control-sm" placeholder="Nama satuan"></div>
+                                    <div class="col-3 d-flex gap-1">
+                                        <button type="button" class="btn btn-primary btn-sm flex-fill" id="save-new-uom">Simpan</button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="cancel-new-uom">Batal</button>
+                                    </div>
+                                </div>
+                                <div id="new-uom-alert" class="small mt-1"></div>
                             </div>
                             <select name="base_unit_id" id="item-base-unit" class="form-select" required>
                                 <option value="">Pilih satuan</option>
@@ -94,10 +105,21 @@
                             <div class="fw-semibold small">Unit</div>
                             <div>
                                 <span class="text-secondary small me-2">Pilih minimal satu Unit</span>
-                                <a href="{{ route('master.menu.unit') }}" target="_blank" class="small text-decoration-none">+ Unit</a>
+                                <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" id="btn-add-business-unit">+ Unit</button>
                             </div>
                         </div>
-                        <div class="row g-1">
+                        <div id="new-business-unit-form" class="border rounded p-2 mb-2 d-none">
+                            <div class="row g-1">
+                                <div class="col-4"><input type="text" id="new-business-unit-code" class="form-control form-control-sm" placeholder="Kode unit"></div>
+                                <div class="col-5"><input type="text" id="new-business-unit-name" class="form-control form-control-sm" placeholder="Nama unit"></div>
+                                <div class="col-3 d-flex gap-1">
+                                    <button type="button" class="btn btn-primary btn-sm flex-fill" id="save-new-business-unit">Simpan</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="cancel-new-business-unit">Batal</button>
+                                </div>
+                            </div>
+                            <div id="new-business-unit-alert" class="small mt-1"></div>
+                        </div>
+                        <div class="row g-1" id="item-business-unit-options">
                             @foreach($businessUnits as $businessUnit)
                                 <div class="col-md-4">
                                     <div class="form-check">
@@ -164,7 +186,8 @@
     const modal = new bootstrap.Modal(modalEl);
     const form = document.getElementById('item-form');
     const rows = document.getElementById('conversion-rows');
-    const units = @json($units);
+    let units = @json($units);
+    let businessUnits = @json($businessUnits);
     const dt = new DataTable('#items-table', {
         ajax: {
             url: '{{ route('master.menu.produk') }}',
@@ -211,6 +234,36 @@
         row.querySelector('.remove-conversion').addEventListener('click', () => row.remove());
     }
 
+    function showInlineForm(id) {
+        const el = document.getElementById(id);
+        el.classList.toggle('d-none');
+        if (!el.classList.contains('d-none')) {
+            const input = el.querySelector('input');
+            if (input) setTimeout(() => input.focus(), 50);
+        }
+    }
+
+    function resetInlineForms() {
+        ['new-uom-form', 'new-business-unit-form'].forEach(id => document.getElementById(id).classList.add('d-none'));
+        ['new-uom-code', 'new-uom-name', 'new-business-unit-code', 'new-business-unit-name'].forEach(id => document.getElementById(id).value = '');
+        ['new-uom-alert', 'new-business-unit-alert'].forEach(id => document.getElementById(id).innerHTML = '');
+    }
+
+    function refreshConversionUnitOptions() {
+        document.querySelectorAll('.conversion-row select').forEach(select => {
+            const current = select.value;
+            select.innerHTML = '<option value="">Pilih satuan</option>' + units.map(u => '<option value="' + u.id + '">' + u.name + '</option>').join('');
+            select.value = current;
+        });
+    }
+
+    function appendBusinessUnitOption(unit, checked = true) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'col-md-4';
+        wrapper.innerHTML = '<div class="form-check"><input class="form-check-input item-business-unit" type="checkbox" name="business_unit_ids[]" value="' + unit.id + '" id="item-unit-' + unit.id + '"' + (checked ? ' checked' : '') + '><label class="form-check-label small" for="item-unit-' + unit.id + '">' + unit.name + '</label></div>';
+        document.getElementById('item-business-unit-options').appendChild(wrapper);
+    }
+
     function resetForm() {
         form.reset();
         document.getElementById('item-method').value = 'POST';
@@ -223,6 +276,7 @@
         document.querySelector('input[name="status"][value="1"]').checked = true;
         document.getElementById('item-minimum-stock').disabled = false;
         document.getElementById('item-code').value = 'Otomatis';
+        resetInlineForms();
     }
 
     document.getElementById('item-unit-filter').addEventListener('change', () => dt.ajax.reload());
@@ -231,6 +285,57 @@
         resetForm();
         modal.show();
         setTimeout(() => document.getElementById('item-name').focus(), 250);
+    });
+
+    document.getElementById('btn-add-uom').addEventListener('click', () => showInlineForm('new-uom-form'));
+    document.getElementById('cancel-new-uom').addEventListener('click', resetInlineForms);
+    document.getElementById('btn-add-business-unit').addEventListener('click', () => showInlineForm('new-business-unit-form'));
+    document.getElementById('cancel-new-business-unit').addEventListener('click', resetInlineForms);
+
+    async function postInline(url, body, alertId) {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}', 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+            body: body
+        });
+        const payload = await response.json();
+        if (!response.ok) {
+            const errors = payload.errors ? Object.values(payload.errors).flat().join('<br>') : (payload.message || 'Data tidak dapat disimpan.');
+            document.getElementById(alertId).innerHTML = '<div class="text-danger">' + errors + '</div>';
+            return null;
+        }
+        return payload;
+    }
+
+    document.getElementById('save-new-uom').addEventListener('click', async () => {
+        const btn = document.getElementById('save-new-uom');
+        btn.disabled = true;
+        const body = new FormData();
+        body.append('code', document.getElementById('new-uom-code').value.trim());
+        body.append('name', document.getElementById('new-uom-name').value.trim());
+        const payload = await postInline('{{ route('master.item.inline-uom.store') }}', body, 'new-uom-alert');
+        btn.disabled = false;
+        if (!payload) return;
+        units.push(payload.unit);
+        const option = new Option(payload.unit.name, payload.unit.id, true, true);
+        document.getElementById('item-base-unit').add(option);
+        refreshConversionUnitOptions();
+        resetInlineForms();
+        document.getElementById('item-base-unit').value = payload.unit.id;
+    });
+
+    document.getElementById('save-new-business-unit').addEventListener('click', async () => {
+        const btn = document.getElementById('save-new-business-unit');
+        btn.disabled = true;
+        const body = new FormData();
+        body.append('code', document.getElementById('new-business-unit-code').value.trim());
+        body.append('name', document.getElementById('new-business-unit-name').value.trim());
+        const payload = await postInline('{{ route('master.item.inline-unit.store') }}', body, 'new-business-unit-alert');
+        btn.disabled = false;
+        if (!payload) return;
+        businessUnits.push(payload.business_unit);
+        appendBusinessUnitOption(payload.business_unit, true);
+        resetInlineForms();
     });
 
     document.getElementById('add-conversion').addEventListener('click', () => addConversion());
