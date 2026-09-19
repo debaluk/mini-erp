@@ -66,7 +66,11 @@ class ErpController extends Controller
 
         $items = DB::table('products')
             ->leftJoin('units as base_units', 'base_units.id', '=', 'products.base_unit_id')
+            ->join('product_units', function ($join) {
+                $join->on('product_units.product_id', '=', 'products.id');
+            })
             ->where('products.entity_id', $entity)
+            ->when($request->filled('business_unit_id'), fn ($query) => $query->where('product_units.business_unit_id', (int) $request->business_unit_id))
             ->select(
                 'products.id',
                 'products.code',
@@ -79,6 +83,7 @@ class ErpController extends Controller
                 'base_units.name as base_unit_name'
             )
             ->orderByDesc('products.id')
+            ->distinct()
             ->get();
 
         if ($request->ajax()) {
