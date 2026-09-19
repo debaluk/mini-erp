@@ -1,7 +1,7 @@
 <?php
-namespace AppHttpControllers;
-use IlluminateHttpRequest;
-use IlluminateSupportFacadesDB;
+namespace App\Http\Controllers;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 class SalesController extends Controller {
  private function entityId(): int { return (int)(DB::table('entities')->value('id') ?? 1); }
  public function index(Request $request) {
