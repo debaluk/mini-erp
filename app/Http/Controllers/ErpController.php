@@ -35,6 +35,30 @@ class ErpController extends Controller
         ][$type] ?? abort(404);
     }
 
+    public function itemMaster(Request $request)
+    {
+        $entity = $this->entityId();
+
+        $items = DB::table('products')
+            ->leftJoin('units as base_units', 'base_units.id', '=', 'products.base_unit_id')
+            ->where('products.entity_id', $entity)
+            ->select(
+                'products.id',
+                'products.code',
+                'products.barcode',
+                'products.name',
+                'products.item_type',
+                'products.minimum_stock',
+                'products.manage_stock',
+                'products.is_active',
+                'base_units.name as base_unit_name'
+            )
+            ->orderByDesc('products.id')
+            ->get();
+
+        return view('erp.master-item', compact('items'));
+    }
+
     public function master(Request $request, string $type)
     {
         $config = $this->masterConfig($type);
