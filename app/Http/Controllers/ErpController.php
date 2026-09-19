@@ -39,6 +39,18 @@ class ErpController extends Controller
     {
         $entity = $this->entityId();
 
+        $units = DB::table('units')
+            ->where('entity_id', $entity)
+            ->where('is_active', 1)
+            ->orderBy('name')
+            ->get();
+
+        $businessUnits = DB::table('business_units')
+            ->where('entity_id', $entity)
+            ->where('is_active', 1)
+            ->orderBy('id')
+            ->get();
+
         $items = DB::table('products')
             ->leftJoin('units as base_units', 'base_units.id', '=', 'products.base_unit_id')
             ->where('products.entity_id', $entity)
