@@ -6,7 +6,7 @@
         <h3 class="mb-1">Item</h3>
         <div class="text-secondary">Master item</div>
     </div>
-    <button type="button" class="btn btn-primary btn-sm" disabled>+ Tambah Item</button>
+    <a href="{{ route('master.item.create') }}" class="btn btn-primary btn-sm">+ Tambah Item</a>
 </div>
 
 <div class="card shadow-sm">
