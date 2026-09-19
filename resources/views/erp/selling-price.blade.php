@@ -214,7 +214,7 @@
         }).format(new Date());
 
         const ws = XLSX.utils.aoa_to_sheet([
-            ['NAMA ENTITAS'],
+            ['{{ $entityName }}'],
             ['Data Setup Harga Jual'],
             ['Tgl Cetak : ' + printDate],
             [],
