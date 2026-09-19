@@ -711,7 +711,7 @@ class ErpController extends Controller
         abort_unless(DB::table('customers')->where('entity_id',$entity)->where('id',$id)->exists(),404,'Customer tidak ditemukan.');
         try {
             DB::table('customers')->where('entity_id',$entity)->where('id',$id)->delete();
-        } catch (\\Throwable $e) {
+        } catch (\Throwable $e) {
             return response()->json(['message'=>'Customer sudah digunakan dalam transaksi dan tidak dapat dihapus. Nonaktifkan customer jika tidak digunakan lagi.'],422);
         }
         return response()->json(['message'=>'Customer berhasil dihapus.']);
