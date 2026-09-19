@@ -30,6 +30,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/master/produk/{id}/edit', [ErpController::class, 'itemEdit'])->middleware('role:owner,admin')->name('master.item.edit');
     Route::put('/master/produk/{id}/edit', [ErpController::class, 'itemUpdate'])->middleware('role:owner,admin')->name('master.item.update');
     Route::post('/master/produk/tambah', [ErpController::class, 'itemStore'])->middleware('role:owner,admin')->name('master.item.store');
+    Route::post('/master/produk/inline-uom', [ErpController::class, 'itemInlineUomStore'])->middleware('role:owner,admin')->name('master.item.inline-uom.store');
+    Route::post('/master/produk/inline-unit', [ErpController::class, 'itemInlineBusinessUnitStore'])->middleware('role:owner,admin')->name('master.item.inline-unit.store');
     Route::post('/master/unit-conversions', [UnitConversionController::class, 'store'])->middleware('access:master_data')->name('master.unit-conversions.store');
     Route::put('/master/unit-conversions/{id}', [UnitConversionController::class, 'update'])->middleware('access:master_data')->name('master.unit-conversions.update');
     Route::delete('/master/unit-conversions/{id}', [UnitConversionController::class, 'destroy'])->middleware('access:master_data')->name('master.unit-conversions.delete');
@@ -113,10 +115,14 @@ Route::middleware('auth')->group(function () {
     }
     Route::post('/erp/journal', [ModuleController::class, 'journalStore'])->middleware('access:akuntansi')->name('erp.journal.store');
 
+    Route::get('/master/unit', function (Request $request) {
+        return app(ErpController::class)->master($request, 'units');
+    })->middleware('role:owner,admin')->name('master.menu.unit');
+
     $masterMenuPaths = [
         'produk' => 'products', 'customer' => 'customers', 'supplier' => 'suppliers',
         'gudang' => 'warehouses', 'satuan' => 'units',
-        'unit' => 'units', 'konversi-satuan' => 'unit-conversions',
+        'konversi-satuan' => 'unit-conversions',
         'tarif' => 'tariffs', 'kendaraan' => 'vehicles', 'driver' => 'drivers',
     ];
     foreach ($masterMenuPaths as $path => $type) {
