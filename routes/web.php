@@ -141,6 +141,8 @@ Route::middleware('auth')->group(function () {
             Route::get('/master/unit', [ErpController::class, 'businessUnitMaster'])->middleware('role:owner,admin')->name('master.menu.unit');
         } elseif ($path === 'satuan') {
             Route::get('/master/satuan', [ErpController::class, 'unitMaster'])->middleware('role:owner,admin')->name('master.menu.satuan');
+        } elseif ($path === 'customer') {
+            Route::get('/master/customer', [ErpController::class, 'customerMaster'])->middleware('role:owner,admin')->name('master.menu.customer');
         } else {
             if ($path === 'produk') {
                 Route::get('/master/'.$path, [ErpController::class, 'itemMaster'])->middleware('role:owner,admin')->name('master.menu.'.$path);
