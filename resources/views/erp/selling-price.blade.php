@@ -207,12 +207,12 @@
             };
             return [
                 raw(r[0]), raw(r[1]), raw(r[2]),
-                money(r[3]), money(r[4]), percent(r[5]), stock(r[6]), raw(r[7])
+                money(r[3]), percent(r[4]), money(r[5]), stock(r[6]), raw(r[7]), raw(r[8])
             ];
         });
 
         const ws = XLSX.utils.aoa_to_sheet([
-            ['Kode','Item','Satuan','Harga Jual','HPP Awal','UP (%)','Stok Awal','Tgl Setup'],
+            ['Kode','Item','Satuan','HPP Awal','UP (%)','Harga Jual','Stok Awal','Tgl Setup','Status'],
             ...data
         ]);
         ws['!cols'] = [
