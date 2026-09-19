@@ -826,7 +826,7 @@ class ErpController extends Controller
 
         try {
             DB::table('suppliers')->where('entity_id', $entity)->where('id', $id)->delete();
-        } catch (\\Throwable $e) {
+        } catch (\Throwable $e) {
             return response()->json(['message' => 'Supplier sudah digunakan dalam transaksi dan tidak dapat dihapus. Nonaktifkan supplier jika masih diperlukan untuk histori.'], 422);
         }
 
