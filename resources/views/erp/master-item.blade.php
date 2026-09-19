@@ -116,7 +116,7 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Minimum Stok</label>
-                            <input type="number" name="minimum_stock" id="item-minimum-stock" class="form-control" min="0" step="0.001" value="0">
+                            <input type="number" name="minimum_stock" id="item-minimum-stock" class="form-control" min="0" step="1" inputmode="numeric" value="0">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label d-block">Status</label>
