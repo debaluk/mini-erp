@@ -16,11 +16,11 @@ class UnitConversionController extends Controller
     {
         $entity = $this->entityId();
 
-        $baseQuery = DB::table('product_units as pu')
+        $baseQuery = DB::table('unit_conversions as pu')
             ->join('products as p', 'p.id', '=', 'pu.product_id')
             ->join('units as u', 'u.id', '=', 'pu.unit_id')
             ->leftJoin('units as du', 'du.id', '=', 'p.unit_id')
-            ->where('pu.entity_id', $entity);
+            ->where('p.entity_id', $entity);
 
         if ($request->ajax() && $request->has('draw')) {
             $search = trim((string) $request->input('search.value', ''));
@@ -34,8 +34,9 @@ class UnitConversionController extends Controller
                 });
             }
 
-            $total = DB::table('product_units')
-                ->where('entity_id', $entity)
+            $total = DB::table('unit_conversions as uc')
+                ->join('products as p', 'p.id', '=', 'uc.product_id')
+                ->where('p.entity_id', $entity)
                 ->count();
 
             $filtered = $query->count();
@@ -45,14 +46,11 @@ class UnitConversionController extends Controller
                 'du.code',
                 'u.code',
                 'pu.conversion_factor',
-                'pu.is_default',
+                'p.unit_id',
             ];
 
             $orderIndex = (int) $request->input('order.0.column', 0);
-            $orderDir = strtolower((string) $request->input('order.0.dir', 'asc')) === 'desc'
-                ? 'desc'
-                : 'asc';
-
+            $orderDir = strtolower((string) $request->input('order.0.dir', 'asc')) === 'desc' ? 'desc' : 'asc';
             $orderColumn = $columns[$orderIndex] ?? 'p.name';
             $length = (int) $request->input('length', 15);
             $start = max(0, (int) $request->input('start', 0));
@@ -63,7 +61,7 @@ class UnitConversionController extends Controller
                     'pu.product_id',
                     'pu.unit_id',
                     'pu.conversion_factor',
-                    'pu.is_default',
+                    DB::raw('CASE WHEN p.unit_id = pu.unit_id THEN 1 ELSE 0 END as is_default'),
                     'p.name as product_name',
                     'u.code as unit_code',
                     'u.name as unit_name',
@@ -89,7 +87,7 @@ class UnitConversionController extends Controller
                 'pu.product_id',
                 'pu.unit_id',
                 'pu.conversion_factor',
-                'pu.is_default',
+                DB::raw('CASE WHEN p.unit_id = pu.unit_id THEN 1 ELSE 0 END as is_default'),
                 'p.name as product_name',
                 'u.code as unit_code',
                 'u.name as unit_name',
@@ -137,25 +135,22 @@ class UnitConversionController extends Controller
         );
 
         $values = [
-            'entity_id' => $entity,
             'product_id' => $data['product_id'],
             'unit_id' => $data['unit_id'],
             'conversion_factor' => $data['conversion_factor'],
-            'is_default' => (bool) ($data['is_default'] ?? false),
             'updated_at' => now(),
         ];
 
         if ($id) {
-            DB::table('product_units')
-                ->where('entity_id', $entity)
+            DB::table('unit_conversions')
                 ->where('id', $id)
+                ->where('product_id', $data['product_id'])
                 ->update($values);
         } else {
             $values['created_at'] = now();
 
-            DB::table('product_units')->updateOrInsert(
+            DB::table('unit_conversions')->updateOrInsert(
                 [
-                    'entity_id' => $entity,
                     'product_id' => $data['product_id'],
                     'unit_id' => $data['unit_id'],
                 ],
@@ -164,28 +159,18 @@ class UnitConversionController extends Controller
         }
 
         if (($data['is_default'] ?? false)) {
-            DB::table('product_units')
-                ->where('entity_id', $entity)
-                ->where('product_id', $data['product_id'])
-                ->where('unit_id', '<>', $data['unit_id'])
-                ->update([
-                    'is_default' => false,
-                    'updated_at' => now(),
-                ]);
-
             DB::table('products')
                 ->where('entity_id', $entity)
                 ->where('id', $data['product_id'])
                 ->update([
                     'unit_id' => $data['unit_id'],
+                    'base_unit_id' => $data['unit_id'],
                     'updated_at' => now(),
                 ]);
         }
 
         return response()->json([
-            'message' => $id
-                ? 'Konversi satuan berhasil diperbarui.'
-                : 'Konversi satuan berhasil disimpan.',
+            'message' => $id ? 'Konversi satuan berhasil diperbarui.' : 'Konversi satuan berhasil disimpan.',
         ]);
     }
 
@@ -197,9 +182,10 @@ class UnitConversionController extends Controller
     public function update(Request $request, int $id)
     {
         abort_unless(
-            DB::table('product_units')
-                ->where('entity_id', $this->entityId())
-                ->where('id', $id)
+            DB::table('unit_conversions as uc')
+                ->join('products as p', 'p.id', '=', 'uc.product_id')
+                ->where('p.entity_id', $this->entityId())
+                ->where('uc.id', $id)
                 ->exists(),
             404
         );
@@ -209,9 +195,14 @@ class UnitConversionController extends Controller
 
     public function destroy(int $id)
     {
-        $deleted = DB::table('product_units')
-            ->where('entity_id', $this->entityId())
-            ->where('id', $id)
+        $deleted = DB::table('unit_conversions as uc')
+            ->where('uc.id', $id)
+            ->whereExists(function ($query) {
+                $query->select(DB::raw(1))
+                    ->from('products as p')
+                    ->whereColumn('p.id', 'uc.product_id')
+                    ->where('p.entity_id', $this->entityId());
+            })
             ->delete();
 
         abort_unless($deleted, 404);
