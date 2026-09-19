@@ -169,7 +169,7 @@
             </div>
             <div class="col-md-5">
                 <label class="form-label">Faktor</label>
-                <input type="number" name="conversion_factor[]" class="form-control" min="0.000001" step="0.000001" value="${factor}">
+                <input type="text" inputmode="decimal" name="conversion_factor[]" class="form-control" value="${String(factor).replace(/(\\.\\d*?[1-9])0+$|\\.0+$/,"$1")}"}>
             </div>
             <div class="col-md-2">
                 <button type="button" class="btn btn-outline-danger w-100 remove-conversion">Hapus</button>
