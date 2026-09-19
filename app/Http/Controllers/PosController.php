@@ -27,11 +27,8 @@ class PosController extends Controller
         $product = DB::table('products as p')
             ->where('p.entity_id', $entity)
             ->where('p.is_active', 1)
-            ->leftJoin('product_units as pu', function ($join) {
-                $join->on('pu.product_id', '=', 'p.id')->where('pu.is_default', 1);
-            })
-            ->leftJoin('units as u', 'u.id', '=', 'pu.unit_id')
-            ->select('p.*', 'u.code as selling_unit_code', 'u.name as selling_unit_name')
+            ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
+            ->select('p.*', 'p.base_unit_id as selling_unit_id', 'u.code as selling_unit_code', 'u.name as selling_unit_name')
             ->where('p.id', $data['product_id'])
             ->first();
 
