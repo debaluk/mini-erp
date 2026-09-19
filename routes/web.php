@@ -118,9 +118,13 @@ Route::middleware('auth')->group(function () {
         if ($type === 'unit-conversions') {
             Route::get('/master/'.$path, [UnitConversionController::class, 'index'])->middleware('role:owner,admin')->name('master.menu.'.$path);
         } else {
-            Route::get('/master/'.$path, function (Request $request) use ($type) {
-                return app(ErpController::class)->master($request, $type);
-            })->middleware('role:owner,admin')->name('master.menu.'.$path);
+            if ($path === 'produk') {
+                Route::get('/master/'.$path, [ErpController::class, 'itemMaster'])->middleware('role:owner,admin')->name('master.menu.'.$path);
+            } else {
+                Route::get('/master/'.$path, function (Request $request) use ($type) {
+                    return app(ErpController::class)->master($request, $type);
+                })->middleware('role:owner,admin')->name('master.menu.'.$path);
+            }
         }
     }
 
