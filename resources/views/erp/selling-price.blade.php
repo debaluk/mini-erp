@@ -44,7 +44,13 @@
                     <td class="text-end">{{ $row->markup_percent !== null ? number_format((float) $row->markup_percent, 2, ',', '.') : '-' }}</td>
                     <td class="text-end">{{ $row->initial_stock !== null ? number_format((float) $row->initial_stock, 3, ',', '.') : '-' }}</td>
                     <td>{{ $row->setup_date ? date('d/m/Y', strtotime($row->setup_date)) : '-' }}</td>
-                    <td class="text-center"><button type="button" class="btn btn-outline-primary btn-sm btn-detail" data-code="{{ $row->code }}" data-name="{{ $row->name }}" data-unit="{{ $row->unit_code ?: '-' }}" data-price="{{ number_format((float) $row->selling_price, 0, ',', '.') }}" data-hpp="{{ $row->initial_purchase_price !== null ? number_format((float) $row->initial_purchase_price, 0, ',', '.') : '-' }}" data-up="{{ $row->markup_percent !== null ? number_format((float) $row->markup_percent, 2, ',', '.') : '-' }}" data-stock="{{ $row->initial_stock !== null ? number_format((float) $row->initial_stock, 3, ',', '.') : '-' }}" data-date="{{ $row->setup_date ? date('d/m/Y', strtotime($row->setup_date)) : '-' }}">Detail</button></td>
+                    <td class="text-center">
+@if($row->setup_date)
+<button type="button" class="btn btn-outline-primary btn-sm btn-edit" data-id="{{ $row->id }}" data-name="{{ $row->name }}" data-price="{{ $row->selling_price }}" data-hpp="{{ $row->initial_purchase_price }}" data-up="{{ $row->markup_percent }}">Edit</button>
+@else
+<span class="text-secondary">Belum Setup</span>
+@endif
+</td>
                 </tr>
             @endforeach
             </tbody>
@@ -74,7 +80,7 @@
         <div class="modal-content">
             <form id="setup-awal-form">
                 <div class="modal-header py-2">
-                    <h5 class="modal-title">Setup Awal</h5>
+                    <h5 class="modal-title" id="setup-modal-title">Setup Awal</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
@@ -145,6 +151,10 @@
     const purchase = document.getElementById('setup-purchase-price');
     const markup = document.getElementById('setup-markup');
     const selling = document.getElementById('setup-selling-price');
+    const modalTitle = document.getElementById('setup-modal-title');
+    const initialStock = document.getElementById('setup-initial-stock');
+    const setupPurchase = document.getElementById('setup-purchase-price');
+    let editMode = false;
     let syncing = false;
 
     document.getElementById('btn-export-excel').addEventListener('click', () => {
@@ -256,6 +266,7 @@
     selling.addEventListener('input', calcFromSelling);
 
     document.getElementById('btn-setup-awal').addEventListener('click', () => {
+        editMode=false; modalTitle.textContent='Setup Awal'; setupPurchase.readOnly=false; initialStock.readOnly=false;
         form.reset();
         form.querySelector('[name="setup_date"]').value = '{{ now()->toDateString() }}';
         productId.value = '';
@@ -266,6 +277,9 @@
     });
 
     document.querySelector('#selling-price-table tbody').addEventListener('click', e => {
+        const edit=e.target.closest('.btn-edit');
+        if(edit){ editMode=true; modalTitle.textContent='Edit Harga Jual'; form.reset(); search.value=edit.dataset.name; productId.value=edit.dataset.id; setupPurchase.value=edit.dataset.hpp; setupPurchase.readOnly=true; initialStock.value=''; initialStock.readOnly=true; markup.value=edit.dataset.up||'0'; selling.value=edit.dataset.price; document.getElementById('setup-form-alert').innerHTML='<div class="alert alert-info py-2 small">HPP Awal dan Stok Awal tidak diubah. Edit hanya UP / Harga Jual.</div>'; popup.style.display='none'; modal.show(); return; }
+
         const btn = e.target.closest('.btn-detail');
         if (!btn) return;
         ['code','name','unit','hpp','up','price','stock','date'].forEach(k => document.getElementById('d-'+k).textContent = btn.dataset[k] || '-');
@@ -280,8 +294,9 @@
         }
         const save = document.getElementById('setup-save');
         save.disabled = true;
-        const response = await fetch('{{ route('master.harga-jual.setup-awal') }}', {
-            method: 'POST',
+        const url=editMode ? '{{ url('/master/harga-jual') }}/'+productId.value+'/edit' : '{{ route('master.harga-jual.setup-awal') }}';
+        const response = await fetch(url, {
+            method: editMode ? 'PUT' : 'POST',
             headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
             body: new FormData(form)
         });
