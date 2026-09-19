@@ -122,6 +122,48 @@ class ErpController extends Controller
         return view('erp.master-item-create', compact('units', 'businessUnits'));
     }
 
+    public function itemInlineUomStore(Request $request)
+    {
+        $entity = $this->entityId();
+        $data = $request->validate([
+            'code' => ['required', 'string', 'max:50'],
+            'name' => ['required', 'string', 'max:100'],
+        ]);
+        $code = trim($data['code']);
+        $name = trim($data['name']);
+        abort_if(DB::table('units')->where('entity_id', $entity)->where('code', $code)->exists(), 422, 'Kode satuan sudah digunakan.');
+        $id = DB::table('units')->insertGetId([
+            'entity_id' => $entity,
+            'code' => $code,
+            'name' => $name,
+            'is_active' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        return response()->json(['message' => 'Satuan berhasil ditambahkan.', 'unit' => ['id' => $id, 'code' => $code, 'name' => $name]]);
+    }
+
+    public function itemInlineBusinessUnitStore(Request $request)
+    {
+        $entity = $this->entityId();
+        $data = $request->validate([
+            'code' => ['required', 'string', 'max:50'],
+            'name' => ['required', 'string', 'max:100'],
+        ]);
+        $code = trim($data['code']);
+        $name = trim($data['name']);
+        abort_if(DB::table('business_units')->where('entity_id', $entity)->where('code', $code)->exists(), 422, 'Kode Unit sudah digunakan.');
+        $id = DB::table('business_units')->insertGetId([
+            'entity_id' => $entity,
+            'code' => $code,
+            'name' => $name,
+            'is_active' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        return response()->json(['message' => 'Unit berhasil ditambahkan.', 'business_unit' => ['id' => $id, 'code' => $code, 'name' => $name]]);
+    }
+
     public function itemStore(Request $request)
     {
         $entity = $this->entityId();
