@@ -6,7 +6,7 @@
         <h3 class="mb-1">Harga Jual</h3>
         <div class="text-secondary">Harga jual item Retail</div>
     </div>
-    <button type="button" class="btn btn-primary btn-sm" id="btn-setup-awal">+ Setup Awal</button>
+    <button type="button" class="btn btn-primary" id="btn-setup-awal" data-bs-toggle="modal" data-bs-target="#setupAwalModal">+ Setup Awal</button>
 </div>
 
 <div id="price-alert"></div>
@@ -30,6 +30,7 @@
                     <th class="text-end">UP %</th>
                     <th class="text-end">Stok Awal</th>
                     <th>Tgl Setup</th>
+                    <th class="text-center">Aksi</th>
                 </tr>
             </thead>
             <tbody>
@@ -43,11 +44,29 @@
                     <td class="text-end">{{ $row->markup_percent !== null ? number_format((float) $row->markup_percent, 2, ',', '.') : '-' }}</td>
                     <td class="text-end">{{ $row->initial_stock !== null ? number_format((float) $row->initial_stock, 3, ',', '.') : '-' }}</td>
                     <td>{{ $row->setup_date ? \Carbon\Carbon::parse($row->setup_date)->format('d/m/Y') : '-' }}</td>
+                    <td class="text-center"><button type="button" class="btn btn-outline-primary btn-sm btn-detail" data-code="{{ $row->code }}" data-name="{{ $row->name }}" data-unit="{{ $row->unit_code ?: '-' }}" data-price="{{ number_format((float) $row->selling_price, 0, ',', '.') }}" data-hpp="{{ $row->initial_purchase_price !== null ? number_format((float) $row->initial_purchase_price, 0, ',', '.') : '-' }}" data-up="{{ $row->markup_percent !== null ? number_format((float) $row->markup_percent, 2, ',', '.') : '-' }}" data-stock="{{ $row->initial_stock !== null ? number_format((float) $row->initial_stock, 3, ',', '.') : '-' }}" data-date="{{ $row->setup_date ? \Carbon\Carbon\parse($row->setup_date)->format('d/m/Y') : '-' }}">Detail</button></td>
                 </tr>
             @endforeach
             </tbody>
         </table>
     </div>
+</div>
+
+<div class="modal fade" id="detailHargaJualModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Detail Harga Jual</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body"><div class="row g-3">
+            <div class="col-md-6"><label class="form-label text-secondary">Kode</label><div id="d-code" class="fw-semibold"></div></div>
+            <div class="col-md-6"><label class="form-label text-secondary">Item</label><div id="d-name" class="fw-semibold"></div></div>
+            <div class="col-md-4"><label class="form-label text-secondary">Satuan</label><div id="d-unit"></div></div>
+            <div class="col-md-4"><label class="form-label text-secondary">HPP Awal</label><div id="d-hpp"></div></div>
+            <div class="col-md-4"><label class="form-label text-secondary">UP</label><div id="d-up"></div></div>
+            <div class="col-md-4"><label class="form-label text-secondary">Harga Jual</label><div id="d-price" class="fw-semibold"></div></div>
+            <div class="col-md-4"><label class="form-label text-secondary">Stok Awal</label><div id="d-stock"></div></div>
+            <div class="col-md-4"><label class="form-label text-secondary">Tanggal Setup</label><div id="d-date"></div></div>
+        </div></div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button></div>
+    </div></div>
 </div>
 
 <div class="modal fade" id="setupAwalModal" tabindex="-1" aria-hidden="true">
@@ -109,12 +128,14 @@
 <script>
 (function () {
     const products = @json($products);
-    const modal = new bootstrap.Modal(document.getElementById('setupAwalModal'));
+    const modalEl = document.getElementById('setupAwalModal');
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    const detailModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('detailHargaJualModal'));
     const priceTable = new DataTable('#selling-price-table', {
         pageLength: 10,
         lengthMenu: [10, 25, 50, 100],
         order: [[1, 'asc']],
-        columnDefs: [{ targets: [3,4,5,6], className: 'text-end' }]
+        columnDefs: [{ targets: [3,4,5,6], className: 'text-end' }, { targets: [8], orderable: false, searchable: false }]
     });
     const form = document.getElementById('setup-awal-form');
     const search = document.getElementById('setup-product-search');
@@ -126,7 +147,7 @@
     let syncing = false;
 
     document.getElementById('btn-export-csv').addEventListener('click', () => {
-        const rows = priceTable.rows({ search: 'applied' }).data().toArray();
+        const rows = priceTable.rows({ search: 'applied' }).data().toArray().map(r => r.slice(0, 8));
         const header = ['Kode','Item','Satuan','Harga Jual','HPP Awal','UP %','Stok Awal','Tgl Setup'];
         const clean = v => String(v ?? '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
         const csv = [header, ...rows.map(r => r.map(clean))]
@@ -203,6 +224,13 @@
         document.getElementById('setup-form-alert').innerHTML = '';
         modal.show();
         setTimeout(() => search.focus(), 250);
+    });
+
+    document.querySelector('#selling-price-table tbody').addEventListener('click', e => {
+        const btn = e.target.closest('.btn-detail');
+        if (!btn) return;
+        ['code','name','unit','hpp','up','price','stock','date'].forEach(k => document.getElementById('d-'+k).textContent = btn.dataset[k] || '-');
+        detailModal.show();
     });
 
     form.addEventListener('submit', async e => {
