@@ -26,6 +26,17 @@ class ModuleController extends Controller
             'title' => $title,
             'entity' => DB::table('entities')->where('id', $entity)->first(),
             'products' => DB::table('products as p')
+                ->join('product_units as pu', function ($join) use ($entity) {
+                    $join->on('pu.product_id', '=', 'p.id')
+                        ->where('pu.business_unit_id', function ($query) use ($entity) {
+                            $query->select('id')
+                                ->from('business_units')
+                                ->where('entity_id', $entity)
+                                ->where('code', 'RET')
+                                ->where('is_active', 1)
+                                ->limit(1);
+                        });
+                })
                 ->where('p.entity_id', $entity)
                 ->where('p.is_active', 1)
                 ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
