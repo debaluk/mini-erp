@@ -88,7 +88,7 @@
                         </div>
                     </div>
                     <div class="col-12">
-                        <button class="btn btn-primary">{{ $editUnit ? 'Update' : 'Simpan' }}</button>
+                        <button type="submit" class="btn btn-primary">{{ $editUnit ? 'Update' : 'Simpan' }}</button>
                         @if($editUnit)<a href="{{ route('pengaturan.konfigurasi') }}" class="btn btn-secondary">Batal</a>@endif
                     </div>
                 </form>
@@ -133,7 +133,7 @@
                                         <form method="POST" action="{{ route('pengaturan.unit-bisnis.destroy', $unit->id) }}" class="d-inline" onsubmit="return confirm('Hapus unit bisnis ini?')">
                                             @csrf
                                             @method('DELETE')
-                                            <button class="btn btn-sm btn-outline-danger">Hapus</button>
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">Hapus</button>
                                         </form>
                                     </td>
                                 </tr>
@@ -198,14 +198,17 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const form = document.querySelector('#setup-unit form');
+    if (!form) return;
+
     const code = form.querySelector('[name="code"]');
     const name = form.querySelector('[name="name"]');
     const type = form.querySelector('[name="business_type"]');
     const method = form.querySelector('[name="hpp_method"]');
     const account = form.querySelector('[name="hpp_account_id"]');
     const active = form.querySelector('[name="is_active"][type="checkbox"]');
-    const csrf = form.querySelector('[name="_token"]');
     const submit = form.querySelector('button[type="submit"]');
+    if (!submit) return;
+
     const cancel = document.createElement('button');
     cancel.type = 'button';
     cancel.className = 'btn btn-secondary ms-1 d-none';
