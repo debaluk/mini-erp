@@ -267,6 +267,10 @@ class SettingsController extends Controller
             ->orderBy('code')
             ->get();
 
-        return view('settings.configuration', compact('units', 'accounts'));
+        $editUnit = $request->filled('edit')
+            ? DB::table('business_units')->where('entity_id', $entityId)->where('id', $request->integer('edit'))->first()
+            : null;
+
+        return view('settings.configuration', compact('units', 'accounts', 'editUnit'));
     }
 }
