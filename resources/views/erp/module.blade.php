@@ -507,19 +507,6 @@ document.addEventListener('DOMContentLoaded', function () {
     $cogs = $allCoa->where('type','cogs');
     $expense = $allCoa->where('type','expense');
     $money = fn($v) => number_format((float)$v, 2, ',', '.');
-
-    $renderGroup = function ($accounts) use ($linesByCode, $money) {
-        foreach ($accounts as $account) {
-            $level = (int)($account['level'] ?? 3);
-            $line = $linesByCode->get($account['code']);
-            $amount = $line['amount'] ?? 0;
-            echo '<tr>';
-            echo '<td style="padding-left:' . (0.75 + max(0, $level - 1) * 1.5) . 'rem;">' . e($account['code']) . '</td>';
-            echo '<td class="' . ($level < 3 ? 'fw-semibold' : '') . '">' . e($account['name']) . '</td>';
-            echo '<td class="text-end">' . ($level === 3 ? e($money($amount)) : '') . '</td>';
-            echo '</tr>';
-        }
-    };
 @endphp
 <div class="card shadow-sm">
     <div class="card-header fw-semibold">Laba Rugi</div>
@@ -528,34 +515,77 @@ document.addEventListener('DOMContentLoaded', function () {
             <div><label class="form-label">Mulai tanggal</label><input type="date" name="start_date" class="form-control" value="{{ request('start_date', now()->startOfMonth()->toDateString()) }}"></div>
             <div><label class="form-label">Sampai tanggal</label><input type="date" name="end_date" class="form-control" value="{{ request('end_date', now()->endOfMonth()->toDateString()) }}"></div>
             <button class="btn btn-primary">Tampilkan</button>
-            <a href="{{ route('akuntansi.laba-rugi.export-excel', request()->only(['start_date','end_date'])) }}" class="btn btn-success text-nowrap" title="Export Excel">⬇ Export Excel</a>
+            <a href="{{ route('akuntansi.laba-rugi.export-excel', request()->only(['start_date','end_date'])) }}" class="btn btn-success text-nowrap">⬇ Export Excel</a>
         </form>
     </div>
     <div class="card-body">
-        <div class="text-center mb-4">
-            <h5 class="mb-1">{{ $entity->name ?? 'Entitas Utama' }}</h5>
-            <div class="fw-semibold">LAPORAN LABA RUGI</div>
-            <small class="text-secondary">Periode {{ request('start_date', now()->startOfMonth()->toDateString()) }} s/d {{ request('end_date', now()->endOfMonth()->toDateString()) }}</small>
-        </div>
-        <div class="table-responsive">
-            <table class="table align-middle">
-                <thead class="table-light"><tr><th>Kode</th><th>Nama Akun</th><th class="text-end">Jumlah</th></tr></thead>
-                <tbody>
-                    <tr class="fw-bold table-light"><td colspan="2">PENDAPATAN</td><td></td></tr>
-                    @php $renderGroup($revenue); @endphp
-                    <tr class="fw-bold border-top"><td colspan="2">TOTAL PENDAPATAN</td><td class="text-end">{{ $money($report['revenue'] ?? 0) }}</td></tr>
+        <ul class="nav nav-tabs mb-3" role="tablist">
+            <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#pl-unit" type="button">Laba Rugi Unit</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#pl-rekap" type="button">Laba Rugi Rekap</button></li>
+        </ul>
 
-                    <tr class="fw-bold table-light"><td colspan="2">HPP</td><td></td></tr>
-                    @php $renderGroup($cogs); @endphp
-                    <tr class="fw-bold border-top"><td colspan="2">TOTAL HPP</td><td class="text-end">{{ $money($report['cogs'] ?? 0) }}</td></tr>
-                    <tr class="fw-bold border-top"><td colspan="2">LABA KOTOR</td><td class="text-end">{{ $money($report['gross_profit'] ?? 0) }}</td></tr>
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="pl-unit">
+                <div class="row g-2 mb-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Unit</label>
+                        <select id="pl-unit-select" class="form-select">
+                            <option value="Retail">Retail</option>
+                            <option value="Produksi">Produksi</option>
+                            <option value="Jasa">Jasa</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="alert alert-light border small mb-3">
+                    Laporan Unit menampilkan pendapatan, HPP, dan beban yang menjadi tanggung jawab Unit. Beban Holding tidak dialokasikan ke Unit.
+                </div>
+                <div class="text-center mb-4">
+                    <h5 class="mb-1">{{ $entity->name ?? 'Entitas Utama' }}</h5>
+                    <div class="fw-semibold">LABA RUGI UNIT</div>
+                    <small class="text-secondary">Periode {{ request('start_date', now()->startOfMonth()->toDateString()) }} s/d {{ request('end_date', now()->endOfMonth()->toDateString()) }}</small>
+                </div>
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead class="table-light"><tr><th>Kode</th><th>Nama Akun</th><th class="text-end">Jumlah</th></tr></thead>
+                        <tbody>
+                            <tr class="fw-bold table-light"><td colspan="2">PENDAPATAN</td><td></td></tr>
+                            @php $renderGroup = function ($accounts) use ($linesByCode, $money) { foreach ($accounts as $account) { $level=(int)($account['level']??3); $line=$linesByCode->get($account['code']); $amount=$line['amount']??0; echo '<tr><td style="padding-left:'.(0.75+max(0,$level-1)*1.5).'rem;">'.e($account['code']).'</td><td class="'.($level<3?'fw-semibold':'').'">'.e($account['name']).'</td><td class="text-end">'.($level===3?e($money($amount)):'').'</td></tr>'; } }; $renderGroup($revenue); @endphp
+                            <tr class="fw-bold border-top"><td colspan="2">TOTAL PENDAPATAN</td><td class="text-end">{{ $money($report['revenue'] ?? 0) }}</td></tr>
+                            <tr class="fw-bold table-light"><td colspan="2">HPP</td><td></td></tr>
+                            @php $renderGroup($cogs); @endphp
+                            <tr class="fw-bold border-top"><td colspan="2">TOTAL HPP</td><td class="text-end">{{ $money($report['cogs'] ?? 0) }}</td></tr>
+                            <tr class="fw-bold border-top"><td colspan="2">LABA KOTOR</td><td class="text-end">{{ $money($report['gross_profit'] ?? 0) }}</td></tr>
+                            <tr class="fw-bold table-light"><td colspan="2">BIAYA UNIT</td><td></td></tr>
+                            @php $renderGroup($expense); @endphp
+                            <tr class="fw-bold border-top"><td colspan="2">TOTAL BIAYA UNIT</td><td class="text-end">{{ $money($report['expense'] ?? 0) }}</td></tr>
+                            <tr class="fw-bold border-top table-light"><td colspan="2">LABA / (RUGI) UNIT</td><td class="text-end">{{ $money($report['net_profit'] ?? 0) }}</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="small text-secondary">Catatan: dimensi Unit belum tersedia pada jurnal saat ini, sehingga angka yang ditampilkan masih merupakan angka Holding secara keseluruhan. Setelah dimensi Unit pada jurnal dikunci, filter Unit akan menggunakan data Unit aktual.</div>
+            </div>
 
-                    <tr class="fw-bold table-light"><td colspan="2">BIAYA</td><td></td></tr>
-                    @php $renderGroup($expense); @endphp
-                    <tr class="fw-bold border-top"><td colspan="2">TOTAL BIAYA</td><td class="text-end">{{ $money($report['expense'] ?? 0) }}</td></tr>
-                    <tr class="fw-bold border-top table-light"><td colspan="2">LABA / (RUGI) BERSIH</td><td class="text-end">{{ $money($report['net_profit'] ?? 0) }}</td></tr>
-                </tbody>
-            </table>
+            <div class="tab-pane fade" id="pl-rekap">
+                <div class="text-center mb-4">
+                    <h5 class="mb-1">{{ $entity->name ?? 'Entitas Utama' }}</h5>
+                    <div class="fw-semibold">LABA RUGI REKAP</div>
+                    <small class="text-secondary">Periode {{ request('start_date', now()->startOfMonth()->toDateString()) }} s/d {{ request('end_date', now()->endOfMonth()->toDateString()) }}</small>
+                </div>
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead class="table-light"><tr><th>Uraian</th><th class="text-end">Jumlah (Rp)</th></tr></thead>
+                        <tbody>
+                            <tr class="fw-bold"><td>Laba Rugi Retail</td><td class="text-end">Rp 0,00</td></tr>
+                            <tr class="fw-bold"><td>Laba Rugi Produksi</td><td class="text-end">Rp 0,00</td></tr>
+                            <tr class="fw-bold"><td>Laba Rugi Jasa</td><td class="text-end">Rp 0,00</td></tr>
+                            <tr class="fw-bold border-top"><td>TOTAL LABA UNIT</td><td class="text-end">Rp {{ $money($report['rekap']['unit_profit'] ?? 0) }}</td></tr>
+                            <tr><td>Beban / Laba (Rugi) Holding</td><td class="text-end">Rp {{ $money($report['rekap']['holding_profit'] ?? 0) }}</td></tr>
+                            <tr class="fw-bold border-top table-light"><td>LABA / (RUGI) BERSIH HOLDING</td><td class="text-end">Rp {{ $money($report['rekap']['net_profit'] ?? 0) }}</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="alert alert-light border small mb-0">Rekap tidak mengalokasikan beban Holding ke Unit. Rekap hanya menggabungkan laba Unit dan Laba (Rugi) Holding.</div>
+            </div>
         </div>
     </div>
 </div>
