@@ -9,6 +9,7 @@ use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\PosController;
 use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\PurchaseController;
+use App\Http\Controllers\HppController;
 use App\Http\Controllers\PurchaseReportController;
 use App\Http\Controllers\ReceiptController;
 use App\Http\Controllers\SalesReturnController;
@@ -207,7 +208,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/produksi/pemakaian-bahan', fn () => app(ModuleController::class)->show('material-usage'))->middleware('access:produksi')->name('produksi.pemakaian-bahan');
     Route::get('/produksi/hasil-produksi', fn () => app(ModuleController::class)->show('production-results'))->middleware('access:produksi')->name('produksi.hasil-produksi');
     Route::get('/produksi/reject', fn () => app(ModuleController::class)->show('production-results'))->middleware('access:produksi')->name('produksi.reject');
-    Route::get('/produksi/hpp', fn () => app(ModuleController::class)->show('production-cost'))->middleware('access:produksi')->name('produksi.hpp');
+    Route::get('/produksi/hpp', [HppController::class, 'index'])->middleware('access:produksi')->name('produksi.hpp');
     Route::get('/armada/order-jasa', fn () => app(ModuleController::class)->show('deliveries'))->middleware('access:armada_jasa')->name('armada.order-jasa');
     Route::get('/armada/surat-jalan', fn () => app(ModuleController::class)->show('deliveries'))->middleware('access:armada_jasa')->name('armada.surat-jalan');
     Route::get('/armada/perjalanan', fn () => app(ModuleController::class)->show('operations'))->middleware('access:armada_jasa')->name('armada.perjalanan');
