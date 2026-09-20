@@ -35,6 +35,28 @@ class StockController extends Controller
         return view('erp.stock.index',compact('rows','warehouses'));
     }
 
+    public function export(Request $request)
+    {
+        $entity = $this->entityId();
+        $query = DB::table('warehouses_stocks as ws')
+            ->join('products as p','p.id','=','ws.product_id')
+            ->leftJoin('units as u','u.id','=','p.base_unit_id')
+            ->join('warehouses as w','w.id','=','ws.warehouse_id')
+            ->where('ws.entity_id',$entity)->where('p.entity_id',$entity)
+            ->select('p.code','p.sku','p.name as product_name','u.code as unit_code','u.name as unit_name','w.name as warehouse_name','ws.qty','ws.avg_cost',DB::raw('(ws.qty * ws.avg_cost) as stock_value'))
+            ->orderBy('p.name')->orderBy('w.name');
+        if ($request->filled('warehouse_id')) $query->where('ws.warehouse_id',$request->integer('warehouse_id'));
+        if ($request->filled('search')) {
+            $s='%'.$request->input('search').'%';
+            $query->where(function($q) use ($s){$q->where('p.name','like',$s)->orWhere('p.code','like',$s)->orWhere('p.sku','like',$s);});
+        }
+        $rows=$query->get();
+        return response()->json([
+            'entity_name'=>DB::table('entities')->where('id',$entity)->value('name') ?? 'NAMA ENTITAS',
+            'rows'=>$rows,
+        ]);
+    }
+
     public function detail(Request $request, int $product, int $warehouse)
     {
         $entity=$this->entityId();
