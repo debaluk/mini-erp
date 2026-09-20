@@ -108,7 +108,7 @@
                                 <th class="text-end">Qty Hasil</th>
                                 <th class="text-end">Bahan Baku</th>
                                 <th class="text-end">Tenaga Kerja</th>
-                                <th class="text-end">Jasa Angkut</th>
+                                <th class="text-end">Overhead</th>
                                 <th class="text-end">Total HPP</th>
                                 <th class="text-end">HPP / Unit</th>
                             </tr>
