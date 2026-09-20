@@ -22,6 +22,7 @@ class SalesController extends Controller {
     ->whereDate('s.sale_date','>=',$startDate)
     ->whereDate('s.sale_date','<=',$endDate)
     ->when($request->filled('customer'),fn($q)=>$q->where('c.name','like','%'.$request->customer.'%'))
+    ->when($request->filled('unit_id'),fn($q)=>$q->where('s.unit_id',$request->unit_id))
     ->when($request->filled('payment_method'),fn($q)=>$q->whereExists(function($sub) use ($request){
       $sub->select(DB::raw(1))->from('payments as fp')->whereColumn('fp.sale_id','s.id')->where('fp.method',$request->payment_method);
     }))
