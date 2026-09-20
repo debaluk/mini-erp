@@ -10,6 +10,7 @@ use App\Http\Controllers\PosController;
 use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\PurchaseReportController;
+use App\Http\Controllers\ReceiptController;
 use App\Http\Controllers\SalesReturnController;
 use App\Http\Controllers\SalesController;
 use App\Http\Controllers\SellingPriceController;
@@ -191,7 +192,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/inventori/pembelian', [PurchaseController::class, 'index'])->middleware('access:inventori')->name('inventori.pembelian');
     Route::get('/inventori/pembelian/create', [PurchaseController::class, 'create'])->middleware('access:inventori')->name('inventori.pembelian.create');
     Route::get('/inventori/pembelian/{id}/edit', [PurchaseController::class, 'edit'])->middleware('access:inventori')->name('inventori.pembelian.edit');
-    Route::get('/inventori/penerimaan', fn () => app(ModuleController::class)->show('receipts'))->middleware('access:inventori')->name('inventori.penerimaan');
+    Route::get('/inventori/penerimaan', [ReceiptController::class, 'index'])->middleware('access:inventori')->name('inventori.penerimaan');
+    Route::get('/inventori/penerimaan/create', [ReceiptController::class, 'create'])->middleware('access:inventori')->name('inventori.penerimaan.create');
+    Route::get('/inventori/penerimaan/{id}/edit', [ReceiptController::class, 'edit'])->middleware('access:inventori')->name('inventori.penerimaan.edit');
     Route::get('/inventori/stok', fn () => app(ModuleController::class)->show('stock'))->middleware('access:inventori')->name('inventori.stok');
     Route::get('/inventori/transfer', fn () => app(ModuleController::class)->show('movements'))->middleware('access:inventori')->name('inventori.transfer');
     Route::get('/inventori/adjustment', fn () => app(ModuleController::class)->show('movements'))->middleware('access:inventori')->name('inventori.adjustment');
