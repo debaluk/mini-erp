@@ -56,6 +56,17 @@
                     <option value="periodic" @selected(old('hpp_method', $editUnit->hpp_method ?? '') === 'periodic')>Periodik</option>
                 </select>
             </div>
+            <div class="col-md-2">
+                <label class="form-label">Akun HPP</label>
+                <select name="hpp_account_id" class="form-select">
+                    <option value="">Pilih Akun HPP</option>
+                    @foreach($accounts as $account)
+                        <option value="{{ $account->id }}" @selected((string) old('hpp_account_id', $editUnit->hpp_account_id ?? '') === (string) $account->id)>
+                            {{ $account->code }} — {{ $account->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
             <div class="col-md-1">
                 <div class="form-check mb-2">
                     <input type="hidden" name="is_active" value="0">
@@ -86,6 +97,7 @@
                         <th>Nama Unit</th>
                         <th style="width: 15%">Tipe Usaha</th>
                         <th style="width: 15%">Metode HPP</th>
+                        <th>Akun HPP</th>
                         <th style="width: 10%">Status</th>
                         <th style="width: 170px">Aksi</th>
                     </tr>
@@ -97,6 +109,10 @@
                             <td>{{ $unit->name }}</td>
                             <td>{{ ['retail' => 'Retail', 'production' => 'Produksi', 'service' => 'Jasa'][$unit->business_type] }}</td>
                             <td>{{ $unit->hpp_method === 'perpetual' ? 'Perpetual' : 'Periodik' }}</td>
+                            <td>
+                                @php($hppAccount = $accounts->firstWhere('id', $unit->hpp_account_id))
+                                {{ $hppAccount ? $hppAccount->code . ' — ' . $hppAccount->name : '-' }}
+                            </td>
                             <td>
                                 <span class="badge {{ $unit->is_active ? 'text-bg-success' : 'text-bg-secondary' }}">
                                     {{ $unit->is_active ? 'Aktif' : 'Nonaktif' }}
@@ -112,7 +128,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="6" class="text-center text-secondary py-4">Belum ada unit bisnis.</td></tr>
+                        <tr><td colspan="7" class="text-center text-secondary py-4">Belum ada unit bisnis.</td></tr>
                     @endforelse
                 </tbody>
             </table>
