@@ -7,64 +7,41 @@ class SalesController extends Controller {
  private function entityId(): int { return (int)(DB::table('entities')->value('id') ?? 1); }
  public function index(Request $request) {
   $entity=$this->entityId();
-  $startDate = $request->filled('start_date') ? $request->input('start_date') : now()->startOfMonth()->toDateString();
-  $endDate = $request->filled('end_date') ? $request->input('end_date') : now()->endOfMonth()->toDateString();
-  $rows=DB::table('sales as s')->leftJoin('customers as c','c.id','=','s.customer_id')->where('s.entity_id',$entity)->whereDate('s.sale_date','>=',$startDate)->whereDate('s.sale_date','<=',$endDate)->when($request->filled('customer'),fn($q)=>$q->where('c.name','like','%'.$request->customer.'%'))->when($request->filled('unit_id'),fn($q)=>$q->where('s.unit_id',$request->unit_id))->when($request->filled('payment_method'),fn($q)=>$q->whereExists(function($sub) use ($request){$sub->select(DB::raw(1))->from('payments as fp')->whereColumn('fp.sale_id','s.id')->where('fp.method',$request->payment_method);}))->leftJoin('business_units as bu','bu.id','=','s.unit_id')->select('s.*','c.name as customer_name','bu.name as unit_name',DB::raw("(SELECT GROUP_CONCAT(DISTINCT p.method ORDER BY p.id SEPARATOR ', ') FROM payments p WHERE p.sale_id = s.id) as payment_methods"))->orderByDesc('s.sale_date')->orderByDesc('s.id')->paginate(10)->withQueryString();
-  $units=DB::table('business_units')->where('entity_id',$entity)->where('is_active',1)->orderBy('name')->get();
-  return view('erp.sales.index',compact('rows','units'));
+  $startDate=$request->filled('start_date')?$request->input('start_date'):now()->startOfMonth()->toDateString(); $endDate=$request->filled('end_date')?$request->input('end_date'):now()->endOfMonth()->toDateString();
+  $rows=DB::table('sales as s')->leftJoin('customers as c','c.id','=','s.customer_id')->where('s.entity_id',$entity)->whereDate('s.sale_date','>=',$startDate)->whereDate('s.sale_date','<=',$endDate)->when($request->filled('customer'),fn($q)=>$q->where('c.name','like','%'.$request->customer.'%'))->when($request->filled('unit_id'),fn($q)=>$q->where('s.unit_id',$request->unit_id))->when($request->filled('payment_method'),fn($q)=>$q->whereExists(function($sub)use($request){$sub->select(DB::raw(1))->from('payments as fp')->whereColumn('fp.sale_id','s.id')->where('fp.method',$request->payment_method);}))->leftJoin('business_units as bu','bu.id','=','s.unit_id')->select('s.*','c.name as customer_name','bu.name as unit_name',DB::raw("(SELECT GROUP_CONCAT(DISTINCT p.method ORDER BY p.id SEPARATOR ', ') FROM payments p WHERE p.sale_id = s.id) as payment_methods"))->orderByDesc('s.sale_date')->orderByDesc('s.id')->paginate(10)->withQueryString();
+  $units=DB::table('business_units')->where('entity_id',$entity)->where('is_active',1)->orderBy('name')->get(); return view('erp.sales.index',compact('rows','units'));
  }
  public function export(Request $request) {
-  $entity=$this->entityId();
-  $startDate = $request->filled('start_date') ? $request->input('start_date') : now()->startOfMonth()->toDateString();
-  $endDate = $request->filled('end_date') ? $request->input('end_date') : now()->endOfMonth()->toDateString();
-  $rows=DB::table('sales as s')->leftJoin('customers as c','c.id','=','s.customer_id')->where('s.entity_id',$entity)->whereDate('s.sale_date','>=',$startDate)->whereDate('s.sale_date','<=',$endDate)
-    ->when($request->filled('customer'),fn($q)=>$q->where('c.name','like','%'.$request->customer.'%'))
-    ->when($request->filled('unit_id'),fn($q)=>$q->where('s.unit_id',$request->unit_id))
-    ->when($request->filled('payment_method'),fn($q)=>$q->whereExists(function($sub) use ($request){$sub->select(DB::raw(1))->from('payments as fp')->whereColumn('fp.sale_id','s.id')->where('fp.method',$request->payment_method);}))
-    ->leftJoin('business_units as bu','bu.id','=','s.unit_id')
-    ->select('s.invoice_no','s.sale_date',DB::raw("COALESCE(c.name, 'Umum') as customer_name"),DB::raw("COALESCE(bu.name, '-') as unit_name"),DB::raw("(SELECT GROUP_CONCAT(DISTINCT p.method ORDER BY p.id SEPARATOR ', ') FROM payments p WHERE p.sale_id = s.id) as payment_methods"),'s.due_date','s.subtotal','s.discount','s.total','s.status')
-    ->orderByDesc('s.sale_date')->orderByDesc('s.id')->get();
-  return response()->json(['entity_name'=>DB::table('entities')->where('id',$entity)->value('name') ?? 'NAMA ENTITAS','start_date'=>$startDate,'end_date'=>$endDate,'rows'=>$rows]);
+  $entity=$this->entityId(); $startDate=$request->filled('start_date')?$request->input('start_date'):now()->startOfMonth()->toDateString(); $endDate=$request->filled('end_date')?$request->input('end_date'):now()->endOfMonth()->toDateString();
+  $rows=DB::table('sales as s')->leftJoin('customers as c','c.id','=','s.customer_id')->where('s.entity_id',$entity)->whereDate('s.sale_date','>=',$startDate)->whereDate('s.sale_date','<=',$endDate)->when($request->filled('customer'),fn($q)=>$q->where('c.name','like','%'.$request->customer.'%'))->when($request->filled('unit_id'),fn($q)=>$q->where('s.unit_id',$request->unit_id))->when($request->filled('payment_method'),fn($q)=>$q->whereExists(function($sub)use($request){$sub->select(DB::raw(1))->from('payments as fp')->whereColumn('fp.sale_id','s.id')->where('fp.method',$request->payment_method);}))->leftJoin('business_units as bu','bu.id','=','s.unit_id')->select('s.invoice_no','s.sale_date',DB::raw("COALESCE(c.name, 'Umum') as customer_name"),DB::raw("COALESCE(bu.name, '-') as unit_name"),DB::raw("(SELECT GROUP_CONCAT(DISTINCT p.method ORDER BY p.id SEPARATOR ', ') FROM payments p WHERE p.sale_id = s.id) as payment_methods"),'s.due_date','s.subtotal','s.discount','s.total','s.status')->orderByDesc('s.sale_date')->orderByDesc('s.id')->get();
+  return response()->json(['entity_name'=>DB::table('entities')->where('id',$entity)->value('name')??'NAMA ENTITAS','start_date'=>$startDate,'end_date'=>$endDate,'rows'=>$rows]);
  }
  public function store(Request $request) {
   $data=$request->validate(['customer_id'=>'nullable|integer','unit_id'=>'required|integer','payment_method'=>'required|in:Tunai,Transfer,QRIS,Kredit / Bon','due_date'=>'nullable|date|required_if:payment_method,Kredit / Bon','memo'=>'nullable|string|max:5000','discount'=>'nullable|numeric|min:0','items'=>'required|array|min:1','items.*.product_id'=>'required|integer','items.*.qty'=>'required|numeric|gt:0','items.*.unit_price'=>'required|numeric|min:0','items.*.discount'=>'nullable|numeric|min:0']);
-  $entity=$this->entityId();
-  $unit=DB::table('business_units')->where('id',$data['unit_id'])->where('entity_id',$entity)->where('is_active',1)->first(); abort_unless($unit,422,'Unit tidak valid.');
-  if (!empty($data['customer_id'])) { $customer=DB::table('customers')->where('id',$data['customer_id'])->where('entity_id',$entity)->where('is_active',1)->first(); abort_unless($customer,422,'Customer tidak valid.'); }
-  $invoiceNo='INV-' . now()->format('YmdHis') . '-' . strtoupper(Str::random(4));
-  $saleId=DB::transaction(function() use($data,$entity,$invoiceNo) {
+  $entity=$this->entityId(); $unit=DB::table('business_units')->where('id',$data['unit_id'])->where('entity_id',$entity)->where('is_active',1)->first(); abort_unless($unit,422,'Unit tidak valid.');
+  if(!empty($data['customer_id'])){$customer=DB::table('customers')->where('id',$data['customer_id'])->where('entity_id',$entity)->where('is_active',1)->first();abort_unless($customer,422,'Customer tidak valid.');}
+  $invoiceNo='INV-'.now()->format('YmdHis').'-'.strtoupper(Str::random(4));
+  $saleId=DB::transaction(function()use($data,$entity,$invoiceNo){
    $subtotal=0; $lineItems=[];
-   foreach($data['items'] as $item) {
-    $product=DB::table('products')->where('id',$item['product_id'])->where('entity_id',$entity)->where('is_active',1)->first(); abort_unless($product,422,'Item tidak valid.');
-    $qty=(float)$item['qty']; $price=(float)$item['unit_price']; $lineDiscount=min((float)($item['discount']??0),$qty*$price); $lineTotal=($qty*$price)-$lineDiscount; $subtotal += $lineTotal;
-    $stock=DB::table('warehouses_stocks')->where('entity_id',$entity)->where('product_id',$product->id)->orderBy('id')->lockForUpdate()->first(); abort_unless($stock && (float)$stock->qty >= $qty,422,'Stok '.$product->name.' tidak mencukupi.');
-    $lineItems[]=['product'=>$product,'qty'=>$qty,'price'=>$price,'discount'=>$lineDiscount,'total'=>$lineTotal,'stock'=>$stock];
-   }
-   $discount=min((float)($data['discount']??0),$subtotal); $total=$subtotal-$discount;
+   foreach($data['items'] as $item){$product=DB::table('products')->where('id',$item['product_id'])->where('entity_id',$entity)->where('is_active',1)->first();abort_unless($product,422,'Item tidak valid.');$qty=(float)$item['qty'];$price=(float)$item['unit_price'];$lineDiscount=min((float)($item['discount']??0),$qty*$price);$lineTotal=round(($qty*$price)-$lineDiscount,2);$subtotal+= $lineTotal;$stock=DB::table('warehouses_stocks')->where('entity_id',$entity)->where('product_id',$product->id)->orderBy('id')->lockForUpdate()->first();abort_unless($stock&&(float)$stock->qty>=$qty,422,'Stok '.$product->name.' tidak mencukupi.');$lineItems[]=['product'=>$product,'qty'=>$qty,'price'=>$price,'discount'=>$lineDiscount,'total'=>$lineTotal,'stock'=>$stock];}
+   $subtotal=round($subtotal,2); $discount=round(min((float)($data['discount']??0),$subtotal),2); $total=round($subtotal-$discount,2);
    $saleId=DB::table('sales')->insertGetId(['entity_id'=>$entity,'unit_id'=>$data['unit_id'],'customer_id'=>$data['customer_id']??null,'user_id'=>auth()->id(),'shift_id'=>null,'invoice_no'=>$invoiceNo,'sale_date'=>now(),'due_date'=>$data['payment_method']==='Kredit / Bon'?$data['due_date']:null,'subtotal'=>$subtotal,'discount'=>$discount,'total'=>$total,'status'=>'posted','memo'=>$data['memo']??null,'created_at'=>now(),'updated_at'=>now()]);
-   foreach($lineItems as $line) {
-    DB::table('sale_items')->insert(['sale_id'=>$saleId,'product_id'=>$line['product']->id,'qty'=>$line['qty'],'unit_price'=>$line['price'],'discount'=>$line['discount'],'total'=>$line['total'],'created_at'=>now(),'updated_at'=>now()]);
-    DB::table('warehouses_stocks')->where('id',$line['stock']->id)->decrement('qty',$line['qty']);
-    DB::table('stock_movements')->insert(['entity_id'=>$entity,'warehouse_id'=>$line['stock']->warehouse_id,'product_id'=>$line['product']->id,'movement_type'=>'sale_out','qty'=>-$line['qty'],'unit_cost'=>$line['stock']->avg_cost,'reference_type'=>'sale','reference_id'=>$saleId,'occurred_at'=>now(),'created_by'=>auth()->id(),'created_at'=>now(),'updated_at'=>now()]);
-   }
-   if ($data['payment_method']==='Kredit / Bon') DB::table('payments')->insert(['entity_id'=>$entity,'sale_id'=>$saleId,'user_id'=>auth()->id(),'payment_date'=>now(),'method'=>'credit','amount'=>0,'paid_amount'=>0,'change_amount'=>0,'created_at'=>now(),'updated_at'=>now()]);
-   else DB::table('payments')->insert(['entity_id'=>$entity,'sale_id'=>$saleId,'user_id'=>auth()->id(),'payment_date'=>now(),'method'=>$data['payment_method'],'amount'=>$total,'paid_amount'=>$total,'change_amount'=>0,'created_at'=>now(),'updated_at'=>now()]);
+   foreach($lineItems as $line){DB::table('sale_items')->insert(['sale_id'=>$saleId,'product_id'=>$line['product']->id,'qty'=>$line['qty'],'unit_price'=>$line['price'],'discount'=>$line['discount'],'total'=>$line['total'],'created_at'=>now(),'updated_at'=>now()]);DB::table('warehouses_stocks')->where('id',$line['stock']->id)->decrement('qty',$line['qty']);DB::table('stock_movements')->insert(['entity_id'=>$entity,'warehouse_id'=>$line['stock']->warehouse_id,'product_id'=>$line['product']->id,'movement_type'=>'sale_out','qty'=>-$line['qty'],'unit_cost'=>$line['stock']->avg_cost,'reference_type'=>'sale','reference_id'=>$saleId,'occurred_at'=>now(),'created_by'=>auth()->id(),'created_at'=>now(),'updated_at'=>now()]);}
+   if($data['payment_method']==='Kredit / Bon')DB::table('payments')->insert(['entity_id'=>$entity,'sale_id'=>$saleId,'user_id'=>auth()->id(),'payment_date'=>now(),'method'=>'credit','amount'=>0,'paid_amount'=>0,'change_amount'=>0,'created_at'=>now(),'updated_at'=>now()]);else DB::table('payments')->insert(['entity_id'=>$entity,'sale_id'=>$saleId,'user_id'=>auth()->id(),'payment_date'=>now(),'method'=>$data['payment_method'],'amount'=>$total,'paid_amount'=>$total,'change_amount'=>0,'created_at'=>now(),'updated_at'=>now()]);
    return $saleId;
   });
-  if ($request->expectsJson()) return response()->json(['ok'=>true,'sale_id'=>$saleId,'redirect'=>route('inventori.penjualan.show',$saleId)]);
-  return redirect()->route('inventori.penjualan.show',$saleId)->with('success','Penjualan berhasil diposting.');
+  if($request->expectsJson())return response()->json(['ok'=>true,'sale_id'=>$saleId,'redirect'=>route('inventori.penjualan.show',$saleId)]); return redirect()->route('inventori.penjualan.show',$saleId)->with('success','Penjualan berhasil diposting.');
  }
  public function show(int $id) {
-  $entity=$this->entityId();
-  $sale=DB::table('sales as s')->leftJoin('customers as c','c.id','=','s.customer_id')->where('s.entity_id',$entity)->where('s.id',$id)->leftJoin('business_units as bu','bu.id','=','s.unit_id')->select('s.*','c.name as customer_name','c.phone as customer_phone','c.address as customer_address','bu.name as unit_name')->first(); abort_unless($sale,404);
-  $items=DB::table('sale_items as si')->join('products as p','p.id','=','si.product_id')->leftJoin('units as u','u.id','=','p.base_unit_id')->where('si.sale_id',$sale->id)->select('p.code','p.name','u.code as unit_code','si.qty','si.unit_price','si.discount','si.total')->get();
-  $payments=DB::table('payments')->where('sale_id',$sale->id)->orderBy('id')->get(); return view('erp.sales.show',compact('sale','items','payments'));
+  $entity=$this->entityId(); $sale=DB::table('sales as s')->leftJoin('customers as c','c.id','=','s.customer_id')->where('s.entity_id',$entity)->where('s.id',$id)->leftJoin('business_units as bu','bu.id','=','s.unit_id')->select('s.*','c.name as customer_name','c.phone as customer_phone','c.address as customer_address','bu.name as unit_name')->first(); abort_unless($sale,404);
+  $items=DB::table('sale_items as si')->join('products as p','p.id','=','si.product_id')->leftJoin('units as u','u.id','=','p.base_unit_id')->where('si.sale_id',$sale->id)->select('p.code','p.name','u.code as unit_code','si.qty','si.unit_price','si.discount','si.total')->get(); $payments=DB::table('payments')->where('sale_id',$sale->id)->orderBy('id')->get();
+  $previousReceivable=0; if($sale->customer_id){$previousReceivable=(float)(DB::table('sales as ps')->where('ps.entity_id',$entity)->where('ps.customer_id',$sale->customer_id)->where('ps.id','<',$sale->id)->whereExists(function($q){$q->select(DB::raw(1))->from('payments as cp')->whereColumn('cp.sale_id','ps.id')->where('cp.method','credit');})->leftJoin(DB::raw('(SELECT sale_id, SUM(COALESCE(paid_amount,0)) paid_amount FROM payments GROUP BY sale_id) pp'),'pp.sale_id','=','ps.id')->sum(DB::raw('GREATEST(ps.total - COALESCE(pp.paid_amount,0),0)'))); }
+  return view('erp.sales.show',compact('sale','items','payments','previousReceivable'));
  }
- public function print(int $id) { return $this->show($id); }
+ public function print(int $id){return $this->show($id);}
  public function create() {
-  $entity=$this->entityId();
-  $units=DB::table('business_units')->where('entity_id',$entity)->where('is_active',1)->orderBy('name')->get();
-  $customers=DB::table('customers as c')->where('c.entity_id',$entity)->where('c.is_active',1)->leftJoin(DB::raw('(SELECT s.customer_id, SUM(s.total - COALESCE(p.paid_amount,0)) AS outstanding FROM sales s LEFT JOIN (SELECT sale_id, SUM(COALESCE(paid_amount,0)) paid_amount FROM payments GROUP BY sale_id) p ON p.sale_id=s.id WHERE s.entity_id='.$entity.' AND s.customer_id IS NOT NULL AND EXISTS (SELECT 1 FROM payments cp WHERE cp.sale_id=s.id AND cp.method="credit") GROUP BY s.customer_id) ob'),'ob.customer_id','=','c.id')->orderBy('c.name')->get(['c.id','c.name',DB::raw('COALESCE(ob.outstanding,0) as outstanding')]);
+  $entity=$this->entityId(); $units=DB::table('business_units')->where('entity_id',$entity)->where('is_active',1)->orderBy('name')->get();
+  $customers=DB::table('customers as c')->where('c.entity_id',$entity)->where('c.is_active',1)->leftJoin(DB::raw('(SELECT s.customer_id, SUM(GREATEST(s.total - COALESCE(p.paid_amount,0),0)) AS outstanding FROM sales s LEFT JOIN (SELECT sale_id, SUM(COALESCE(paid_amount,0)) paid_amount FROM payments GROUP BY sale_id) p ON p.sale_id=s.id WHERE s.entity_id='.$entity.' AND s.customer_id IS NOT NULL AND EXISTS (SELECT 1 FROM payments cp WHERE cp.sale_id=s.id AND cp.method="credit") GROUP BY s.customer_id) ob'),'ob.customer_id','=','c.id')->orderBy('c.name')->get(['c.id','c.name',DB::raw('COALESCE(ob.outstanding,0) as outstanding')]);
   $products=DB::table('products as p')->join('product_units as pu','pu.product_id','=','p.id')->leftJoin('units as u','u.id','=','p.base_unit_id')->where('p.entity_id',$entity)->where('p.is_active',1)->select('p.id','p.code','p.sku','p.name','p.selling_price','u.code as selling_unit_code')->distinct()->orderBy('p.name')->get();
   return view('erp.sales.create',compact('units','customers','products'));
  }
