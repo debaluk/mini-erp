@@ -434,87 +434,30 @@ class ModuleController extends Controller
             $result['lines'] = DB::table('productions')->where('entity_id',$entity)->orderByDesc('production_date')->paginate(15)->withQueryString();
             $result['total'] = (float) DB::table('productions')->where('entity_id',$entity)->sum('total_cost');
         } elseif ($module === 'profit-loss') {
-            // Laba Rugi disajikan pada dua dimensi:
-            // 1) Unit operasional: Retail, Produksi, Jasa.
-            // 2) Holding: beban yang memang menjadi tanggung jawab Holding.
-            // Rekap menggabungkan laba unit dan laba/rugi Holding tanpa mengalokasikan
-            // beban Holding ke Unit.
             $journalTotals = DB::table('journal_entries as e')
                 ->join('journals as j','j.id','=','e.journal_id')
-                ->where('j.entity_id',$entity)
-                ->where('j.status','posted')
+                ->where('j.entity_id',$entity)->where('j.status','posted')
                 ->whereBetween('j.journal_date',[$startDate,$endDate])
                 ->groupBy('e.account_id')
-                ->select('e.account_id',
-                    DB::raw('SUM(e.debit) as debit'),
-                    DB::raw('SUM(e.credit) as credit'));
-
+                ->select('e.account_id', DB::raw('SUM(e.debit) as debit'), DB::raw('SUM(e.credit) as credit'));
             $accounts = DB::table('chart_of_accounts as a')
-                ->leftJoinSub($journalTotals, 'jt', function ($join) {
-                    $join->on('jt.account_id','=','a.id');
-                })
-                ->where('a.entity_id',$entity)
-                ->where('a.is_active',1)
-                ->whereIn('a.type',['revenue','cogs','expense'])
-                ->orderBy('a.code')
+                ->leftJoinSub($journalTotals, 'jt', fn($join) => $join->on('jt.account_id','=','a.id'))
+                ->where('a.entity_id',$entity)->where('a.is_active',1)
+                ->whereIn('a.type',['revenue','cogs','expense'])->orderBy('a.code')
                 ->select('a.id','a.parent_id','a.code','a.name','a.type','a.level',
-                    DB::raw('COALESCE(jt.debit,0) as debit'),
-                    DB::raw('COALESCE(jt.credit,0) as credit'))
-                ->get();
-
-            $revenueTotal = 0;
-            $cogsTotal = 0;
-            $expenseTotal = 0;
-            $lines = [];
-            foreach ($accounts as $a) {
-                $amount = $a->type === 'revenue'
-                    ? (float)$a->credit - (float)$a->debit
-                    : (float)$a->debit - (float)$a->credit;
-
-                if ((int)$a->level === 3) {
-                    if ($a->type === 'revenue') $revenueTotal += $amount;
-                    elseif ($a->type === 'cogs') $cogsTotal += $amount;
-                    else $expenseTotal += $amount;
-
-                    $lines[] = [
-                        'code'=>$a->code,
-                        'label'=>$a->name,
-                        'type'=>$a->type,
-                        'amount'=>$amount,
-                        'level'=>(int)$a->level,
-                        'parent_id'=>$a->parent_id,
-                    ];
+                    DB::raw('COALESCE(jt.debit,0) as debit'),DB::raw('COALESCE(jt.credit,0) as credit'))->get();
+            $revenueTotal=0; $cogsTotal=0; $expenseTotal=0;
+            foreach($accounts as $a){
+                $amount=$a->type==='revenue'?(float)$a->credit-(float)$a->debit:(float)$a->debit-(float)$a->credit;
+                if((int)$a->level===3){
+                    if($a->type==='revenue')$revenueTotal+=$amount; elseif($a->type==='cogs')$cogsTotal+=$amount; else $expenseTotal+=$amount;
+                    $result['lines'][]=['code'=>$a->code,'label'=>$a->name,'type'=>$a->type,'amount'=>$amount,'level'=>(int)$a->level,'parent_id'=>$a->parent_id];
                 }
             }
-
-            $result['lines'] = $lines;
-            $result['coa_hierarchy'] = $accounts->map(fn ($a) => [
-                'id'=>$a->id,'parent_id'=>$a->parent_id,'code'=>$a->code,'name'=>$a->name,
-                'type'=>$a->type,'level'=>(int)$a->level,
-            ])->all();
-
-            $grossProfit = $revenueTotal - $cogsTotal;
-            $netProfit = $grossProfit - $expenseTotal;
-
-            $result['revenue'] = $revenueTotal;
-            $result['cogs'] = $cogsTotal;
-            $result['expense'] = $expenseTotal;
-            $result['gross_profit'] = $grossProfit;
-            $result['net_profit'] = $netProfit;
-            $result['total'] = $netProfit;
-
-            // Belum ada dimensi unit/holding pada jurnal yang terkunci saat ini.
-            // Sediakan struktur output agar UI siap, tanpa mengarang alokasi beban.
-            $result['unit_reports'] = [];
-            $result['holding_report'] = [
-                'revenue'=>0, 'cogs'=>0, 'expense'=>0, 'gross_profit'=>0, 'net_profit'=>0,
-                'lines'=>[],
-            ];
-            $result['rekap'] = [
-                'unit_profit'=>0,
-                'holding_profit'=>0,
-                'net_profit'=>$netProfit,
-            ];
+            $result['coa_hierarchy']=$accounts->map(fn($a)=>['id'=>$a->id,'parent_id'=>$a->parent_id,'code'=>$a->code,'name'=>$a->name,'type'=>$a->type,'level'=>(int)$a->level])->all();
+            $grossProfit=$revenueTotal-$cogsTotal; $netProfit=$grossProfit-$expenseTotal;
+            $result['revenue']=$revenueTotal; $result['cogs']=$cogsTotal; $result['expense']=$expenseTotal;
+            $result['gross_profit']=$grossProfit; $result['net_profit']=$netProfit; $result['total']=$netProfit;
         } elseif ($module === 'trial-balance') {
             // Neraca saldo: saldo awal sebelum periode + mutasi selama periode.
             $accounts = DB::table('chart_of_accounts as a')
