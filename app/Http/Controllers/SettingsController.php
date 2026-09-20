@@ -250,8 +250,23 @@ class SettingsController extends Controller
         return view('settings.roles', compact('roles', 'permissions', 'matrix'));
     }
 
-    public function configuration()
+    public function configuration(Request $request)
     {
-        return view('settings.configuration');
+        $entityId = $request->user()->entity_id;
+        abort_unless($entityId, 403);
+
+        $units = DB::table('business_units')
+            ->where('entity_id', $entityId)
+            ->orderBy('code')
+            ->get();
+
+        $accounts = DB::table('chart_of_accounts')
+            ->where('entity_id', $entityId)
+            ->where('is_active', true)
+            ->whereIn('type', ['cogs', 'expense'])
+            ->orderBy('code')
+            ->get();
+
+        return view('settings.configuration', compact('units', 'accounts'));
     }
 }
