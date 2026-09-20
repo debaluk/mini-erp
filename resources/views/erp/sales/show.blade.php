@@ -12,22 +12,17 @@
         <div class="col-md-6"><label class="form-label">Customer</label><input class="form-control" value="{{ $sale->customer_name ?? 'Umum' }}" readonly></div>
         <div class="col-md-6"><label class="form-label">Unit</label><input class="form-control" value="{{ $sale->unit_name ?? '-' }}" readonly></div>
     </div>
-    <hr class="my-4">
-    <h6 class="mb-2">Detail Penjualan</h6>
+    <hr class="my-4"><h6 class="mb-2">Detail Penjualan</h6>
     <div class="table-responsive"><table class="table align-middle"><thead class="table-light"><tr><th>Item</th><th>Satuan</th><th class="text-end">Qty</th><th class="text-end">Harga</th><th class="text-end">Diskon</th><th class="text-end">Subtotal</th></tr></thead>
     <tbody>@forelse($items as $i)<tr><td><b>{{ $i->code }}</b><div class="small text-secondary">{{ $i->name }}</div></td><td>{{ $i->unit_code ?? '-' }}</td><td class="text-end">{{ number_format((float)$i->qty,3,',','.') }}</td><td class="text-end">Rp {{ number_format((float)$i->unit_price,0,',','.') }}</td><td class="text-end">Rp {{ number_format((float)$i->discount,0,',','.') }}</td><td class="text-end">Rp {{ number_format((float)$i->total,0,',','.') }}</td></tr>@empty<tr><td colspan="6" class="text-center text-secondary py-4">Tidak ada detail item.</td></tr>@endforelse</tbody></table></div>
-    <hr class="my-4">
-    <div class="row g-4">
-        <div class="col-md-6">
-            <h6>Informasi Customer</h6>
-            <div class="small text-secondary">Customer</div><div class="fw-semibold mb-3">{{ $sale->customer_name ?? 'Umum' }}</div>
+    <hr class="my-4"><div class="row g-4">
+        <div class="col-md-6"><h6>Informasi Customer</h6><div class="small text-secondary">Customer</div><div class="fw-semibold mb-3">{{ $sale->customer_name ?? 'Umum' }}</div>
             @if(!empty($sale->customer_phone))<div class="small text-secondary">No. Telepon</div><div class="mb-3">{{ $sale->customer_phone }}</div>@endif
             @if(!empty($sale->customer_address))<div class="small text-secondary">Alamat</div><div class="mb-3">{{ $sale->customer_address }}</div>@endif
-            <div class="small text-secondary">Piutang Sebelumnya</div><div class="fw-semibold">Rp 0</div>
+            <div class="small text-secondary">Piutang Sebelumnya</div><div class="fw-semibold">Rp {{ number_format($previousReceivable,0,',','.') }}</div>
             @if(!empty($sale->memo))<div class="small text-secondary mt-3">Memo</div><div>{{ $sale->memo }}</div>@endif
         </div>
-        <div class="col-md-6">
-            <h6>Informasi Transaksi</h6>
+        <div class="col-md-6"><h6>Informasi Transaksi</h6>
             <div class="d-flex justify-content-between py-1"><span>Subtotal</span><strong>Rp {{ number_format((float)$sale->subtotal,0,',','.') }}</strong></div>
             <div class="d-flex justify-content-between py-1"><span>Diskon (Rp)</span><strong>Rp {{ number_format((float)$sale->discount,0,',','.') }}</strong></div>
             <div class="d-flex justify-content-between border-top mt-2 pt-2 fs-5"><strong>TOTAL</strong><strong>Rp {{ number_format((float)$sale->total,0,',','.') }}</strong></div>
@@ -38,14 +33,29 @@
 </div></div>
 @endsection
 @push('styles')
-<style>@media print{.btn,.d-flex.justify-content-between.align-items-center.mb-3{display:none!important}.card{box-shadow:none!important;border:0!important}.form-control{border:0!important;padding-left:0!important;padding-right:0!important}}</style>
+<style>
+@media print {
+    @page { size: 80mm auto; margin: 3mm; }
+    html, body { width: 80mm !important; margin: 0 !important; padding: 0 !important; font-size: 11px !important; }
+    .container, .container-fluid { width: 74mm !important; max-width: 74mm !important; margin: 0 !important; padding: 0 !important; }
+    .btn, .d-flex.justify-content-between.align-items-center.mb-3 { display:none!important; }
+    .card { width: 74mm !important; box-shadow:none!important; border:0!important; }
+    .card-body { padding: 0 !important; }
+    .row { display:block !important; margin:0 !important; }
+    .col-md-6 { width:100% !important; padding:0 !important; margin-bottom:4px !important; }
+    .table-responsive { overflow:visible !important; }
+    table { width:100% !important; font-size:10px !important; }
+    th, td { padding:2px 1px !important; }
+    .form-control { border:0!important; padding:0!important; background:transparent!important; }
+    hr { margin:5px 0 !important; }
+}
+</style>
 @endpush
 @push('scripts')
 <script>
 (function () {
     const params = new URLSearchParams(window.location.search);
     if (params.get('print') !== '1') return;
-
     window.addEventListener('load', function () {
         let moved = false;
         const goToNewSale = function () {
