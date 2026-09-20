@@ -24,7 +24,11 @@ class BusinessUnitController extends Controller
             ->orderBy('code')
             ->get();
 
-        return view('settings.business-units', compact('units'));
+        $editUnit = $request->filled('edit')
+            ? BusinessUnit::where('entity_id', $entityId)->findOrFail((int) $request->input('edit'))
+            : null;
+
+        return view('settings.business-units', compact('units', 'editUnit'));
     }
 
     public function store(Request $request)
