@@ -6,7 +6,7 @@
 <hr class="my-4"><div class="d-flex justify-content-between align-items-center mb-2"><h6 class="mb-0">Detail Penjualan</h6><button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#itemModal">+ Tambah Item</button></div><div class="input-group mb-3"><input class="form-control" placeholder="Cari barang, kode atau barcode..." readonly><button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#itemModal">🔍</button></div>
 <div class="table-responsive"><table class="table align-middle"><thead class="table-light"><tr><th>Item</th><th>Satuan</th><th class="text-end">Qty</th><th class="text-end">Harga</th><th class="text-end">Subtotal</th><th></th></tr></thead><tbody id="detailBody"><tr><td colspan="6" class="text-center text-secondary py-4">Belum ada item.</td></tr></tbody></table></div>
 <hr class="my-4"><div class="row g-4"><div class="col-md-6"><h6>Informasi Customer</h6><div class="small text-secondary">Customer</div><div id="customerInfo" class="fw-semibold mb-3">-</div><div class="small text-secondary">Piutang Sebelumnya</div><div id="customerBalance" class="fw-semibold mb-2">Rp 0</div><div class="alert alert-warning py-2 d-none" id="arrears">⚠ Ada tunggakan sebelumnya</div><label class="form-label">Memo</label><textarea class="form-control" rows="3" placeholder="Catatan transaksi..."></textarea></div>
-<div class="col-md-6"><h6>Informasi Transaksi</h6><div class="d-flex justify-content-between py-1"><span>Subtotal</span><strong id="subtotalAmount">Rp 0</strong></div><div class="d-flex justify-content-between align-items-center py-1"><span>Diskon</span><input id="discountInput" type="number" min="0" class="form-control text-end" style="max-width:160px" value="0"></div><div class="d-flex justify-content-between border-top mt-2 pt-2 fs-5"><strong>TOTAL</strong><strong id="totalAmount">Rp 0</strong></div><div class="mt-3"><label class="form-label">Cara Bayar</label><select id="paymentMethod" class="form-select"><option value="Tunai">Tunai</option><option value="Transfer">Transfer</option><option value="QRIS">QRIS</option><option value="Kredit / Bon">Kredit / Bon</option></select></div><div id="dueDate" class="mt-3 d-none"><label class="form-label">Jatuh Tempo</label><input type="date" class="form-control"></div></div></div>
+<div class="col-md-6"><h6>Informasi Transaksi</h6><div class="d-flex justify-content-between py-1"><span>Subtotal</span><strong id="subtotalAmount">Rp 0</strong></div><div class="d-flex justify-content-between align-items-center py-1"><span>Diskon (Rp)</span><input id="discountInput" type="number" min="0" class="form-control text-end" style="max-width:160px" value="0"></div><div class="d-flex justify-content-between border-top mt-2 pt-2 fs-5"><strong>TOTAL</strong><strong id="totalAmount">Rp 0</strong></div><div class="mt-3"><label class="form-label">Cara Bayar</label><select id="paymentMethod" class="form-select"><option value="Tunai">Tunai</option><option value="Transfer">Transfer</option><option value="QRIS">QRIS</option><option value="Kredit / Bon">Kredit / Bon</option></select></div><div id="dueDate" class="mt-3 d-none"><label class="form-label">Jatuh Tempo</label><input type="date" class="form-control"></div></div></div>
 </div><div class="card-footer d-flex justify-content-end gap-2"><a href="{{ route('inventori.penjualan') }}" class="btn btn-outline-secondary">Batal</a><button type="button" id="saveSales" class="btn btn-primary">Simpan Penjualan</button></div></div>
 
 <div class="modal fade" id="customerModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h6 class="modal-title">Cari Customer</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input id="customerFilter" class="form-control mb-3" placeholder="Ketik nama customer..."><div class="list-group" id="customerList">@foreach($customers as $c)<button type="button" class="list-group-item list-group-item-action customer-choice d-flex justify-content-between align-items-center" data-id="{{ $c->id }}" data-name="{{ $c->name }}" data-balance="{{ $c->outstanding }}"><span>{{ $c->name }}</span><span class="small text-secondary">Piutang: Rp {{ number_format($c->outstanding, 0, ',', '.') }}</span></button>@endforeach</div></div></div></div></div>
@@ -41,8 +41,7 @@
             document.getElementById('customerInfo').textContent = button.dataset.name;
             document.getElementById('customerBalance').textContent = rupiah(button.dataset.balance);
             document.getElementById('arrears').classList.toggle('d-none', Number(button.dataset.balance || 0) <= 0);
-            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('customerModal'));
-            modal.hide();
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('customerModal')).hide();
         });
     });
 
@@ -119,7 +118,13 @@
             });
             const json = await response.json();
             if (!response.ok) throw new Error(json.message || Object.values(json.errors || {}).flat().join(' ') || 'Gagal menyimpan penjualan.');
-            window.location.href = json.redirect || '{{ route('inventori.penjualan') }}';
+
+            const doPrint = window.confirm('Penjualan berhasil disimpan. Cetak penjualan sekarang?');
+            if (doPrint) {
+                window.location.href = (json.redirect || '{{ route('inventori.penjualan') }}') + '?print=1';
+            } else {
+                window.location.href = '{{ route('inventori.penjualan.create') }}';
+            }
         } catch (error) {
             alert(error.message);
         }
