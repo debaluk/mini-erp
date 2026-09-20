@@ -58,7 +58,6 @@
                         <label class="form-label">Tipe Usaha *</label>
                         <select name="business_type" class="form-select" required>
                             <option value="">Pilih</option>
-                            <option value="">Pilih</option>
                             <option value="retail" @selected(old('business_type', $editUnit->business_type ?? '') === 'retail')>Retail</option>
                             <option value="production" @selected(old('business_type', $editUnit->business_type ?? '') === 'production')>Produksi</option>
                             <option value="service" @selected(old('business_type', $editUnit->business_type ?? '') === 'service')>Jasa</option>
