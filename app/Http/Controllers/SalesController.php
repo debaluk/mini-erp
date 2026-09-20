@@ -64,7 +64,7 @@ class SalesController extends Controller {
  public function create() {
   $entity=$this->entityId();
   $units=DB::table('business_units')->where('entity_id',$entity)->where('is_active',1)->orderBy('name')->get();
-  $customers=DB::table('customers')->where('entity_id',$entity)->where('is_active',1)->orderBy('name')->get(['id','name']);
+  $customers=DB::table('customers as c')->where('c.entity_id',$entity)->where('c.is_active',1)->leftJoin(DB::raw('(SELECT s.customer_id, SUM(s.total - COALESCE(p.paid_amount,0)) AS outstanding FROM sales s LEFT JOIN (SELECT sale_id, SUM(COALESCE(paid_amount,0)) paid_amount FROM payments GROUP BY sale_id) p ON p.sale_id=s.id WHERE s.entity_id='.$entity.' AND s.customer_id IS NOT NULL AND EXISTS (SELECT 1 FROM payments cp WHERE cp.sale_id=s.id AND cp.method="credit") GROUP BY s.customer_id) ob'),'ob.customer_id','=','c.id')->orderBy('c.name')->get(['c.id','c.name',DB::raw('COALESCE(ob.outstanding,0) as outstanding')]);
   $products=DB::table('products as p')->join('product_units as pu','pu.product_id','=','p.id')->leftJoin('units as u','u.id','=','p.base_unit_id')->where('p.entity_id',$entity)->where('p.is_active',1)->select('p.id','p.code','p.sku','p.name','p.selling_price','u.code as selling_unit_code')->distinct()->orderBy('p.name')->get();
   return view('erp.sales.create',compact('units','customers','products'));
  }
