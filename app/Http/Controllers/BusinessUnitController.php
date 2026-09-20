@@ -44,6 +44,21 @@ class BusinessUnitController extends Controller
         return view('settings.business-units', compact('units', 'editUnit', 'accounts'));
     }
 
+    public function edit(Request $request, int $id)
+    {
+        $unit = BusinessUnit::where('entity_id', $this->entityId($request))->findOrFail($id);
+
+        return response()->json([
+            'id' => $unit->id,
+            'code' => $unit->code,
+            'name' => $unit->name,
+            'business_type' => $unit->business_type,
+            'hpp_method' => $unit->hpp_method,
+            'hpp_account_id' => $unit->hpp_account_id,
+            'is_active' => (bool) $unit->is_active,
+        ]);
+    }
+
     public function store(Request $request)
     {
         $entityId = $this->entityId($request);
