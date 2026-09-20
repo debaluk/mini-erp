@@ -60,7 +60,15 @@ $prodTotal=$productionRows->sum('total_cost');
                     <tbody>@forelse($productionRows as $row)<tr><td>{{ $row->production_no }}</td><td>{{ $row->date }}</td><td>{{ $row->product }}</td><td>{{ $row->bom }}</td><td class="text-end">{{ number_format($row->qty,0,',','.') }}</td><td class="text-end">Rp {{ number_format($row->material_cost,0,',','.') }}</td><td class="text-end">Rp {{ number_format($row->labor_cost,0,',','.') }}</td><td class="text-end">Rp {{ number_format($row->freight_cost,0,',','.') }}</td><td class="text-end fw-semibold">Rp {{ number_format($row->total_cost,0,',','.') }}</td><td class="text-end fw-semibold">Rp {{ number_format($row->unit_cost,2,',','.') }}</td></tr>@empty<tr><td colspan="10" class="text-center text-secondary py-4">Belum ada data HPP Produksi.</td></tr>@endforelse</tbody>
                     <tfoot class="table-light fw-semibold"><tr><td colspan="4">TOTAL</td><td class="text-end">{{ number_format($prodTotalQty,0,',','.') }}</td><td class="text-end">Rp {{ number_format($prodMaterial,0,',','.') }}</td><td class="text-end">Rp {{ number_format($prodLabor,0,',','.') }}</td><td class="text-end">Rp {{ number_format($prodOverhead,0,',','.') }}</td><td class="text-end">Rp {{ number_format($prodTotal,0,',','.') }}</td><td></td></tr></tfoot>
                 </table></div>
-                <div class="alert alert-light border mt-3 mb-0"><strong>Formula HPP Produksi:</strong> Total HPP = Bahan Baku + Tenaga Kerja + Overhead / Angkut. HPP / Unit = Total HPP ÷ Qty Hasil (Bagus). BOM / Formula merupakan acuan; HPP final menggunakan biaya aktual produksi.</div>
+                <div class="alert alert-light border mt-3 mb-0">
+    <div class="fw-semibold mb-2">Informasi Formula HPP Produksi</div>
+    <div class="mb-1"><strong>1. Bahan Baku</strong> = nilai pemakaian bahan baku aktual berdasarkan stok/HPP bahan.</div>
+    <div class="mb-1"><strong>2. Tenaga Kerja</strong> = biaya tenaga kerja langsung yang dibebankan ke produksi.</div>
+    <div class="mb-1"><strong>3. Overhead / Angkut</strong> = biaya overhead produksi dan biaya angkut yang dialokasikan ke produksi.</div>
+    <div class="mb-1"><strong>4. Total HPP</strong> = Bahan Baku + Tenaga Kerja + Overhead / Angkut.</div>
+    <div class="mb-1"><strong>5. HPP / Unit</strong> = Total HPP ÷ Qty Hasil (Bagus).</div>
+    <div><strong>6. BOM / Formula</strong> = acuan kebutuhan produksi; HPP final menggunakan biaya aktual produksi.</div>
+</div>
             </div>
         </div>
     </div>
