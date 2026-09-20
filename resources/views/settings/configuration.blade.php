@@ -23,7 +23,8 @@
         <div class="card shadow-sm h-100">
             <div class="card-body">
                 <h5 class="mb-1">Setup Mapping Account</h5>
-                <p class="text-secondary small mb-0">Mapping akun untuk proses HPP dan transaksi otomatis.</p>
+                <p class="text-secondary small mb-3">Mapping akun untuk proses HPP dan transaksi otomatis.</p>
+                <a href="{{ route('pengaturan.account-mapping') }}" class="btn btn-primary btn-sm">Buka Setup</a>
             </div>
         </div>
     </div>
