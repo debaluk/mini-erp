@@ -83,6 +83,7 @@ class SalesController extends Controller {
    }
    return $saleId;
   });
+  if ($request->expectsJson()) return response()->json(['ok'=>true,'sale_id'=>$saleId,'redirect'=>route('inventori.penjualan.show',$saleId)]);
   return redirect()->route('inventori.penjualan.show',$saleId)->with('success','Penjualan berhasil diposting.');
  }
  public function show(int $id) {
