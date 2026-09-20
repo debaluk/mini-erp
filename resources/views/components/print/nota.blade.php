@@ -97,7 +97,7 @@
 
 @media print {
     @page {
-        size: 165mm 216mm;
+        size: 216mm 165mm;
         margin: 8mm;
     }
 
