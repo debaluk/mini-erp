@@ -222,7 +222,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/akuntansi/arus-kas/export-excel', [ModuleController::class, 'exportCashFlowExcel'])->middleware('access:akuntansi')->name('akuntansi.arus-kas.export-excel');
 
     Route::get('/laporan/penjualan', fn () => app(ModuleController::class)->show('sales'))->middleware('access:laporan')->name('laporan.penjualan');
-    Route::get('/laporan/pembelian', fn () => app(ModuleController::class)->show('purchases'))->middleware('access:laporan')->name('laporan.pembelian');
+    Route::get('/laporan/pembelian', [PurchaseReportController::class, 'index'])->middleware('access:laporan')->name('laporan.pembelian');\n    Route::get('/laporan/pembelian/export', [PurchaseReportController::class, 'export'])->middleware('access:laporan')->name('laporan.pembelian.export');
     Route::get('/laporan/persediaan', fn () => app(ModuleController::class)->show('stock'))->middleware('access:laporan')->name('laporan.persediaan');
     Route::get('/laporan/produksi', fn () => app(ModuleController::class)->show('production'))->middleware('access:laporan')->name('laporan.produksi');
     Route::get('/laporan/armada-jasa', fn () => app(ModuleController::class)->show('operations'))->middleware('access:laporan')->name('laporan.armada-jasa');
