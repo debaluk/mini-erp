@@ -158,6 +158,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/pos/penjualan', fn () => app(ModuleController::class)->show('sales'))->middleware('access:pos_retail')->name('pos.penjualan');
     Route::get('/inventori/penjualan', [SalesController::class, 'index'])->middleware('access:inventori')->name('inventori.penjualan');
     Route::get('/inventori/penjualan/create', [SalesController::class, 'create'])->middleware('access:inventori')->name('inventori.penjualan.create');
+    Route::get('/inventori/penjualan/export-data', [SalesController::class, 'export'])->middleware('access:inventori')->name('inventori.penjualan.export-data');
     Route::get('/inventori/penjualan/{id}', [SalesController::class, 'show'])->middleware('access:inventori')->name('inventori.penjualan.show');
     Route::get('/inventori/penjualan/{id}/print', [SalesController::class, 'print'])->middleware('access:inventori')->name('inventori.penjualan.print');
     Route::get('/pos/penjualan/data', [ModuleController::class, 'salesData'])->middleware('access:pos_retail')->name('pos.penjualan.data');
