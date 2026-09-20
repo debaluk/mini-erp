@@ -18,6 +18,7 @@ use App\Http\Controllers\StockController;
 use App\Http\Controllers\SellingPriceController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\BusinessUnitController;
+use App\Http\Controllers\BusinessUnitAccountMappingController;
 use App\Http\Controllers\UnitConversionController;
 use App\Http\Controllers\ShiftController;
 use Illuminate\Http\Request;
@@ -252,6 +253,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/pengaturan/konfigurasi/unit-bisnis', [BusinessUnitController::class, 'store'])->middleware('role:owner,admin')->name('pengaturan.unit-bisnis.store');
     Route::put('/pengaturan/konfigurasi/unit-bisnis/{id}', [BusinessUnitController::class, 'update'])->middleware('role:owner,admin')->name('pengaturan.unit-bisnis.update');
     Route::delete('/pengaturan/konfigurasi/unit-bisnis/{id}', [BusinessUnitController::class, 'destroy'])->middleware('role:owner,admin')->name('pengaturan.unit-bisnis.destroy');
+    Route::get('/pengaturan/konfigurasi/mapping-account', [BusinessUnitAccountMappingController::class, 'index'])->middleware('access:konfigurasi')->name('pengaturan.account-mapping');
+    Route::post('/pengaturan/konfigurasi/mapping-account/{unitId}', [BusinessUnitAccountMappingController::class, 'save'])->middleware('role:owner,admin')->name('pengaturan.account-mapping.save');
 
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
