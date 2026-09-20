@@ -97,13 +97,13 @@
 
 @media print {
     @page {
-        size: 216mm 165mm;
+        size: 216mm 330mm portrait;
         margin: 8mm;
     }
 
     html, body {
-        width: 165mm !important;
-        min-width: 165mm !important;
+        width: 216mm !important;
+        min-width: 216mm !important;
         margin: 0 !important;
         padding: 0 !important;
         background:#fff !important;
@@ -120,14 +120,16 @@
         position:absolute !important;
         left:0 !important;
         top:0 !important;
-        width:149mm !important;
-        max-width:149mm !important;
-        min-height:200mm !important;
+        width:200mm !important;
+        max-width:200mm !important;
+        height:165mm !important;
+        max-height:165mm !important;
         margin:0 !important;
         padding:0 !important;
         box-sizing:border-box !important;
         color:#000 !important;
         background:#fff !important;
+        overflow:hidden !important;
     }
 
     .nota-head {
@@ -143,9 +145,8 @@
 
     .nota-info {
         display:grid;
-        grid-template-columns:1fr 1fr;
-        column-gap:10mm;
-        row-gap:1.5mm;
+        grid-template-columns:1fr;
+        row-gap:2mm;
         margin-bottom:4mm;
     }
     .nota-info div,
