@@ -13,6 +13,7 @@ use App\Http\Controllers\PurchaseReportController;
 use App\Http\Controllers\ReceiptController;
 use App\Http\Controllers\SalesReturnController;
 use App\Http\Controllers\SalesController;
+use App\Http\Controllers\StockController;
 use App\Http\Controllers\SellingPriceController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\UnitConversionController;
@@ -195,7 +196,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/inventori/penerimaan', [ReceiptController::class, 'index'])->middleware('access:inventori')->name('inventori.penerimaan');
     Route::get('/inventori/penerimaan/create', [ReceiptController::class, 'create'])->middleware('access:inventori')->name('inventori.penerimaan.create');
     Route::get('/inventori/penerimaan/{id}/edit', [ReceiptController::class, 'edit'])->middleware('access:inventori')->name('inventori.penerimaan.edit');
-    Route::get('/inventori/stok', fn () => app(ModuleController::class)->show('stock'))->middleware('access:inventori')->name('inventori.stok');
+    Route::get('/inventori/stok', [StockController::class, 'index'])->middleware('access:inventori')->name('inventori.stok');
+    Route::get('/inventori/stok/{product}/{warehouse}', [StockController::class, 'detail'])->middleware('access:inventori')->name('inventori.stok.detail');
     Route::get('/inventori/transfer', fn () => app(ModuleController::class)->show('movements'))->middleware('access:inventori')->name('inventori.transfer');
     Route::get('/inventori/adjustment', fn () => app(ModuleController::class)->show('movements'))->middleware('access:inventori')->name('inventori.adjustment');
     Route::get('/inventori/stock-opname', fn () => app(ModuleController::class)->show('opname'))->middleware('access:inventori')->name('inventori.stock-opname');
