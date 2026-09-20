@@ -434,8 +434,11 @@ class ModuleController extends Controller
             $result['lines'] = DB::table('productions')->where('entity_id',$entity)->orderByDesc('production_date')->paginate(15)->withQueryString();
             $result['total'] = (float) DB::table('productions')->where('entity_id',$entity)->sum('total_cost');
         } elseif ($module === 'profit-loss') {
-            // Ambil seluruh hirarki COA Laba Rugi. Akun detail tetap menampilkan nilai 0
-            // jika belum ada jurnal pada periode yang dipilih.
+            // Laba Rugi disajikan pada dua dimensi:
+            // 1) Unit operasional: Retail, Produksi, Jasa.
+            // 2) Holding: beban yang memang menjadi tanggung jawab Holding.
+            // Rekap menggabungkan laba unit dan laba/rugi Holding tanpa mengalokasikan
+            // beban Holding ke Unit.
             $journalTotals = DB::table('journal_entries as e')
                 ->join('journals as j','j.id','=','e.journal_id')
                 ->where('j.entity_id',$entity)
@@ -462,7 +465,7 @@ class ModuleController extends Controller
             $revenueTotal = 0;
             $cogsTotal = 0;
             $expenseTotal = 0;
-
+            $lines = [];
             foreach ($accounts as $a) {
                 $amount = $a->type === 'revenue'
                     ? (float)$a->credit - (float)$a->debit
@@ -473,7 +476,7 @@ class ModuleController extends Controller
                     elseif ($a->type === 'cogs') $cogsTotal += $amount;
                     else $expenseTotal += $amount;
 
-                    $result['lines'][] = [
+                    $lines[] = [
                         'code'=>$a->code,
                         'label'=>$a->name,
                         'type'=>$a->type,
@@ -484,22 +487,11 @@ class ModuleController extends Controller
                 }
             }
 
-            // Hirarki untuk tampilan laporan: hanya kelompok yang memang memiliki
-            // turunan Laba Rugi aktif.
-            $plAccounts = $accounts->filter(function ($a) {
-                return in_array($a->type,['revenue','cogs','expense'],true);
-            })->values();
-
-            $result['coa_hierarchy'] = $plAccounts->map(function ($a) use ($accounts) {
-                return [
-                    'id'=>$a->id,
-                    'parent_id'=>$a->parent_id,
-                    'code'=>$a->code,
-                    'name'=>$a->name,
-                    'type'=>$a->type,
-                    'level'=>(int)$a->level,
-                ];
-            })->all();
+            $result['lines'] = $lines;
+            $result['coa_hierarchy'] = $accounts->map(fn ($a) => [
+                'id'=>$a->id,'parent_id'=>$a->parent_id,'code'=>$a->code,'name'=>$a->name,
+                'type'=>$a->type,'level'=>(int)$a->level,
+            ])->all();
 
             $grossProfit = $revenueTotal - $cogsTotal;
             $netProfit = $grossProfit - $expenseTotal;
@@ -510,6 +502,19 @@ class ModuleController extends Controller
             $result['gross_profit'] = $grossProfit;
             $result['net_profit'] = $netProfit;
             $result['total'] = $netProfit;
+
+            // Belum ada dimensi unit/holding pada jurnal yang terkunci saat ini.
+            // Sediakan struktur output agar UI siap, tanpa mengarang alokasi beban.
+            $result['unit_reports'] = [];
+            $result['holding_report'] = [
+                'revenue'=>0, 'cogs'=>0, 'expense'=>0, 'gross_profit'=>0, 'net_profit'=>0,
+                'lines'=>[],
+            ];
+            $result['rekap'] = [
+                'unit_profit'=>0,
+                'holding_profit'=>0,
+                'net_profit'=>$netProfit,
+            ];
         } elseif ($module === 'trial-balance') {
             // Neraca saldo: saldo awal sebelum periode + mutasi selama periode.
             $accounts = DB::table('chart_of_accounts as a')
