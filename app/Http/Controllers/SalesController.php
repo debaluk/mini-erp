@@ -6,10 +6,21 @@ class SalesController extends Controller {
  private function entityId(): int { return (int)(DB::table('entities')->value('id') ?? 1); }
  public function index(Request $request) {
   $entity=$this->entityId();
-  $rows=DB::table('sales as s')->leftJoin('customers as c','c.id','=','s.customer_id')->where('s.entity_id',$entity)->when($request->filled('start_date'),fn($q)=>$q->whereDate('s.sale_date','>=',$request->start_date))->when($request->filled('end_date'),fn($q)=>$q->whereDate('s.sale_date','<=',$request->end_date))->when($request->filled('customer'),fn($q)=>$q->where('c.name','like','%'.$request->customer.'%'))->when($request->filled('payment_method'),fn($q)=>$q->whereExists(function($sub) use ($request){$sub->select(DB::raw(1))->from('payments as fp')->whereColumn('fp.sale_id','s.id')->where('fp.method',$request->payment_method);}))->select('s.*','c.name as customer_name',DB::raw("(SELECT GROUP_CONCAT(DISTINCT p.method ORDER BY p.id SEPARATOR ', ') FROM payments p WHERE p.sale_id = s.id) as payment_methods"))->orderByDesc('s.sale_date')->orderByDesc('s.id')->paginate(15)->withQueryString();
+  $startDate = $request->input('start_date', now()->startOfMonth()->toDateString());
+  $endDate = $request->input('end_date', now()->endOfMonth()->toDateString());
+  $rows=DB::table('sales as s')->leftJoin('customers as c','c.id','=','s.customer_id')->where('s.entity_id',$entity)->whereDate('s.sale_date','>=',$startDate)->whereDate('s.sale_date','<=',$endDate)->when($request->filled('customer'),fn($q)=>$q->where('c.name','like','%'.$request->customer.'%'))->when($request->filled('payment_method'),fn($q)=>$q->whereExists(function($sub) use ($request){$sub->select(DB::raw(1))->from('payments as fp')->whereColumn('fp.sale_id','s.id')->where('fp.method',$request->payment_method);}))->select('s.*','c.name as customer_name',DB::raw("(SELECT GROUP_CONCAT(DISTINCT p.method ORDER BY p.id SEPARATOR ', ') FROM payments p WHERE p.sale_id = s.id) as payment_methods"))->orderByDesc('s.sale_date')->orderByDesc('s.id')->paginate(15)->withQueryString();
   $units=DB::table('business_units')->where('entity_id',$entity)->where('is_active',1)->orderBy('name')->get();
   return view('erp.sales.index',compact('rows','units'));
  }
+ public function show(int $id) {
+  $entity=$this->entityId();
+  $sale=DB::table('sales as s')->leftJoin('customers as c','c.id','=','s.customer_id')->where('s.entity_id',$entity)->where('s.id',$id)->select('s.*','c.name as customer_name','c.phone as customer_phone','c.address as customer_address')->first();
+  abort_unless($sale,404);
+  $items=DB::table('sale_items as si')->join('products as p','p.id','=','si.product_id')->leftJoin('units as u','u.id','=','p.base_unit_id')->where('si.sale_id',$sale->id)->select('p.code','p.name','u.code as unit_code','si.qty','si.unit_price','si.discount','si.total')->get();
+  $payments=DB::table('payments')->where('sale_id',$sale->id)->orderBy('id')->get();
+  return view('erp.sales.show',compact('sale','items','payments'));
+ }
+ public function print(int $id) { return $this->show($id); }
  public function create() {
   $entity=$this->entityId();
   $units=DB::table('business_units')->where('entity_id',$entity)->where('is_active',1)->orderBy('name')->get();
