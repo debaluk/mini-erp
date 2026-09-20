@@ -536,6 +536,23 @@ document.addEventListener('DOMContentLoaded', function () {
         </tbody></table></div>
     </div>
 </div>
+        <div class="mt-4 pt-4 border-top">
+            <div class="fw-semibold mb-3">RINGKASAN LABA RUGI</div>
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead class="table-light"><tr><th>Unit / Kelompok</th><th class="text-end">Pendapatan</th><th class="text-end">HPP / Biaya</th><th class="text-end">Laba / (Rugi)</th></tr></thead>
+                    <tbody>
+                        <tr><td>Retail</td><td class="text-end">—</td><td class="text-end">—</td><td class="text-end">—</td></tr>
+                        <tr><td>Produksi</td><td class="text-end">—</td><td class="text-end">—</td><td class="text-end">—</td></tr>
+                        <tr><td>Jasa</td><td class="text-end">—</td><td class="text-end">—</td><td class="text-end">—</td></tr>
+                        <tr class="fw-bold border-top"><td>TOTAL LABA UNIT</td><td></td><td></td><td class="text-end">—</td></tr>
+                        <tr><td>Holding</td><td></td><td class="text-end">—</td><td class="text-end">—</td></tr>
+                        <tr class="fw-bold border-top table-light"><td>LABA / (RUGI) BERSIH HOLDING</td><td></td><td></td><td class="text-end">{{ $money($report['net_profit'] ?? 0) }}</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="small text-secondary mt-2">Ringkasan Unit dan Holding akan menggunakan dimensi Unit pada jurnal setelah konfigurasi dimensi tersebut dikunci.</div>
+        </div>
 @elseif($module==='cash-flow')
 <div class="card shadow-sm mb-4">
     <div class="card-header fw-semibold">Arus Kas</div>
