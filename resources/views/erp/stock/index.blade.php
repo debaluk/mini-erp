@@ -3,6 +3,7 @@
 <div class="card shadow-sm">
     <div class="card-header d-flex justify-content-between align-items-center">
         <div><div class="fw-semibold">STOK</div><div class="small text-secondary">Saldo persediaan per gudang dan item</div></div>
+        <button type="button" class="btn btn-success btn-sm" id="btn-export-stock">Export Excel</button>
     </div>
     <div class="card-body border-bottom py-2">
         <form method="GET" class="row g-2 align-items-end">
@@ -26,6 +27,28 @@
             </tbody>
         </table>
     </div>
-    @if($rows->hasPages())<div class="card-footer">{{$rows->links()}}</div>@endif
+    <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2"><div class="small text-secondary">@if($rows->total() > 0) Menampilkan {{ $rows->firstItem() }}–{{ $rows->lastItem() }} dari {{ $rows->total() }} item @else Tidak ada stok @endif</div>@if($rows->lastPage() > 1)<nav aria-label="Pagination Stok"><ul class="pagination pagination-sm mb-0"><li class="page-item {{ $rows->onFirstPage() ? "disabled" : "" }}"><a class="page-link" href="{{ $rows->previousPageUrl() ?? "#" }}">‹</a></li>@foreach($rows->getUrlRange(max(1,$rows->currentPage()-2),min($rows->lastPage(),$rows->currentPage()+2)) as $page=>$url)<li class="page-item {{ $page==$rows->currentPage() ? "active" : "" }}"><a class="page-link" href="{{ $url }}">{{ $page }}</a></li>@endforeach<li class="page-item {{ $rows->currentPage()>=$rows->lastPage() ? "disabled" : "" }}"><a class="page-link" href="{{ $rows->nextPageUrl() ?? "#" }}">›</a></li></ul></nav>@endif</div>
 </div>
 @endsection
+
+@push('scripts')
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script>
+document.getElementById('btn-export-stock')?.addEventListener('click', async function () {
+    if (typeof XLSX === 'undefined') { alert('Library Excel belum termuat. Silakan refresh halaman lalu coba lagi.'); return; }
+    const btn=this; btn.disabled=true;
+    const params=new URLSearchParams({warehouse_id:document.querySelector('[name="warehouse_id"]')?.value||'',search:document.querySelector('[name="search"]')?.value||''});
+    try {
+        const res=await fetch('{{ route('inventori.stok.export') }}?'+params.toString(),{headers:{'Accept':'application/json','X-Requested-With':'XMLHttpRequest'}});
+        const payload=await res.json(); if(!res.ok) throw new Error(payload.message||'Export gagal.');
+        const today=new Intl.DateTimeFormat('id-ID',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date());
+        const data=payload.rows.map(r=>[String(r.code||r.sku||''),String(r.product_name||''),String(r.unit_name||r.unit_code||'-'),String(r.warehouse_name||''),Number(r.qty||0),Number(r.avg_cost||0),Number(r.stock_value||0)]);
+        const ws=XLSX.utils.aoa_to_sheet([[payload.entity_name||'NAMA ENTITAS'],['LAPORAN STOK'],['Tgl Export : '+today],[],['Kode Item','Item','Satuan','Gudang','Qty','HPP Rata-rata','Nilai'],...data]);
+        ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:6}},{s:{r:1,c:0},e:{r:1,c:6}},{s:{r:2,c:0},e:{r:2,c:6}}];
+        ws['!cols']=[{wch:18},{wch:30},{wch:14},{wch:22},{wch:14},{wch:18},{wch:20}];
+        data.forEach((row,i)=>{const n=i+6; ws['E'+n].z='#,##0.###'; ws['F'+n].z='#,##0'; ws['G'+n].z='#,##0';});
+        const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Stok'); XLSX.writeFile(wb,'laporan-stok-'+new Date().toISOString().slice(0,10)+'.xlsx');
+    } catch(e){alert(e.message||'Export gagal.');} finally{btn.disabled=false;}
+});
+</script>
+@endpush
