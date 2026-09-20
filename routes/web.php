@@ -8,6 +8,7 @@ use App\Http\Controllers\ErpController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\PosController;
 use App\Http\Controllers\ProductionController;
+use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\SalesReturnController;
 use App\Http\Controllers\SalesController;
 use App\Http\Controllers\SellingPriceController;
@@ -186,7 +187,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/pembayaran', fn () => app(ModuleController::class)->show('payments'))->middleware('access:pos_retail')->name('pembayaran');
     Route::get('/shift', fn () => redirect()->route('pos.shift'))->middleware('access:pos_retail')->name('shift');
 
-    Route::get('/inventori/pembelian', fn () => app(ModuleController::class)->show('purchases'))->middleware('access:inventori')->name('inventori.pembelian');
+    Route::get('/inventori/pembelian', [PurchaseController::class, 'index'])->middleware('access:inventori')->name('inventori.pembelian');
+    Route::get('/inventori/pembelian/create', [PurchaseController::class, 'create'])->middleware('access:inventori')->name('inventori.pembelian.create');
+    Route::get('/inventori/pembelian/{id}/edit', [PurchaseController::class, 'edit'])->middleware('access:inventori')->name('inventori.pembelian.edit');
     Route::get('/inventori/penerimaan', fn () => app(ModuleController::class)->show('receipts'))->middleware('access:inventori')->name('inventori.penerimaan');
     Route::get('/inventori/stok', fn () => app(ModuleController::class)->show('stock'))->middleware('access:inventori')->name('inventori.stok');
     Route::get('/inventori/transfer', fn () => app(ModuleController::class)->show('movements'))->middleware('access:inventori')->name('inventori.transfer');
