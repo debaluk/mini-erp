@@ -43,53 +43,87 @@
         <div class="card shadow-sm mb-3">
             <div class="card-header fw-semibold">Setup Unit Bisnis</div>
             <div class="card-body">
-                <form method="POST" action="{{ $editUnit ? route('pengaturan.unit-bisnis.update', $editUnit->id) : route('pengaturan.unit-bisnis.store') }}" class="row g-3 align-items-end">
+                <form method="POST" action="{{ $editUnit ? route('pengaturan.unit-bisnis.update', $editUnit->id) : route('pengaturan.unit-bisnis.store') }}">
                     @csrf
                     @if($editUnit) @method('PUT') @endif
-                    <div class="col-md-2">
-                        <label class="form-label">Kode Unit *</label>
-                        <input type="text" name="code" class="form-control" value="{{ old('code', $editUnit->code ?? '') }}" required>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Nama Unit *</label>
-                        <input type="text" name="name" class="form-control" value="{{ old('name', $editUnit->name ?? '') }}" required>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Tipe Usaha *</label>
-                        <select name="business_type" class="form-select" required>
-                            <option value="">Pilih</option>
-                            <option value="retail" @selected(old('business_type', $editUnit->business_type ?? '') === 'retail')>Retail</option>
-                            <option value="production" @selected(old('business_type', $editUnit->business_type ?? '') === 'production')>Produksi</option>
-                            <option value="service" @selected(old('business_type', $editUnit->business_type ?? '') === 'service')>Jasa</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Metode HPP *</label>
-                        <select name="hpp_method" class="form-select" required>
-                            <option value="">Pilih</option>
-                            <option value="perpetual" @selected(old('hpp_method', $editUnit->hpp_method ?? '') === 'perpetual')>Perpetual</option>
-                            <option value="periodic" @selected(old('hpp_method', $editUnit->hpp_method ?? '') === 'periodic')>Periodik</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Akun HPP</label>
-                        <select name="hpp_account_id" class="form-select">
-                            <option value="">Pilih Akun HPP</option>
-                            @foreach($accounts as $account)
-                                <option value="{{ $account->id }}" @selected((string) old('hpp_account_id', $editUnit->hpp_account_id ?? '') === (string) $account->id)>{{ $account->code }} — {{ $account->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-1">
-                        <div class="form-check mb-2">
-                            <input type="hidden" name="is_active" value="0">
-                            <input class="form-check-input" type="checkbox" name="is_active" value="1" id="unit-active" @checked(old('is_active', $editUnit->is_active ?? true))>
-                            <label class="form-check-label" for="unit-active">Aktif</label>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="row align-items-center">
+                                <label class="col-sm-4 col-form-label">Kode Unit *</label>
+                                <div class="col-sm-8">
+                                    <input type="text" name="code" class="form-control" value="{{ old('code', $editUnit->code ?? '') }}" required>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-12">
-                        <button type="submit" class="btn btn-primary">{{ $editUnit ? 'Update' : 'Simpan' }}</button>
-                        @if($editUnit)<a href="{{ route('pengaturan.konfigurasi') }}" class="btn btn-secondary">Batal</a>@endif
+
+                        <div class="col-md-6">
+                            <div class="row align-items-center">
+                                <label class="col-sm-4 col-form-label">Nama Unit *</label>
+                                <div class="col-sm-8">
+                                    <input type="text" name="name" class="form-control" value="{{ old('name', $editUnit->name ?? '') }}" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="row align-items-center">
+                                <label class="col-sm-4 col-form-label">Tipe Usaha *</label>
+                                <div class="col-sm-8">
+                                    <select name="business_type" class="form-select" required>
+                                        <option value="">Pilih</option>
+                                        <option value="retail" @selected(old('business_type', $editUnit->business_type ?? '') === 'retail')>Retail</option>
+                                        <option value="production" @selected(old('business_type', $editUnit->business_type ?? '') === 'production')>Produksi</option>
+                                        <option value="service" @selected(old('business_type', $editUnit->business_type ?? '') === 'service')>Jasa</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="row align-items-center">
+                                <label class="col-sm-4 col-form-label">Metode HPP *</label>
+                                <div class="col-sm-8">
+                                    <select name="hpp_method" class="form-select" required>
+                                        <option value="">Pilih</option>
+                                        <option value="perpetual" @selected(old('hpp_method', $editUnit->hpp_method ?? '') === 'perpetual')>Perpetual</option>
+                                        <option value="periodic" @selected(old('hpp_method', $editUnit->hpp_method ?? '') === 'periodic')>Periodik</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="row align-items-center">
+                                <label class="col-sm-4 col-form-label">Akun HPP</label>
+                                <div class="col-sm-8">
+                                    <select name="hpp_account_id" class="form-select">
+                                        <option value="">Pilih Akun HPP</option>
+                                        @foreach($accounts as $account)
+                                            <option value="{{ $account->id }}" @selected((string) old('hpp_account_id', $editUnit->hpp_account_id ?? '') === (string) $account->id)>{{ $account->code }} — {{ $account->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="row align-items-center">
+                                <label class="col-sm-4 col-form-label">Status</label>
+                                <div class="col-sm-8">
+                                    <div class="form-check">
+                                        <input type="hidden" name="is_active" value="0">
+                                        <input class="form-check-input" type="checkbox" name="is_active" value="1" id="unit-active" @checked(old('is_active', $editUnit->is_active ?? true))>
+                                        <label class="form-check-label" for="unit-active">Aktif</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 pt-2">
+                            <button type="submit" class="btn btn-primary">{{ $editUnit ? 'Update' : 'Simpan' }}</button>
+                            @if($editUnit)<a href="{{ route('pengaturan.konfigurasi') }}" class="btn btn-secondary">Batal</a>@endif
+                        </div>
                     </div>
                 </form>
             </div>
@@ -195,6 +229,7 @@
         </div>
     </div>
 </div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const form = document.querySelector('#setup-unit form');
