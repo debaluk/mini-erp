@@ -20,51 +20,72 @@ class BusinessUnitAccountMappingController extends Controller
     public function index(Request $request)
     {
         $entityId = $this->entityId($request);
+
         $units = BusinessUnit::where('entity_id', $entityId)->orderBy('code')->get();
 
-        // Hanya akun HPP utama yang boleh dipetakan.
-        $hppAccount = DB::table('chart_of_accounts')
+        $accounts = DB::table('chart_of_accounts')
             ->where('entity_id', $entityId)
-            ->where('code', '50001')
             ->where('is_active', true)
             ->where('is_postable', true)
-            ->first();
+            ->orderBy('code')
+            ->get();
 
         $mappings = BusinessUnitAccountMapping::where('entity_id', $entityId)
             ->where('mapping_key', 'hpp')
             ->get()
             ->keyBy('business_unit_id');
 
-        return view('settings.account-mapping', compact('units', 'hppAccount', 'mappings'));
+        return view('settings.account-mapping', compact('units', 'accounts', 'mappings'));
     }
 
-    public function save(Request $request, int $unitId)
+    public function save(Request $request)
     {
         $entityId = $this->entityId($request);
-        $unit = BusinessUnit::where('entity_id', $entityId)->findOrFail($unitId);
 
-        $hppAccount = DB::table('chart_of_accounts')
-            ->where('entity_id', $entityId)
-            ->where('code', '50001')
-            ->where('is_active', true)
-            ->where('is_postable', true)
-            ->first();
+        $data = $request->validate([
+            'accounts' => ['required', 'array'],
+            'accounts.*' => ['required', 'integer'],
+        ]);
 
-        if (! $hppAccount) {
+        $units = BusinessUnit::where('entity_id', $entityId)
+            ->whereIn('id', array_keys($data['accounts']))
+            ->get()
+            ->keyBy('id');
+
+        if ($units->count() !== count($data['accounts'])) {
             throw ValidationException::withMessages([
-                'accounts.hpp' => 'Akun 50001 — Harga Pokok Pendapatan belum tersedia atau belum aktif/postable.',
+                'accounts' => 'Unit Bisnis tidak valid.',
             ]);
         }
 
-        BusinessUnitAccountMapping::updateOrCreate(
-            [
-                'entity_id' => $entityId,
-                'business_unit_id' => $unit->id,
-                'mapping_key' => 'hpp',
-            ],
-            ['account_id' => $hppAccount->id]
-        );
+        $ids = array_values($data['accounts']);
+        $validIds = DB::table('chart_of_accounts')
+            ->where('entity_id', $entityId)
+            ->where('is_active', true)
+            ->where('is_postable', true)
+            ->whereIn('id', $ids)
+            ->pluck('id')
+            ->all();
 
-        return back()->with('success', "Mapping HPP {$unit->code} berhasil disimpan.");
+        if (count($validIds) !== count(array_unique($ids))) {
+            throw ValidationException::withMessages([
+                'accounts' => 'Akun tidak valid untuk entitas ini.',
+            ]);
+        }
+
+        DB::transaction(function () use ($data, $units, $entityId) {
+            foreach ($data['accounts'] as $unitId => $accountId) {
+                BusinessUnitAccountMapping::updateOrCreate(
+                    [
+                        'entity_id' => $entityId,
+                        'business_unit_id' => $units[$unitId]->id,
+                        'mapping_key' => 'hpp',
+                    ],
+                    ['account_id' => $accountId]
+                );
+            }
+        });
+
+        return back()->with('success', 'Mapping HPP berhasil disimpan.');
     }
 }
