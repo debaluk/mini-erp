@@ -8,7 +8,7 @@ class SalesController extends Controller {
   $entity=$this->entityId();
   $startDate = $request->filled('start_date') ? $request->input('start_date') : now()->startOfMonth()->toDateString();
   $endDate = $request->filled('end_date') ? $request->input('end_date') : now()->endOfMonth()->toDateString();
-  $rows=DB::table('sales as s')->leftJoin('customers as c','c.id','=','s.customer_id')->where('s.entity_id',$entity)->whereDate('s.sale_date','>=',$startDate)->whereDate('s.sale_date','<=',$endDate)->when($request->filled('customer'),fn($q)=>$q->where('c.name','like','%'.$request->customer.'%'))->when($request->filled('payment_method'),fn($q)=>$q->whereExists(function($sub) use ($request){$sub->select(DB::raw(1))->from('payments as fp')->whereColumn('fp.sale_id','s.id')->where('fp.method',$request->payment_method);}))->select('s.*','c.name as customer_name',DB::raw("(SELECT GROUP_CONCAT(DISTINCT p.method ORDER BY p.id SEPARATOR ', ') FROM payments p WHERE p.sale_id = s.id) as payment_methods"))->orderByDesc('s.sale_date')->orderByDesc('s.id')->paginate(10)->withQueryString();
+  $rows=DB::table('sales as s')->leftJoin('customers as c','c.id','=','s.customer_id')->where('s.entity_id',$entity)->whereDate('s.sale_date','>=',$startDate)->whereDate('s.sale_date','<=',$endDate)->when($request->filled('customer'),fn($q)=>$q->where('c.name','like','%'.$request->customer.'%'))->when($request->filled('unit_id'),fn($q)=>$q->where('s.unit_id',$request->unit_id))->when($request->filled('payment_method'),fn($q)=>$q->whereExists(function($sub) use ($request){$sub->select(DB::raw(1))->from('payments as fp')->whereColumn('fp.sale_id','s.id')->where('fp.method',$request->payment_method);}))->leftJoin('business_units as bu','bu.id','=','s.unit_id')->select('s.*','c.name as customer_name','bu.name as unit_name',DB::raw("(SELECT GROUP_CONCAT(DISTINCT p.method ORDER BY p.id SEPARATOR ', ') FROM payments p WHERE p.sale_id = s.id) as payment_methods"))->orderByDesc('s.sale_date')->orderByDesc('s.id')->paginate(10)->withQueryString();
   $units=DB::table('business_units')->where('entity_id',$entity)->where('is_active',1)->orderBy('name')->get();
   return view('erp.sales.index',compact('rows','units'));
  }
@@ -25,7 +25,7 @@ class SalesController extends Controller {
     ->when($request->filled('payment_method'),fn($q)=>$q->whereExists(function($sub) use ($request){
       $sub->select(DB::raw(1))->from('payments as fp')->whereColumn('fp.sale_id','s.id')->where('fp.method',$request->payment_method);
     }))
-    ->select('s.invoice_no','s.sale_date',DB::raw("COALESCE(c.name, 'Umum') as customer_name"),DB::raw("'-' as unit_name"),DB::raw("(SELECT GROUP_CONCAT(DISTINCT p.method ORDER BY p.id SEPARATOR ', ') FROM payments p WHERE p.sale_id = s.id) as payment_methods"),DB::raw("'-' as due_date"),'s.subtotal','s.discount','s.total','s.status')
+    ->leftJoin('business_units as bu','bu.id','=','s.unit_id')->select('s.invoice_no','s.sale_date',DB::raw("COALESCE(c.name, 'Umum') as customer_name"),DB::raw("COALESCE(bu.name, '-') as unit_name"),DB::raw("(SELECT GROUP_CONCAT(DISTINCT p.method ORDER BY p.id SEPARATOR ', ') FROM payments p WHERE p.sale_id = s.id) as payment_methods"),DB::raw("'-' as due_date"),'s.subtotal','s.discount','s.total','s.status')
     ->orderByDesc('s.sale_date')->orderByDesc('s.id')->get();
   return response()->json([
     'entity_name'=>DB::table('entities')->where('id',$entity)->value('name') ?? 'NAMA ENTITAS',
@@ -36,7 +36,7 @@ class SalesController extends Controller {
  }
  public function show(int $id) {
   $entity=$this->entityId();
-  $sale=DB::table('sales as s')->leftJoin('customers as c','c.id','=','s.customer_id')->where('s.entity_id',$entity)->where('s.id',$id)->select('s.*','c.name as customer_name','c.phone as customer_phone','c.address as customer_address')->first();
+  $sale=DB::table('sales as s')->leftJoin('customers as c','c.id','=','s.customer_id')->where('s.entity_id',$entity)->where('s.id',$id)->leftJoin('business_units as bu','bu.id','=','s.unit_id')->select('s.*','c.name as customer_name','c.phone as customer_phone','c.address as customer_address','bu.name as unit_name')->first();
   abort_unless($sale,404);
   $items=DB::table('sale_items as si')->join('products as p','p.id','=','si.product_id')->leftJoin('units as u','u.id','=','p.base_unit_id')->where('si.sale_id',$sale->id)->select('p.code','p.name','u.code as unit_code','si.qty','si.unit_price','si.discount','si.total')->get();
   $payments=DB::table('payments')->where('sale_id',$sale->id)->orderBy('id')->get();
