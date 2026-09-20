@@ -17,56 +17,27 @@ class SalesController extends Controller {
   $entity=$this->entityId();
   $startDate = $request->filled('start_date') ? $request->input('start_date') : now()->startOfMonth()->toDateString();
   $endDate = $request->filled('end_date') ? $request->input('end_date') : now()->endOfMonth()->toDateString();
-  $rows=DB::table('sales as s')
-    ->leftJoin('customers as c','c.id','=','s.customer_id')
-    ->where('s.entity_id',$entity)
-    ->whereDate('s.sale_date','>=',$startDate)
-    ->whereDate('s.sale_date','<=',$endDate)
+  $rows=DB::table('sales as s')->leftJoin('customers as c','c.id','=','s.customer_id')->where('s.entity_id',$entity)->whereDate('s.sale_date','>=',$startDate)->whereDate('s.sale_date','<=',$endDate)
     ->when($request->filled('customer'),fn($q)=>$q->where('c.name','like','%'.$request->customer.'%'))
     ->when($request->filled('unit_id'),fn($q)=>$q->where('s.unit_id',$request->unit_id))
-    ->when($request->filled('payment_method'),fn($q)=>$q->whereExists(function($sub) use ($request){
-      $sub->select(DB::raw(1))->from('payments as fp')->whereColumn('fp.sale_id','s.id')->where('fp.method',$request->payment_method);
-    }))
-    ->leftJoin('business_units as bu','bu.id','=','s.unit_id')->select('s.invoice_no','s.sale_date',DB::raw("COALESCE(c.name, 'Umum') as customer_name"),DB::raw("COALESCE(bu.name, '-') as unit_name"),DB::raw("(SELECT GROUP_CONCAT(DISTINCT p.method ORDER BY p.id SEPARATOR ', ') FROM payments p WHERE p.sale_id = s.id) as payment_methods"),DB::raw("'-' as due_date"),'s.subtotal','s.discount','s.total','s.status')
+    ->when($request->filled('payment_method'),fn($q)=>$q->whereExists(function($sub) use ($request){$sub->select(DB::raw(1))->from('payments as fp')->whereColumn('fp.sale_id','s.id')->where('fp.method',$request->payment_method);}))
+    ->leftJoin('business_units as bu','bu.id','=','s.unit_id')
+    ->select('s.invoice_no','s.sale_date',DB::raw("COALESCE(c.name, 'Umum') as customer_name"),DB::raw("COALESCE(bu.name, '-') as unit_name"),DB::raw("(SELECT GROUP_CONCAT(DISTINCT p.method ORDER BY p.id SEPARATOR ', ') FROM payments p WHERE p.sale_id = s.id) as payment_methods"),'s.due_date','s.subtotal','s.discount','s.total','s.status')
     ->orderByDesc('s.sale_date')->orderByDesc('s.id')->get();
-  return response()->json([
-    'entity_name'=>DB::table('entities')->where('id',$entity)->value('name') ?? 'NAMA ENTITAS',
-    'start_date'=>$startDate,
-    'end_date'=>$endDate,
-    'rows'=>$rows
-  ]);
+  return response()->json(['entity_name'=>DB::table('entities')->where('id',$entity)->value('name') ?? 'NAMA ENTITAS','start_date'=>$startDate,'end_date'=>$endDate,'rows'=>$rows]);
  }
  public function store(Request $request) {
-  $data=$request->validate([
-   'customer_id'=>'nullable|integer',
-   'unit_id'=>'required|integer',
-   'payment_method'=>'required|in:Tunai,Transfer,QRIS,Kredit / Bon',
-   'due_date'=>'nullable|date|required_if:payment_method,Kredit / Bon',
-   'memo'=>'nullable|string|max:5000',
-   'discount'=>'nullable|numeric|min:0',
-   'items'=>'required|array|min:1',
-   'items.*.product_id'=>'required|integer',
-   'items.*.qty'=>'required|numeric|gt:0',
-   'items.*.unit_price'=>'required|numeric|min:0',
-   'items.*.discount'=>'nullable|numeric|min:0',
-  ]);
+  $data=$request->validate(['customer_id'=>'nullable|integer','unit_id'=>'required|integer','payment_method'=>'required|in:Tunai,Transfer,QRIS,Kredit / Bon','due_date'=>'nullable|date|required_if:payment_method,Kredit / Bon','memo'=>'nullable|string|max:5000','discount'=>'nullable|numeric|min:0','items'=>'required|array|min:1','items.*.product_id'=>'required|integer','items.*.qty'=>'required|numeric|gt:0','items.*.unit_price'=>'required|numeric|min:0','items.*.discount'=>'nullable|numeric|min:0']);
   $entity=$this->entityId();
-  $unit=DB::table('business_units')->where('id',$data['unit_id'])->where('entity_id',$entity)->where('is_active',1)->first();
-  abort_unless($unit,422,'Unit tidak valid.');
-  if (!empty($data['customer_id'])) {
-   $customer=DB::table('customers')->where('id',$data['customer_id'])->where('entity_id',$entity)->where('is_active',1)->first();
-   abort_unless($customer,422,'Customer tidak valid.');
-  }
+  $unit=DB::table('business_units')->where('id',$data['unit_id'])->where('entity_id',$entity)->where('is_active',1)->first(); abort_unless($unit,422,'Unit tidak valid.');
+  if (!empty($data['customer_id'])) { $customer=DB::table('customers')->where('id',$data['customer_id'])->where('entity_id',$entity)->where('is_active',1)->first(); abort_unless($customer,422,'Customer tidak valid.'); }
   $invoiceNo='INV-' . now()->format('YmdHis') . '-' . strtoupper(Str::random(4));
   $saleId=DB::transaction(function() use($data,$entity,$invoiceNo) {
    $subtotal=0; $lineItems=[];
    foreach($data['items'] as $item) {
-    $product=DB::table('products')->where('id',$item['product_id'])->where('entity_id',$entity)->where('is_active',1)->first();
-    abort_unless($product,422,'Item tidak valid.');
-    $qty=(float)$item['qty']; $price=(float)$item['unit_price']; $lineDiscount=min((float)($item['discount']??0),$qty*$price);
-    $lineTotal=($qty*$price)-$lineDiscount; $subtotal += $lineTotal;
-    $stock=DB::table('warehouses_stocks')->where('entity_id',$entity)->where('product_id',$product->id)->orderBy('id')->lockForUpdate()->first();
-    abort_unless($stock && (float)$stock->qty >= $qty,422,'Stok '.$product->name.' tidak mencukupi.');
+    $product=DB::table('products')->where('id',$item['product_id'])->where('entity_id',$entity)->where('is_active',1)->first(); abort_unless($product,422,'Item tidak valid.');
+    $qty=(float)$item['qty']; $price=(float)$item['unit_price']; $lineDiscount=min((float)($item['discount']??0),$qty*$price); $lineTotal=($qty*$price)-$lineDiscount; $subtotal += $lineTotal;
+    $stock=DB::table('warehouses_stocks')->where('entity_id',$entity)->where('product_id',$product->id)->orderBy('id')->lockForUpdate()->first(); abort_unless($stock && (float)$stock->qty >= $qty,422,'Stok '.$product->name.' tidak mencukupi.');
     $lineItems[]=['product'=>$product,'qty'=>$qty,'price'=>$price,'discount'=>$lineDiscount,'total'=>$lineTotal,'stock'=>$stock];
    }
    $discount=min((float)($data['discount']??0),$subtotal); $total=$subtotal-$discount;
@@ -76,11 +47,8 @@ class SalesController extends Controller {
     DB::table('warehouses_stocks')->where('id',$line['stock']->id)->decrement('qty',$line['qty']);
     DB::table('stock_movements')->insert(['entity_id'=>$entity,'warehouse_id'=>$line['stock']->warehouse_id,'product_id'=>$line['product']->id,'movement_type'=>'sale_out','qty'=>-$line['qty'],'unit_cost'=>$line['stock']->avg_cost,'reference_type'=>'sale','reference_id'=>$saleId,'occurred_at'=>now(),'created_by'=>auth()->id(),'created_at'=>now(),'updated_at'=>now()]);
    }
-   if ($data['payment_method']==='Kredit / Bon') {
-    DB::table('payments')->insert(['entity_id'=>$entity,'sale_id'=>$saleId,'user_id'=>auth()->id(),'payment_date'=>now(),'method'=>'credit','amount'=>0,'paid_amount'=>0,'change_amount'=>0,'created_at'=>now(),'updated_at'=>now()]);
-   } else {
-    DB::table('payments')->insert(['entity_id'=>$entity,'sale_id'=>$saleId,'user_id'=>auth()->id(),'payment_date'=>now(),'method'=>$data['payment_method'],'amount'=>$total,'paid_amount'=>$total,'change_amount'=>0,'created_at'=>now(),'updated_at'=>now()]);
-   }
+   if ($data['payment_method']==='Kredit / Bon') DB::table('payments')->insert(['entity_id'=>$entity,'sale_id'=>$saleId,'user_id'=>auth()->id(),'payment_date'=>now(),'method'=>'credit','amount'=>0,'paid_amount'=>0,'change_amount'=>0,'created_at'=>now(),'updated_at'=>now()]);
+   else DB::table('payments')->insert(['entity_id'=>$entity,'sale_id'=>$saleId,'user_id'=>auth()->id(),'payment_date'=>now(),'method'=>$data['payment_method'],'amount'=>$total,'paid_amount'=>$total,'change_amount'=>0,'created_at'=>now(),'updated_at'=>now()]);
    return $saleId;
   });
   if ($request->expectsJson()) return response()->json(['ok'=>true,'sale_id'=>$saleId,'redirect'=>route('inventori.penjualan.show',$saleId)]);
@@ -88,11 +56,9 @@ class SalesController extends Controller {
  }
  public function show(int $id) {
   $entity=$this->entityId();
-  $sale=DB::table('sales as s')->leftJoin('customers as c','c.id','=','s.customer_id')->where('s.entity_id',$entity)->where('s.id',$id)->leftJoin('business_units as bu','bu.id','=','s.unit_id')->select('s.*','c.name as customer_name','c.phone as customer_phone','c.address as customer_address','bu.name as unit_name')->first();
-  abort_unless($sale,404);
+  $sale=DB::table('sales as s')->leftJoin('customers as c','c.id','=','s.customer_id')->where('s.entity_id',$entity)->where('s.id',$id)->leftJoin('business_units as bu','bu.id','=','s.unit_id')->select('s.*','c.name as customer_name','c.phone as customer_phone','c.address as customer_address','bu.name as unit_name')->first(); abort_unless($sale,404);
   $items=DB::table('sale_items as si')->join('products as p','p.id','=','si.product_id')->leftJoin('units as u','u.id','=','p.base_unit_id')->where('si.sale_id',$sale->id)->select('p.code','p.name','u.code as unit_code','si.qty','si.unit_price','si.discount','si.total')->get();
-  $payments=DB::table('payments')->where('sale_id',$sale->id)->orderBy('id')->get();
-  return view('erp.sales.show',compact('sale','items','payments'));
+  $payments=DB::table('payments')->where('sale_id',$sale->id)->orderBy('id')->get(); return view('erp.sales.show',compact('sale','items','payments'));
  }
  public function print(int $id) { return $this->show($id); }
  public function create() {
