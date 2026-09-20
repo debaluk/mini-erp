@@ -6,8 +6,8 @@ class SalesController extends Controller {
  private function entityId(): int { return (int)(DB::table('entities')->value('id') ?? 1); }
  public function index(Request $request) {
   $entity=$this->entityId();
-  $startDate = $request->input('start_date', now()->startOfMonth()->toDateString());
-  $endDate = $request->input('end_date', now()->endOfMonth()->toDateString());
+  $startDate = $request->filled('start_date') ? $request->input('start_date') : now()->startOfMonth()->toDateString();
+  $endDate = $request->filled('end_date') ? $request->input('end_date') : now()->endOfMonth()->toDateString();
   $rows=DB::table('sales as s')->leftJoin('customers as c','c.id','=','s.customer_id')->where('s.entity_id',$entity)->whereDate('s.sale_date','>=',$startDate)->whereDate('s.sale_date','<=',$endDate)->when($request->filled('customer'),fn($q)=>$q->where('c.name','like','%'.$request->customer.'%'))->when($request->filled('payment_method'),fn($q)=>$q->whereExists(function($sub) use ($request){$sub->select(DB::raw(1))->from('payments as fp')->whereColumn('fp.sale_id','s.id')->where('fp.method',$request->payment_method);}))->select('s.*','c.name as customer_name',DB::raw("(SELECT GROUP_CONCAT(DISTINCT p.method ORDER BY p.id SEPARATOR ', ') FROM payments p WHERE p.sale_id = s.id) as payment_methods"))->orderByDesc('s.sale_date')->orderByDesc('s.id')->paginate(15)->withQueryString();
   $units=DB::table('business_units')->where('entity_id',$entity)->where('is_active',1)->orderBy('name')->get();
   return view('erp.sales.index',compact('rows','units'));
