@@ -20,7 +20,10 @@
 @else
 <div class="d-flex justify-content-between align-items-center mb-3 screen-only">
     <div><h4 class="mb-1">Detail Penjualan</h4><div class="text-secondary small">{{ $sale->invoice_no }}</div></div>
-    <div class="d-flex gap-2"><button type="button" class="btn btn-outline-primary" onclick="window.print()">🖨 Cetak Penjualan</button><a href="{{ route('inventori.penjualan') }}" class="btn btn-outline-secondary">← Kembali</a></div>
+    <div class="d-flex gap-2">
+        <a href="{{ request()->fullUrlWithQuery(['print' => 1]) }}" class="btn btn-outline-primary">🖨 Cetak Penjualan</a>
+        <a href="{{ route('inventori.penjualan') }}" class="btn btn-outline-secondary">← Kembali</a>
+    </div>
 </div>
 
 <div class="card shadow-sm screen-only">
@@ -50,28 +53,15 @@
         </div>
     </div>
 </div></div>
-
 @endif
 @endsection
 
+@if(request()->boolean('print'))
 @push('scripts')
 <script>
-(function () {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('print') !== '1') return;
-
-    window.addEventListener('load', function () {
-        let moved = false;
-        const goToNewSale = function () {
-            if (moved) return;
-            moved = true;
-            window.location.href = '{{ route('inventori.penjualan.create') }}';
-        };
-
-        window.addEventListener('afterprint', goToNewSale, { once: true });
-        setTimeout(goToNewSale, 1200);
-        window.print();
-    });
-})();
+window.addEventListener('load', function () {
+    window.print();
+});
 </script>
 @endpush
+@endif
