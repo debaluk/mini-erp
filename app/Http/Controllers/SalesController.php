@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 class SalesController extends Controller {
  private function entityId(): int { return (int)(DB::table('entities')->value('id') ?? 1); }
  public function index(Request $request) {
@@ -34,6 +35,55 @@ class SalesController extends Controller {
     'end_date'=>$endDate,
     'rows'=>$rows
   ]);
+ }
+ public function store(Request $request) {
+  $data=$request->validate([
+   'customer_id'=>'nullable|integer',
+   'unit_id'=>'required|integer',
+   'payment_method'=>'required|in:Tunai,Transfer,QRIS,Kredit / Bon',
+   'due_date'=>'nullable|date|required_if:payment_method,Kredit / Bon',
+   'memo'=>'nullable|string|max:5000',
+   'discount'=>'nullable|numeric|min:0',
+   'items'=>'required|array|min:1',
+   'items.*.product_id'=>'required|integer',
+   'items.*.qty'=>'required|numeric|gt:0',
+   'items.*.unit_price'=>'required|numeric|min:0',
+   'items.*.discount'=>'nullable|numeric|min:0',
+  ]);
+  $entity=$this->entityId();
+  $unit=DB::table('business_units')->where('id',$data['unit_id'])->where('entity_id',$entity)->where('is_active',1)->first();
+  abort_unless($unit,422,'Unit tidak valid.');
+  if (!empty($data['customer_id'])) {
+   $customer=DB::table('customers')->where('id',$data['customer_id'])->where('entity_id',$entity)->where('is_active',1)->first();
+   abort_unless($customer,422,'Customer tidak valid.');
+  }
+  $invoiceNo='INV-' . now()->format('YmdHis') . '-' . strtoupper(Str::random(4));
+  $saleId=DB::transaction(function() use($data,$entity,$invoiceNo) {
+   $subtotal=0; $lineItems=[];
+   foreach($data['items'] as $item) {
+    $product=DB::table('products')->where('id',$item['product_id'])->where('entity_id',$entity)->where('is_active',1)->first();
+    abort_unless($product,422,'Item tidak valid.');
+    $qty=(float)$item['qty']; $price=(float)$item['unit_price']; $lineDiscount=min((float)($item['discount']??0),$qty*$price);
+    $lineTotal=($qty*$price)-$lineDiscount; $subtotal += $lineTotal;
+    $stock=DB::table('warehouses_stocks')->where('entity_id',$entity)->where('product_id',$product->id)->orderBy('id')->lockForUpdate()->first();
+    abort_unless($stock && (float)$stock->qty >= $qty,422,'Stok '.$product->name.' tidak mencukupi.');
+    $lineItems[]=['product'=>$product,'qty'=>$qty,'price'=>$price,'discount'=>$lineDiscount,'total'=>$lineTotal,'stock'=>$stock];
+   }
+   $discount=min((float)($data['discount']??0),$subtotal); $total=$subtotal-$discount;
+   $saleId=DB::table('sales')->insertGetId(['entity_id'=>$entity,'unit_id'=>$data['unit_id'],'customer_id'=>$data['customer_id']??null,'user_id'=>auth()->id(),'shift_id'=>null,'invoice_no'=>$invoiceNo,'sale_date'=>now(),'due_date'=>$data['payment_method']==='Kredit / Bon'?$data['due_date']:null,'subtotal'=>$subtotal,'discount'=>$discount,'total'=>$total,'status'=>'posted','memo'=>$data['memo']??null,'created_at'=>now(),'updated_at'=>now()]);
+   foreach($lineItems as $line) {
+    DB::table('sale_items')->insert(['sale_id'=>$saleId,'product_id'=>$line['product']->id,'qty'=>$line['qty'],'unit_price'=>$line['price'],'discount'=>$line['discount'],'total'=>$line['total'],'created_at'=>now(),'updated_at'=>now()]);
+    DB::table('warehouses_stocks')->where('id',$line['stock']->id)->decrement('qty',$line['qty']);
+    DB::table('stock_movements')->insert(['entity_id'=>$entity,'warehouse_id'=>$line['stock']->warehouse_id,'product_id'=>$line['product']->id,'movement_type'=>'sale_out','qty'=>-$line['qty'],'unit_cost'=>$line['stock']->avg_cost,'reference_type'=>'sale','reference_id'=>$saleId,'occurred_at'=>now(),'created_by'=>auth()->id(),'created_at'=>now(),'updated_at'=>now()]);
+   }
+   if ($data['payment_method']==='Kredit / Bon') {
+    DB::table('payments')->insert(['entity_id'=>$entity,'sale_id'=>$saleId,'user_id'=>auth()->id(),'payment_date'=>now(),'method'=>'credit','amount'=>0,'paid_amount'=>0,'change_amount'=>0,'created_at'=>now(),'updated_at'=>now()]);
+   } else {
+    DB::table('payments')->insert(['entity_id'=>$entity,'sale_id'=>$saleId,'user_id'=>auth()->id(),'payment_date'=>now(),'method'=>$data['payment_method'],'amount'=>$total,'paid_amount'=>$total,'change_amount'=>0,'created_at'=>now(),'updated_at'=>now()]);
+   }
+   return $saleId;
+  });
+  return redirect()->route('inventori.penjualan.show',$saleId)->with('success','Penjualan berhasil diposting.');
  }
  public function show(int $id) {
   $entity=$this->entityId();
