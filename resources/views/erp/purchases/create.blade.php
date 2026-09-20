@@ -28,7 +28,7 @@
             <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#supplierModal">🔍</button>
         </div>
     </div>
-    <div class="col-md-6"><label class="form-label">Pilih Unit</label><select id="unitSelect" class="form-select" required><option value="">Pilih Unit</option>@foreach($units as $u)<option value="{{ $u->id }}">{{ $u->name }}</option>@endforeach</select></div>
+    <div class="col-md-6"><label class="form-label">Pilih Unit</label><select id="unitSelect" class="form-select" required><option value="">Pilih Unit</option>@foreach($units as $u)<option value="{{ $u->id }}" @selected(isset($purchase) && (int)$purchase->unit_id === (int)$u->id)>{{ $u->name }}</option>@endforeach</select></div>
 
     <div class="col-md-6"><label class="form-label">No. Faktur Supplier</label><input class="form-control" placeholder="Nomor faktur supplier"></div>
     <div class="col-md-6"><label class="form-label">Tanggal Faktur</label><input type="date" class="form-control"></div>
@@ -47,10 +47,10 @@
 
 <hr class="my-4">
 <div class="row g-4">
-    <div class="col-md-6"><h6>Informasi Supplier</h6><div class="small text-secondary">Supplier</div><div id="supplierInfo" class="fw-semibold mb-3">{{ $purchase->supplier_name ?? '-' }}</div><div class="small text-secondary">Hutang Sebelumnya</div><div class="fw-semibold mb-3">Rp 0</div><label class="form-label">Memo</label><textarea id="memo" class="form-control" rows="3" placeholder="Catatan transaksi..."></textarea></div>
+    <div class="col-md-6"><h6>Informasi Supplier</h6><div class="small text-secondary">Supplier</div><div id="supplierInfo" class="fw-semibold mb-3">{{ $purchase->supplier_name ?? '-' }}</div><div class="small text-secondary">Hutang Sebelumnya</div><div class="fw-semibold mb-3">Rp 0</div><label class="form-label">Memo</label><textarea id="memo" class="form-control" rows="3" placeholder="Catatan transaksi...">{{ $purchase->memo ?? '' }}</textarea></div>
     <div class="col-md-6"><h6>Informasi Transaksi</h6><div class="d-flex justify-content-between py-1"><span>Subtotal</span><strong id="subtotalAmount">Rp 0</strong></div><div class="d-flex justify-content-between align-items-center py-1"><span>Diskon (Rp)</span><input id="discountInput" type="number" min="0" class="form-control text-end" style="max-width:160px" value="{{ $purchase->discount ?? 0 }}"></div><div class="d-flex justify-content-between border-top mt-2 pt-2 fs-5"><strong>TOTAL</strong><strong id="totalAmount">Rp 0</strong></div>
     <div class="mt-3"><label class="form-label">Cara Bayar</label><select id="paymentMethod" class="form-select"><option>Tunai</option><option>Transfer</option><option>QRIS</option><option>Kredit / Bon</option></select></div>
-    <div id="dueDateWrap" class="mt-3 d-none"><label class="form-label">Jatuh Tempo</label><input id="dueDate" type="date" class="form-control"></div></div>
+    <div id="dueDateWrap" class="mt-3 d-none"><label class="form-label">Jatuh Tempo</label><input id="dueDate" type="date" class="form-control" value="{{ $purchase->due_date ?? '' }}"></div></div>
 </div>
 </div>
 <div class="card-footer d-flex justify-content-end gap-2"><a href="{{ route('inventori.pembelian') }}" class="btn btn-outline-secondary">Batal</a><button type="button" id="savePurchase" class="btn btn-primary">{{ $isEdit ? 'Update Pembelian' : 'Simpan Pembelian' }}</button></div>
