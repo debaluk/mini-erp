@@ -24,44 +24,52 @@
 @endif
 
 <div class="card shadow-sm mb-3">
-    <div class="card-header fw-semibold">Tambah Unit Bisnis</div>
+    <div class="card-header fw-semibold">{{ isset($editUnit) ? "Edit Unit Bisnis" : "Tambah Unit Bisnis" }}</div>
     <div class="card-body">
-        <form method="POST" action="{{ route('pengaturan.unit-bisnis.store') }}" class="row align-items-end">
+        <form method="POST" action="{{ isset($editUnit) ? route('pengaturan.unit-bisnis.update', $editUnit->id) : route('pengaturan.unit-bisnis.store') }}" class="row align-items-end">
             @csrf
+            @if(isset($editUnit))
+                @method('PUT')
+            @endif
             <div class="col-md-2">
                 <label class="form-label">Kode Unit *</label>
-                <input type="text" name="code" class="form-control" value="{{ old('code') }}" required>
+                <input type="text" name="code" class="form-control" value="{{ old('code', $editUnit->code ?? '') }}" required>
             </div>
             <div class="col-md-3">
                 <label class="form-label">Nama Unit *</label>
-                <input type="text" name="name" class="form-control" value="{{ old('name') }}" required>
+                <input type="text" name="name" class="form-control" value="{{ old('name', $editUnit->name ?? '') }}" required>
             </div>
             <div class="col-md-2">
                 <label class="form-label">Tipe Usaha *</label>
                 <select name="business_type" class="form-select" required>
                     <option value="">Pilih</option>
-                    <option value="retail" @selected(old('business_type') === 'retail')>Retail</option>
-                    <option value="production" @selected(old('business_type') === 'production')>Produksi</option>
-                    <option value="service" @selected(old('business_type') === 'service')>Jasa</option>
+                    <option value="retail" @selected(old('business_type', $editUnit->business_type ?? '') === 'retail')>Retail</option>
+                    <option value="production" @selected(old('business_type', $editUnit->business_type ?? '') === 'production')>Produksi</option>
+                    <option value="service" @selected(old('business_type', $editUnit->business_type ?? '') === 'service')>Jasa</option>
                 </select>
             </div>
             <div class="col-md-2">
                 <label class="form-label">Metode HPP *</label>
                 <select name="hpp_method" class="form-select" required>
                     <option value="">Pilih</option>
-                    <option value="perpetual" @selected(old('hpp_method') === 'perpetual')>Perpetual</option>
-                    <option value="periodic" @selected(old('hpp_method') === 'periodic')>Periodik</option>
+                    <option value="perpetual" @selected(old('hpp_method', $editUnit->hpp_method ?? '') === 'perpetual')>Perpetual</option>
+                    <option value="periodic" @selected(old('hpp_method', $editUnit->hpp_method ?? '') === 'periodic')>Periodik</option>
                 </select>
             </div>
             <div class="col-md-1">
                 <div class="form-check mb-2">
                     <input type="hidden" name="is_active" value="0">
-                    <input class="form-check-input" type="checkbox" name="is_active" value="1" id="new-active" checked>
+                    <input class="form-check-input" type="checkbox" name="is_active" value="1" id="new-active" @checked(old('is_active', $editUnit->is_active ?? true))>
                     <label class="form-check-label" for="new-active">Aktif</label>
                 </div>
             </div>
             <div class="col-md-2">
-                <button class="btn btn-primary w-100">Simpan</button>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary flex-fill">{{ isset($editUnit) ? 'Update' : 'Simpan' }}</button>
+                    @if(isset($editUnit))
+                        <a href="{{ route('pengaturan.unit-bisnis.index') }}" class="btn btn-outline-secondary flex-fill">Batal</a>
+                    @endif
+                </div>
             </div>
         </form>
     </div>
@@ -95,7 +103,7 @@
                                 </span>
                             </td>
                             <td>
-                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editUnit{{ $unit->id }}">Edit</button>
+                                <a href="{{ route('pengaturan.unit-bisnis.index', ['edit' => $unit->id]) }}" class="btn btn-sm btn-outline-primary">Edit</a>
                                 <form method="POST" action="{{ route('pengaturan.unit-bisnis.destroy', $unit->id) }}" class="d-inline" onsubmit="return confirm('Hapus unit bisnis ini?')">
                                     @csrf
                                     @method('DELETE')
@@ -103,53 +111,6 @@
                                 </form>
                             </td>
                         </tr>
-
-                        <div class="modal fade" id="editUnit{{ $unit->id }}" tabindex="-1" aria-hidden="true">
-                            <div class="modal-dialog">
-                                <form method="POST" action="{{ route('pengaturan.unit-bisnis.update', $unit->id) }}" class="modal-content">
-                                    @csrf
-                                    @method('PUT')
-                                    <div class="modal-header">
-                                        <h5 class="modal-title">Edit Unit Bisnis</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <div class="mb-2">
-                                            <label class="form-label">Kode Unit *</label>
-                                            <input type="text" name="code" class="form-control" value="{{ $unit->code }}" required>
-                                        </div>
-                                        <div class="mb-2">
-                                            <label class="form-label">Nama Unit *</label>
-                                            <input type="text" name="name" class="form-control" value="{{ $unit->name }}" required>
-                                        </div>
-                                        <div class="mb-2">
-                                            <label class="form-label">Tipe Usaha *</label>
-                                            <select name="business_type" class="form-select" required>
-                                                <option value="retail" @selected($unit->business_type === 'retail')>Retail</option>
-                                                <option value="production" @selected($unit->business_type === 'production')>Produksi</option>
-                                                <option value="service" @selected($unit->business_type === 'service')>Jasa</option>
-                                            </select>
-                                        </div>
-                                        <div class="mb-2">
-                                            <label class="form-label">Metode HPP *</label>
-                                            <select name="hpp_method" class="form-select" required>
-                                                <option value="perpetual" @selected($unit->hpp_method === 'perpetual')>Perpetual</option>
-                                                <option value="periodic" @selected($unit->hpp_method === 'periodic')>Periodik</option>
-                                            </select>
-                                        </div>
-                                        <div class="form-check">
-                                            <input type="hidden" name="is_active" value="0">
-                                            <input class="form-check-input" type="checkbox" name="is_active" value="1" id="active{{ $unit->id }}" @checked($unit->is_active)>
-                                            <label class="form-check-label" for="active{{ $unit->id }}">Aktif</label>
-                                        </div>
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
-                                        <button class="btn btn-primary">Update</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
                     @empty
                         <tr><td colspan="6" class="text-center text-secondary py-4">Belum ada unit bisnis.</td></tr>
                     @endforelse
