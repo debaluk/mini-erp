@@ -250,6 +250,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/pengaturan/role', [SettingsController::class, 'roles'])->middleware('role:superadmin,owner')->name('pengaturan.role');
     Route::get('/pengaturan/konfigurasi', [SettingsController::class, 'configuration'])->middleware('access:konfigurasi')->name('pengaturan.konfigurasi');
     Route::get('/pengaturan/konfigurasi/unit-bisnis', [BusinessUnitController::class, 'index'])->middleware('access:konfigurasi')->name('pengaturan.unit-bisnis');
+    Route::get('/pengaturan/konfigurasi/unit-bisnis/{id}/edit', [BusinessUnitController::class, 'edit'])->middleware('access:konfigurasi')->name('pengaturan.unit-bisnis.edit');
     Route::post('/pengaturan/konfigurasi/unit-bisnis', [BusinessUnitController::class, 'store'])->middleware('role:owner,admin')->name('pengaturan.unit-bisnis.store');
     Route::put('/pengaturan/konfigurasi/unit-bisnis/{id}', [BusinessUnitController::class, 'update'])->middleware('role:owner,admin')->name('pengaturan.unit-bisnis.update');
     Route::delete('/pengaturan/konfigurasi/unit-bisnis/{id}', [BusinessUnitController::class, 'destroy'])->middleware('role:owner,admin')->name('pengaturan.unit-bisnis.destroy');
