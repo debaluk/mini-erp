@@ -67,41 +67,6 @@
     </div>
 </div>
 
-<div class="card shadow-sm mb-3">
-    <div class="card-header fw-semibold">Edukasi Metode HPP</div>
-    <div class="card-body">
-        <div class="row g-3">
-            <div class="col-md-6">
-                <div class="border rounded p-3 h-100">
-                    <div class="fw-semibold mb-1">PERPETUAL — MOVING AVERAGE</div>
-                    <div class="text-secondary">
-                        HPP dihitung dan diperbarui secara berjalan setiap terjadi transaksi persediaan
-                        yang memengaruhi nilai stok. Metode yang digunakan adalah Moving Average
-                        (rata-rata bergerak). Penerimaan/pembelian membentuk rata-rata biaya persediaan
-                        yang menjadi dasar HPP saat barang dijual atau digunakan.
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="border rounded p-3 h-100">
-                    <div class="fw-semibold mb-1">PERIODIK</div>
-                    <div class="text-secondary">
-                        HPP dihitung pada akhir periode berdasarkan:
-                        <strong>Persediaan Awal + Pembelian Bersih - Persediaan Akhir = HPP</strong>.
-                        Persediaan akhir ditentukan berdasarkan Stock Opname (SO), kemudian HPP
-                        difinalisasi melalui proses Tutup Buku / Closing.
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="alert alert-light border mt-3 mb-0 py-2">
-            <strong>Catatan:</strong> Tipe Usaha menentukan engine HPP (Retail, Produksi, atau Jasa).
-            Metode HPP menentukan cara perhitungan untuk Retail/Produksi. Jasa menggunakan Direct Cost
-            dan bukan HPP persediaan.
-        </div>
-    </div>
-</div>
-
 <div class="card shadow-sm">
     <div class="card-header fw-semibold">Daftar Unit Bisnis</div>
     <div class="card-body p-0">
@@ -194,3 +159,39 @@
     </div>
 </div>
 @endsection
+
+<div class="card shadow-sm mb-3">
+    <div class="card-header fw-semibold">Edukasi Metode HPP</div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="border rounded p-2 h-100">
+                    <div class="fw-semibold mb-1">PERPETUAL — MOVING AVERAGE</div>
+                    <div class="text-secondary small">
+                        HPP dihitung dan diperbarui secara berjalan setiap terjadi transaksi persediaan
+                        yang memengaruhi nilai stok. Metode yang digunakan adalah Moving Average
+                        (rata-rata bergerak). Penerimaan/pembelian membentuk rata-rata biaya persediaan
+                        yang menjadi dasar HPP saat barang dijual atau digunakan.
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="border rounded p-3 h-100">
+                    <div class="fw-semibold mb-1">PERIODIK</div>
+                    <div class="text-secondary small">
+                        HPP dihitung pada akhir periode berdasarkan:
+                        <strong>Persediaan Awal + Pembelian Bersih - Persediaan Akhir = HPP</strong>.
+                        Persediaan akhir ditentukan berdasarkan Stock Opname (SO), kemudian HPP
+                        difinalisasi melalui proses Tutup Buku / Closing.
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="alert alert-light border mt-2 mb-0 py-1 small">
+            <strong>Catatan:</strong> Tipe Usaha menentukan engine HPP (Retail, Produksi, atau Jasa).
+            Metode HPP menentukan cara perhitungan untuk Retail/Produksi. Jasa menggunakan Direct Cost
+            dan bukan HPP persediaan.
+        </div>
+    </div>
+</div>
+
