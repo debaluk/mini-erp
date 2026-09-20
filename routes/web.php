@@ -17,6 +17,7 @@ use App\Http\Controllers\SalesController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\SellingPriceController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\BusinessUnitController;
 use App\Http\Controllers\UnitConversionController;
 use App\Http\Controllers\ShiftController;
 use Illuminate\Http\Request;
@@ -247,6 +248,10 @@ Route::middleware('auth')->group(function () {
     Route::patch('/pengaturan/user/{id}/toggle', [SettingsController::class, 'userToggle'])->middleware('role:owner')->name('pengaturan.user.toggle');
     Route::get('/pengaturan/role', [SettingsController::class, 'roles'])->middleware('role:superadmin,owner')->name('pengaturan.role');
     Route::get('/pengaturan/konfigurasi', [SettingsController::class, 'configuration'])->middleware('access:konfigurasi')->name('pengaturan.konfigurasi');
+    Route::get('/pengaturan/konfigurasi/unit-bisnis', [BusinessUnitController::class, 'index'])->middleware('access:konfigurasi')->name('pengaturan.unit-bisnis');
+    Route::post('/pengaturan/konfigurasi/unit-bisnis', [BusinessUnitController::class, 'store'])->middleware('role:owner,admin')->name('pengaturan.unit-bisnis.store');
+    Route::put('/pengaturan/konfigurasi/unit-bisnis/{id}', [BusinessUnitController::class, 'update'])->middleware('role:owner,admin')->name('pengaturan.unit-bisnis.update');
+    Route::delete('/pengaturan/konfigurasi/unit-bisnis/{id}', [BusinessUnitController::class, 'destroy'])->middleware('role:owner,admin')->name('pengaturan.unit-bisnis.destroy');
 
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
