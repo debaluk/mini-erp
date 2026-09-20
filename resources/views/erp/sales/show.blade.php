@@ -1,5 +1,23 @@
 @extends('layouts.app')
 @section('content')
+@if(request()->boolean('print'))
+@include('components.print.nota', [
+    'entityName' => $sale->entity_name ?? config('app.name'),
+    'title' => 'NOTA PENJUALAN',
+    'documentNo' => $sale->invoice_no,
+    'date' => $sale->sale_date,
+    'customerName' => $sale->customer_name ?? 'Umum',
+    'unitName' => $sale->unit_name ?? '-',
+    'items' => $items,
+    'subtotal' => $sale->subtotal,
+    'discount' => $sale->discount,
+    'total' => $sale->total,
+    'payment' => $payments->pluck('method')->unique()->map(fn($m) => $m === 'credit' ? 'Kredit / Bon' : $m)->implode(', ') ?: '-',
+    'dueDate' => $sale->due_date,
+    'previousReceivable' => $previousReceivable,
+    'memo' => $sale->memo,
+])
+@else
 <div class="d-flex justify-content-between align-items-center mb-3 screen-only">
     <div><h4 class="mb-1">Detail Penjualan</h4><div class="text-secondary small">{{ $sale->invoice_no }}</div></div>
     <div class="d-flex gap-2"><button type="button" class="btn btn-outline-primary" onclick="window.print()">🖨 Cetak Penjualan</button><a href="{{ route('inventori.penjualan') }}" class="btn btn-outline-secondary">← Kembali</a></div>
@@ -33,22 +51,7 @@
     </div>
 </div></div>
 
-@include('components.print.nota', [
-    'entityName' => $sale->entity_name ?? config('app.name'),
-    'title' => 'NOTA PENJUALAN',
-    'documentNo' => $sale->invoice_no,
-    'date' => $sale->sale_date,
-    'customerName' => $sale->customer_name ?? 'Umum',
-    'unitName' => $sale->unit_name ?? '-',
-    'items' => $items,
-    'subtotal' => $sale->subtotal,
-    'discount' => $sale->discount,
-    'total' => $sale->total,
-    'payment' => $payments->pluck('method')->unique()->map(fn($m) => $m === 'credit' ? 'Kredit / Bon' : $m)->implode(', ') ?: '-',
-    'dueDate' => $sale->due_date,
-    'previousReceivable' => $previousReceivable,
-    'memo' => $sale->memo,
-])
+@endif
 @endsection
 
 @push('scripts')
