@@ -29,7 +29,7 @@
         <div class="col-md-6">
             <h6>Informasi Transaksi</h6>
             <div class="d-flex justify-content-between py-1"><span>Subtotal</span><strong>Rp {{ number_format((float)$sale->subtotal,0,',','.') }}</strong></div>
-            <div class="d-flex justify-content-between py-1"><span>Diskon</span><strong>Rp {{ number_format((float)$sale->discount,0,',','.') }}</strong></div>
+            <div class="d-flex justify-content-between py-1"><span>Diskon (Rp)</span><strong>Rp {{ number_format((float)$sale->discount,0,',','.') }}</strong></div>
             <div class="d-flex justify-content-between border-top mt-2 pt-2 fs-5"><strong>TOTAL</strong><strong>Rp {{ number_format((float)$sale->total,0,',','.') }}</strong></div>
             <div class="mt-3"><label class="form-label">Cara Bayar</label><input class="form-control" value="{{ $payments->pluck('method')->unique()->map(fn($m) => $m === 'credit' ? 'Kredit / Bon' : $m)->implode(', ') ?: '-' }}" readonly></div>
             @if($sale->due_date)<div class="mt-3"><label class="form-label">Jatuh Tempo</label><input class="form-control" value="{{ \Carbon\Carbon::parse($sale->due_date)->format('d/m/Y') }}" readonly></div>@endif
@@ -39,4 +39,24 @@
 @endsection
 @push('styles')
 <style>@media print{.btn,.d-flex.justify-content-between.align-items-center.mb-3{display:none!important}.card{box-shadow:none!important;border:0!important}.form-control{border:0!important;padding-left:0!important;padding-right:0!important}}</style>
+@endpush
+@push('scripts')
+<script>
+(function () {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('print') !== '1') return;
+
+    window.addEventListener('load', function () {
+        let moved = false;
+        const goToNewSale = function () {
+            if (moved) return;
+            moved = true;
+            window.location.href = '{{ route('inventori.penjualan.create') }}';
+        };
+        window.addEventListener('afterprint', goToNewSale, { once: true });
+        setTimeout(goToNewSale, 1200);
+        window.print();
+    });
+})();
+</script>
 @endpush
