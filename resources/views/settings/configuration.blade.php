@@ -128,7 +128,8 @@
                                         </span>
                                     </td>
                                     <td>
-                                        <a href="{{ route('pengaturan.konfigurasi', ['edit' => $unit->id]) }}#setup-unit" class="btn btn-sm btn-outline-primary">Edit</a>
+                                        <button type="button" class="btn btn-sm btn-outline-primary btn-edit-unit"
+                                            data-url="{{ route('pengaturan.unit-bisnis.edit', $unit->id) }}">Edit</button>
                                         <form method="POST" action="{{ route('pengaturan.unit-bisnis.destroy', $unit->id) }}" class="d-inline" onsubmit="return confirm('Hapus unit bisnis ini?')">
                                             @csrf
                                             @method('DELETE')
@@ -194,4 +195,75 @@
         </div>
     </div>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.querySelector('#setup-unit form');
+    const code = form.querySelector('[name="code"]');
+    const name = form.querySelector('[name="name"]');
+    const type = form.querySelector('[name="business_type"]');
+    const method = form.querySelector('[name="hpp_method"]');
+    const account = form.querySelector('[name="hpp_account_id"]');
+    const active = form.querySelector('[name="is_active"][type="checkbox"]');
+    const csrf = form.querySelector('[name="_token"]');
+    const submit = form.querySelector('button[type="submit"]');
+    const cancel = document.createElement('button');
+    cancel.type = 'button';
+    cancel.className = 'btn btn-secondary ms-1 d-none';
+    cancel.textContent = 'Batal';
+    submit.after(cancel);
+
+    let methodInput = form.querySelector('[name="_method"]');
+    if (!methodInput) {
+        methodInput = document.createElement('input');
+        methodInput.type = 'hidden';
+        methodInput.name = '_method';
+        form.appendChild(methodInput);
+    }
+
+    function resetForm() {
+        form.action = "{{ route('pengaturan.unit-bisnis.store') }}";
+        methodInput.value = '';
+        code.value = '';
+        name.value = '';
+        type.value = '';
+        method.value = '';
+        account.value = '';
+        active.checked = true;
+        submit.textContent = 'Simpan';
+        cancel.classList.add('d-none');
+        form.removeAttribute('data-editing');
+    }
+
+    document.querySelectorAll('.btn-edit-unit').forEach(function (button) {
+        button.addEventListener('click', async function () {
+            try {
+                const response = await fetch(button.dataset.url, {
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (!response.ok) throw new Error('Gagal mengambil data unit.');
+                const data = await response.json();
+
+                code.value = data.code || '';
+                name.value = data.name || '';
+                type.value = data.business_type || '';
+                method.value = data.hpp_method || '';
+                account.value = data.hpp_account_id ? String(data.hpp_account_id) : '';
+                active.checked = !!data.is_active;
+                form.action = "{{ url('/pengaturan/konfigurasi/unit-bisnis') }}/" + data.id;
+                methodInput.value = 'PUT';
+                submit.textContent = 'Update';
+                cancel.classList.remove('d-none');
+                form.setAttribute('data-editing', data.id);
+
+                document.querySelector('[data-bs-target="#setup-unit"]').click();
+                form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } catch (error) {
+                alert(error.message);
+            }
+        });
+    });
+
+    cancel.addEventListener('click', resetForm);
+});
+</script>
 @endsection
