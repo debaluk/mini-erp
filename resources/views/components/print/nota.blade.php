@@ -72,9 +72,6 @@
         @if($dueDate)
         <div><span>Jatuh Tempo</span><b>{{ \Carbon\Carbon::parse($dueDate)->format('d/m/Y') }}</b></div>
         @endif
-        @if((float)$previousReceivable > 0)
-        <div><span>Piutang Sebelumnya</span><b>Rp {{ number_format((float)$previousReceivable,0,',','.') }}</b></div>
-        @endif
     </div>
 
     @if(!empty($memo))
