@@ -158,7 +158,7 @@
         </div>
     </div>
 </div>
-@endsection
+
 
 <div class="card shadow-sm mb-3">
     <div class="card-header fw-semibold">Edukasi Metode HPP</div>
@@ -195,3 +195,5 @@
     </div>
 </div>
 
+
+@endsection
