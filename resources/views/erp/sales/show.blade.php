@@ -33,49 +33,51 @@
     </div>
 </div></div>
 
-<div class="receipt-print">
-    <div class="receipt-header">
-        <div class="receipt-entity">{{ $sale->entity_name ?? config('app.name') }}</div>
-        <div class="receipt-title">NOTA PENJUALAN</div>
-        <div>{{ $sale->invoice_no }}</div>
+<div class="invoice-print">
+    <div class="invoice-head">
+        <div class="entity-name">{{ $sale->entity_name ?? config('app.name') }}</div>
+        <div class="invoice-title">NOTA PENJUALAN</div>
+        <div class="invoice-number">{{ $sale->invoice_no }}</div>
     </div>
 
-    <div class="receipt-meta">
+    <div class="invoice-info">
         <div><span>Tanggal</span><b>{{ \Carbon\Carbon::parse($sale->sale_date)->format('d/m/Y H:i') }}</b></div>
         <div><span>Customer</span><b>{{ $sale->customer_name ?? 'Umum' }}</b></div>
         <div><span>Unit</span><b>{{ $sale->unit_name ?? '-' }}</b></div>
     </div>
 
-    <div class="receipt-line"></div>
+    <div class="dash-line"></div>
 
-    <table class="receipt-items">
-        <thead><tr><th>Item</th><th class="qty">Qty</th><th class="price">Harga</th><th class="total">Jumlah</th></tr></thead>
+    <table class="invoice-items">
+        <thead>
+            <tr><th>Item</th><th class="qty">Qty</th><th class="money">Harga</th><th class="money">Jumlah</th></tr>
+        </thead>
         <tbody>
         @forelse($items as $i)
             <tr>
                 <td><b>{{ $i->code }}</b><small>{{ $i->name }}</small></td>
                 <td class="qty">{{ number_format((float)$i->qty,3,',','.') }} {{ $i->unit_code ?? '' }}</td>
-                <td class="price">{{ number_format((float)$i->unit_price,0,',','.') }}</td>
-                <td class="total">{{ number_format((float)$i->total,0,',','.') }}</td>
+                <td class="money">{{ number_format((float)$i->unit_price,0,',','.') }}</td>
+                <td class="money">{{ number_format((float)$i->total,0,',','.') }}</td>
             </tr>
             @if((float)$i->discount > 0)
-            <tr><td colspan="3" class="item-discount">Diskon {{ number_format((float)$i->discount,0,',','.') }}</td><td class="total">-{{ number_format((float)$i->discount,0,',','.') }}</td></tr>
+            <tr><td colspan="3" class="line-discount">Diskon</td><td class="money">-{{ number_format((float)$i->discount,0,',','.') }}</td></tr>
             @endif
         @empty
-            <tr><td colspan="4" class="text-center">Tidak ada item.</td></tr>
+            <tr><td colspan="4">Tidak ada item.</td></tr>
         @endforelse
         </tbody>
     </table>
 
-    <div class="receipt-line"></div>
+    <div class="dash-line"></div>
 
-    <div class="receipt-total">
+    <div class="summary">
         <div><span>Subtotal</span><b>Rp {{ number_format((float)$sale->subtotal,0,',','.') }}</b></div>
         <div><span>Diskon</span><b>Rp {{ number_format((float)$sale->discount,0,',','.') }}</b></div>
-        <div class="grand"><span>TOTAL</span><b>Rp {{ number_format((float)$sale->total,0,',','.') }}</b></div>
+        <div class="grand-total"><span>TOTAL</span><b>Rp {{ number_format((float)$sale->total,0,',','.') }}</b></div>
     </div>
 
-    <div class="receipt-payment">
+    <div class="payment-info">
         <div><span>Pembayaran</span><b>{{ $payments->pluck('method')->unique()->map(fn($m) => $m === 'credit' ? 'Kredit / Bon' : $m)->implode(', ') ?: '-' }}</b></div>
         @if($sale->due_date)
         <div><span>Jatuh Tempo</span><b>{{ \Carbon\Carbon::parse($sale->due_date)->format('d/m/Y') }}</b></div>
@@ -86,84 +88,180 @@
     </div>
 
     @if(!empty($sale->memo))
-    <div class="receipt-memo">Memo: {{ $sale->memo }}</div>
+    <div class="memo">Memo: {{ $sale->memo }}</div>
     @endif
 
-    <div class="receipt-footer">Terima kasih</div>
+    <div class="sign-area">
+        <div>Penerima,</div>
+        <div class="sign-space"></div>
+        <div>(__________________)</div>
+    </div>
+
+    <div class="thanks">Terima kasih</div>
 </div>
 @endsection
 
 @push('styles')
 <style>
-.receipt-print { display:none; }
+.invoice-print { display:none; }
 
 @media print {
-    @page { size: 80mm auto; margin: 3mm; }
-
-    html, body {
-        width: 80mm !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        font-family: Arial, sans-serif !important;
-        font-size: 10px !important;
+    @page {
+        size: 165mm 216mm;
+        margin: 8mm;
     }
 
-    body * { visibility: hidden !important; }
-    .receipt-print, .receipt-print * { visibility: visible !important; }
-    .receipt-print {
-        display:block !important;
-        width: 74mm !important;
-        max-width: 74mm !important;
+    html, body {
+        width: 165mm !important;
+        min-width: 165mm !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background:#fff !important;
+        font-family: Arial, Helvetica, sans-serif !important;
+        font-size: 10pt !important;
+    }
+
+    body > *:not(.invoice-print) { display:none !important; }
+    body .invoice-print { display:block !important; }
+
+    body * { visibility:hidden !important; }
+    .invoice-print, .invoice-print * { visibility:visible !important; }
+
+    .invoice-print {
+        position:absolute !important;
+        left:0 !important;
+        top:0 !important;
+        width:149mm !important;
+        max-width:149mm !important;
+        min-height:200mm !important;
         margin:0 !important;
         padding:0 !important;
+        box-sizing:border-box !important;
         color:#000 !important;
-        font-size:10px !important;
+        background:#fff !important;
     }
 
     .screen-only { display:none !important; }
 
-    .receipt-header { text-align:center; line-height:1.35; margin-bottom:6px; }
-    .receipt-entity { font-size:13px; font-weight:700; text-transform:uppercase; }
-    .receipt-title { font-size:12px; font-weight:700; margin-top:2px; }
+    .invoice-head {
+        text-align:center;
+        line-height:1.35;
+        padding-bottom:5mm;
+        border-bottom:1px solid #000;
+        margin-bottom:4mm;
+    }
+    .entity-name { font-size:15pt; font-weight:700; text-transform:uppercase; }
+    .invoice-title { font-size:12pt; font-weight:700; margin-top:1mm; }
+    .invoice-number { font-size:10pt; margin-top:1mm; }
 
-    .receipt-meta { line-height:1.45; }
-    .receipt-meta div, .receipt-payment div, .receipt-total div {
+    .invoice-info {
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        column-gap:10mm;
+        row-gap:1.5mm;
+        margin-bottom:4mm;
+    }
+    .invoice-info div {
         display:flex;
         justify-content:space-between;
-        gap:8px;
+        gap:5mm;
     }
-    .receipt-meta span, .receipt-payment span, .receipt-total span { white-space:nowrap; }
-    .receipt-meta b, .receipt-payment b, .receipt-total b { text-align:right; }
+    .invoice-info span { color:#333; }
+    .invoice-info b { text-align:right; }
 
-    .receipt-line { border-top:1px dashed #000; margin:6px 0; }
+    .dash-line {
+        border-top:1px dashed #000;
+        margin:3mm 0;
+    }
 
-    .receipt-items { width:100% !important; border-collapse:collapse; table-layout:fixed; }
-    .receipt-items th, .receipt-items td {
-        padding:2px 0 !important;
+    .invoice-items {
+        width:100% !important;
+        border-collapse:collapse !important;
+        table-layout:fixed !important;
+    }
+    .invoice-items th,
+    .invoice-items td {
         border:0 !important;
-        vertical-align:top;
-        font-size:9px !important;
+        padding:2mm 1mm !important;
+        vertical-align:top !important;
+        font-size:9pt !important;
     }
-    .receipt-items th { font-weight:700; border-bottom:1px solid #000 !important; padding-bottom:3px !important; }
-    .receipt-items td small { display:block; font-size:8px !important; line-height:1.2; }
-    .receipt-items th:first-child, .receipt-items td:first-child { width:38%; text-align:left; }
-    .receipt-items .qty { width:22%; text-align:right; }
-    .receipt-items .price { width:20%; text-align:right; }
-    .receipt-items .total { width:20%; text-align:right; }
-    .item-discount { text-align:right; font-size:8px !important; }
+    .invoice-items thead th {
+        border-bottom:1px solid #000 !important;
+        padding-bottom:2mm !important;
+    }
+    .invoice-items th:first-child,
+    .invoice-items td:first-child { width:43%; text-align:left; }
+    .invoice-items .qty { width:19%; text-align:right; }
+    .invoice-items .money { width:19%; text-align:right; }
+    .invoice-items td small {
+        display:block;
+        font-size:8pt;
+        line-height:1.25;
+        margin-top:1mm;
+    }
+    .line-discount {
+        text-align:right;
+        font-size:8pt !important;
+        padding-top:0 !important;
+    }
 
-    .receipt-total { line-height:1.5; }
-    .receipt-total .grand {
+    .summary {
+        width:65mm;
+        margin-left:auto;
+        font-size:9.5pt;
+    }
+    .summary > div {
+        display:flex;
+        justify-content:space-between;
+        gap:5mm;
+        padding:1.5mm 0;
+    }
+    .summary .grand-total {
         border-top:1px solid #000;
-        margin-top:3px;
-        padding-top:4px;
-        font-size:12px !important;
+        margin-top:1mm;
+        padding-top:3mm;
+        font-size:12pt;
         font-weight:700;
     }
 
-    .receipt-payment { margin-top:6px; line-height:1.5; }
-    .receipt-memo { margin-top:7px; padding-top:5px; border-top:1px dashed #000; word-break:break-word; }
-    .receipt-footer { text-align:center; margin-top:10px; font-size:9px; }
+    .payment-info {
+        width:100%;
+        margin-top:5mm;
+        padding-top:3mm;
+        border-top:1px dashed #000;
+        font-size:9.5pt;
+    }
+    .payment-info div {
+        display:flex;
+        justify-content:space-between;
+        gap:8mm;
+        padding:1mm 0;
+    }
+    .payment-info b { text-align:right; }
+
+    .memo {
+        margin-top:4mm;
+        padding-top:3mm;
+        border-top:1px dashed #000;
+        font-size:9pt;
+        word-break:break-word;
+    }
+
+    .sign-area {
+        margin-top:10mm;
+        margin-left:auto;
+        width:45mm;
+        text-align:center;
+        font-size:9pt;
+    }
+    .sign-space { height:12mm; }
+
+    .thanks {
+        margin-top:8mm;
+        text-align:center;
+        font-size:9pt;
+    }
 }
 </style>
 @endpush
