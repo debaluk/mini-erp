@@ -12,6 +12,28 @@ class SalesController extends Controller {
   $units=DB::table('business_units')->where('entity_id',$entity)->where('is_active',1)->orderBy('name')->get();
   return view('erp.sales.index',compact('rows','units'));
  }
+ public function export(Request $request) {
+  $entity=$this->entityId();
+  $startDate = $request->filled('start_date') ? $request->input('start_date') : now()->startOfMonth()->toDateString();
+  $endDate = $request->filled('end_date') ? $request->input('end_date') : now()->endOfMonth()->toDateString();
+  $rows=DB::table('sales as s')
+    ->leftJoin('customers as c','c.id','=','s.customer_id')
+    ->where('s.entity_id',$entity)
+    ->whereDate('s.sale_date','>=',$startDate)
+    ->whereDate('s.sale_date','<=',$endDate)
+    ->when($request->filled('customer'),fn($q)=>$q->where('c.name','like','%'.$request->customer.'%'))
+    ->when($request->filled('payment_method'),fn($q)=>$q->whereExists(function($sub) use ($request){
+      $sub->select(DB::raw(1))->from('payments as fp')->whereColumn('fp.sale_id','s.id')->where('fp.method',$request->payment_method);
+    }))
+    ->select('s.invoice_no','s.sale_date',DB::raw("COALESCE(c.name, 'Umum') as customer_name"),DB::raw("'-' as unit_name"),DB::raw("(SELECT GROUP_CONCAT(DISTINCT p.method ORDER BY p.id SEPARATOR ', ') FROM payments p WHERE p.sale_id = s.id) as payment_methods"),DB::raw("'-' as due_date"),'s.subtotal','s.discount','s.total','s.status')
+    ->orderByDesc('s.sale_date')->orderByDesc('s.id')->get();
+  return response()->json([
+    'entity_name'=>DB::table('entities')->where('id',$entity)->value('name') ?? 'NAMA ENTITAS',
+    'start_date'=>$startDate,
+    'end_date'=>$endDate,
+    'rows'=>$rows
+  ]);
+ }
  public function show(int $id) {
   $entity=$this->entityId();
   $sale=DB::table('sales as s')->leftJoin('customers as c','c.id','=','s.customer_id')->where('s.entity_id',$entity)->where('s.id',$id)->select('s.*','c.name as customer_name','c.phone as customer_phone','c.address as customer_address')->first();
