@@ -19,7 +19,7 @@ class BusinessUnitAccountMappingController extends Controller
 
     public function index(Request $request)
     {
-        return redirect()->route('pengaturan.konfigurasi') . '#setup-akun';
+        return redirect()->to(route('pengaturan.konfigurasi') . '#setup-akun');
     }
 
     public function save(Request $request)
