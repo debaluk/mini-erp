@@ -36,11 +36,15 @@
                     </td>
                     <td><span class="badge {{ $u->is_active ? 'text-bg-success':'text-bg-secondary' }}">{{ $u->is_active ? 'Aktif':'Nonaktif' }}</span></td>
                     <td class="text-end text-nowrap">
-                        <button class="btn btn-outline-primary btn-sm" title="Edit User" data-bs-toggle="modal" data-bs-target="#userModal" onclick='editUser(@json(array_merge((array) $u, ["modules" => ($userModules[$u->id] ?? []), "business_units" => ($userBusinessUnits[$u->id] ?? [])])))'>✎</button>
-                        <form method="POST" action="{{ route('pengaturan.user.toggle',$u->id) }}" class="d-inline">
-                            @csrf @method('PATCH')
-                            <button class="btn btn-outline-secondary btn-sm" title="Aktif/Nonaktif">↔</button>
-                        </form>
+                        @if($u->role !== 'owner')
+                            <button class="btn btn-outline-primary btn-sm" title="Edit User" data-bs-toggle="modal" data-bs-target="#userModal" onclick='editUser(@json(array_merge((array) $u, ["modules" => ($userModules[$u->id] ?? []), "business_units" => ($userBusinessUnits[$u->id] ?? [])])))'>✎</button>
+                            <form method="POST" action="{{ route('pengaturan.user.toggle',$u->id) }}" class="d-inline">
+                                @csrf @method('PATCH')
+                                <button class="btn btn-outline-secondary btn-sm" title="Aktif/Nonaktif">↔</button>
+                            </form>
+                        @else
+                            <span class="text-secondary small">Pemilik</span>
+                        @endif
                     </td>
                 </tr>
             @empty
