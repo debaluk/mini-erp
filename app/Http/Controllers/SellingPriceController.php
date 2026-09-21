@@ -94,7 +94,7 @@ class SellingPriceController extends Controller
             ->value('id');
 
         abort_unless(
-            $retailUnitId && DB::table('product_units')->where('product_id', $product->id)->where('business_unit_id', $retailUnitId)->exists(),
+            $retailUnitId && DB::table('product_business_units')->where('product_id', $product->id)->where('business_unit_id', $retailUnitId)->exists(),
             422,
             'Item belum dipilih untuk Unit Retail.'
         );
