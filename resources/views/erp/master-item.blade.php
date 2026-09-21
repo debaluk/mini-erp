@@ -6,10 +6,10 @@
         <h3 class="mb-1">Item</h3>
         <div class="text-secondary">Master item</div>
     </div>
-    <button type="button" class="btn btn-primary btn-sm" id="btn-add-item">+ Tambah Item</button>
+    <div class="d-flex gap-2"><button type="button" class="btn btn-outline-success btn-sm" id="btn-export-item">Export Excel</button><button type="button" class="btn btn-primary btn-sm" id="btn-add-item">+ Tambah Item</button></div>
 </div>
 
-<div id="item-alert"></div>
+
 
 <div class="d-flex align-items-center gap-2 mb-2">
     <label for="item-unit-filter" class="small text-secondary mb-0">Unit</label>
@@ -50,7 +50,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-3">
-                    <div id="item-form-alert"></div>
+                    
                     <input type="hidden" name="_method" id="item-method" value="POST">
                     <input type="hidden" name="item_id" id="item-id">
 
@@ -89,7 +89,7 @@
                                         <button type="button" class="btn btn-outline-secondary btn-sm" id="cancel-new-uom">Batal</button>
                                     </div>
                                 </div>
-                                <div id="new-uom-alert" class="small mt-1"></div>
+                                
                             </div>
                             <select name="base_unit_id" id="item-base-unit" class="form-select" required>
                                 <option value="">Pilih satuan</option>
@@ -117,7 +117,7 @@
                                     <button type="button" class="btn btn-outline-secondary btn-sm" id="cancel-new-business-unit">Batal</button>
                                 </div>
                             </div>
-                            <div id="new-business-unit-alert" class="small mt-1"></div>
+                            
                         </div>
                         <div class="row g-1" id="item-business-unit-options">
                             @foreach($businessUnits as $businessUnit)
@@ -177,6 +177,21 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="itemMessageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header py-2" id="itemMessageHeader">
+                <h5 class="modal-title" id="itemMessageTitle">Berhasil</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center" id="itemMessageBody"></div>
+            <div class="modal-footer justify-content-center py-2">
+                <button type="button" class="btn btn-primary btn-sm" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -184,6 +199,16 @@
 (function () {
     const modalEl = document.getElementById('itemModal');
     const modal = new bootstrap.Modal(modalEl);
+    const messageModal = document.getElementById('itemMessageModal');
+    const messageHeader = document.getElementById('itemMessageHeader');
+    const messageTitle = document.getElementById('itemMessageTitle');
+    const messageBody = document.getElementById('itemMessageBody');
+    function showMessage(message, type = 'success') {
+        messageHeader.className = 'modal-header py-2 ' + (type === 'danger' ? 'bg-danger text-white' : type === 'warning' ? 'bg-warning' : 'bg-success text-white');
+        messageTitle.textContent = type === 'danger' ? 'Gagal' : type === 'warning' ? 'Perhatian' : 'Berhasil';
+        messageBody.textContent = message;
+        bootstrap.Modal.getOrCreateInstance(messageModal).show();
+    }
     const form = document.getElementById('item-form');
     const rows = document.getElementById('conversion-rows');
     let units = @json($units);
@@ -247,7 +272,7 @@
     function resetInlineForms() {
         ['new-uom-form', 'new-business-unit-form'].forEach(id => document.getElementById(id).classList.add('d-none'));
         ['new-uom-code', 'new-uom-name', 'new-business-unit-code', 'new-business-unit-name'].forEach(id => document.getElementById(id).value = '');
-        ['new-uom-alert', 'new-business-unit-alert'].forEach(id => document.getElementById(id).innerHTML = '');
+        
     }
 
     function refreshConversionUnitOptions() {
@@ -271,7 +296,7 @@
         document.getElementById('item-id').value = '';
         document.getElementById('item-modal-title').textContent = 'Tambah Item';
         document.getElementById('item-save').textContent = 'Simpan';
-        document.getElementById('item-form-alert').innerHTML = '';
+        
         rows.innerHTML = '';
         document.querySelector('input[name="manage_stock"][value="1"]').checked = true;
         document.querySelector('input[name="status"][value="1"]').checked = true;
@@ -281,6 +306,15 @@
     }
 
     document.getElementById('item-unit-filter').addEventListener('change', () => dt.ajax.reload());
+    document.getElementById('btn-export-item').addEventListener('click', () => {
+        const params = new URLSearchParams();
+        const unitId = document.getElementById('item-unit-filter').value;
+        const search = dt.search();
+        if (unitId) params.set('business_unit_id', unitId);
+        if (search) params.set('search', search);
+        window.location.href = '{{ route('master.item.export-excel') }}' + (params.toString() ? '?' + params.toString() : '');
+    });
+
 
     document.getElementById('items-table').addEventListener('click', async (event) => {
         const button = event.target.closest('.btn-delete-item');
@@ -299,10 +333,10 @@
         const payload = await response.json();
         button.disabled = false;
         if (!response.ok) {
-            document.getElementById('item-alert').innerHTML = '<div class="alert alert-danger py-2 small">' + (payload.message || 'Item tidak dapat dihapus.') + '</div>';
+            showMessage(payload.message || 'Item tidak dapat dihapus.', 'danger');
             return;
         }
-        document.getElementById('item-alert').innerHTML = '<div class="alert alert-success py-2 small">' + payload.message + '</div>';
+        showMessage(payload.message || 'Item berhasil dihapus.');
         dt.ajax.reload(null, false);
     });
 
@@ -317,7 +351,7 @@
     document.getElementById('btn-add-business-unit').addEventListener('click', () => showInlineForm('new-business-unit-form'));
     document.getElementById('cancel-new-business-unit').addEventListener('click', resetInlineForms);
 
-    async function postInline(url, body, alertId) {
+    async function postInline(url, body) {
         const response = await fetch(url, {
             method: 'POST',
             headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}', 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
@@ -326,7 +360,7 @@
         const payload = await response.json();
         if (!response.ok) {
             const errors = payload.errors ? Object.values(payload.errors).flat().join('<br>') : (payload.message || 'Data tidak dapat disimpan.');
-            document.getElementById(alertId).innerHTML = '<div class="text-danger">' + errors + '</div>';
+            showMessage(errors.replace(/<br>/g, '\n'), 'danger');
             return null;
         }
         return payload;
@@ -338,7 +372,7 @@
         const body = new FormData();
         body.append('code', document.getElementById('new-uom-code').value.trim());
         body.append('name', document.getElementById('new-uom-name').value.trim());
-        const payload = await postInline('{{ route('master.item.inline-uom.store') }}', body, 'new-uom-alert');
+        const payload = await postInline('{{ route('master.item.inline-uom.store') }}', body);
         btn.disabled = false;
         if (!payload) return;
         units.push(payload.unit);
@@ -355,7 +389,7 @@
         const body = new FormData();
         body.append('code', document.getElementById('new-business-unit-code').value.trim());
         body.append('name', document.getElementById('new-business-unit-name').value.trim());
-        const payload = await postInline('{{ route('master.item.inline-unit.store') }}', body, 'new-business-unit-alert');
+        const payload = await postInline('{{ route('master.item.inline-unit.store') }}', body);
         btn.disabled = false;
         if (!payload) return;
         businessUnits.push(payload.business_unit);
@@ -413,12 +447,12 @@
         const payload = await response.json();
         if (!response.ok) {
             const errors = payload.errors ? Object.values(payload.errors).flat().join('<br>') : (payload.message || 'Data tidak dapat disimpan.');
-            document.getElementById('item-form-alert').innerHTML = '<div class="alert alert-danger py-2 small mb-2">' + errors + '</div>';
+            showMessage(errors.replace(/<br>/g, '\n'), 'danger');
             save.disabled = false;
             return;
         }
         modal.hide();
-        document.getElementById('item-alert').innerHTML = '<div class="alert alert-success py-2">' + payload.message + '</div>';
+        showMessage(payload.message || 'Item berhasil disimpan.');
         dt.ajax.reload(null, false);
         save.disabled = false;
     });
