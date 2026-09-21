@@ -237,6 +237,36 @@ class ProductionCostEngine
                 'updated_at' => now(),
             ]);
 
+            foreach ($secondaryOutputs as $secondary) {
+                $secondaryCost = round($secondary['qty'] * $secondary['unit_cost'], 2);
+
+                $this->inventory->receive(
+                    $entityId,
+                    $businessUnitId,
+                    $warehouseId,
+                    $secondary['product_id'],
+                    $secondary['qty'],
+                    $secondary['unit_cost'],
+                    'production_recovery_in',
+                    'production',
+                    $productionId,
+                    $userId,
+                    $productionDate
+                );
+
+                DB::table('production_outputs')->insert([
+                    'production_id' => $productionId,
+                    'product_id' => $secondary['product_id'],
+                    'warehouse_id' => $warehouseId,
+                    'qty' => $secondary['qty'],
+                    'unit_cost' => $secondary['unit_cost'],
+                    'total_cost' => $secondaryCost,
+                    'output_type' => $secondary['output_type'],
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
             DB::table('productions')->where('id', $productionId)->update([
                 'total_cost' => $totalCost,
                 'good_output_qty' => $goodOutputQty,
