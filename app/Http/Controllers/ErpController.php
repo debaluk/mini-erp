@@ -676,18 +676,100 @@ class ErpController extends Controller
 
     public function purchaseStore(Request $request)
     {
-        $data=$request->validate(['supplier_id'=>'required|integer','product_id'=>'required|integer','warehouse_id'=>'required|integer','qty'=>'required|numeric|min:0.001','unit_cost'=>'required|numeric|min:0']); $entity=$this->entityId();
+        $data = $request->validate([
+            'supplier_id' => ['required','integer'],
+            'product_id' => ['required','integer'],
+            'business_unit_id' => ['nullable','integer'],
+            'unit_id' => ['nullable','integer'],
+            'warehouse_id' => ['required','integer'],
+            'qty' => ['required','numeric','gt:0'],
+            'unit_cost' => ['required','numeric','min:0'],
+        ]);
+
+        $entity = $this->entityId();
+        $businessUnitId = (int) ($data['business_unit_id'] ?? $data['unit_id'] ?? 0);
+        abort_if($businessUnitId <= 0, 422, 'Unit Bisnis wajib dipilih.');
+
+        $bu = DB::table('business_units')->where('id',$businessUnitId)->where('entity_id',$entity)->where('is_active',1)->first();
+        abort_unless($bu,422,'Unit Bisnis tidak valid.');
+
         abort_unless(DB::table('suppliers')->where('entity_id',$entity)->where('is_active',1)->where('id',$data['supplier_id'])->exists(),422,'Supplier tidak valid.');
         abort_unless(DB::table('products')->where('entity_id',$entity)->where('is_active',1)->where('id',$data['product_id'])->exists(),422,'Produk tidak valid.');
-        abort_unless(DB::table('warehouses')->where('entity_id',$entity)->where('is_active',1)->where('id',$data['warehouse_id'])->exists(),422,'Gudang tidak valid.');
-        $total=$data['qty']*$data['unit_cost'];
-        DB::transaction(function() use($data,$entity,$total){
-            $no='PO-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4)); $id=DB::table('purchases')->insertGetId(['entity_id'=>$entity,'supplier_id'=>$data['supplier_id'],'user_id'=>auth()->id(),'purchase_no'=>$no,'purchase_date'=>now(),'subtotal'=>$total,'total'=>$total,'status'=>'received','created_at'=>now(),'updated_at'=>now()]);
-            DB::table('purchase_items')->insert(['purchase_id'=>$id,'product_id'=>$data['product_id'],'qty'=>$data['qty'],'unit_cost'=>$data['unit_cost'],'total'=>$total,'created_at'=>now(),'updated_at'=>now()]);
-            $stock=DB::table('warehouses_stocks')->where(['warehouse_id'=>$data['warehouse_id'],'product_id'=>$data['product_id']])->first();
-            if($stock) DB::table('warehouses_stocks')->where('id',$stock->id)->update(['qty'=>$stock->qty+$data['qty'],'avg_cost'=>$data['unit_cost'],'updated_at'=>now()]); else DB::table('warehouses_stocks')->insert(['entity_id'=>$entity,'warehouse_id'=>$data['warehouse_id'],'product_id'=>$data['product_id'],'qty'=>$data['qty'],'avg_cost'=>$data['unit_cost'],'created_at'=>now(),'updated_at'=>now()]);
-            DB::table('stock_movements')->insert(['entity_id'=>$entity,'warehouse_id'=>$data['warehouse_id'],'product_id'=>$data['product_id'],'movement_type'=>'purchase_in','qty'=>$data['qty'],'unit_cost'=>$data['unit_cost'],'reference_type'=>'purchase','reference_id'=>$id,'occurred_at'=>now(),'created_by'=>auth()->id(),'created_at'=>now(),'updated_at'=>now()]);
-        }); return back()->with('success','Pembelian dan penerimaan stok berhasil.');
+
+        $warehouse = DB::table('warehouses')->where('entity_id',$entity)->where('business_unit_id',$businessUnitId)->where('is_active',1)->where('id',$data['warehouse_id'])->first();
+        abort_unless($warehouse,422,'Gudang tidak sesuai Unit Bisnis.');
+
+        $total = round((float)$data['qty'] * (float)$data['unit_cost'], 2);
+
+        DB::transaction(function () use ($data,$entity,$businessUnitId,$warehouse,$total) {
+            $no='PO-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4));
+            $id=DB::table('purchases')->insertGetId([
+                'entity_id'=>$entity,
+                'business_unit_id'=>$businessUnitId,
+                'supplier_id'=>$data['supplier_id'],
+                'user_id'=>auth()->id(),
+                'purchase_no'=>$no,
+                'purchase_date'=>now(),
+                'subtotal'=>$total,
+                'total'=>$total,
+                'status'=>'received',
+                'created_at'=>now(),
+                'updated_at'=>now()
+            ]);
+
+            DB::table('purchase_items')->insert([
+                'purchase_id'=>$id,
+                'product_id'=>$data['product_id'],
+                'qty'=>$data['qty'],
+                'unit_cost'=>$data['unit_cost'],
+                'total'=>$total,
+                'created_at'=>now(),
+                'updated_at'=>now()
+            ]);
+
+            $stock=DB::table('warehouses_stocks')->where(['warehouse_id'=>$warehouse->id,'product_id'=>$data['product_id']])->lockForUpdate()->first();
+            $oldQty=(float)($stock->qty??0);
+            $oldAvg=(float)($stock->avg_cost??0);
+            $qty=(float)$data['qty'];
+            $cost=(float)$data['unit_cost'];
+            $newQty=$oldQty+$qty;
+            $newAvg=$oldQty>0?(($oldQty*$oldAvg)+($qty*$cost))/$newQty:$cost;
+
+            if($stock) DB::table('warehouses_stocks')->where('id',$stock->id)->update(['qty'=>$newQty,'avg_cost'=>$newAvg,'updated_at'=>now()]);
+            else DB::table('warehouses_stocks')->insert(['entity_id'=>$entity,'warehouse_id'=>$warehouse->id,'product_id'=>$data['product_id'],'qty'=>$qty,'avg_cost'=>$newAvg,'created_at'=>now(),'updated_at'=>now()]);
+
+            DB::table('purchase_price_histories')->insert([
+                'entity_id'=>$entity,
+                'business_unit_id'=>$businessUnitId,
+                'product_id'=>$data['product_id'],
+                'supplier_id'=>$data['supplier_id'],
+                'price_date'=>now(),
+                'qty'=>$qty,
+                'unit_price'=>$cost,
+                'source'=>'purchase',
+                'reference_id'=>$id,
+                'created_at'=>now(),
+                'updated_at'=>now()
+            ]);
+
+            DB::table('stock_movements')->insert([
+                'entity_id'=>$entity,
+                'business_unit_id'=>$businessUnitId,
+                'warehouse_id'=>$warehouse->id,
+                'product_id'=>$data['product_id'],
+                'movement_type'=>'purchase_in',
+                'qty'=>$qty,
+                'unit_cost'=>$cost,
+                'reference_type'=>'purchase',
+                'reference_id'=>$id,
+                'occurred_at'=>now(),
+                'created_by'=>auth()->id(),
+                'created_at'=>now(),
+                'updated_at'=>now()
+            ]);
+        });
+
+        return back()->with('success','Pembelian dan penerimaan stok berhasil. HPP persediaan diperbarui.');
     }
 
     public function productionStore(Request $request)
