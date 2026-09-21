@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <div><h3 class="mb-1">Entitas</h3><div class="text-secondary">Profil Entitas / Unit Bisnis</div></div>
+    <div><h3 class="mb-1">Entitas</h3><div class="text-secondary">Profil Entitas</div></div>
     @if(auth()->user()->role === 'superadmin')
     <form method="GET" class="d-flex align-items-end gap-2">
         <div><label class="form-label">Pilih Entitas</label><select name="entity_id" class="form-select" onchange="this.form.submit()">@foreach($entities as $e)<option value="{{ $e->id }}" @selected($entity->id === $e->id)>{{ $e->code }} · {{ $e->name }}</option>@endforeach</select></div>
@@ -10,8 +10,44 @@
     @endif
 </div>
 
-@if(session('success'))<div class="alert alert-success py-2">{{ session('success') }}</div>@endif
-@if($errors->any())<div class="alert alert-danger py-2"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
+@if(session('success'))
+    <div class="modal fade" id="messageModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">Berhasil</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">{{ session('success') }}</div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-success" data-bs-dismiss="modal">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+@endif
+@if($errors->any())
+    <div class="modal fade" id="messageModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">Gagal</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <ul class="mb-0">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" data-bs-dismiss="modal">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+@endif
 
 <div class="card shadow-sm">
     <div class="card-header fw-semibold">Data Entitas</div>
@@ -46,3 +82,14 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const modal = document.getElementById('messageModal');
+    if (modal) {
+        new bootstrap.Modal(modal).show();
+    }
+});
+</script>
+@endpush
