@@ -58,6 +58,7 @@
 <td class="text-center">
 @if($row->setup_date)
 <button type="button" class="btn btn-outline-primary btn-sm btn-edit" data-id="{{ $row->id }}" data-name="{{ $row->name }}" data-price="{{ (float) $row->selling_price }}" data-hpp="{{ (float) $row->initial_purchase_price }}" data-stock="{{ (float) $row->initial_stock }}" data-up="{{ (float) $row->markup_percent }}" data-date="{{ $row->setup_date }}">Edit</button>
+<button type="button" class="btn btn-outline-secondary btn-sm btn-history" data-id="{{ $row->id }}" data-name="{{ $row->name }}">Histori</button>
 @else
 <span class="text-secondary">-</span>
 @endif
@@ -139,6 +140,22 @@
         </div>
     </div>
 </div>
+<div class="modal fade" id="priceHistoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Histori Harga Jual</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+            <div class="small text-secondary mb-2" id="history-item-name"></div>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle mb-0">
+                    <thead><tr><th>Tanggal</th><th class="text-end">Harga Lama</th><th class="text-end">Harga Baru</th><th class="text-end">UP Lama</th><th class="text-end">UP Baru</th><th>User</th><th>Keterangan</th></tr></thead>
+                    <tbody id="price-history-body"><tr><td colspan="7" class="text-center text-secondary">Memuat...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button></div>
+    </div></div>
+</div>
+
 @endsection
 
 @push('scripts')
@@ -150,6 +167,7 @@
     const modalEl = document.getElementById('setupAwalModal');
     const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
     const detailModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('detailHargaJualModal'));
+    const historyModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('priceHistoryModal'));
     const priceTable = new DataTable('#selling-price-table', {
         pageLength: 10,
         autoWidth: false,
@@ -333,6 +351,23 @@
         document.getElementById('setup-form-alert').innerHTML = '';
         modal.show();
         setTimeout(() => search.focus(), 250);
+    });
+
+    document.querySelector('#selling-price-table tbody').addEventListener('click', async e => {
+        const history = e.target.closest('.btn-history');
+        if (!history) return;
+        document.getElementById('history-item-name').textContent = history.dataset.name || '';
+        const body = document.getElementById('price-history-body');
+        body.innerHTML = '<tr><td colspan="7" class="text-center text-secondary">Memuat...</td></tr>';
+        historyModal.show();
+        try {
+            const response = await fetch('{{ url('/master/harga-jual') }}/' + history.dataset.id + '/history', { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } });
+            const payload = await response.json();
+            if (!response.ok) throw new Error(payload.message || 'Histori harga jual tidak dapat dimuat.');
+            body.innerHTML = payload.data.length ? payload.data.map(row => '<tr><td>'+esc(row.effective_date)+'</td><td class="text-end">'+fmtMoney(row.old_price)+'</td><td class="text-end fw-semibold">'+fmtMoney(row.new_price)+'</td><td class="text-end">'+fmtNum(row.old_markup_percent)+'%</td><td class="text-end">'+fmtNum(row.new_markup_percent)+'%</td><td>'+esc(row.changed_by_name || '-')+'</td><td>'+esc(row.reason || '-')+'</td></tr>').join('') : '<tr><td colspan="7" class="text-center text-secondary">Belum ada histori.</td></tr>';
+        } catch (error) {
+            body.innerHTML = '<tr><td colspan="7" class="text-center text-danger">'+esc(error.message)+'</td></tr>';
+        }
     });
 
     document.querySelector('#selling-price-table tbody').addEventListener('click', e => {
