@@ -95,9 +95,9 @@ class ErpController extends Controller
         $items = DB::table('products')
             ->leftJoin('units as base_units', 'base_units.id', '=', 'products.base_unit_id')
             ->when($request->filled('business_unit_id'), function ($query) use ($request) {
-                $query->join('product_units', function ($join) {
-                    $join->on('product_units.product_id', '=', 'products.id');
-                })->where('product_units.business_unit_id', (int) $request->business_unit_id);
+                $query->join('product_business_units', function ($join) {
+                    $join->on('product_business_units.product_id', '=', 'products.id');
+                })->where('product_business_units.business_unit_id', (int) $request->business_unit_id);
             })
             ->where('products.entity_id', $entity)
             ->select(
@@ -290,7 +290,7 @@ class ErpController extends Controller
             ]);
 
             foreach ($unitIds as $businessUnitId) {
-                DB::table('product_units')->insert([
+                DB::table('product_business_units')->insert([
                     'product_id' => $productId,
                     'business_unit_id' => $businessUnitId,
                     'created_at' => now(),
@@ -335,7 +335,7 @@ class ErpController extends Controller
 
         DB::transaction(function () use ($id, $entity): void {
             DB::table('unit_conversions')->where('product_id', $id)->delete();
-            DB::table('product_units')->where('product_id', $id)->delete();
+            DB::table('product_business_units')->where('product_id', $id)->delete();
             DB::table('products')->where('entity_id', $entity)->where('id', $id)->delete();
         });
 
@@ -349,7 +349,7 @@ class ErpController extends Controller
         abort_unless($item, 404);
         $units = DB::table('units')->where('entity_id', $entity)->where('is_active', 1)->orderBy('name')->get();
         $businessUnits = DB::table('business_units')->where('entity_id', $entity)->where('is_active', 1)->orderBy('id')->get();
-        $selectedBusinessUnits = DB::table('product_units')->where('product_id', $id)->pluck('business_unit_id')->all();
+        $selectedBusinessUnits = DB::table('product_business_units')->where('product_id', $id)->pluck('business_unit_id')->all();
         $conversions = DB::table('unit_conversions')->where('product_id', $id)->get();
 
         if ($request->ajax()) {
@@ -386,8 +386,8 @@ class ErpController extends Controller
         $conversionUnits=$data['conversion_unit_id']??[]; $conversionFactors=$data['conversion_factor']??[];
         DB::transaction(function() use($entity,$id,$data,$unitIds,$barcode,$minimumStock,$conversionUnits,$conversionFactors){
             DB::table('products')->where('entity_id',$entity)->where('id',$id)->update(['barcode'=>$barcode,'name'=>$data['name'],'unit_id'=>$data['base_unit_id'],'base_unit_id'=>$data['base_unit_id'],'minimum_stock'=>$minimumStock,'manage_stock'=>(bool)$data['manage_stock'],'is_active'=>(bool)$data['status'],'updated_at'=>now()]);
-            DB::table('product_units')->where('product_id',$id)->delete();
-            foreach($unitIds as $businessUnitId) DB::table('product_units')->insert(['product_id'=>$id,'business_unit_id'=>$businessUnitId,'created_at'=>now(),'updated_at'=>now()]);
+            DB::table('product_business_units')->where('product_id',$id)->delete();
+            foreach($unitIds as $businessUnitId) DB::table('product_business_units')->insert(['product_id'=>$id,'business_unit_id'=>$businessUnitId,'created_at'=>now(),'updated_at'=>now()]);
             DB::table('unit_conversions')->where('product_id',$id)->delete();
             foreach($conversionUnits as $index=>$conversionUnitId){ if(!$conversionUnitId || empty($conversionFactors[$index]) || (int)$conversionUnitId===(int)$data['base_unit_id']) continue; DB::table('unit_conversions')->insert(['product_id'=>$id,'unit_id'=>$conversionUnitId,'conversion_factor'=>$conversionFactors[$index],'created_at'=>now(),'updated_at'=>now()]); }
         });
