@@ -455,7 +455,7 @@ class DatabaseSeeder extends Seeder
             'bank' => '1000201',
             'receivable' => '1000301',
             'payable' => '20001',
-            'inventory' => '12000',
+            'inventory' => '10004',
             'sales_merchandise' => '4000101',
             'sales_finished_goods' => '4000102',
             'sales_service' => '4000103',
