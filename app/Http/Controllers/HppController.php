@@ -4,12 +4,13 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Services\Service\ServiceCostEngine;
 
 class HppController extends Controller
 {
     private function entityId(): int
     {
-        return (int) (DB::table('entities')->value('id') ?? 0);
+        return (int) (auth()->user()->entity_id ?? DB::table('entities')->value('id') ?? 0);
     }
 
     public function index(Request $request)
@@ -115,6 +116,8 @@ class HppController extends Controller
             ->orderByDesc('pr.id')
             ->get();
 
+        $serviceRows = app(ServiceCostEngine::class)->report($entityId, $businessUnitId, $startDate, $endDate);
+
         $businessUnits = DB::table('business_units')
             ->where('entity_id', $entityId)
             ->where('is_active', 1)
@@ -128,7 +131,8 @@ class HppController extends Controller
             'businessUnitId',
             'businessUnits',
             'retailRows',
-            'productionRows'
+            'productionRows',
+            'serviceRows'
         ));
     }
 }
