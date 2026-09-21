@@ -326,7 +326,7 @@ return new class extends Migration
             $t->string('source')->default('purchase');
             $t->unsignedBigInteger('reference_id')->nullable();
             $t->timestamps();
-            $t->index(['entity_id', 'business_unit_id', 'product_id', 'price_date']);
+            $t->index(['entity_id', 'business_unit_id', 'product_id', 'price_date'], 'pph_entity_bu_product_date_idx');
             $t->index(['source', 'reference_id']);
         });
 
