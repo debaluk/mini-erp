@@ -277,7 +277,7 @@ return new class extends Migration
             $t->decimal('markup_percent', 9, 4);
             $t->decimal('selling_price', 18, 4);
             $t->timestamps();
-            $t->unique(['entity_id', 'product_id']);
+            $t->unique(['entity_id', 'business_unit_id', 'product_id']);
             $t->index(['entity_id', 'business_unit_id', 'setup_date']);
         });
 
