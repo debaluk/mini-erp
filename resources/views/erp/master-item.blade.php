@@ -196,7 +196,8 @@
             }
         },
         processing: true,
-        ordering: false,
+        serverSide: true,
+        ordering: true,
         pageLength: 15,
         columns: [
             { data: 'code', className: 'fw-semibold' },
