@@ -21,7 +21,7 @@ return new class extends Migration
             $table->text('reason')->nullable();
             $table->unsignedBigInteger('changed_by')->nullable();
             $table->timestamps();
-            $table->index(['entity_id', 'product_id', 'business_unit_id']);
+            $table->index(['entity_id', 'product_id', 'business_unit_id'], 'sph_entity_product_unit_idx');
             $table->index('effective_date');
         });
     }
