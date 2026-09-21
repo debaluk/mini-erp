@@ -11,11 +11,13 @@ class ErpController extends Controller
 {
     private function entityId(): int
     {
-        $entity = DB::table('entities')->first();
-        if (!$entity) {
-            return DB::table('entities')->insertGetId(['code'=>'ENT-001','name'=>'Entitas Utama','is_active'=>1,'created_at'=>now(),'updated_at'=>now()]);
+        $entityId = (int) (auth()->user()->entity_id ?? 0);
+        if ($entityId > 0 && DB::table('entities')->where('id', $entityId)->exists()) {
+            return $entityId;
         }
-        return $entity->id;
+        $entity = DB::table('entities')->orderBy('id')->first();
+        abort_unless($entity, 500, 'Entitas belum tersedia.');
+        return (int) $entity->id;
     }
 
     private function masterConfig(string $type): array
@@ -116,8 +118,55 @@ class ErpController extends Controller
             ->get();
 
         if ($request->ajax()) {
+            $draw = (int) $request->input('draw', 0);
+            $search = trim((string) $request->input('search.value', ''));
+            $query = DB::table('products')
+                ->leftJoin('units as base_units', 'base_units.id', '=', 'products.base_unit_id')
+                ->when($request->filled('business_unit_id'), function ($query) use ($request) {
+                    $query->join('product_business_units', function ($join) {
+                        $join->on('product_business_units.product_id', '=', 'products.id');
+                    })->where('product_business_units.business_unit_id', (int) $request->business_unit_id);
+                })
+                ->where('products.entity_id', $entity)
+                ->select(
+                    'products.id',
+                    'products.code',
+                    'products.barcode',
+                    'products.name',
+                    'products.item_type',
+                    'products.minimum_stock',
+                    'products.manage_stock',
+                    'products.is_active',
+                    'base_units.name as base_unit_name'
+                )
+                ->when($search !== '', function ($query) use ($search) {
+                    $query->where(function ($q) use ($search) {
+                        $q->where('products.code', 'like', "%{$search}%")
+                          ->orWhere('products.barcode', 'like', "%{$search}%")
+                          ->orWhere('products.name', 'like', "%{$search}%")
+                          ->orWhere('products.item_type', 'like', "%{$search}%")
+                          ->orWhere('base_units.name', 'like', "%{$search}%");
+                    });
+                })
+                ->distinct();
+
+            $recordsTotal = DB::table('products')->where('entity_id', $entity)->count();
+            $recordsFiltered = (clone $query)->count('products.id');
+
+            $start = max(0, (int) $request->input('start', 0));
+            $length = (int) $request->input('length', 15);
+            if ($length < 1) $length = 15;
+
+            $rows = $query->orderByDesc('products.id')
+                ->offset($start)
+                ->limit($length)
+                ->get();
+
             return response()->json([
-                'data' => $items->map(fn ($item) => [
+                'draw' => $draw,
+                'recordsTotal' => $recordsTotal,
+                'recordsFiltered' => $recordsFiltered,
+                'data' => $rows->map(fn ($item) => [
                     'id' => $item->id,
                     'code' => $item->code,
                     'barcode' => $item->barcode,
