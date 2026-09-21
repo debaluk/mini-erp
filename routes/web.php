@@ -136,6 +136,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/master/harga-jual', [SellingPriceController::class, 'index'])->middleware('access:master')->name('master.menu.harga-jual');
     Route::post('/master/harga-jual/setup-awal', [SellingPriceController::class, 'storeInitial'])->middleware('access:master')->name('master.harga-jual.setup-awal');
     Route::put('/master/harga-jual/{product}/edit', [SellingPriceController::class, 'update'])->middleware('access:master')->name('master.harga-jual.update');
+    Route::get('/master/harga-jual/{product}/history', [SellingPriceController::class, 'history'])->middleware('access:master')->name('master.harga-jual.history');
 
     foreach ($masterMenuPaths as $path => $type) {
         if ($type === 'unit-conversions') {
