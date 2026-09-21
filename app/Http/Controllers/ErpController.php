@@ -329,7 +329,6 @@ class ErpController extends Controller
                 'name' => $data['name'],
                 'item_type' => $data['item_type'],
                 'type' => $legacyType,
-                'unit_id' => $data['base_unit_id'],
                 'base_unit_id' => $data['base_unit_id'],
                 'minimum_stock' => $minimumStock,
                 'manage_stock' => (bool) $data['manage_stock'],
@@ -434,7 +433,7 @@ class ErpController extends Controller
         if (!(bool)$data['manage_stock']) $minimumStock=0;
         $conversionUnits=$data['conversion_unit_id']??[]; $conversionFactors=$data['conversion_factor']??[];
         DB::transaction(function() use($entity,$id,$data,$unitIds,$barcode,$minimumStock,$conversionUnits,$conversionFactors){
-            DB::table('products')->where('entity_id',$entity)->where('id',$id)->update(['barcode'=>$barcode,'name'=>$data['name'],'unit_id'=>$data['base_unit_id'],'base_unit_id'=>$data['base_unit_id'],'minimum_stock'=>$minimumStock,'manage_stock'=>(bool)$data['manage_stock'],'is_active'=>(bool)$data['status'],'updated_at'=>now()]);
+            DB::table('products')->where('entity_id',$entity)->where('id',$id)->update(['barcode'=>$barcode,'name'=>$data['name'],'base_unit_id'=>$data['base_unit_id'],'minimum_stock'=>$minimumStock,'manage_stock'=>(bool)$data['manage_stock'],'is_active'=>(bool)$data['status'],'updated_at'=>now()]);
             DB::table('product_business_units')->where('product_id',$id)->delete();
             foreach($unitIds as $businessUnitId) DB::table('product_business_units')->insert(['product_id'=>$id,'business_unit_id'=>$businessUnitId,'created_at'=>now(),'updated_at'=>now()]);
             DB::table('product_units')->where('product_id',$id)->delete();
@@ -563,7 +562,7 @@ class ErpController extends Controller
         abort_unless($unit, 404, 'Satuan tidak ditemukan.');
 
         $inUse = DB::table('products')->where('entity_id', $entity)->where(function ($q) use ($id) {
-            $q->where('base_unit_id', $id)->orWhere('unit_id', $id);
+            $q->where('base_unit_id', $id);
         })->exists()
             || DB::table('product_units')->where('unit_id', $id)->exists();
 
