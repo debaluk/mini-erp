@@ -37,6 +37,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/master/unit-conversions', [UnitConversionController::class, 'index'])->middleware('access:setting')->name('master.unit-conversions');
     Route::get('/master/produk/tambah', [ErpController::class, 'itemCreate'])->middleware('role:owner,admin')->name('master.item.create');
+    Route::get('/master/produk/export-excel', [ErpController::class, 'itemExportExcel'])->middleware('access:master')->name('master.item.export-excel');
     Route::get('/master/produk/{id}/edit', [ErpController::class, 'itemEdit'])->middleware('role:owner,admin')->name('master.item.edit');
     Route::put('/master/produk/{id}/edit', [ErpController::class, 'itemUpdate'])->middleware('role:owner,admin')->name('master.item.update');
     Route::delete('/master/produk/{id}', [ErpController::class, 'itemDelete'])->middleware('role:owner,admin')->name('master.item.delete');
