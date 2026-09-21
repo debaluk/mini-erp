@@ -191,6 +191,30 @@ class SellingPriceController extends Controller
 
         return response()->json(['message' => 'Setup awal item berhasil disimpan.']);
     }
+    public function history(int $product)
+    {
+        $entity = $this->entityId();
+        $retailUnitId = DB::table('business_units')
+            ->where('entity_id', $entity)
+            ->where('code', 'RET')
+            ->where('is_active', 1)
+            ->value('id');
+
+        abort_unless($retailUnitId, 422, 'Unit Retail aktif belum tersedia.');
+
+        $rows = DB::table('selling_price_histories as h')
+            ->leftJoin('users as u', 'u.id', '=', 'h.changed_by')
+            ->where('h.entity_id', $entity)
+            ->where('h.product_id', $product)
+            ->where('h.business_unit_id', $retailUnitId)
+            ->orderByDesc('h.effective_date')
+            ->orderByDesc('h.id')
+            ->select('h.*', 'u.name as changed_by_name')
+            ->get();
+
+        return response()->json(['data' => $rows]);
+    }
+
     public function update(Request $request, int $product)
     {
         $entity = $this->entityId();
