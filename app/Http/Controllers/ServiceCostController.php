@@ -15,24 +15,25 @@ class ServiceCostController extends Controller
     public function index(Request $request)
     {
         $entityId = (int) auth()->user()->entity_id;
-        $businessUnitId = $request->integer('business_unit_id') ?: null;
-        $start = $request->input('start_date');
-        $end = $request->input('end_date');
 
         return response()->json([
-            'data' => $this->engine->report($entityId, $businessUnitId, $start, $end),
+            'data' => $this->engine->report(
+                $entityId,
+                $request->integer('business_unit_id') ?: null,
+                $request->input('start_date'),
+                $request->input('end_date')
+            ),
         ]);
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
-            'delivery_id' => ['required', 'integer', 'exists:deliveries,id'],
-            'business_unit_id' => ['nullable', 'integer', 'exists:business_units,id'],
+            'sale_id' => ['required', 'integer', 'exists:sales,id'],
+            'account_id' => ['required', 'integer', 'exists:chart_of_accounts,id'],
             'vehicle_id' => ['nullable', 'integer', 'exists:vehicles,id'],
             'driver_id' => ['nullable', 'integer', 'exists:drivers,id'],
             'cost_date' => ['nullable', 'date'],
-            'cost_type' => ['required', 'string', 'max:50'],
             'description' => ['required', 'string', 'max:255'],
             'amount' => ['required', 'numeric', 'gt:0'],
             'source' => ['nullable', 'string', 'max:50'],
@@ -40,53 +41,34 @@ class ServiceCostController extends Controller
             'reference_id' => ['nullable', 'integer'],
         ]);
 
-        $delivery = DB::table('deliveries')
-            ->where('id', $data['delivery_id'])
+        $sale = DB::table('sales')
+            ->where('id', $data['sale_id'])
             ->where('entity_id', auth()->user()->entity_id)
             ->first();
 
-        abort_unless($delivery, 404);
+        abort_unless($sale, 404);
 
-        $data['entity_id'] = $delivery->entity_id;
-        $data['business_unit_id'] = $delivery->business_unit_id;
+        $data['entity_id'] = $sale->entity_id;
+        $data['business_unit_id'] = $sale->business_unit_id;
 
-        $cost = $this->engine->addCost((int) $delivery->id, $data);
+        $cost = $this->engine->addCost((int) $sale->id, $data);
 
         return response()->json([
-            'message' => 'Direct cost jasa berhasil dicatat.',
+            'message' => 'Beban Langsung berhasil dicatat.',
             'data' => $cost,
-            'summary' => $this->engine->summary((int) $delivery->id),
+            'summary' => $this->engine->summary((int) $sale->id),
         ], 201);
     }
 
-    public function revenue(Request $request, int $deliveryId)
+    public function show(int $saleId)
     {
-        $data = $request->validate([
-            'amount' => ['required', 'numeric', 'gte:0'],
-        ]);
-
-        $delivery = DB::table('deliveries')
-            ->where('id', $deliveryId)
+        $sale = DB::table('sales')
+            ->where('id', $saleId)
             ->where('entity_id', auth()->user()->entity_id)
             ->first();
 
-        abort_unless($delivery, 404);
+        abort_unless($sale, 404);
 
-        return response()->json([
-            'message' => 'Pendapatan jasa berhasil diperbarui.',
-            'data' => $this->engine->setRevenue($deliveryId, (float) $data['amount']),
-        ]);
-    }
-
-    public function show(int $deliveryId)
-    {
-        $delivery = DB::table('deliveries')
-            ->where('id', $deliveryId)
-            ->where('entity_id', auth()->user()->entity_id)
-            ->first();
-
-        abort_unless($delivery, 404);
-
-        return response()->json($this->engine->summary($deliveryId));
+        return response()->json($this->engine->summary($saleId));
     }
 }
