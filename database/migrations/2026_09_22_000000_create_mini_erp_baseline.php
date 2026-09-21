@@ -633,7 +633,7 @@ return new class extends Migration
             $t->foreignId('account_id')->constrained('chart_of_accounts')->restrictOnDelete();
             $t->string('mapping_key', 50);
             $t->timestamps();
-            $t->unique(['business_unit_id', 'mapping_key']);
+            $t->unique(['business_unit_id', 'mapping_key'], 'buam_bu_mapping_key_unique');
             $t->index(['entity_id', 'account_id']);
         });
 
