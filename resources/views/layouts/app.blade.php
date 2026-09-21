@@ -40,7 +40,6 @@
                 <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">MASTER DATA</a><ul class="dropdown-menu">
                     @foreach(['products'=>'Produk','customers'=>'Customer','suppliers'=>'Supplier','warehouses'=>'Gudang','units'=>'Satuan','unit-conversions'=>'Konversi Satuan'] as $route=>$label)<li><a class="dropdown-item" href="{{ route('master.menu.'.match ($route) { 'products' => 'produk', 'customers' => 'customer', 'suppliers' => 'supplier', 'warehouses' => 'gudang', 'units' => 'satuan', 'unit-conversions' => 'konversi-satuan', 'tariffs' => 'tarif' }) }}">{{ $label }}</a></li>@endforeach
                     <li><a class="dropdown-item" href="{{ route('master.menu.harga-jual') }}">Harga Jual</a></li>
-                    <li><a class="dropdown-item" href="{{ route('master.menu.harga-jual') }}">Harga Jual</a></li>
                 </ul></li>
                 @endif
                 @if(auth()->user()->hasModuleAccess('pos'))
