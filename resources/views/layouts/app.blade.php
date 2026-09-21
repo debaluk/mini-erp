@@ -35,13 +35,13 @@
         <div class="collapse navbar-collapse" id="topMenu">
             <ul class="navbar-nav me-auto mb-2 mb-xl-0">
                 <li class="nav-item"><a class="nav-link" href="{{ route('dashboard') }}">Dashboard</a></li>
-                @if(auth()->user()->hasModuleAccess('master_data'))
+                @if(auth()->user()->hasModuleAccess('master'))
                 <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">MASTER DATA</a><ul class="dropdown-menu">
                     @foreach(['products'=>'Produk','customers'=>'Customer','suppliers'=>'Supplier','warehouses'=>'Gudang','units'=>'Satuan','unit-conversions'=>'Konversi Satuan'] as $route=>$label)<li><a class="dropdown-item" href="{{ route('master.menu.'.match ($route) { 'products' => 'produk', 'customers' => 'customer', 'suppliers' => 'supplier', 'warehouses' => 'gudang', 'units' => 'satuan', 'unit-conversions' => 'konversi-satuan', 'tariffs' => 'tarif' }) }}">{{ $label }}</a></li>@endforeach
                     <li><a class="dropdown-item" href="{{ route('master.menu.harga-jual') }}">Harga Jual</a></li>
                 </ul></li>
                 @endif
-                @if(auth()->user()->hasModuleAccess('pos_retail'))
+                @if(auth()->user()->hasModuleAccess('pos'))
                 <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">POS RETAIL</a><ul class="dropdown-menu">
                     <li><a class="dropdown-item fw-semibold" href="{{ route('pos.pos') }}" onclick="window.open(this.href, 'POSKasir', 'width=1400,height=900,resizable=yes,scrollbars=yes'); return false;">POS</a></li><li><a class="dropdown-item" href="{{ route('pos.penjualan') }}">Penjualan</a></li><li><a class="dropdown-item" href="{{ route('pos.pembayaran') }}">Pembayaran</a></li><li><a class="dropdown-item" href="{{ route('pos.retur') }}">Retur</a></li><li><a class="dropdown-item" href="{{ route('pos.shift') }}">Kasir / Shift</a></li>
                 </ul></li>
