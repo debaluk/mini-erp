@@ -14,7 +14,6 @@ class BusinessUnit extends Model
         'name',
         'business_type',
         'hpp_method',
-        'hpp_account_id',
         'is_active',
     ];
 
