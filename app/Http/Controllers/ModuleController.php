@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use App\Services\Service\ServiceCostEngine;
 
 class ModuleController extends Controller
 {
@@ -936,26 +937,72 @@ class ModuleController extends Controller
 
     public function operationStore(Request $request)
     {
-        $data=$request->validate(['vehicle_id'=>'required|integer','operation_date'=>'required|date','km_start'=>'required|integer|min:0','km_end'=>'required|integer|gte:km_start','fuel_cost'=>'nullable|numeric|min:0','other_cost'=>'nullable|numeric|min:0','notes'=>'nullable|string']);
-        $entity=$this->entityId(); $vehicle=DB::table('vehicles')->where('entity_id',$entity)->find($data['vehicle_id']); abort_unless($vehicle,404);
-        DB::table('vehicle_operations')->insert(array_merge($data,['entity_id'=>$entity,'created_at'=>now(),'updated_at'=>now()]));
+        $data = $request->validate([
+            'business_unit_id' => 'required|integer|exists:business_units,id',
+            'vehicle_id' => 'required|integer',
+            'operation_date' => 'required|date',
+            'km_start' => 'required|integer|min:0',
+            'km_end' => 'required|integer|gte:km_start',
+            'fuel_cost' => 'nullable|numeric|min:0',
+            'other_cost' => 'nullable|numeric|min:0',
+            'notes' => 'nullable|string',
+        ]);
+        $entity = $this->entityId();
+        $vehicle = DB::table('vehicles')->where('entity_id',$entity)->find($data['vehicle_id']);
+        abort_unless($vehicle,404);
+        $bu = DB::table('business_units')->where('id',$data['business_unit_id'])->where('entity_id',$entity)->where('is_active',1)->first();
+        abort_unless($bu,422);
+        DB::table('vehicle_operations')->insert(array_merge($data,[
+            'entity_id'=>$entity,'created_at'=>now(),'updated_at'=>now()
+        ]));
         DB::table('vehicles')->where('id',$vehicle->id)->update(['current_km'=>$data['km_end'],'updated_at'=>now()]);
         return back()->with('success','Operasional armada berhasil disimpan.');
     }
 
     public function fleetCostStore(Request $request)
     {
-        $data=$request->validate(['vehicle_id'=>'required|integer','cost_date'=>'required|date','cost_type'=>'required|string','amount'=>'required|numeric|min:0','description'=>'nullable|string']);
-        $entity=$this->entityId(); abort_unless(DB::table('vehicles')->where('entity_id',$entity)->find($data['vehicle_id']),404);
+        $data = $request->validate([
+            'business_unit_id' => 'required|integer|exists:business_units,id',
+            'vehicle_id' => 'required|integer',
+            'cost_date' => 'required|date',
+            'cost_type' => 'required|string|max:50',
+            'amount' => 'required|numeric|gt:0',
+            'description' => 'nullable|string|max:255',
+        ]);
+        $entity = $this->entityId();
+        abort_unless(DB::table('vehicles')->where('entity_id',$entity)->find($data['vehicle_id']),404);
+        $bu = DB::table('business_units')->where('id',$data['business_unit_id'])->where('entity_id',$entity)->where('is_active',1)->first();
+        abort_unless($bu,422);
         DB::table('fleet_costs')->insert(array_merge($data,['entity_id'=>$entity,'created_at'=>now(),'updated_at'=>now()]));
         return back()->with('success','Biaya armada berhasil disimpan.');
     }
 
     public function deliveryStore(Request $request)
     {
-        $data=$request->validate(['vehicle_id'=>'nullable|integer','driver_id'=>'nullable|integer','destination'=>'required|string','distance_km'=>'nullable|numeric|min:0']);
-        DB::table('deliveries')->insert(array_merge($data,['entity_id'=>$this->entityId(),'delivery_no'=>'DO-'.now()->format('YmdHis').'-'.Str::upper(Str::random(3)),'delivery_date'=>now(),'status'=>'planned','created_at'=>now(),'updated_at'=>now()]));
-        return back()->with('success','Pengiriman berhasil dibuat.');
+        $data = $request->validate([
+            'business_unit_id' => 'required|integer|exists:business_units,id',
+            'vehicle_id' => 'nullable|integer',
+            'driver_id' => 'nullable|integer',
+            'tariff_id' => 'nullable|integer',
+            'destination' => 'required|string',
+            'distance_km' => 'nullable|numeric|min:0',
+            'service_revenue' => 'nullable|numeric|min:0',
+        ]);
+        $entity = $this->entityId();
+        $bu = DB::table('business_units')->where('id',$data['business_unit_id'])->where('entity_id',$entity)->where('is_active',1)->first();
+        abort_unless($bu,422);
+        if (!empty($data['vehicle_id'])) abort_unless(DB::table('vehicles')->where('entity_id',$entity)->find($data['vehicle_id']),404);
+        if (!empty($data['driver_id'])) abort_unless(DB::table('drivers')->where('entity_id',$entity)->find($data['driver_id']),404);
+        if (!empty($data['tariff_id'])) abort_unless(DB::table('tariffs')->where('entity_id',$entity)->find($data['tariff_id']),404);
+        DB::table('deliveries')->insert(array_merge($data,[
+            'entity_id'=>$entity,
+            'delivery_no'=>'DO-'.now()->format('YmdHis').'-'.Str::upper(Str::random(3)),
+            'delivery_date'=>now(),
+            'status'=>'planned',
+            'created_at'=>now(),
+            'updated_at'=>now(),
+        ]));
+        return back()->with('success','Order jasa berhasil dibuat.');
     }
 
     public function journalStore(Request $request)
