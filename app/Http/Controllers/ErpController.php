@@ -65,6 +65,67 @@ class ErpController extends Controller
         ][$type] ?? abort(404);
     }
 
+    public function itemExportExcel(Request $request)
+    {
+        $entity = $this->entityId();
+        $unitId = (int) $request->input('business_unit_id', 0);
+        $search = trim((string) $request->input('search', ''));
+
+        $unitName = 'Semua';
+        if ($unitId > 0) {
+            $unit = DB::table('business_units')->where('entity_id', $entity)->where('id', $unitId)->first();
+            abort_unless($unit, 404);
+            $unitName = $unit->name;
+        }
+
+        $query = DB::table('products')
+            ->leftJoin('units as base_units', 'base_units.id', '=', 'products.base_unit_id')
+            ->when($unitId > 0, function ($query) use ($unitId) {
+                $query->join('product_business_units', function ($join) {
+                    $join->on('product_business_units.product_id', '=', 'products.id');
+                })->where('product_business_units.business_unit_id', $unitId);
+            })
+            ->where('products.entity_id', $entity)
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('products.code', 'like', "%{$search}%")
+                      ->orWhere('products.barcode', 'like', "%{$search}%")
+                      ->orWhere('products.name', 'like', "%{$search}%")
+                      ->orWhere('products.item_type', 'like', "%{$search}%")
+                      ->orWhere('base_units.name', 'like', "%{$search}%");
+                });
+            })
+            ->select('products.code', 'products.barcode', 'products.name', 'products.item_type', 'base_units.name as base_unit_name', 'products.minimum_stock', 'products.manage_stock', 'products.is_active')
+            ->distinct()
+            ->orderBy('products.code')
+            ->get();
+
+        $escape = fn ($value) => htmlspecialchars((string) ($value ?? ''), ENT_QUOTES, 'UTF-8');
+        $date = now()->format('d-m-Y H:i');
+        $rows = '';
+        foreach ($query as $item) {
+            $rows .= '<tr>'
+                . '<td>'.$escape($item->code).'</td>'
+                . '<td>'.$escape($item->barcode ?: '-').'</td>'
+                . '<td>'.$escape($item->name).'</td>'
+                . '<td>'.$escape(ucfirst($item->item_type)).'</td>'
+                . '<td>'.$escape($item->base_unit_name ?: '-').'</td>'
+                . '<td style="text-align:right">'.$escape($item->minimum_stock).'</td>'
+                . '<td>'.$escape($item->manage_stock ? 'Ya' : 'Tidak').'</td>'
+                . '<td>'.$escape($item->is_active ? 'Aktif' : 'Nonaktif').'</td>'
+                . '</tr>';
+        }
+
+        $html = '<html><head><meta charset="UTF-8"><style>body{font-family:Arial,sans-serif}table{border-collapse:collapse;width:100%}th,td{border:1px solid #999;padding:6px}th{background:#eee}.kop{text-align:center}.meta td{border:0;padding:2px}</style></head><body>'
+            . '<div class="kop"><h2>DAFTAR ITEM BARANG</h2><div>Unit Bisnis : '.$escape($unitName).'</div><div>Tgl Cetak : '.$escape($date).'</div></div><br>'
+            . '<table><thead><tr><th>Kode Item</th><th>Barcode</th><th>Nama Item</th><th>Jenis</th><th>Satuan Dasar</th><th>Minimum Stok</th><th>Persediaan</th><th>Status</th></tr></thead><tbody>'.$rows.'</tbody></table></body></html>';
+
+        return response($html, 200, [
+            'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="item-barang-'.now()->format('Ymd-His').'.xls"',
+        ]);
+    }
+
     public function itemMaster(Request $request)
     {
         $entity = $this->entityId();
