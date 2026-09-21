@@ -171,8 +171,10 @@ class ServiceCostEngine
             's.invoice_no',
             's.sale_date',
             's.business_unit_id',
+            'bu.name as business_unit_name',
             's.total as revenue',
             DB::raw('COALESCE(sc.direct_cost, 0) as direct_cost'),
+            DB::raw('COALESCE(sc.direct_cost, 0) as hpp_jasa'),
             DB::raw('(s.total - COALESCE(sc.direct_cost, 0)) as gross_profit'),
             DB::raw("CASE WHEN s.total > 0 THEN ((s.total - COALESCE(sc.direct_cost, 0)) / s.total) * 100 ELSE 0 END as margin_percent")
         )

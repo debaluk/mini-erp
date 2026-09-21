@@ -612,11 +612,11 @@ class DatabaseSeeder extends Seeder
         // Baseline permission sederhana sesuai role yang dikunci.
         // ================================================================
         $roleModules = [
-            'owner' => ['dashboard','master','pos','inventory','production','fleet','accounting','reports','settings'],
-            'admin' => ['dashboard','master','settings'],
-            'kasir' => ['dashboard','pos'],
-            'inventori' => ['dashboard','master','inventory','production','fleet'],
-            'akuntansi' => ['dashboard','accounting','reports'],
+            'owner' => ['pos','inventori','laporan','akuntansi','setting'],
+            'admin' => ['setting'],
+            'kasir' => ['pos'],
+            'inventori' => ['inventori'],
+            'akuntansi' => ['akuntansi','laporan'],
         ];
 
         foreach ($users as $user) {

@@ -113,22 +113,7 @@ class InventoryCostEngine
             throw new RuntimeException("Stok {$productName} tidak mencukupi.");
         }
 
-        $businessUnit = DB::table('business_units')
-            ->where('id', $businessUnitId)
-            ->where('entity_id', $entityId)
-            ->first();
-
-        $product = DB::table('products')
-            ->where('id', $productId)
-            ->where('entity_id', $entityId)
-            ->first();
-
-        $method = $businessUnit->hpp_method ?? 'perpetual';
         $unitCost = (float) $stock->avg_cost;
-
-        if ($method === 'direct_cost' && (float) ($product->cost_price ?? 0) > 0) {
-            $unitCost = (float) $product->cost_price;
-        }
 
         $newQty = $available - $qty;
 
@@ -159,7 +144,6 @@ class InventoryCostEngine
             'total_cost' => round($qty * $unitCost, 2),
             'balance_qty' => $newQty,
             'balance_avg_cost' => round((float) $stock->avg_cost, 4),
-            'method' => $method,
         ];
     }
 

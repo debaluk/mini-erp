@@ -65,7 +65,6 @@ class ModuleController extends Controller
             'stock'=>'Stok', 'movements'=>'Mutasi Stok', 'opname'=>'Stock Opname',
             'bom'=>'Formula / BOM', 'production'=>'Produksi Batako', 'production-results'=>'Hasil Produksi',
             'material-usage'=>'Pemakaian Bahan', 'production-cost'=>'HPP Produksi',
-            'fleet'=>'Kendaraan', 'deliveries'=>'Pengiriman', 'operations'=>'Operasional Armada', 'fleet-costs'=>'Biaya Armada',
             'journals'=>'Jurnal', 'ledger'=>'Buku Besar', 'receivables'=>'Piutang', 'cashbank'=>'Kas & Bank',
             'cogs'=>'HPP', 'profit-loss'=>'Laba Rugi', 'trial-balance'=>'Neraca Saldo', 'balance-sheet'=>'Neraca', 'cash-flow'=>'Arus Kas',
         ];
@@ -107,10 +106,6 @@ class ModuleController extends Controller
             'production-results' => DB::table('productions')->where('entity_id',$entity)->latest('id')->paginate(15)->withQueryString(),
             'material-usage' => DB::table('stock_movements')->where('entity_id',$entity)->where('movement_type','production_out')->latest('id')->paginate(20)->withQueryString(),
             'production-cost' => DB::table('productions')->where('entity_id',$entity)->latest('id')->paginate(15)->withQueryString(),
-            'fleet' => DB::table('vehicles')->where('entity_id',$entity)->latest('id')->paginate(15)->withQueryString(),
-            'deliveries' => DB::table('deliveries')->where('entity_id',$entity)->latest('id')->paginate(15)->withQueryString(),
-            'operations' => DB::table('vehicle_operations')->where('entity_id',$entity)->latest('id')->paginate(15)->withQueryString(),
-            'fleet-costs' => DB::table('fleet_costs')->where('entity_id',$entity)->latest('id')->paginate(15)->withQueryString(),
             'journals' => DB::table('journals')->where('entity_id',$entity)->latest('id')->paginate(15)->withQueryString(),
         ];
         $data['rows'] = $queries[$module] ?? collect();
@@ -933,76 +928,6 @@ class ModuleController extends Controller
             DB::table('bom_items')->insert(['bom_id'=>$bom,'product_id'=>$material->id,'qty'=>$data['material_qty'],'created_at'=>now(),'updated_at'=>now()]);
         });
         return back()->with('success','Formula / BOM berhasil disimpan.');
-    }
-
-    public function operationStore(Request $request)
-    {
-        $data = $request->validate([
-            'business_unit_id' => 'required|integer|exists:business_units,id',
-            'vehicle_id' => 'required|integer',
-            'operation_date' => 'required|date',
-            'km_start' => 'required|integer|min:0',
-            'km_end' => 'required|integer|gte:km_start',
-            'fuel_cost' => 'nullable|numeric|min:0',
-            'other_cost' => 'nullable|numeric|min:0',
-            'notes' => 'nullable|string',
-        ]);
-        $entity = $this->entityId();
-        $vehicle = DB::table('vehicles')->where('entity_id',$entity)->find($data['vehicle_id']);
-        abort_unless($vehicle,404);
-        $bu = DB::table('business_units')->where('id',$data['business_unit_id'])->where('entity_id',$entity)->where('is_active',1)->first();
-        abort_unless($bu,422);
-        DB::table('vehicle_operations')->insert(array_merge($data,[
-            'entity_id'=>$entity,'created_at'=>now(),'updated_at'=>now()
-        ]));
-        DB::table('vehicles')->where('id',$vehicle->id)->update(['current_km'=>$data['km_end'],'updated_at'=>now()]);
-        return back()->with('success','Operasional armada berhasil disimpan.');
-    }
-
-    public function fleetCostStore(Request $request)
-    {
-        $data = $request->validate([
-            'business_unit_id' => 'required|integer|exists:business_units,id',
-            'vehicle_id' => 'required|integer',
-            'cost_date' => 'required|date',
-            'cost_type' => 'required|string|max:50',
-            'amount' => 'required|numeric|gt:0',
-            'description' => 'nullable|string|max:255',
-        ]);
-        $entity = $this->entityId();
-        abort_unless(DB::table('vehicles')->where('entity_id',$entity)->find($data['vehicle_id']),404);
-        $bu = DB::table('business_units')->where('id',$data['business_unit_id'])->where('entity_id',$entity)->where('is_active',1)->first();
-        abort_unless($bu,422);
-        DB::table('fleet_costs')->insert(array_merge($data,['entity_id'=>$entity,'created_at'=>now(),'updated_at'=>now()]));
-        return back()->with('success','Biaya armada berhasil disimpan.');
-    }
-
-    public function deliveryStore(Request $request)
-    {
-        $data = $request->validate([
-            'business_unit_id' => 'required|integer|exists:business_units,id',
-            'vehicle_id' => 'nullable|integer',
-            'driver_id' => 'nullable|integer',
-            'tariff_id' => 'nullable|integer',
-            'destination' => 'required|string',
-            'distance_km' => 'nullable|numeric|min:0',
-            'service_revenue' => 'nullable|numeric|min:0',
-        ]);
-        $entity = $this->entityId();
-        $bu = DB::table('business_units')->where('id',$data['business_unit_id'])->where('entity_id',$entity)->where('is_active',1)->first();
-        abort_unless($bu,422);
-        if (!empty($data['vehicle_id'])) abort_unless(DB::table('vehicles')->where('entity_id',$entity)->find($data['vehicle_id']),404);
-        if (!empty($data['driver_id'])) abort_unless(DB::table('drivers')->where('entity_id',$entity)->find($data['driver_id']),404);
-        if (!empty($data['tariff_id'])) abort_unless(DB::table('tariffs')->where('entity_id',$entity)->find($data['tariff_id']),404);
-        DB::table('deliveries')->insert(array_merge($data,[
-            'entity_id'=>$entity,
-            'delivery_no'=>'DO-'.now()->format('YmdHis').'-'.Str::upper(Str::random(3)),
-            'delivery_date'=>now(),
-            'status'=>'planned',
-            'created_at'=>now(),
-            'updated_at'=>now(),
-        ]));
-        return back()->with('success','Order jasa berhasil dibuat.');
     }
 
     public function journalStore(Request $request)

@@ -70,7 +70,7 @@ class BusinessUnitController extends Controller
             ],
             'name' => ['required', 'string', 'max:150'],
             'business_type' => ['required', Rule::in(['retail', 'production', 'service'])],
-            'hpp_method' => ['required', Rule::in(['perpetual', 'periodic'])],
+            'hpp_method' => ['required', Rule::in(['perpetual', 'periodic', 'direct_cost'])],
             'hpp_account_id' => [
                 'nullable', 'integer',
                 Rule::exists('chart_of_accounts', 'id')->where(fn ($q) => $q->where('entity_id', $entityId)),
@@ -106,7 +106,7 @@ class BusinessUnitController extends Controller
             ],
             'name' => ['required', 'string', 'max:150'],
             'business_type' => ['required', Rule::in(['retail', 'production', 'service'])],
-            'hpp_method' => ['required', Rule::in(['perpetual', 'periodic'])],
+            'hpp_method' => ['required', Rule::in(['perpetual', 'periodic', 'direct_cost'])],
             'hpp_account_id' => [
                 'nullable', 'integer',
                 Rule::exists('chart_of_accounts', 'id')->where(fn ($q) => $q->where('entity_id', $entityId)),

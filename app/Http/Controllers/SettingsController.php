@@ -13,27 +13,27 @@ class SettingsController extends Controller
     private function moduleCatalog(): array
     {
         return [
-            'master_data' => 'Master Data',
-            'pos_retail' => 'POS Retail',
-            'produksi' => 'Produksi',
-            'armada_jasa' => 'Armada & Jasa',
+            'master' => 'Master',
+            'pos' => 'POS',
             'inventori' => 'Inventori',
-            'akuntansi' => 'Akuntansi',
             'laporan' => 'Laporan',
-            'konfigurasi' => 'Konfigurasi',
+            'akuntansi' => 'Akuntansi',
+            'setting' => 'Setting',
         ];
     }
 
     private function defaultModulesForRole(string $role): array
     {
         return match ($role) {
-            'admin' => ['master_data', 'konfigurasi'],
-            'kasir' => ['pos_retail'],
-            'inventori' => ['produksi', 'armada_jasa', 'inventori'],
+            'owner' => ['master', 'pos', 'inventori', 'laporan', 'akuntansi', 'setting'],
+            'admin' => ['master', 'setting'],
+            'kasir' => ['pos'],
+            'inventori' => ['inventori'],
             'akuntansi' => ['akuntansi', 'laporan'],
             default => [],
         };
     }
+
     private function entityId(Request $request): ?int
     {
         if ($request->user()?->role === 'superadmin') {
@@ -109,7 +109,25 @@ class SettingsController extends Controller
             ->groupBy('user_id')
             ->map(fn ($rows) => $rows->pluck('module')->values()->all());
 
-        return view('settings.users', compact('users', 'moduleCatalog', 'userModules'));
+        $businessUnits = DB::table('business_units')
+            ->where('entity_id', $entityId)
+            ->where('is_active', true)
+            ->orderBy('code')
+            ->get();
+
+        $userBusinessUnits = DB::table('user_business_units')
+            ->whereIn('user_id', $users->pluck('id'))
+            ->get()
+            ->groupBy('user_id')
+            ->map(fn ($rows) => $rows->pluck('business_unit_id')->values()->all());
+
+        return view('settings.users', compact(
+            'users',
+            'moduleCatalog',
+            'userModules',
+            'businessUnits',
+            'userBusinessUnits'
+        ));
     }
 
     public function userStore(Request $request)
@@ -123,6 +141,8 @@ class SettingsController extends Controller
             'role' => ['required', Rule::in(['admin', 'kasir', 'inventori', 'akuntansi'])],
             'modules' => ['required', 'array', 'min:1'],
             'modules.*' => ['string', Rule::in(array_keys($this->moduleCatalog()))],
+            'business_units' => ['required', 'array', 'min:1'],
+            'business_units.*' => ['integer', 'exists:business_units,id'],
         ]);
 
         $userId = DB::table('users')->insertGetId([
@@ -143,6 +163,14 @@ class SettingsController extends Controller
             'updated_at' => now(),
         ], array_values(array_unique($data['modules']))));
 
+        DB::table('user_business_units')->insert(array_map(fn ($businessUnitId) => [
+            'user_id' => $userId,
+            'business_unit_id' => $businessUnitId,
+            'is_default' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ], array_values(array_unique($data['business_units']))));
+
         return back()->with('success', 'User berhasil ditambahkan.');
     }
 
@@ -162,6 +190,8 @@ class SettingsController extends Controller
             'role' => ['required', Rule::in(['admin', 'kasir', 'inventori', 'akuntansi'])],
             'modules' => ['required', 'array', 'min:1'],
             'modules.*' => ['string', Rule::in(array_keys($this->moduleCatalog()))],
+            'business_units' => ['required', 'array', 'min:1'],
+            'business_units.*' => ['integer', 'exists:business_units,id'],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
         ]);
 
@@ -185,6 +215,15 @@ class SettingsController extends Controller
             'created_at' => now(),
             'updated_at' => now(),
         ], array_values(array_unique($data['modules']))));
+
+        DB::table('user_business_units')->where('user_id', $id)->delete();
+        DB::table('user_business_units')->insert(array_map(fn ($businessUnitId) => [
+            'user_id' => $id,
+            'business_unit_id' => $businessUnitId,
+            'is_default' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ], array_values(array_unique($data['business_units']))));
 
         return back()->with('success', 'User berhasil diperbarui.');
     }

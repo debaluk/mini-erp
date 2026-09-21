@@ -88,6 +88,7 @@
                                         <option value="">Pilih</option>
                                         <option value="perpetual" @selected(old('hpp_method', $editUnit->hpp_method ?? '') === 'perpetual')>Perpetual</option>
                                         <option value="periodic" @selected(old('hpp_method', $editUnit->hpp_method ?? '') === 'periodic')>Periodik</option>
+                                        <option value="direct_cost" @selected(old('hpp_method', $editUnit->hpp_method ?? '') === 'direct_cost')>Direct Cost</option>
                                     </select>
                                 </div>
                             </div>

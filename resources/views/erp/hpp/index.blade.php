@@ -147,8 +147,8 @@
             <div class="p-3">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <div>
-                        <div class="fw-semibold">HPP Jasa / Armada</div>
-                        <small class="text-secondary">Pendapatan jasa dikurangi direct cost yang ditelusurkan ke order.</small>
+                        <div class="fw-semibold">HPP Jasa</div>
+                        <small class="text-secondary">Pendapatan jasa dikurangi Beban Langsung (Direct Cost) berdasarkan transaksi penjualan.</small>
                     </div>
                     <span class="badge text-bg-warning">DIRECT COST</span>
                 </div>
@@ -156,25 +156,24 @@
                     <table class="table table-hover align-middle mb-0">
                         <thead class="table-light">
                         <tr>
-                            <th>No. Order</th><th>Tanggal</th><th>Tujuan</th><th>Kendaraan</th><th>Driver</th>
-                            <th class="text-end">Pendapatan</th><th class="text-end">Direct Cost</th><th class="text-end">Laba Jasa</th><th class="text-end">Margin</th>
+                            <th>No. Invoice</th><th>Tanggal</th><th>Business Unit</th>
+                            <th class="text-end">Pendapatan</th><th class="text-end">Beban Langsung</th><th class="text-end">HPP Jasa</th><th class="text-end">Laba Jasa</th><th class="text-end">Margin</th>
                         </tr>
                         </thead>
                         <tbody>
                         @forelse($serviceRows as $row)
                             <tr>
-                                <td>{{ $row->delivery_no }}</td>
-                                <td>{{ \Carbon\Carbon::parse($row->delivery_date)->format('d/m/Y') }}</td>
-                                <td>{{ $row->destination ?? '-' }}</td>
-                                <td>{{ $row->plate_number ?? '-' }}</td>
-                                <td>{{ $row->driver_name ?? '-' }}</td>
-                                <td class="text-end">Rp {{ number_format((float)$row->service_revenue,0,',','.') }}</td>
+                                <td>{{ $row->invoice_no }}</td>
+                                <td>{{ \Carbon\Carbon::parse($row->sale_date)->format('d/m/Y') }}</td>
+                                <td>{{ $row->business_unit_name ?? '-' }}</td>
+                                <td class="text-end">Rp {{ number_format((float)$row->revenue,0,',','.') }}</td>
                                 <td class="text-end">Rp {{ number_format((float)$row->direct_cost,0,',','.') }}</td>
+                                <td class="text-end">Rp {{ number_format((float)$row->hpp_jasa,0,',','.') }}</td>
                                 <td class="text-end fw-semibold">Rp {{ number_format((float)$row->gross_profit,0,',','.') }}</td>
                                 <td class="text-end">{{ number_format((float)$row->margin_percent,2,',','.') }}%</td>
                             </tr>
                         @empty
-                            <tr><td colspan="9" class="text-center text-secondary py-4">Belum ada order jasa pada periode ini.</td></tr>
+                            <tr><td colspan="8" class="text-center text-secondary py-4">Belum ada order jasa pada periode ini.</td></tr>
                         @endforelse
                         </tbody>
                     </table>

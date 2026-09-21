@@ -35,7 +35,7 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    Route::get('/master/unit-conversions', [UnitConversionController::class, 'index'])->middleware('access:master_data')->name('master.unit-conversions');
+    Route::get('/master/unit-conversions', [UnitConversionController::class, 'index'])->middleware('access:setting')->name('master.unit-conversions');
     Route::get('/master/produk/tambah', [ErpController::class, 'itemCreate'])->middleware('role:owner,admin')->name('master.item.create');
     Route::get('/master/produk/{id}/edit', [ErpController::class, 'itemEdit'])->middleware('role:owner,admin')->name('master.item.edit');
     Route::put('/master/produk/{id}/edit', [ErpController::class, 'itemUpdate'])->middleware('role:owner,admin')->name('master.item.update');
@@ -43,21 +43,21 @@ Route::middleware('auth')->group(function () {
     Route::post('/master/produk/tambah', [ErpController::class, 'itemStore'])->middleware('role:owner,admin')->name('master.item.store');
     Route::post('/master/produk/inline-uom', [ErpController::class, 'itemInlineUomStore'])->middleware('role:owner,admin')->name('master.item.inline-uom.store');
     Route::post('/master/produk/inline-unit', [ErpController::class, 'itemInlineBusinessUnitStore'])->middleware('role:owner,admin')->name('master.item.inline-unit.store');
-    Route::post('/master/unit-conversions', [UnitConversionController::class, 'store'])->middleware('access:master_data')->name('master.unit-conversions.store');
-    Route::put('/master/unit-conversions/{id}', [UnitConversionController::class, 'update'])->middleware('access:master_data')->name('master.unit-conversions.update');
-    Route::delete('/master/unit-conversions/{id}', [UnitConversionController::class, 'destroy'])->middleware('access:master_data')->name('master.unit-conversions.delete');
+    Route::post('/master/unit-conversions', [UnitConversionController::class, 'store'])->middleware('access:setting')->name('master.unit-conversions.store');
+    Route::put('/master/unit-conversions/{id}', [UnitConversionController::class, 'update'])->middleware('access:setting')->name('master.unit-conversions.update');
+    Route::delete('/master/unit-conversions/{id}', [UnitConversionController::class, 'destroy'])->middleware('access:setting')->name('master.unit-conversions.delete');
 
     $masterTypes = ['products','customers','suppliers','warehouses','units'];
     foreach ($masterTypes as $type) {
         if ($type === 'units') {
-            Route::get('/master/units', [ErpController::class, 'unitMaster'])->middleware('access:master_data')->name('master.units');
+            Route::get('/master/units', [ErpController::class, 'unitMaster'])->middleware('access:setting')->name('master.units');
             Route::post('/master/units', [ErpController::class, 'unitStore'])->middleware('role:owner,admin')->name('master.store.units');
             Route::put('/master/units/{id}', [ErpController::class, 'unitUpdate'])->middleware('role:owner,admin')->name('master.update.units');
             Route::delete('/master/units/{id}', [ErpController::class, 'unitDelete'])->middleware('role:owner,admin')->name('master.delete.units');
         } else {
             Route::get('/master/'.$type, function (Request $request) use ($type) {
                 return app(ErpController::class)->master($request, $type);
-            })->middleware('access:master_data')->name('master.'.$type);
+            })->middleware('access:setting')->name('master.'.$type);
 
             Route::post('/master/'.$type, function (Request $request) use ($type) {
                 return app(ErpController::class)->masterStore($request, $type);
@@ -77,14 +77,14 @@ Route::middleware('auth')->group(function () {
     foreach ($kasirModules as $module) {
         Route::get('/erp/'.$module, function () use ($module) {
             return app(ModuleController::class)->show($module);
-        })->middleware('access:pos_retail')->name('erp.'.$module);
+        })->middleware('access:pos')->name('erp.'.$module);
     }
-    Route::post('/erp/pos/add', [PosController::class, 'add'])->middleware('access:pos_retail')->name('erp.pos.add');
-    Route::put('/erp/pos/item/{id}', [PosController::class, 'updateItem'])->middleware('access:pos_retail')->name('erp.pos.update');
-    Route::post('/erp/pos/item/{id}/remove', [PosController::class, 'removeItem'])->middleware('access:pos_retail')->name('erp.pos.remove');
-    Route::post('/erp/pos/clear', [PosController::class, 'clear'])->middleware('access:pos_retail')->name('erp.pos.clear');
-    Route::post('/erp/pos', [PosController::class, 'store'])->middleware('access:pos_retail')->name('erp.pos.store');
-    Route::post('/erp/shift', [ModuleController::class, 'shiftStore'])->middleware('access:pos_retail')->name('erp.shift.store');
+    Route::post('/erp/pos/add', [PosController::class, 'add'])->middleware('access:pos')->name('erp.pos.add');
+    Route::put('/erp/pos/item/{id}', [PosController::class, 'updateItem'])->middleware('access:pos')->name('erp.pos.update');
+    Route::post('/erp/pos/item/{id}/remove', [PosController::class, 'removeItem'])->middleware('access:pos')->name('erp.pos.remove');
+    Route::post('/erp/pos/clear', [PosController::class, 'clear'])->middleware('access:pos')->name('erp.pos.clear');
+    Route::post('/erp/pos', [PosController::class, 'store'])->middleware('access:pos')->name('erp.pos.store');
+    Route::post('/erp/shift', [ModuleController::class, 'shiftStore'])->middleware('access:pos')->name('erp.shift.store');
 
     $pembelianModules = ['purchases','receipts'];
     foreach ($pembelianModules as $module) {
@@ -104,30 +104,16 @@ Route::middleware('auth')->group(function () {
     Route::post('/erp/movement', [ModuleController::class, 'movementStore'])->middleware('access:inventori')->name('erp.movement.store');
     Route::post('/erp/opname', [ModuleController::class, 'opnameStore'])->middleware('access:inventori')->name('erp.opname.store');
 
-    Route::get('/erp/bom', [BomController::class, 'show'])->middleware('access:produksi')->name('erp.bom');
-    Route::post('/erp/bom', [BomController::class, 'store'])->middleware('access:produksi')->name('erp.bom.store');
+    Route::get('/erp/bom', [BomController::class, 'show'])->middleware('access:inventori')->name('erp.bom');
+    Route::post('/erp/bom', [BomController::class, 'store'])->middleware('access:inventori')->name('erp.bom.store');
 
     $productionModules = ['production','production-results','material-usage','production-cost'];
     foreach ($productionModules as $module) {
         Route::get('/erp/'.$module, function () use ($module) {
             return app(ModuleController::class)->show($module);
-        })->middleware('access:produksi')->name('erp.'.$module);
+        })->middleware('access:inventori')->name('erp.'.$module);
     }
-    Route::post('/erp/production', [ProductionController::class, 'store'])->middleware('access:produksi')->name('erp.production.store');
-
-    $fleetModules = ['fleet','deliveries','operations','fleet-costs'];
-    foreach ($fleetModules as $module) {
-        Route::get('/erp/'.$module, function () use ($module) {
-            return app(ModuleController::class)->show($module);
-        })->middleware('access:armada_jasa')->name('erp.'.$module);
-    }
-    Route::post('/erp/delivery', [ModuleController::class, 'deliveryStore'])->middleware('access:armada_jasa')->name('erp.delivery.store');
-    Route::post('/erp/operation', [ModuleController::class, 'operationStore'])->middleware('access:armada_jasa')->name('erp.operation.store');
-    Route::post('/erp/fleet-cost', [ModuleController::class, 'fleetCostStore'])->middleware('access:armada_jasa')->name('erp.fleet-cost.store');
-    Route::get('/erp/service-costs', [ServiceCostController::class, 'index'])->middleware('access:armada_jasa')->name('erp.service-costs');
-    Route::post('/erp/service-costs', [ServiceCostController::class, 'store'])->middleware('access:armada_jasa')->name('erp.service-costs.store');
-    Route::get('/erp/service-costs/{deliveryId}', [ServiceCostController::class, 'show'])->middleware('access:armada_jasa')->name('erp.service-costs.show');
-    Route::post('/erp/deliveries/{deliveryId}/revenue', [ServiceCostController::class, 'revenue'])->middleware('access:armada_jasa')->name('erp.deliveries.revenue');
+    Route::post('/erp/production', [ProductionController::class, 'store'])->middleware('access:inventori')->name('erp.production.store');
 
     $accountingModules = ['journals','ledger','receivables','cashbank','cogs','profit-loss','balance-sheet','cash-flow'];
     foreach ($accountingModules as $module) {
@@ -166,37 +152,37 @@ Route::middleware('auth')->group(function () {
         }
     }
 
-    Route::get('/pos/pos', fn () => app(ModuleController::class)->show('pos'))->middleware('access:pos_retail')->name('pos.pos');
-    Route::get('/pos/penjualan', fn () => app(ModuleController::class)->show('sales'))->middleware('access:pos_retail')->name('pos.penjualan');
+    Route::get('/pos/pos', fn () => app(ModuleController::class)->show('pos'))->middleware('access:pos')->name('pos.pos');
+    Route::get('/pos/penjualan', fn () => app(ModuleController::class)->show('sales'))->middleware('access:pos')->name('pos.penjualan');
     Route::get('/inventori/penjualan', [SalesController::class, 'index'])->middleware('access:inventori')->name('inventori.penjualan');
     Route::get('/inventori/penjualan/create', [SalesController::class, 'create'])->middleware('access:inventori')->name('inventori.penjualan.create');
     Route::get('/inventori/penjualan/export-data', [SalesController::class, 'export'])->middleware('access:inventori')->name('inventori.penjualan.export-data');
     Route::post('/inventori/penjualan', [SalesController::class, 'store'])->middleware('access:inventori')->name('inventori.penjualan.store');
     Route::get('/inventori/penjualan/{id}', [SalesController::class, 'show'])->middleware('access:inventori')->name('inventori.penjualan.show');
     Route::get('/inventori/penjualan/{id}/print', [SalesController::class, 'print'])->middleware('access:inventori')->name('inventori.penjualan.print');
-    Route::get('/pos/penjualan/data', [ModuleController::class, 'salesData'])->middleware('access:pos_retail')->name('pos.penjualan.data');
-    Route::get('/pos/penjualan/export-excel', [ModuleController::class, 'exportSalesExcel'])->middleware('access:pos_retail')->name('pos.penjualan.export-excel');
-    Route::get('/pos/penjualan/{id}/detail', [ModuleController::class, 'salesDetail'])->middleware('access:pos_retail')->name('pos.penjualan.detail');
-    Route::get('/pos/pembayaran', fn () => app(ModuleController::class)->show('payments'))->middleware('access:pos_retail')->name('pos.pembayaran');
-    Route::get('/pos/pembayaran/data', [ModuleController::class, 'paymentsData'])->middleware('access:pos_retail')->name('pos.pembayaran.data');
-    Route::get('/pos/pembayaran/export-excel', [ModuleController::class, 'exportPaymentsExcel'])->middleware('access:pos_retail')->name('pos.pembayaran.export-excel');
-    Route::get('/pos/pembayaran/{id}/detail', [ModuleController::class, 'paymentDetail'])->middleware('access:pos_retail')->name('pos.pembayaran.detail');
-    Route::get('/pos/retur', [SalesReturnController::class, 'index'])->middleware('access:pos_retail')->name('pos.retur');
-    Route::get('/pos/retur/data', [SalesReturnController::class, 'data'])->middleware('access:pos_retail')->name('pos.retur.data');
-    Route::get('/pos/retur/export-excel', [SalesReturnController::class, 'exportExcel'])->middleware('access:pos_retail')->name('pos.retur.export-excel');
-    Route::get('/pos/retur/lookup', [SalesReturnController::class, 'saleLookup'])->middleware('access:pos_retail')->name('pos.retur.lookup');
-    Route::post('/pos/retur', [SalesReturnController::class, 'store'])->middleware('access:pos_retail')->name('pos.retur.store');
+    Route::get('/pos/penjualan/data', [ModuleController::class, 'salesData'])->middleware('access:pos')->name('pos.penjualan.data');
+    Route::get('/pos/penjualan/export-excel', [ModuleController::class, 'exportSalesExcel'])->middleware('access:pos')->name('pos.penjualan.export-excel');
+    Route::get('/pos/penjualan/{id}/detail', [ModuleController::class, 'salesDetail'])->middleware('access:pos')->name('pos.penjualan.detail');
+    Route::get('/pos/pembayaran', fn () => app(ModuleController::class)->show('payments'))->middleware('access:pos')->name('pos.pembayaran');
+    Route::get('/pos/pembayaran/data', [ModuleController::class, 'paymentsData'])->middleware('access:pos')->name('pos.pembayaran.data');
+    Route::get('/pos/pembayaran/export-excel', [ModuleController::class, 'exportPaymentsExcel'])->middleware('access:pos')->name('pos.pembayaran.export-excel');
+    Route::get('/pos/pembayaran/{id}/detail', [ModuleController::class, 'paymentDetail'])->middleware('access:pos')->name('pos.pembayaran.detail');
+    Route::get('/pos/retur', [SalesReturnController::class, 'index'])->middleware('access:pos')->name('pos.retur');
+    Route::get('/pos/retur/data', [SalesReturnController::class, 'data'])->middleware('access:pos')->name('pos.retur.data');
+    Route::get('/pos/retur/export-excel', [SalesReturnController::class, 'exportExcel'])->middleware('access:pos')->name('pos.retur.export-excel');
+    Route::get('/pos/retur/lookup', [SalesReturnController::class, 'saleLookup'])->middleware('access:pos')->name('pos.retur.lookup');
+    Route::post('/pos/retur', [SalesReturnController::class, 'store'])->middleware('access:pos')->name('pos.retur.store');
 
-    Route::get('/pos/shift', [ShiftController::class, 'index'])->middleware('access:pos_retail')->name('pos.shift');
-    Route::post('/pos/shift/open', [ShiftController::class, 'open'])->middleware('access:pos_retail')->name('pos.shift.open');
-    Route::post('/pos/shift/movement', [ShiftController::class, 'movement'])->middleware('access:pos_retail')->name('pos.shift.movement');
-    Route::post('/pos/shift/close', [ShiftController::class, 'close'])->middleware('access:pos_retail')->name('pos.shift.close');
-    Route::get('/pos/shift/{id}/detail', [ShiftController::class, 'detail'])->middleware('access:pos_retail')->name('pos.shift.detail');
+    Route::get('/pos/shift', [ShiftController::class, 'index'])->middleware('access:pos')->name('pos.shift');
+    Route::post('/pos/shift/open', [ShiftController::class, 'open'])->middleware('access:pos')->name('pos.shift.open');
+    Route::post('/pos/shift/movement', [ShiftController::class, 'movement'])->middleware('access:pos')->name('pos.shift.movement');
+    Route::post('/pos/shift/close', [ShiftController::class, 'close'])->middleware('access:pos')->name('pos.shift.close');
+    Route::get('/pos/shift/{id}/detail', [ShiftController::class, 'detail'])->middleware('access:pos')->name('pos.shift.detail');
 
-    Route::get('/pos', fn () => app(ModuleController::class)->show('pos'))->middleware('access:pos_retail')->name('pos');
-    Route::get('/penjualan', fn () => app(ModuleController::class)->show('sales'))->middleware('access:pos_retail')->name('penjualan');
-    Route::get('/pembayaran', fn () => app(ModuleController::class)->show('payments'))->middleware('access:pos_retail')->name('pembayaran');
-    Route::get('/shift', fn () => redirect()->route('pos.shift'))->middleware('access:pos_retail')->name('shift');
+    Route::get('/pos', fn () => app(ModuleController::class)->show('pos'))->middleware('access:pos')->name('pos');
+    Route::get('/penjualan', fn () => app(ModuleController::class)->show('sales'))->middleware('access:pos')->name('penjualan');
+    Route::get('/pembayaran', fn () => app(ModuleController::class)->show('payments'))->middleware('access:pos')->name('pembayaran');
+    Route::get('/shift', fn () => redirect()->route('pos.shift'))->middleware('access:pos')->name('shift');
 
     Route::get('/inventori/pembelian', [PurchaseController::class, 'index'])->middleware('access:inventori')->name('inventori.pembelian');
     Route::get('/inventori/pembelian/create', [PurchaseController::class, 'create'])->middleware('access:inventori')->name('inventori.pembelian.create');
@@ -210,15 +196,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/inventori/transfer', fn () => app(ModuleController::class)->show('movements'))->middleware('access:inventori')->name('inventori.transfer');
     Route::get('/inventori/adjustment', fn () => app(ModuleController::class)->show('movements'))->middleware('access:inventori')->name('inventori.adjustment');
     Route::get('/inventori/stock-opname', fn () => app(ModuleController::class)->show('opname'))->middleware('access:inventori')->name('inventori.stock-opname');
-    Route::get('/produksi/bom', fn () => app(BomController::class)->show())->middleware('access:produksi')->name('produksi.bom');
-    Route::get('/produksi', fn () => app(ModuleController::class)->show('production'))->middleware('access:produksi')->name('produksi');
-    Route::get('/produksi/pemakaian-bahan', fn () => app(ModuleController::class)->show('material-usage'))->middleware('access:produksi')->name('produksi.pemakaian-bahan');
-    Route::get('/produksi/hasil-produksi', fn () => app(ModuleController::class)->show('production-results'))->middleware('access:produksi')->name('produksi.hasil-produksi');
-    Route::get('/produksi/reject', fn () => app(ModuleController::class)->show('production-results'))->middleware('access:produksi')->name('produksi.reject');
-    Route::get('/produksi/hpp', [HppController::class, 'index'])->middleware('access:produksi')->name('produksi.hpp');
-    Route::get('/armada/order-jasa', fn () => app(ModuleController::class)->show('deliveries'))->middleware('access:armada_jasa')->name('armada.order-jasa');
-    Route::get('/armada/surat-jalan', fn () => app(ModuleController::class)->show('deliveries'))->middleware('access:armada_jasa')->name('armada.surat-jalan');
-    Route::get('/armada/perjalanan', fn () => app(ModuleController::class)->show('operations'))->middleware('access:armada_jasa')->name('armada.perjalanan');
+    Route::get('/produksi/bom', fn () => app(BomController::class)->show())->middleware('access:inventori')->name('produksi.bom');
+    Route::get('/produksi', fn () => app(ModuleController::class)->show('production'))->middleware('access:inventori')->name('produksi');
+    Route::get('/produksi/pemakaian-bahan', fn () => app(ModuleController::class)->show('material-usage'))->middleware('access:inventori')->name('produksi.pemakaian-bahan');
+    Route::get('/produksi/hasil-produksi', fn () => app(ModuleController::class)->show('production-results'))->middleware('access:inventori')->name('produksi.hasil-produksi');
+    Route::get('/produksi/reject', fn () => app(ModuleController::class)->show('production-results'))->middleware('access:inventori')->name('produksi.reject');
+    Route::get('/produksi/hpp', [HppController::class, 'index'])->middleware('access:inventori')->name('produksi.hpp');
     Route::get('/akuntansi/akun', [AccountController::class, 'index'])->middleware('access:akuntansi')->name('akuntansi.akun');
     Route::post('/akuntansi/akun', [AccountController::class, 'store'])->middleware('access:akuntansi')->name('akuntansi.akun.store');
     Route::put('/akuntansi/akun/{id}', [AccountController::class, 'update'])->middleware('access:akuntansi')->name('akuntansi.akun.update');
@@ -241,7 +224,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/laporan/pembelian/export', [PurchaseReportController::class, 'export'])->middleware('access:laporan')->name('laporan.pembelian.export');
     Route::get('/laporan/persediaan', fn () => app(ModuleController::class)->show('stock'))->middleware('access:laporan')->name('laporan.persediaan');
     Route::get('/laporan/produksi', fn () => app(ModuleController::class)->show('production'))->middleware('access:laporan')->name('laporan.produksi');
-    Route::get('/laporan/armada-jasa', fn () => app(ModuleController::class)->show('operations'))->middleware('access:laporan')->name('laporan.armada-jasa');
     Route::get('/laporan/piutang', fn () => app(ModuleController::class)->show('receivables'))->middleware('access:laporan')->name('laporan.piutang');
     Route::get('/laporan/hutang', fn () => app(ModuleController::class)->show('payables'))->middleware('access:laporan')->name('laporan.hutang');
     Route::get('/laporan/keuangan', fn () => app(ModuleController::class)->show('profit-loss'))->middleware('access:laporan')->name('laporan.keuangan');
@@ -253,13 +235,13 @@ Route::middleware('auth')->group(function () {
     Route::put('/pengaturan/user/{id}', [SettingsController::class, 'userUpdate'])->middleware('role:owner')->name('pengaturan.user.update');
     Route::patch('/pengaturan/user/{id}/toggle', [SettingsController::class, 'userToggle'])->middleware('role:owner')->name('pengaturan.user.toggle');
     Route::get('/pengaturan/role', [SettingsController::class, 'roles'])->middleware('role:superadmin,owner')->name('pengaturan.role');
-    Route::get('/pengaturan/konfigurasi', [SettingsController::class, 'configuration'])->middleware('access:konfigurasi')->name('pengaturan.konfigurasi');
-    Route::get('/pengaturan/konfigurasi/unit-bisnis', [BusinessUnitController::class, 'index'])->middleware('access:konfigurasi')->name('pengaturan.unit-bisnis');
-    Route::get('/pengaturan/konfigurasi/unit-bisnis/{id}/edit', [BusinessUnitController::class, 'edit'])->middleware('access:konfigurasi')->name('pengaturan.unit-bisnis.edit');
+    Route::get('/pengaturan/konfigurasi', [SettingsController::class, 'configuration'])->middleware('access:setting')->name('pengaturan.konfigurasi');
+    Route::get('/pengaturan/konfigurasi/unit-bisnis', [BusinessUnitController::class, 'index'])->middleware('access:setting')->name('pengaturan.unit-bisnis');
+    Route::get('/pengaturan/konfigurasi/unit-bisnis/{id}/edit', [BusinessUnitController::class, 'edit'])->middleware('access:setting')->name('pengaturan.unit-bisnis.edit');
     Route::post('/pengaturan/konfigurasi/unit-bisnis', [BusinessUnitController::class, 'store'])->middleware('role:owner,admin')->name('pengaturan.unit-bisnis.store');
     Route::put('/pengaturan/konfigurasi/unit-bisnis/{id}', [BusinessUnitController::class, 'update'])->middleware('role:owner,admin')->name('pengaturan.unit-bisnis.update');
     Route::delete('/pengaturan/konfigurasi/unit-bisnis/{id}', [BusinessUnitController::class, 'destroy'])->middleware('role:owner,admin')->name('pengaturan.unit-bisnis.destroy');
-    Route::get('/pengaturan/konfigurasi/mapping-account', [BusinessUnitAccountMappingController::class, 'index'])->middleware('access:konfigurasi')->name('pengaturan.account-mapping');
+    Route::get('/pengaturan/konfigurasi/mapping-account', [BusinessUnitAccountMappingController::class, 'index'])->middleware('access:setting')->name('pengaturan.account-mapping');
     Route::post('/pengaturan/konfigurasi/mapping-account', [BusinessUnitAccountMappingController::class, 'save'])->middleware('role:owner,admin')->name('pengaturan.account-mapping.save');
 
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');

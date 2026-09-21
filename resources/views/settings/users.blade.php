@@ -36,7 +36,7 @@
                     </td>
                     <td><span class="badge {{ $u->is_active ? 'text-bg-success':'text-bg-secondary' }}">{{ $u->is_active ? 'Aktif':'Nonaktif' }}</span></td>
                     <td class="text-end text-nowrap">
-                        <button class="btn btn-outline-primary btn-sm" title="Edit User" data-bs-toggle="modal" data-bs-target="#userModal" onclick='editUser(@json(array_merge((array) $u, ["modules" => ($userModules[$u->id] ?? [])])))'>✎</button>
+                        <button class="btn btn-outline-primary btn-sm" title="Edit User" data-bs-toggle="modal" data-bs-target="#userModal" onclick='editUser(@json(array_merge((array) $u, ["modules" => ($userModules[$u->id] ?? []), "business_units" => ($userBusinessUnits[$u->id] ?? [])])))'>✎</button>
                         <form method="POST" action="{{ route('pengaturan.user.toggle',$u->id) }}" class="d-inline">
                             @csrf @method('PATCH')
                             <button class="btn btn-outline-secondary btn-sm" title="Aktif/Nonaktif">↔</button>
@@ -66,15 +66,15 @@
 
                 <div class="modal-body">
                     <div class="row g-3">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label">Nama</label>
                             <input name="name" id="uName" class="form-control" required>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label">Email</label>
                             <input type="email" name="email" id="uEmail" class="form-control" required>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label">Role</label>
                             <select name="role" id="uRole" class="form-select" required>
                                 <option value="admin">Admin</option>
@@ -86,19 +86,34 @@
 
                         <div class="col-12">
                             <label class="form-label mb-2">Hak Akses Modul</label>
-                            <div class="border rounded p-3">
-                                <div class="row g-2">
-                                    @foreach($moduleCatalog as $code=>$label)
-                                    <div class="col-md-6 col-lg-4">
-                                        <div class="form-check border rounded px-3 py-2 h-100">
-                                            <input class="form-check-input module-check" type="checkbox" name="modules[]" value="{{ $code }}" id="module_{{ $code }}">
-                                            <label class="form-check-label w-100" for="module_{{ $code }}">{{ $label }}</label>
-                                        </div>
+                            <div class="row g-2">
+                                @foreach($moduleCatalog as $code=>$label)
+                                <div class="col-md-4 col-lg-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input module-check" type="checkbox" name="modules[]" value="{{ $code }}" id="module_{{ $code }}">
+                                        <label class="form-check-label" for="module_{{ $code }}">{{ $label }}</label>
                                     </div>
-                                    @endforeach
                                 </div>
+                                @endforeach
                             </div>
                             <div class="form-text">Pilih satu atau beberapa modul. Dashboard otomatis tersedia.</div>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label mb-2">Hak Akses Business Unit</label>
+                            <div class="row g-2">
+                                @foreach($businessUnits as $bu)
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input business-unit-check" type="checkbox" name="business_units[]" value="{{ $bu->id }}" id="business_unit_{{ $bu->id }}">
+                                        <label class="form-check-label" for="business_unit_{{ $bu->id }}">
+                                            {{ $bu->code }} — {{ $bu->name }}
+                                        </label>
+                                    </div>
+                                </div>
+                                @endforeach
+                            </div>
+                            <div class="form-text">User hanya dapat bertransaksi pada Business Unit yang diberikan.</div>
                         </div>
 
                         <div class="col-12">
@@ -123,15 +138,19 @@
 <script>
 function defaultModules(role){
     const map={
-        admin:['master_data','konfigurasi'],
-        kasir:['pos_retail'],
-        inventori:['produksi','armada_jasa','inventori'],
+        admin:['master','setting'],
+        kasir:['pos'],
+        inventori:['inventori'],
         akuntansi:['akuntansi','laporan']
     };
     return map[role]||[];
 }
 function setModules(modules){
     document.querySelectorAll('.module-check').forEach(el=>el.checked=modules.includes(el.value));
+}
+function setBusinessUnits(units){
+    units = units.map(String);
+    document.querySelectorAll('.business-unit-check').forEach(el=>el.checked=units.includes(el.value));
 }
 function newUser(){
     const f=document.getElementById('userForm');
@@ -146,6 +165,7 @@ function newUser(){
     document.getElementById('uPassword').required=true;
     document.getElementById('uPasswordConfirmation').required=true;
     setModules(defaultModules('admin'));
+    setBusinessUnits(@json($businessUnits->pluck('id')->values()));
 }
 function editUser(u){
     const f=document.getElementById('userForm');
@@ -159,6 +179,7 @@ function editUser(u){
     document.getElementById('uEmail').value=u.email;
     document.getElementById('uRole').value=u.role;
     setModules(u.modules || []);
+    setBusinessUnits(u.business_units || []);
     document.getElementById('uPassword').value='';
     document.getElementById('uPasswordConfirmation').value='';
     document.getElementById('uPassword').required=false;
