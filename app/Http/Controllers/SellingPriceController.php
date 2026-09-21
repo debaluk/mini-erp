@@ -51,7 +51,7 @@ class SellingPriceController extends Controller
             ->value('id');
 
         $products = DB::table('products as p')
-            ->join('product_units as pu', 'pu.product_id', '=', 'p.id')
+            ->join('product_business_units as pbu', 'pbu.product_id', '=', 'p.id')
             ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
             ->where('p.entity_id', $entity)
             ->where('p.is_active', 1)
@@ -62,7 +62,7 @@ class SellingPriceController extends Controller
                     ->whereColumn('existing.product_id', 'p.id')
                     ->where('existing.entity_id', $entity);
             })
-            ->when($retailUnitId, fn ($q) => $q->where('pu.business_unit_id', $retailUnitId))
+            ->when($retailUnitId, fn ($q) => $q->where('pbu.business_unit_id', $retailUnitId))
             ->select('p.id', 'p.code', 'p.barcode', 'p.name', 'p.selling_price', 'u.code as unit_code', 'u.name as unit_name')
             ->orderBy('p.name')
             ->distinct()
@@ -113,7 +113,7 @@ class SellingPriceController extends Controller
 
         abort_unless($warehouse, 422, 'Belum ada gudang aktif untuk menerima stok awal.');
 
-        DB::transaction(function () use ($entity, $data, $product, $warehouse): void {
+        DB::transaction(function () use ($entity, $data, $product, $warehouse, $retailUnitId): void {
             DB::table('item_initial_setups')->insert([
                 'entity_id' => $entity,
                 'product_id' => $product->id,
@@ -130,6 +130,21 @@ class SellingPriceController extends Controller
             DB::table('products')->where('id', $product->id)->update([
                 'selling_price' => $data['selling_price'],
                 'cost_price' => $data['purchase_price'],
+                'updated_at' => now(),
+            ]);
+
+            DB::table('selling_price_histories')->insert([
+                'entity_id' => $entity,
+                'product_id' => $product->id,
+                'business_unit_id' => $retailUnitId,
+                'old_price' => null,
+                'new_price' => $data['selling_price'],
+                'old_markup_percent' => null,
+                'new_markup_percent' => $data['markup_percent'] ?? 0,
+                'effective_date' => $data['setup_date'],
+                'reason' => 'Harga jual awal',
+                'changed_by' => auth()->id(),
+                'created_at' => now(),
                 'updated_at' => now(),
             ]);
 
@@ -191,8 +206,28 @@ class SellingPriceController extends Controller
         $hasTransaction = DB::table('sale_items')->where('product_id',$product)->exists() || DB::table('purchase_items')->where('product_id',$product)->exists();
         abort_if($hasTransaction, 422, 'Harga jual tidak dapat diedit karena item sudah memiliki transaksi Pembelian atau Penjualan.');
         DB::transaction(function () use ($entity,$product,$data,$setup): void {
+            $oldPrice = (float) DB::table('products')->where('entity_id',$entity)->where('id',$product)->value('selling_price');
+            $oldMarkup = (float) $setup->markup_percent;
             DB::table('item_initial_setups')->where('entity_id',$entity)->where('product_id',$product)->update(['setup_date'=>$data['setup_date'],'purchase_price'=>$data['purchase_price'],'initial_stock'=>$data['initial_stock'],'markup_percent'=>$data['markup_percent'],'selling_price'=>$data['selling_price'],'updated_at'=>now()]);
             DB::table('products')->where('entity_id',$entity)->where('id',$product)->update(['selling_price'=>$data['selling_price'],'cost_price'=>$data['purchase_price'],'updated_at'=>now()]);
+            if ($oldPrice !== (float) $data['selling_price']) {
+                $retailUnitId = DB::table('business_units')->where('entity_id',$entity)->where('code','RET')->where('is_active',1)->value('id');
+                abort_unless($retailUnitId, 422, 'Unit Retail aktif belum tersedia.');
+                DB::table('selling_price_histories')->insert([
+                    'entity_id'=>$entity,
+                    'product_id'=>$product,
+                    'business_unit_id'=>$retailUnitId,
+                    'old_price'=>$oldPrice,
+                    'new_price'=>$data['selling_price'],
+                    'old_markup_percent'=>$oldMarkup,
+                    'new_markup_percent'=>$data['markup_percent'],
+                    'effective_date'=>$data['setup_date'],
+                    'reason'=>'Perubahan harga jual',
+                    'changed_by'=>auth()->id(),
+                    'created_at'=>now(),
+                    'updated_at'=>now(),
+                ]);
+            }
             $stock=DB::table('warehouses_stocks')->where('entity_id',$entity)->where('warehouse_id',$setup->warehouse_id)->where('product_id',$product)->first();
             if($stock){ $delta=(float)$data['initial_stock']-(float)$setup->initial_stock; DB::table('warehouses_stocks')->where('id',$stock->id)->update(['qty'=>(float)$stock->qty+$delta,'avg_cost'=>$data['purchase_price'],'updated_at'=>now()]); }
             DB::table('stock_movements')->where('entity_id',$entity)->where('product_id',$product)->where('reference_type','item_initial_setup')->where('reference_id',$product)->update(['qty'=>$data['initial_stock'],'unit_cost'=>$data['purchase_price'],'occurred_at'=>$data['setup_date'].' 00:00:00','updated_at'=>now()]);
