@@ -35,42 +35,42 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    Route::get('/master/unit-conversions', [UnitConversionController::class, 'index'])->middleware('access:setting')->name('master.unit-conversions');
-    Route::get('/master/produk/tambah', [ErpController::class, 'itemCreate'])->middleware('role:owner,admin')->name('master.item.create');
+    Route::get('/master/unit-conversions', [UnitConversionController::class, 'index'])->middleware('access:master')->name('master.unit-conversions');
+    Route::get('/master/produk/tambah', [ErpController::class, 'itemCreate'])->middleware('access:master')->name('master.item.create');
     Route::get('/master/produk/export-excel', [ErpController::class, 'itemExportExcel'])->middleware('access:master')->name('master.item.export-excel');
-    Route::get('/master/produk/{id}/edit', [ErpController::class, 'itemEdit'])->middleware('role:owner,admin')->name('master.item.edit');
-    Route::put('/master/produk/{id}/edit', [ErpController::class, 'itemUpdate'])->middleware('role:owner,admin')->name('master.item.update');
-    Route::delete('/master/produk/{id}', [ErpController::class, 'itemDelete'])->middleware('role:owner,admin')->name('master.item.delete');
-    Route::post('/master/produk/tambah', [ErpController::class, 'itemStore'])->middleware('role:owner,admin')->name('master.item.store');
-    Route::post('/master/produk/inline-uom', [ErpController::class, 'itemInlineUomStore'])->middleware('role:owner,admin')->name('master.item.inline-uom.store');
-    Route::post('/master/produk/inline-unit', [ErpController::class, 'itemInlineBusinessUnitStore'])->middleware('role:owner,admin')->name('master.item.inline-unit.store');
-    Route::post('/master/unit-conversions', [UnitConversionController::class, 'store'])->middleware('access:setting')->name('master.unit-conversions.store');
-    Route::put('/master/unit-conversions/{id}', [UnitConversionController::class, 'update'])->middleware('access:setting')->name('master.unit-conversions.update');
-    Route::delete('/master/unit-conversions/{id}', [UnitConversionController::class, 'destroy'])->middleware('access:setting')->name('master.unit-conversions.delete');
+    Route::get('/master/produk/{id}/edit', [ErpController::class, 'itemEdit'])->middleware('access:master')->name('master.item.edit');
+    Route::put('/master/produk/{id}/edit', [ErpController::class, 'itemUpdate'])->middleware('access:master')->name('master.item.update');
+    Route::delete('/master/produk/{id}', [ErpController::class, 'itemDelete'])->middleware('access:master')->name('master.item.delete');
+    Route::post('/master/produk/tambah', [ErpController::class, 'itemStore'])->middleware('access:master')->name('master.item.store');
+    Route::post('/master/produk/inline-uom', [ErpController::class, 'itemInlineUomStore'])->middleware('access:master')->name('master.item.inline-uom.store');
+    Route::post('/master/produk/inline-unit', [ErpController::class, 'itemInlineBusinessUnitStore'])->middleware('access:master')->name('master.item.inline-unit.store');
+    Route::post('/master/unit-conversions', [UnitConversionController::class, 'store'])->middleware('access:master')->name('master.unit-conversions.store');
+    Route::put('/master/unit-conversions/{id}', [UnitConversionController::class, 'update'])->middleware('access:master')->name('master.unit-conversions.update');
+    Route::delete('/master/unit-conversions/{id}', [UnitConversionController::class, 'destroy'])->middleware('access:master')->name('master.unit-conversions.delete');
 
     $masterTypes = ['products','customers','suppliers','warehouses','units'];
     foreach ($masterTypes as $type) {
         if ($type === 'units') {
-            Route::get('/master/units', [ErpController::class, 'unitMaster'])->middleware('access:setting')->name('master.units');
-            Route::post('/master/units', [ErpController::class, 'unitStore'])->middleware('role:owner,admin')->name('master.store.units');
-            Route::put('/master/units/{id}', [ErpController::class, 'unitUpdate'])->middleware('role:owner,admin')->name('master.update.units');
-            Route::delete('/master/units/{id}', [ErpController::class, 'unitDelete'])->middleware('role:owner,admin')->name('master.delete.units');
+            Route::get('/master/units', [ErpController::class, 'unitMaster'])->middleware('access:master')->name('master.units');
+            Route::post('/master/units', [ErpController::class, 'unitStore'])->middleware('access:master')->name('master.store.units');
+            Route::put('/master/units/{id}', [ErpController::class, 'unitUpdate'])->middleware('access:master')->name('master.update.units');
+            Route::delete('/master/units/{id}', [ErpController::class, 'unitDelete'])->middleware('access:master')->name('master.delete.units');
         } else {
             Route::get('/master/'.$type, function (Request $request) use ($type) {
                 return app(ErpController::class)->master($request, $type);
-            })->middleware('access:setting')->name('master.'.$type);
+            })->middleware('access:master')->name('master.'.$type);
 
             Route::post('/master/'.$type, function (Request $request) use ($type) {
                 return app(ErpController::class)->masterStore($request, $type);
-            })->middleware('role:owner,admin')->name('master.store.'.$type);
+            })->middleware('access:master')->name('master.store.'.$type);
 
             Route::put('/master/'.$type.'/{id}', function (Request $request, int $id) use ($type) {
                 return app(ErpController::class)->masterUpdate($request, $type, $id);
-            })->middleware('role:owner,admin')->name('master.update.'.$type);
+            })->middleware('access:master')->name('master.update.'.$type);
 
             Route::delete('/master/'.$type.'/{id}', function (Request $request, int $id) use ($type) {
                 return app(ErpController::class)->masterDelete($request, $type, $id);
-            })->middleware('role:owner,admin')->name('master.delete.'.$type);
+            })->middleware('access:master')->name('master.delete.'.$type);
         }
     }
 
@@ -126,20 +126,20 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/master/unit', function (Request $request) {
         return app(ErpController::class)->master($request, 'units');
-    })->middleware('role:owner,admin')->name('master.menu.unit');
+    })->middleware('access:master')->name('master.menu.unit');
 
     $masterMenuPaths = [
         'produk' => 'products', 'customer' => 'customers', 'supplier' => 'suppliers',
         'gudang' => 'warehouses', 'satuan' => 'units',
         'konversi-satuan' => 'unit-conversions',
     ];
-    Route::get('/master/harga-jual', [SellingPriceController::class, 'index'])->middleware('role:owner,admin')->name('master.menu.harga-jual');
-    Route::post('/master/harga-jual/setup-awal', [SellingPriceController::class, 'storeInitial'])->middleware('role:owner,admin')->name('master.harga-jual.setup-awal');
-    Route::put('/master/harga-jual/{product}/edit', [SellingPriceController::class, 'update'])->middleware('role:owner,admin')->name('master.harga-jual.update');
+    Route::get('/master/harga-jual', [SellingPriceController::class, 'index'])->middleware('access:master')->name('master.menu.harga-jual');
+    Route::post('/master/harga-jual/setup-awal', [SellingPriceController::class, 'storeInitial'])->middleware('access:master')->name('master.harga-jual.setup-awal');
+    Route::put('/master/harga-jual/{product}/edit', [SellingPriceController::class, 'update'])->middleware('access:master')->name('master.harga-jual.update');
 
     foreach ($masterMenuPaths as $path => $type) {
         if ($type === 'unit-conversions') {
-            Route::get('/master/'.$path, [UnitConversionController::class, 'index'])->middleware('role:owner,admin')->name('master.menu.'.$path);
+            Route::get('/master/'.$path, [UnitConversionController::class, 'index'])->middleware('access:master')->name('master.menu.'.$path);
         } elseif ($path === 'satuan') {
             Route::get('/master/satuan', [ErpController::class, 'unitMaster'])->middleware('role:owner,admin')->name('master.menu.satuan');
         } else {
@@ -148,7 +148,7 @@ Route::middleware('auth')->group(function () {
             } else {
                 Route::get('/master/'.$path, function (Request $request) use ($type) {
                     return app(ErpController::class)->master($request, $type);
-                })->middleware('role:owner,admin')->name('master.menu.'.$path);
+                })->middleware('access:master')->name('master.menu.'.$path);
             }
         }
     }
