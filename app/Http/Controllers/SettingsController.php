@@ -95,7 +95,7 @@ class SettingsController extends Controller
     public function users(Request $request)
     {
         $entityId = $request->user()->entity_id;
-        abort_unless(in_array($request->user()->role, ['owner', 'admin'], true) && $entityId, 403);
+        abort_unless($request->user()->role === 'owner' && $entityId, 403);
 
         $users = DB::table('users')
             ->where('entity_id', $entityId)
