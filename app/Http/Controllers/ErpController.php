@@ -452,10 +452,11 @@ class ErpController extends Controller
         $item = DB::table('products')->where('entity_id', $entity)->find($id);
         abort_unless($item, 404);
 
-        $hasTransactions = DB::table('stock_movements')->where('product_id', $id)->exists()
+        $hasUsage = DB::table('stock_movements')->where('product_id', $id)->exists()
             || DB::table('purchase_items')->where('product_id', $id)->exists()
-            || DB::table('sale_items')->where('product_id', $id)->exists();
-        abort_if($hasTransactions, 422, 'Item sudah digunakan dalam transaksi dan tidak dapat dihapus. Nonaktifkan item jika tidak digunakan lagi.');
+            || DB::table('sale_items')->where('product_id', $id)->exists()
+            || DB::table('bom_items')->where('product_id', $id)->exists();
+        abort_if($hasUsage, 422, 'Item sudah digunakan dalam transaksi atau BOM dan tidak dapat dihapus. Nonaktifkan item jika tidak digunakan lagi.');
 
         DB::transaction(function () use ($id, $entity): void {
             DB::table('product_units')->where('product_id', $id)->delete();
