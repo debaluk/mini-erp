@@ -843,8 +843,8 @@ class ModuleController extends Controller
         $data=$request->validate([
             'action'=>'required|in:open,close',
             'business_unit_id'=>['required_if:action,open','nullable','integer'],
-            'opening_cash'=>'nullable','numeric','min:0',
-            'closing_cash'=>'nullable','numeric','min:0'
+            'opening_cash'=>['nullable','numeric','min:0'],
+            'closing_cash'=>['nullable','numeric','min:0']
         ]);
         $entity=$this->entityId();
         $open=DB::table('cash_shifts')->where('entity_id',$entity)->where('user_id',auth()->id())->where('status','open')->latest('id')->first();
