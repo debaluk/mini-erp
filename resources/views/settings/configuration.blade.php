@@ -13,11 +13,20 @@
     <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#nomor-dokumen" type="button" role="tab">Nomor Dokumen</button></li>
 </ul>
 
-<div class="position-fixed top-0 end-0 p-3" style="z-index: 1080">
-    <div id="configToast" class="toast border-0 shadow-sm" role="alert" aria-live="assertive" aria-atomic="true">
-        <div class="d-flex">
-            <div id="configToastBody" class="toast-body"></div>
-            <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+<div class="modal fade" id="configMessageModal" tabindex="-1" aria-labelledby="configMessageTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow">
+            <div id="configMessageHeader" class="modal-header">
+                <h5 class="modal-title" id="configMessageTitle">Informasi</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <div id="configMessageIcon" class="fs-1 mb-2"></div>
+                <div id="configMessageBody"></div>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-primary px-4" data-bs-dismiss="modal">OK</button>
+            </div>
         </div>
     </div>
 </div>
@@ -83,27 +92,35 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const toastEl = document.getElementById('configToast');
-    const toastBody = document.getElementById('configToastBody');
+    const messageModal = document.getElementById('configMessageModal');
+    const messageTitle = document.getElementById('configMessageTitle');
+    const messageBody = document.getElementById('configMessageBody');
+    const messageHeader = document.getElementById('configMessageHeader');
+    const messageIcon = document.getElementById('configMessageIcon');
 
-    function showToast(message, type = 'success') {
-        toastEl.classList.remove('text-bg-success','text-bg-danger','text-bg-warning','text-bg-info');
-        toastEl.classList.add(type === 'danger' ? 'text-bg-danger' : type === 'warning' ? 'text-bg-warning' : type === 'info' ? 'text-bg-info' : 'text-bg-success');
-        toastBody.textContent = message;
-        bootstrap.Toast.getOrCreateInstance(toastEl, { autohide: true, delay: 3500 }).show();
+    function showMessage(message, type = 'success') {
+        messageHeader.classList.remove('bg-success','bg-danger','bg-warning','text-white');
+        messageIcon.classList.remove('text-success','text-danger','text-warning');
+        messageHeader.classList.add(type === 'danger' ? 'bg-danger' : type === 'warning' ? 'bg-warning' : 'bg-success');
+        if (type === 'danger' || type === 'success') messageHeader.classList.add('text-white');
+        messageIcon.classList.add(type === 'danger' ? 'text-danger' : type === 'warning' ? 'text-warning' : 'text-success');
+        messageTitle.textContent = type === 'danger' ? 'Gagal' : type === 'warning' ? 'Perhatian' : 'Berhasil';
+        messageIcon.textContent = type === 'danger' ? '✕' : type === 'warning' ? '!' : '✓';
+        messageBody.textContent = message;
+        bootstrap.Modal.getOrCreateInstance(messageModal).show();
     }
 
     @if(session('toast'))
-        const flashToast = @json(session('toast'));
-        showToast(flashToast.message || 'Proses berhasil.', flashToast.type || 'success');
-        if (flashToast.target) {
-            const tabButton = document.querySelector('[data-bs-target="#' + flashToast.target + '"]');
+        const flashMessage = @json(session('toast'));
+        showMessage(flashMessage.message || 'Proses berhasil.', flashMessage.type || 'success');
+        if (flashMessage.target) {
+            const tabButton = document.querySelector('[data-bs-target="#' + flashMessage.target + '"]');
             if (tabButton) bootstrap.Tab.getOrCreateInstance(tabButton).show();
         }
     @endif
 
     @if($errors->any())
-        showToast(@json(implode(' | ', $errors->all())), 'danger');
+        showMessage(@json(implode(' | ', $errors->all())), 'danger');
     @endif
 
     const form = document.querySelector('#setup-unit form');
@@ -148,7 +165,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 form.action="{{ url('/pengaturan/konfigurasi/unit-bisnis') }}/"+data.id; methodInput.value='PUT'; submit.textContent='Update'; cancel.classList.remove('d-none'); form.setAttribute('data-editing',data.id);
                 bootstrap.Tab.getOrCreateInstance(document.querySelector('[data-bs-target="#setup-unit"]')).show();
                 form.scrollIntoView({behavior:'smooth',block:'start'});
-            } catch (error) { showToast(error.message, 'danger'); }
+            } catch (error) { showMessage(error.message, 'danger'); }
         });
     });
 
