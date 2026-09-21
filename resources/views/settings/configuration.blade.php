@@ -13,6 +13,11 @@
         </button>
     </li>
     <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#setup-akun" type="button" role="tab">
+            Setup Akun
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
         <button class="nav-link" data-bs-toggle="tab" data-bs-target="#nota-invoice" type="button" role="tab">
             Setup Nota/Invoice
         </button>
@@ -96,20 +101,6 @@
 
                         <div class="col-md-6">
                             <div class="row align-items-center">
-                                <label class="col-sm-4 col-form-label">Akun HPP</label>
-                                <div class="col-sm-8">
-                                    <select name="hpp_account_id" class="form-select">
-                                        <option value="">Pilih Akun HPP</option>
-                                        @foreach($accounts as $account)
-                                            <option value="{{ $account->id }}" @selected((string) old('hpp_account_id', $editUnit->hpp_account_id ?? '') === (string) $account->id)>{{ $account->code }} — {{ $account->name }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="row align-items-center">
                                 <label class="col-sm-4 col-form-label">Status</label>
                                 <div class="col-sm-8">
                                     <div class="form-check">
@@ -141,7 +132,6 @@
                                 <th>Nama Unit</th>
                                 <th>Tipe Usaha</th>
                                 <th>Metode HPP</th>
-                                <th>Akun HPP</th>
                                 <th>Status</th>
                                 <th style="width: 150px">Aksi</th>
                             </tr>
@@ -153,10 +143,6 @@
                                     <td>{{ $unit->name }}</td>
                                     <td>{{ ['retail' => 'Retail', 'production' => 'Produksi', 'service' => 'Jasa'][$unit->business_type] }}</td>
                                     <td>{{ $unit->hpp_method === 'perpetual' ? 'Perpetual' : 'Periodik' }}</td>
-                                    <td>
-                                        @php($hppAccount = $accounts->firstWhere('id', $unit->hpp_account_id))
-                                        {{ $hppAccount ? $hppAccount->code . ' — ' . $hppAccount->name : '-' }}
-                                    </td>
                                     <td>
                                         <span class="badge {{ $unit->is_active ? 'text-bg-success' : 'text-bg-secondary' }}">
                                             {{ $unit->is_active ? 'Aktif' : 'Nonaktif' }}
@@ -173,7 +159,7 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="7" class="text-center text-secondary py-4">Belum ada unit bisnis.</td></tr>
+                                <tr><td colspan="6" class="text-center text-secondary py-4">Belum ada unit bisnis.</td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -212,6 +198,87 @@
         </div>
     </div>
 
+    <div class="tab-pane fade" id="setup-akun" role="tabpanel">
+        <div class="card shadow-sm mb-3">
+            <div class="card-header fw-semibold">Setup Akun</div>
+            <div class="card-body">
+                <div class="text-secondary small mb-4">
+                    Akun default transaksi. HPP mengikuti Unit Bisnis dan Metode HPP; akun lainnya digunakan sebagai default posting.
+                </div>
+                <form method="POST" action="{{ route('pengaturan.account-mapping.save') }}">
+                    @csrf
+                    <h6 class="fw-semibold border-bottom pb-2">HPP</h6>
+                    @forelse($units as $unit)
+                        @php
+                            $hppKey = $unit->business_type === 'retail' ? 'hpp_retail' : ($unit->business_type === 'production' ? 'hpp_production' : 'hpp_service');
+                            $currentHpp = $mappings->get($unit->id . '|' . $hppKey)?->account_id;
+                            $type = ['retail'=>'Retail', 'production'=>'Produksi', 'service'=>'Jasa'][$unit->business_type] ?? $unit->business_type;
+                        @endphp
+                        <div class="row align-items-center mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label mb-1"><strong>{{ $type }}</strong></label>
+                                <div class="text-secondary small">{{ $unit->code }} — {{ $unit->name }} · {{ ucfirst($unit->hpp_method) }}</div>
+                            </div>
+                            <div class="col-md-8">
+                                <select name="accounts[{{ $unit->id }}][{{ $hppKey }}]" class="form-select" required>
+                                    <option value="">Pilih akun HPP</option>
+                                    @foreach($accounts as $account)
+                                        <option value="{{ $account->id }}" @selected((string)$currentHpp === (string)$account->id)>{{ $account->code }} — {{ $account->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="alert alert-light border">Belum ada Unit Bisnis.</div>
+                    @endforelse
+
+                    @php
+                        $accountGroups = [
+                            'Persediaan' => [
+                                'inventory_merchandise' => 'Persediaan Barang Dagangan',
+                                'inventory_raw_material' => 'Persediaan Bahan Baku',
+                                'inventory_wip' => 'Barang Dalam Proses (WIP)',
+                                'inventory_finished_goods' => 'Persediaan Barang Jadi',
+                            ],
+                            'Penjualan / Pendapatan' => [
+                                'sales_merchandise' => 'Penjualan Barang',
+                                'sales_finished_goods' => 'Penjualan Produk',
+                                'service_revenue' => 'Pendapatan Jasa',
+                            ],
+                            'Kas & Bank' => [
+                                'cash' => 'Kas',
+                                'bank' => 'Bank',
+                            ],
+                            'Piutang & Hutang' => [
+                                'receivable' => 'Piutang Usaha',
+                                'payable' => 'Hutang Usaha',
+                            ],
+                        ];
+                    @endphp
+
+                    @foreach($accountGroups as $group => $fields)
+                        <h6 class="fw-semibold border-bottom pb-2 mt-4">{{ $group }}</h6>
+                        @foreach($fields as $key => $label)
+                            <div class="row align-items-center mb-3">
+                                <div class="col-md-4"><label class="form-label mb-0">{{ $label }}</label></div>
+                                <div class="col-md-8">
+                                    <select name="defaults[{{ $key }}]" class="form-select" required>
+                                        <option value="">Pilih akun</option>
+                                        @foreach($accounts as $account)
+                                            <option value="{{ $account->id }}" @selected((string)($defaults[$key] ?? '') === (string)$account->id)>{{ $account->code }} — {{ $account->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                        @endforeach
+                    @endforeach
+
+                    <button type="submit" class="btn btn-primary">Simpan Setup Akun</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <div class="tab-pane fade" id="nota-invoice" role="tabpanel">
         <div class="card shadow-sm">
             <div class="card-header fw-semibold">Setup Nota/Invoice</div>
@@ -240,7 +307,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const name = form.querySelector('[name="name"]');
     const type = form.querySelector('[name="business_type"]');
     const method = form.querySelector('[name="hpp_method"]');
-    const account = form.querySelector('[name="hpp_account_id"]');
     const active = form.querySelector('[name="is_active"][type="checkbox"]');
     const submit = form.querySelector('button[type="submit"]');
     if (!submit) return;
@@ -266,7 +332,6 @@ document.addEventListener('DOMContentLoaded', function () {
         name.value = '';
         type.value = '';
         method.value = '';
-        account.value = '';
         active.checked = true;
         submit.textContent = 'Simpan';
         cancel.classList.add('d-none');
@@ -286,7 +351,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 name.value = data.name || '';
                 type.value = data.business_type || '';
                 method.value = data.hpp_method || '';
-                account.value = data.hpp_account_id ? String(data.hpp_account_id) : '';
                 active.checked = !!data.is_active;
                 form.action = "{{ url('/pengaturan/konfigurasi/unit-bisnis') }}/" + data.id;
                 methodInput.value = 'PUT';
