@@ -29,27 +29,17 @@ class ShiftController extends Controller
         $payments = DB::table('payments as p')
             ->join('sales as s', 's.id', '=', 'p.sale_id')
             ->where('s.shift_id', $shiftId)
-            ->select(
-                'p.method',
-                DB::raw('SUM(p.amount) as amount'),
-                DB::raw('SUM(COALESCE(p.change_amount,0)) as change_amount')
-            )
+            ->select('p.method', DB::raw('SUM(p.amount) as amount'), DB::raw('SUM(COALESCE(p.change_amount,0)) as change_amount'))
             ->groupBy('p.method')
             ->get();
 
         $cashSales = (float) ($payments->firstWhere('method', 'Tunai')?->amount ?? 0);
         $cashChange = (float) ($payments->firstWhere('method', 'Tunai')?->change_amount ?? 0);
-
-        $movements = DB::table('shift_cash_movements')
-            ->where('cash_shift_id', $shiftId)
-            ->get();
-
+        $movements = DB::table('shift_cash_movements')->where('cash_shift_id', $shiftId)->get();
         $cashIn = (float) $movements->where('movement_type', 'in')->sum('amount');
         $cashOut = (float) $movements->where('movement_type', 'out')->sum('amount');
-
         $expected = (float) $shift->opening_cash + $cashSales - $cashChange + $cashIn - $cashOut;
         $closing = $shift->closing_cash !== null ? (float) $shift->closing_cash : null;
-        $difference = $closing === null ? null : $closing - $expected;
 
         return [
             'opening_cash' => (float) $shift->opening_cash,
@@ -59,7 +49,7 @@ class ShiftController extends Controller
             'cash_out' => $cashOut,
             'expected_cash' => $expected,
             'closing_cash' => $closing,
-            'difference' => $difference,
+            'difference' => $closing === null ? null : $closing - $expected,
             'payments' => $payments,
             'movements' => $movements,
         ];
@@ -69,34 +59,39 @@ class ShiftController extends Controller
     {
         $entity = $this->entityId();
         $openShift = $this->openShift($entity);
-
         $summary = $openShift ? $this->summary($openShift->id) : null;
-
         $shifts = DB::table('cash_shifts as cs')
             ->join('users as u', 'u.id', '=', 'cs.user_id')
+            ->leftJoin('business_units as bu', 'bu.id', '=', 'cs.business_unit_id')
             ->where('cs.entity_id', $entity)
             ->where('cs.user_id', auth()->id())
-            ->select('cs.*', 'u.name as user_name')
-            ->latest('cs.id')
-            ->paginate(15)
-            ->withQueryString();
-
+            ->select('cs.*', 'u.name as user_name', 'bu.name as business_unit_name')
+            ->latest('cs.id')->paginate(15)->withQueryString();
+        $businessUnits = DB::table('business_units')->where('entity_id', $entity)->where('is_active', 1)->orderBy('name')->get();
         $entityData = DB::table('entities')->where('id', $entity)->first();
 
-        return view('erp.shifts', compact('openShift', 'summary', 'shifts', 'entityData'));
+        return view('erp.shifts', compact('openShift', 'summary', 'shifts', 'businessUnits', 'entityData'));
     }
 
     public function open(Request $request)
     {
         $data = $request->validate([
+            'business_unit_id' => ['required', 'integer'],
             'opening_cash' => ['required', 'numeric', 'min:0'],
         ]);
 
         $entity = $this->entityId();
         abort_if($this->openShift($entity), 422, 'Shift masih terbuka.');
 
+        abort_unless(
+            DB::table('business_units')->where('id', $data['business_unit_id'])->where('entity_id', $entity)->where('is_active', 1)->exists(),
+            422,
+            'Unit Bisnis tidak valid.'
+        );
+
         DB::table('cash_shifts')->insert([
             'entity_id' => $entity,
+            'business_unit_id' => $data['business_unit_id'],
             'user_id' => auth()->id(),
             'opened_at' => now(),
             'opening_cash' => $data['opening_cash'],
@@ -123,6 +118,7 @@ class ShiftController extends Controller
         DB::table('shift_cash_movements')->insert([
             'cash_shift_id' => $shift->id,
             'entity_id' => $entity,
+            'business_unit_id' => $shift->business_unit_id,
             'user_id' => auth()->id(),
             'movement_type' => $data['movement_type'],
             'amount' => $data['amount'],
@@ -137,26 +133,20 @@ class ShiftController extends Controller
 
     public function close(Request $request)
     {
-        $data = $request->validate([
-            'closing_cash' => ['required', 'numeric', 'min:0'],
-        ]);
-
+        $data = $request->validate(['closing_cash' => ['required', 'numeric', 'min:0']]);
         $entity = $this->entityId();
         $shift = $this->openShift($entity);
         abort_unless($shift, 422, 'Tidak ada shift terbuka.');
 
         $summary = $this->summary($shift->id);
-
-        DB::table('cash_shifts')
-            ->where('id', $shift->id)
-            ->update([
-                'closed_at' => now(),
-                'closing_cash' => $data['closing_cash'],
-                'expected_cash' => $summary['expected_cash'],
-                'cash_difference' => (float) $data['closing_cash'] - $summary['expected_cash'],
-                'status' => 'closed',
-                'updated_at' => now(),
-            ]);
+        DB::table('cash_shifts')->where('id', $shift->id)->update([
+            'closed_at' => now(),
+            'closing_cash' => $data['closing_cash'],
+            'expected_cash' => $summary['expected_cash'],
+            'cash_difference' => (float) $data['closing_cash'] - $summary['expected_cash'],
+            'status' => 'closed',
+            'updated_at' => now(),
+        ]);
 
         return back()->with('success', 'Shift ditutup. Selisih kas: Rp '.number_format((float) $data['closing_cash'] - $summary['expected_cash'], 2, ',', '.'));
     }
@@ -164,18 +154,9 @@ class ShiftController extends Controller
     public function detail(int $id)
     {
         $entity = $this->entityId();
-
-        $shift = DB::table('cash_shifts')
-            ->where('entity_id', $entity)
-            ->where('user_id', auth()->id())
-            ->where('id', $id)
-            ->first();
-
+        $shift = DB::table('cash_shifts')->where('entity_id', $entity)->where('user_id', auth()->id())->where('id', $id)->first();
         abort_unless($shift, 404);
 
-        return response()->json([
-            'shift' => $shift,
-            'summary' => $this->summary($id),
-        ]);
+        return response()->json(['shift' => $shift, 'summary' => $this->summary($id)]);
     }
 }
