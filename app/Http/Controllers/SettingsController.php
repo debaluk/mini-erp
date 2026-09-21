@@ -189,6 +189,7 @@ class SettingsController extends Controller
             ->where('entity_id', $request->user()->entity_id)
             ->first();
         abort_unless($user, 404);
+        abort_unless($user->role !== 'owner', 403);
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -249,6 +250,7 @@ class SettingsController extends Controller
             ->where('entity_id', $request->user()->entity_id)
             ->first();
         abort_unless($user, 404);
+        abort_unless($user->role !== 'owner', 403);
 
         DB::table('users')->where('id', $id)->update([
             'is_active' => !$user->is_active,
