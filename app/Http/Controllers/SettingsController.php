@@ -302,14 +302,37 @@ class SettingsController extends Controller
         $accounts = DB::table('chart_of_accounts')
             ->where('entity_id', $entityId)
             ->where('is_active', true)
-            ->whereIn('type', ['cogs', 'expense'])
+            ->where('is_postable', true)
             ->orderBy('code')
             ->get();
+
+        $mappings = DB::table('business_unit_account_mappings')
+            ->where('entity_id', $entityId)
+            ->get()
+            ->keyBy(fn ($row) => $row->business_unit_id . '|' . $row->mapping_key);
+
+        $defaults = [];
+        foreach ([
+            'inventory_merchandise',
+            'inventory_raw_material',
+            'inventory_wip',
+            'inventory_finished_goods',
+            'sales_merchandise',
+            'sales_finished_goods',
+            'service_revenue',
+            'cash',
+            'bank',
+            'receivable',
+            'payable',
+        ] as $key) {
+            $row = $mappings->first(fn ($item) => $item->mapping_key === $key);
+            $defaults[$key] = $row?->account_id;
+        }
 
         $editUnit = $request->filled('edit')
             ? DB::table('business_units')->where('entity_id', $entityId)->where('id', $request->integer('edit'))->first()
             : null;
 
-        return view('settings.configuration', compact('units', 'accounts', 'editUnit'));
+        return view('settings.configuration', compact('units', 'accounts', 'editUnit', 'mappings', 'defaults'));
     }
 }
