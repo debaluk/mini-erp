@@ -444,7 +444,6 @@
         modal.hide();
         modal.hide();
         showMessage('success', payload.message || 'Harga jual berhasil disimpan.');
-        setTimeout(() => window.location.reload(), 100);
     });
 })();
 </script>
