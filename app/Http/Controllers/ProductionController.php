@@ -2,34 +2,67 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\Production\ProductionCostEngine;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
+use Throwable;
 
 class ProductionController extends Controller
 {
+    public function __construct(
+        protected ProductionCostEngine $costEngine,
+    ) {}
+
+    private function entityId(): int
+    {
+        return (int) (DB::table('entities')->value('id') ?? 0);
+    }
+
     public function store(Request $request)
     {
-        $data=$request->validate(['bom_id'=>'required|integer','warehouse_id'=>'required|integer','qty'=>'required|numeric|min:0.001']);
-        $entity=DB::table('entities')->first(); abort_unless($entity,422,'Entitas belum tersedia.');
-        DB::transaction(function() use($data,$entity){
-            $bom=DB::table('boms')->where('entity_id',$entity->id)->find($data['bom_id']); abort_unless($bom,404);
-            $items=DB::table('bom_items')->where('bom_id',$bom->id)->get(); abort_if($items->isEmpty(),422,'BOM belum memiliki bahan.');
-            $cost=0;
-            foreach($items as $item){
-                $stock=DB::table('warehouses_stocks')->where(['warehouse_id'=>$data['warehouse_id'],'product_id'=>$item->product_id])->first();
-                $need=(float)$item->qty*(float)$data['qty']; abort_if(!$stock||$stock->qty<$need,422,'Stok bahan baku tidak cukup.');
-                $cost += $need*(float)$stock->avg_cost;
-                DB::table('warehouses_stocks')->where('id',$stock->id)->update(['qty'=>$stock->qty-$need,'updated_at'=>now()]);
-                DB::table('stock_movements')->insert(['entity_id'=>$entity->id,'warehouse_id'=>$data['warehouse_id'],'product_id'=>$item->product_id,'movement_type'=>'production_out','qty'=>-$need,'unit_cost'=>$stock->avg_cost,'reference_type'=>'production','occurred_at'=>now(),'created_by'=>auth()->id(),'created_at'=>now(),'updated_at'=>now()]);
-            }
-            $output=(float)$bom->output_qty*(float)$data['qty']; $unitCost=$output>0?$cost/$output:0;
-            $stock=DB::table('warehouses_stocks')->where(['warehouse_id'=>$data['warehouse_id'],'product_id'=>$bom->product_id])->first();
-            if($stock) DB::table('warehouses_stocks')->where('id',$stock->id)->update(['qty'=>$stock->qty+$output,'avg_cost'=>$unitCost,'updated_at'=>now()]);
-            else DB::table('warehouses_stocks')->insert(['entity_id'=>$entity->id,'warehouse_id'=>$data['warehouse_id'],'product_id'=>$bom->product_id,'qty'=>$output,'avg_cost'=>$unitCost,'created_at'=>now(),'updated_at'=>now()]);
-            $production=DB::table('productions')->insertGetId(['entity_id'=>$entity->id,'warehouse_id'=>$data['warehouse_id'],'bom_id'=>$bom->id,'user_id'=>auth()->id(),'production_no'=>'PROD-'.now()->format('YmdHis').'-'.Str::upper(Str::random(3)),'production_date'=>now(),'qty'=>$data['qty'],'total_cost'=>$cost,'status'=>'posted','created_at'=>now(),'updated_at'=>now()]);
-            DB::table('stock_movements')->insert(['entity_id'=>$entity->id,'warehouse_id'=>$data['warehouse_id'],'product_id'=>$bom->product_id,'movement_type'=>'production_in','qty'=>$output,'unit_cost'=>$unitCost,'reference_type'=>'production','reference_id'=>$production,'occurred_at'=>now(),'created_by'=>auth()->id(),'created_at'=>now(),'updated_at'=>now()]);
-        });
-        return back()->with('success','Produksi berhasil diposting dan stok diperbarui.');
+        $entityId = $this->entityId();
+        $businessUnitId = (int) ($request->input('business_unit_id') ?? $request->input('unit_id'));
+
+        $data = $request->validate([
+            'bom_id' => ['required','integer'],
+            'warehouse_id' => ['required','integer'],
+            'qty' => ['required','numeric','gt:0'],
+            'business_unit_id' => ['nullable','integer'],
+            'unit_id' => ['nullable','integer'],
+            'costs' => ['nullable','array'],
+            'costs.*.cost_group' => ['nullable','string'],
+            'costs.*.description' => ['nullable','string'],
+            'costs.*.amount' => ['nullable','numeric','min:0'],
+            'rejects' => ['nullable','array'],
+            'rejects.*.qty' => ['nullable','numeric','min:0'],
+            'rejects.*.reject_type' => ['nullable','string'],
+            'rejects.*.recoverable_value' => ['nullable','numeric','min:0'],
+            'rejects.*.product_id' => ['nullable','integer'],
+            'rejects.*.description' => ['nullable','string'],
+        ]);
+
+        abort_if($businessUnitId <= 0, 422, 'Unit Bisnis wajib dipilih.');
+
+        try {
+            $result = $this->costEngine->post(
+                entityId: $entityId,
+                businessUnitId: $businessUnitId,
+                warehouseId: (int) $data['warehouse_id'],
+                bomId: (int) $data['bom_id'],
+                qty: (float) $data['qty'],
+                userId: (int) auth()->id(),
+                costs: $data['costs'] ?? [],
+                rejects: $data['rejects'] ?? [],
+            );
+        } catch (Throwable $e) {
+            abort(422, $e->getMessage());
+        }
+
+        return back()->with('success',
+            'Produksi '.$result['production_no'].' berhasil. '.
+            'HPP Rp '.number_format($result['total_cost'], 2, ',', '.').
+            ' / '.$result['good_output_qty'].' unit = Rp '.
+            number_format($result['unit_cost'], 4, ',', '.').' per unit.'
+        );
     }
 }
