@@ -16,6 +16,7 @@ use App\Http\Controllers\SalesReturnController;
 use App\Http\Controllers\SalesController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\SellingPriceController;
+use App\Http\Controllers\ItemInitialSetupController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\BusinessUnitController;
 use App\Http\Controllers\BusinessUnitAccountMappingController;
