@@ -134,7 +134,6 @@ Route::middleware('auth')->group(function () {
         'konversi-satuan' => 'unit-conversions',
     ];
     Route::get('/master/harga-jual', [SellingPriceController::class, 'index'])->middleware('access:master')->name('master.menu.harga-jual');
-    Route::post('/master/harga-jual/setup-awal', [SellingPriceController::class, 'storeInitial'])->middleware('access:master')->name('master.harga-jual.setup-awal');
     Route::put('/master/harga-jual/{product}/edit', [SellingPriceController::class, 'update'])->middleware('access:master')->name('master.harga-jual.update');
     Route::get('/master/harga-jual/{product}/history', [SellingPriceController::class, 'history'])->middleware('access:master')->name('master.harga-jual.history');
 
@@ -186,6 +185,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/pembayaran', fn () => app(ModuleController::class)->show('payments'))->middleware('access:pos')->name('pembayaran');
     Route::get('/shift', fn () => redirect()->route('pos.shift'))->middleware('access:pos')->name('shift');
 
+    Route::get('/inventori/setup-stok-harga', [ItemInitialSetupController::class, 'index'])->middleware('access:inventori')->name('inventori.setup-stok-harga');
+    Route::post('/inventori/setup-stok-harga', [ItemInitialSetupController::class, 'store'])->middleware('access:inventori')->name('inventori.setup-stok-harga.store');
     Route::get('/inventori/pembelian', [PurchaseController::class, 'index'])->middleware('access:inventori')->name('inventori.pembelian');
     Route::get('/inventori/pembelian/create', [PurchaseController::class, 'create'])->middleware('access:inventori')->name('inventori.pembelian.create');
     Route::get('/inventori/pembelian/{id}/edit', [PurchaseController::class, 'edit'])->middleware('access:inventori')->name('inventori.pembelian.edit');
