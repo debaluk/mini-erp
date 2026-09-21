@@ -9,7 +9,9 @@ class UnitConversionController extends Controller
 {
     private function entityId(): int
     {
-        return (int) DB::table('entities')->orderBy('id')->value('id');
+        $entityId = (int) (auth()->user()->entity_id ?? 0);
+        abort_unless($entityId > 0 && DB::table('entities')->where('id', $entityId)->exists(), 403, 'Entitas pengguna tidak valid.');
+        return $entityId;
     }
 
     public function index(Request $request)
