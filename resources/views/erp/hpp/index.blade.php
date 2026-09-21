@@ -39,6 +39,7 @@
         <ul class="nav nav-tabs card-header-tabs" role="tablist">
             <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#hppRetail" type="button">HPP Retail</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#hppProduksi" type="button">HPP Produksi</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#hppJasa" type="button">HPP Jasa</button></li>
         </ul>
     </div>
 
@@ -117,7 +118,7 @@
                         @forelse($productionRows as $row)
                             <tr>
                                 <td>{{ $row->production_no }}</td>
-                                <td>{{ CarbonCarbon::parse($row->date)->format('d/m/Y H:i') }}</td>
+                                <td>{{ \Carbon\Carbon::parse($row->date)->format('d/m/Y H:i') }}</td>
                                 <td><strong>{{ $row->code }}</strong><div class="small text-secondary">{{ $row->product }}</div></td>
                                 <td>{{ $row->bom }}</td>
                                 <td class="text-end">{{ number_format((float)$row->qty,3,',','.') }}</td>
@@ -138,6 +139,48 @@
                     <div><strong>Total HPP:</strong> bahan + tenaga kerja + overhead/lain - nilai recoverable reject.</div>
                     <div><strong>HPP/unit:</strong> Total HPP ÷ Qty Barang Jadi Baik.</div>
                     <div><strong>Reject:</strong> scrap tetap membebani biaya; hanya nilai recoverable yang mengurangi cost produksi.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="hppJasa">
+            <div class="p-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <div class="fw-semibold">HPP Jasa / Armada</div>
+                        <small class="text-secondary">Pendapatan jasa dikurangi direct cost yang ditelusurkan ke order.</small>
+                    </div>
+                    <span class="badge text-bg-warning">DIRECT COST</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                        <tr>
+                            <th>No. Order</th><th>Tanggal</th><th>Tujuan</th><th>Kendaraan</th><th>Driver</th>
+                            <th class="text-end">Pendapatan</th><th class="text-end">Direct Cost</th><th class="text-end">Laba Jasa</th><th class="text-end">Margin</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @forelse($serviceRows as $row)
+                            <tr>
+                                <td>{{ $row->delivery_no }}</td>
+                                <td>{{ \Carbon\Carbon::parse($row->delivery_date)->format('d/m/Y') }}</td>
+                                <td>{{ $row->destination ?? '-' }}</td>
+                                <td>{{ $row->plate_number ?? '-' }}</td>
+                                <td>{{ $row->driver_name ?? '-' }}</td>
+                                <td class="text-end">Rp {{ number_format((float)$row->service_revenue,0,',','.') }}</td>
+                                <td class="text-end">Rp {{ number_format((float)$row->direct_cost,0,',','.') }}</td>
+                                <td class="text-end fw-semibold">Rp {{ number_format((float)$row->gross_profit,0,',','.') }}</td>
+                                <td class="text-end">{{ number_format((float)$row->margin_percent,2,',','.') }}%</td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="9" class="text-center text-secondary py-4">Belum ada order jasa pada periode ini.</td></tr>
+                        @endforelse
+                        </tbody>
+                    </table>
+                </div>
+                <div class="alert alert-light border mt-3 mb-0">
+                    <strong>Trace:</strong> Order Jasa → Direct Cost → Total Direct Cost → HPP Jasa → Laba Jasa.
                 </div>
             </div>
         </div>
