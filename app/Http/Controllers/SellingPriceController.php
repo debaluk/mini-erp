@@ -117,6 +117,7 @@ class SellingPriceController extends Controller
             DB::table('item_initial_setups')->insert([
                 'entity_id' => $entity,
                 'product_id' => $product->id,
+                'business_unit_id' => $retailUnitId,
                 'warehouse_id' => $warehouse->id,
                 'setup_date' => $data['setup_date'],
                 'purchase_price' => $data['purchase_price'],
