@@ -123,6 +123,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/erp/delivery', [ModuleController::class, 'deliveryStore'])->middleware('access:armada_jasa')->name('erp.delivery.store');
     Route::post('/erp/operation', [ModuleController::class, 'operationStore'])->middleware('access:armada_jasa')->name('erp.operation.store');
     Route::post('/erp/fleet-cost', [ModuleController::class, 'fleetCostStore'])->middleware('access:armada_jasa')->name('erp.fleet-cost.store');
+    Route::get('/erp/service-costs', [ServiceCostController::class, 'index'])->middleware('access:armada_jasa')->name('erp.service-costs');
+    Route::post('/erp/service-costs', [ServiceCostController::class, 'store'])->middleware('access:armada_jasa')->name('erp.service-costs.store');
+    Route::get('/erp/service-costs/{deliveryId}', [ServiceCostController::class, 'show'])->middleware('access:armada_jasa')->name('erp.service-costs.show');
+    Route::post('/erp/deliveries/{deliveryId}/revenue', [ServiceCostController::class, 'revenue'])->middleware('access:armada_jasa')->name('erp.deliveries.revenue');
 
     $accountingModules = ['journals','ledger','receivables','cashbank','cogs','profit-loss','balance-sheet','cash-flow'];
     foreach ($accountingModules as $module) {
