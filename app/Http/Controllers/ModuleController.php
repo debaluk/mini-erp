@@ -25,24 +25,14 @@ class ModuleController extends Controller
             'module' => $module,
             'title' => $title,
             'entity' => DB::table('entities')->where('id', $entity)->first(),
+            'businessUnits' => DB::table('business_units')->where('entity_id', $entity)->where('is_active', 1)->orderBy('name')->get(),
             'products' => DB::table('products as p')
-                ->join('product_units as pu', function ($join) use ($entity) {
-                    $join->on('pu.product_id', '=', 'p.id')
-                        ->where('pu.business_unit_id', function ($query) use ($entity) {
-                            $query->select('id')
-                                ->from('business_units')
-                                ->where('entity_id', $entity)
-                                ->where('code', 'RET')
-                                ->where('is_active', 1)
-                                ->limit(1);
-                        });
-                })
+                ->join('product_business_units as pbu', 'pbu.product_id', '=', 'p.id')
                 ->where('p.entity_id', $entity)
                 ->where('p.is_active', 1)
                 ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
                 ->leftJoin(DB::raw('(SELECT entity_id, product_id, SUM(qty) AS stock_qty FROM warehouses_stocks GROUP BY entity_id, product_id) AS ws'), function ($join) {
-                    $join->on('ws.product_id', '=', 'p.id')
-                        ->on('ws.entity_id', '=', 'p.entity_id');
+                    $join->on('ws.product_id', '=', 'p.id')->on('ws.entity_id', '=', 'p.entity_id');
                 })
                 ->orderBy('p.name')
                 ->select(
@@ -52,6 +42,7 @@ class ModuleController extends Controller
                     'u.name as selling_unit_name',
                     DB::raw('COALESCE(ws.stock_qty, 0) as stock_qty')
                 )
+                ->distinct()
                 ->get(),
             'warehouses' => DB::table('warehouses')->where('entity_id', $entity)->where('is_active', 1)->orderBy('name')->get(),
             'vehicles' => DB::table('vehicles')->where('entity_id', $entity)->where('status', 'active')->orderBy('code')->get(),
@@ -847,55 +838,97 @@ class ModuleController extends Controller
         return back()->with('success','Transaksi POS berhasil disimpan.');
     }
 
-    public function shiftStore(Request $request)
+        public function shiftStore(Request $request)
     {
-        $data=$request->validate(['action'=>'required|in:open,close','opening_cash'=>'nullable|numeric|min:0','closing_cash'=>'nullable|numeric|min:0']);
+        $data=$request->validate([
+            'action'=>'required|in:open,close',
+            'business_unit_id'=>['required_if:action,open','nullable','integer'],
+            'opening_cash'=>'nullable','numeric','min:0',
+            'closing_cash'=>'nullable','numeric','min:0'
+        ]);
         $entity=$this->entityId();
         $open=DB::table('cash_shifts')->where('entity_id',$entity)->where('user_id',auth()->id())->where('status','open')->latest('id')->first();
-        if($data['action']==='open'){ abort_if($open,422,'Shift masih terbuka.'); DB::table('cash_shifts')->insert(['entity_id'=>$entity,'user_id'=>auth()->id(),'opened_at'=>now(),'opening_cash'=>$data['opening_cash']??0,'status'=>'open','created_at'=>now(),'updated_at'=>now()]); return back()->with('success','Shift kasir dibuka.'); }
+        if($data['action']==='open'){
+            abort_if($open,422,'Shift masih terbuka.');
+            abort_unless(DB::table('business_units')->where('id',$data['business_unit_id'])->where('entity_id',$entity)->where('is_active',1)->exists(),422,'Unit Bisnis tidak valid.');
+            DB::table('cash_shifts')->insert(['entity_id'=>$entity,'business_unit_id'=>$data['business_unit_id'],'user_id'=>auth()->id(),'opened_at'=>now(),'opening_cash'=>$data['opening_cash']??0,'status'=>'open','created_at'=>now(),'updated_at'=>now()]);
+            return back()->with('success','Shift kasir dibuka.');
+        }
         abort_unless($open,422,'Tidak ada shift terbuka.');
         DB::table('cash_shifts')->where('id',$open->id)->update(['closed_at'=>now(),'closing_cash'=>$data['closing_cash']??0,'status'=>'closed','updated_at'=>now()]);
         return back()->with('success','Shift kasir ditutup.');
     }
 
-    public function movementStore(Request $request)
+        public function movementStore(Request $request)
     {
-        $data=$request->validate(['product_id'=>'required|integer','warehouse_id'=>'required|integer','movement_type'=>'required|in:adjustment_in,adjustment_out','qty'=>'required|numeric|min:0.001','unit_cost'=>'nullable|numeric|min:0']);
-        $entity=$this->entityId();
-        DB::transaction(function() use($data,$entity){
-            $product=DB::table('products')->where('entity_id',$entity)->find($data['product_id']); abort_unless($product,404);
-            $warehouse=DB::table('warehouses')->where('entity_id',$entity)->find($data['warehouse_id']); abort_unless($warehouse,404);
-            $stock=DB::table('warehouses_stocks')->where(['warehouse_id'=>$warehouse->id,'product_id'=>$product->id])->first();
+        $data = $request->validate([
+            'business_unit_id' => ['required','integer'],
+            'product_id' => ['required','integer'],
+            'warehouse_id' => ['required','integer'],
+            'movement_type' => ['required','in:adjustment_in,adjustment_out'],
+            'qty' => ['required','numeric','gt:0'],
+            'unit_cost' => ['nullable','numeric','min:0'],
+        ]);
+        $entity = $this->entityId();
+        $warehouse = DB::table('warehouses')->where('id',$data['warehouse_id'])->where('entity_id',$entity)->where('business_unit_id',$data['business_unit_id'])->where('is_active',1)->first();
+        abort_unless($warehouse,422,'Gudang tidak sesuai Unit Bisnis.');
+        $product = DB::table('products')->where('id',$data['product_id'])->where('entity_id',$entity)->where('is_active',1)->first();
+        abort_unless($product,404,'Produk tidak ditemukan.');
+        $cost = (float)($data['unit_cost'] ?? $product->cost_price ?? 0);
+        DB::transaction(function() use($data,$entity,$warehouse,$product,$cost){
+            $stock = DB::table('warehouses_stocks')->where(['warehouse_id'=>$warehouse->id,'product_id'=>$product->id])->lockForUpdate()->first();
+            $oldQty=(float)($stock->qty??0); $oldAvg=(float)($stock->avg_cost??$cost);
             $delta=$data['movement_type']==='adjustment_in'?(float)$data['qty']:-((float)$data['qty']);
-            abort_if($delta<0 && (!$stock || $stock->qty < abs($delta)),422,'Stok tidak mencukupi.');
-            if($stock) DB::table('warehouses_stocks')->where('id',$stock->id)->update(['qty'=>$stock->qty+$delta,'updated_at'=>now()]);
-            else DB::table('warehouses_stocks')->insert(['entity_id'=>$entity,'warehouse_id'=>$warehouse->id,'product_id'=>$product->id,'qty'=>$delta,'avg_cost'=>$data['unit_cost']??$product->cost_price,'created_at'=>now(),'updated_at'=>now()]);
-            DB::table('stock_movements')->insert(['entity_id'=>$entity,'warehouse_id'=>$warehouse->id,'product_id'=>$product->id,'movement_type'=>$data['movement_type'],'qty'=>$delta,'unit_cost'=>$data['unit_cost']??$product->cost_price,'reference_type'=>'adjustment','occurred_at'=>now(),'created_by'=>auth()->id(),'created_at'=>now(),'updated_at'=>now()]);
+            abort_if($delta<0 && $oldQty<abs($delta),422,'Stok tidak mencukupi.');
+            $newQty=$oldQty+$delta;
+            if($delta>0){$newAvg=$oldQty>0?(($oldQty*$oldAvg)+($delta*$cost))/$newQty:$cost;}else{$newAvg=$oldAvg;}
+            if($stock) DB::table('warehouses_stocks')->where('id',$stock->id)->update(['qty'=>$newQty,'avg_cost'=>$newAvg,'updated_at'=>now()]);
+            else DB::table('warehouses_stocks')->insert(['entity_id'=>$entity,'warehouse_id'=>$warehouse->id,'product_id'=>$product->id,'qty'=>$newQty,'avg_cost'=>$newAvg,'created_at'=>now(),'updated_at'=>now()]);
+            DB::table('stock_movements')->insert(['entity_id'=>$entity,'business_unit_id'=>$data['business_unit_id'],'warehouse_id'=>$warehouse->id,'product_id'=>$product->id,'movement_type'=>$data['movement_type'],'qty'=>$delta,'unit_cost'=>$cost,'reference_type'=>'adjustment','occurred_at'=>now(),'created_by'=>auth()->id(),'created_at'=>now(),'updated_at'=>now()]);
         });
         return back()->with('success','Mutasi stok berhasil disimpan.');
     }
 
-    public function opnameStore(Request $request)
+        public function opnameStore(Request $request)
     {
-        $data=$request->validate(['warehouse_id'=>'required|integer','product_id'=>'required|integer','actual_qty'=>'required|numeric|min:0']);
-        $entity=$this->entityId(); $stock=DB::table('warehouses_stocks')->where(['warehouse_id'=>$data['warehouse_id'],'product_id'=>$data['product_id']])->first(); $system=(float)($stock->qty??0); $actual=(float)$data['actual_qty']; $diff=$actual-$system;
-        DB::transaction(function() use($data,$entity,$system,$actual,$diff){
-            $id=DB::table('stock_opnames')->insertGetId(['entity_id'=>$entity,'warehouse_id'=>$data['warehouse_id'],'user_id'=>auth()->id(),'opname_date'=>today(),'opname_no'=>'OPN-'.now()->format('YmdHis').'-'.Str::upper(Str::random(3)),'status'=>'posted','created_at'=>now(),'updated_at'=>now()]);
+        $data = $request->validate([
+            'business_unit_id' => ['required','integer'],
+            'warehouse_id' => ['required','integer'],
+            'product_id' => ['required','integer'],
+            'actual_qty' => ['required','numeric','min:0'],
+        ]);
+        $entity=$this->entityId();
+        $warehouse=DB::table('warehouses')->where('id',$data['warehouse_id'])->where('entity_id',$entity)->where('business_unit_id',$data['business_unit_id'])->where('is_active',1)->first();
+        abort_unless($warehouse,422,'Gudang tidak sesuai Unit Bisnis.');
+        DB::transaction(function() use($data,$entity,$warehouse){
+            $stock=DB::table('warehouses_stocks')->where(['warehouse_id'=>$warehouse->id,'product_id'=>$data['product_id']])->lockForUpdate()->first();
+            $system=(float)($stock->qty??0); $actual=(float)$data['actual_qty']; $diff=$actual-$system; $avg=(float)($stock->avg_cost??0);
+            $id=DB::table('stock_opnames')->insertGetId(['entity_id'=>$entity,'business_unit_id'=>$data['business_unit_id'],'warehouse_id'=>$warehouse->id,'user_id'=>auth()->id(),'opname_date'=>today(),'opname_no'=>'OPN-'.now()->format('YmdHis').'-'.Str::upper(Str::random(3)),'status'=>'posted','created_at'=>now(),'updated_at'=>now()]);
             DB::table('stock_opname_items')->insert(['stock_opname_id'=>$id,'product_id'=>$data['product_id'],'system_qty'=>$system,'actual_qty'=>$actual,'difference'=>$diff,'created_at'=>now(),'updated_at'=>now()]);
-            $stock=DB::table('warehouses_stocks')->where(['warehouse_id'=>$data['warehouse_id'],'product_id'=>$data['product_id']])->first();
-            if($stock) DB::table('warehouses_stocks')->where('id',$stock->id)->update(['qty'=>$actual,'updated_at'=>now()]); else DB::table('warehouses_stocks')->insert(['entity_id'=>$entity,'warehouse_id'=>$data['warehouse_id'],'product_id'=>$data['product_id'],'qty'=>$actual,'avg_cost'=>0,'created_at'=>now(),'updated_at'=>now()]);
-            if(abs($diff)>0) DB::table('stock_movements')->insert(['entity_id'=>$entity,'warehouse_id'=>$data['warehouse_id'],'product_id'=>$data['product_id'],'movement_type'=>'opname','qty'=>$diff,'unit_cost'=>$stock->avg_cost??0,'reference_type'=>'stock_opname','reference_id'=>$id,'occurred_at'=>now(),'created_by'=>auth()->id(),'created_at'=>now(),'updated_at'=>now()]);
+            if($stock) DB::table('warehouses_stocks')->where('id',$stock->id)->update(['qty'=>$actual,'updated_at'=>now()]); else DB::table('warehouses_stocks')->insert(['entity_id'=>$entity,'warehouse_id'=>$warehouse->id,'product_id'=>$data['product_id'],'qty'=>$actual,'avg_cost'=>$avg,'created_at'=>now(),'updated_at'=>now()]);
+            if(abs($diff)>0) DB::table('stock_movements')->insert(['entity_id'=>$entity,'business_unit_id'=>$data['business_unit_id'],'warehouse_id'=>$warehouse->id,'product_id'=>$data['product_id'],'movement_type'=>$diff>0?'opname_in':'opname_out','qty'=>$diff,'unit_cost'=>$avg,'reference_type'=>'stock_opname','reference_id'=>$id,'occurred_at'=>now(),'created_by'=>auth()->id(),'created_at'=>now(),'updated_at'=>now()]);
         });
         return back()->with('success','Stock opname berhasil diposting.');
     }
 
-    public function bomStore(Request $request)
+        public function bomStore(Request $request)
     {
-        $data=$request->validate(['product_id'=>'required|integer','code'=>'required|string','name'=>'required|string','output_qty'=>'required|numeric|min:0.001','material_product_id'=>'required|integer','material_qty'=>'required|numeric|min:0.001']);
+        $data=$request->validate([
+            'business_unit_id'=>['required','integer'],
+            'product_id'=>['required','integer'],
+            'code'=>['required','string','max:100'],
+            'name'=>['required','string','max:255'],
+            'output_qty'=>['required','numeric','gt:0'],
+            'material_product_id'=>['required','integer'],
+            'material_qty'=>['required','numeric','gt:0'],
+        ]);
         $entity=$this->entityId();
         DB::transaction(function() use($data,$entity){
-            $product=DB::table('products')->where('entity_id',$entity)->find($data['product_id']); $material=DB::table('products')->where('entity_id',$entity)->find($data['material_product_id']); abort_unless($product && $material,404);
-            $bom=DB::table('boms')->insertGetId(['entity_id'=>$entity,'product_id'=>$product->id,'code'=>$data['code'],'name'=>$data['name'],'output_qty'=>$data['output_qty'],'is_active'=>1,'created_at'=>now(),'updated_at'=>now()]);
+            $bu=DB::table('business_units')->where('id',$data['business_unit_id'])->where('entity_id',$entity)->where('is_active',1)->first();
+            $product=DB::table('products')->where('entity_id',$entity)->where('id',$data['product_id'])->first();
+            $material=DB::table('products')->where('entity_id',$entity)->where('id',$data['material_product_id'])->first();
+            abort_unless($bu && $product && $material,422,'Data BOM tidak valid.');
+            $bom=DB::table('boms')->insertGetId(['entity_id'=>$entity,'business_unit_id'=>$bu->id,'product_id'=>$product->id,'code'=>$data['code'],'name'=>$data['name'],'output_qty'=>$data['output_qty'],'is_active'=>1,'created_at'=>now(),'updated_at'=>now()]);
             DB::table('bom_items')->insert(['bom_id'=>$bom,'product_id'=>$material->id,'qty'=>$data['material_qty'],'created_at'=>now(),'updated_at'=>now()]);
         });
         return back()->with('success','Formula / BOM berhasil disimpan.');
