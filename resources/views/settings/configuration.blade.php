@@ -31,11 +31,10 @@
     </div>
 </div>
 
-<div class="tab-content">
+<div class="card shadow-sm"><div class="card-body">
+    <div class="tab-content">
     <div class="tab-pane fade show active" id="setup-unit" role="tabpanel">
-        <div class="card shadow-sm mb-3">
-            <div class="card-header fw-semibold">Setup Unit Bisnis</div>
-            <div class="card-body">
+        <div class="mb-4">
                 <form method="POST" action="{{ $editUnit ? route('pengaturan.unit-bisnis.update', $editUnit->id) : route('pengaturan.unit-bisnis.store') }}">
                     @csrf
                     @if($editUnit) @method('PUT') @endif
@@ -48,7 +47,6 @@
                         <div class="col-12 pt-2"><button type="submit" class="btn btn-primary">{{ $editUnit ? 'Update' : 'Simpan' }}</button>@if($editUnit)<a href="{{ route('pengaturan.konfigurasi') }}" class="btn btn-secondary">Batal</a>@endif</div>
                     </div>
                 </form>
-            </div>
         </div>
 
         <div class="card shadow-sm mb-3">
@@ -66,7 +64,7 @@
     </div>
 
     <div class="tab-pane fade" id="setup-akun" role="tabpanel">
-        <div class="card shadow-sm mb-3"><div class="card-header fw-semibold">Setup Akun</div><div class="card-body">
+        <div>
             <div class="text-secondary small mb-4">Akun default transaksi. HPP mengikuti Unit Bisnis dan Metode HPP; akun lainnya digunakan sebagai default posting.</div>
             <form method="POST" action="{{ route('pengaturan.account-mapping.save') }}">@csrf
                 <h6 class="fw-semibold border-bottom pb-2">HPP</h6>
@@ -83,12 +81,13 @@
                 @endforeach
                 <button type="submit" class="btn btn-primary">Simpan Setup Akun</button>
             </form>
-        </div></div>
+        </div>
     </div>
 
-    <div class="tab-pane fade" id="nota-invoice" role="tabpanel"><div class="card shadow-sm"><div class="card-header fw-semibold">Setup Nota/Invoice</div><div class="card-body text-secondary">Setup Nota/Invoice disiapkan pada tahap berikutnya.</div></div></div>
-    <div class="tab-pane fade" id="nomor-dokumen" role="tabpanel"><div class="card shadow-sm"><div class="card-header fw-semibold">Nomor Dokumen</div><div class="card-body text-secondary">Setup Nomor Dokumen disiapkan pada tahap berikutnya.</div></div></div>
-</div>
+    <div class="tab-pane fade" id="nota-invoice" role="tabpanel"><div class="text-secondary py-3">Setup Nota/Invoice disiapkan pada tahap berikutnya.</div></div>
+    <div class="tab-pane fade" id="nomor-dokumen" role="tabpanel"><div class="text-secondary py-3">Setup Nomor Dokumen disiapkan pada tahap berikutnya.</div></div>
+    </div>
+</div></div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
