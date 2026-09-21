@@ -1,9 +1,9 @@
 <?php
 
-use Illuminate\\Database\\Migrations\\Migration;
-use Illuminate\\Database\\Schema\\Blueprint;
-use Illuminate\\Support\\Facades\\DB;
-use Illuminate\\Support\\Facades\\Schema;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -123,7 +123,7 @@ return new class extends Migration
                 Schema::table('sales', function (Blueprint $t) {
                     $t->dropForeign(['unit_id']);
                 });
-            } catch (\\Throwable $e) {
+            } catch (\Throwable $e) {
                 // Legacy constraint may already have been removed.
             }
 
@@ -131,7 +131,7 @@ return new class extends Migration
                 Schema::table('sales', function (Blueprint $t) {
                     $t->dropIndex(['entity_id', 'unit_id']);
                 });
-            } catch (\\Throwable $e) {
+            } catch (\Throwable $e) {
                 // Legacy index may already have been removed.
             }
 
@@ -256,11 +256,11 @@ return new class extends Migration
             Schema::table($table, function (Blueprint $t) {
                 try {
                     $t->dropForeign(['business_unit_id']);
-                } catch (\\Throwable $e) {
+                } catch (\Throwable $e) {
                 }
                 try {
                     $t->dropIndex(['business_unit_id']);
-                } catch (\\Throwable $e) {
+                } catch (\Throwable $e) {
                 }
                 $t->dropColumn('business_unit_id');
             });
