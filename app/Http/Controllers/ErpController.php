@@ -218,7 +218,22 @@ class ErpController extends Controller
             $length = (int) $request->input('length', 15);
             if ($length < 1) $length = 15;
 
-            $rows = $query->orderByDesc('products.id')
+            $orderColumns = [
+                0 => 'products.code',
+                1 => 'products.barcode',
+                2 => 'products.name',
+                3 => 'products.item_type',
+                4 => 'base_units.name',
+                5 => 'products.minimum_stock',
+                6 => 'products.manage_stock',
+                7 => 'products.is_active',
+            ];
+            $orderIndex = (int) $request->input('order.0.column', 0);
+            $orderDir = strtolower((string) $request->input('order.0.dir', 'desc')) === 'asc' ? 'asc' : 'desc';
+            $orderColumn = $orderColumns[$orderIndex] ?? 'products.id';
+
+            $rows = $query->orderBy($orderColumn, $orderDir)
+                ->orderByDesc('products.id')
                 ->offset($start)
                 ->limit($length)
                 ->get();
