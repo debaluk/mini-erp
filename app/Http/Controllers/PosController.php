@@ -2,12 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\Inventory\InventoryCostEngine;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class PosController extends Controller
 {
+    public function __construct(
+        protected InventoryCostEngine $inventoryCost,
+    ) {}
+
     private function entityId(): int
     {
         $entity = DB::table('entities')->first();
@@ -25,31 +30,25 @@ class PosController extends Controller
         $data = $request->validate(['product_id'=>'required|integer','qty'=>'required|numeric|gt:0']);
         $entity = $this->entityId();
         $product = DB::table('products as p')
-            ->join('product_units as pu', 'pu.product_id', '=', 'p.id')
+            ->join('product_business_units as pbu', 'pbu.product_id', '=', 'p.id')
             ->join('business_units as bu', function ($join) use ($entity) {
-                $join->on('bu.id', '=', 'pu.business_unit_id')
-                    ->where('bu.entity_id', $entity)
-                    ->where('bu.code', 'RET')
-                    ->where('bu.is_active', 1);
+                $join->on('bu.id', '=', 'pbu.business_unit_id')->where('bu.entity_id', $entity)->where('bu.is_active', 1);
             })
-            ->where('p.entity_id', $entity)
-            ->where('p.is_active', 1)
             ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
-            ->select('p.*', 'p.base_unit_id as selling_unit_id', 'u.code as selling_unit_code', 'u.name as selling_unit_name')
-            ->where('p.id', $data['product_id'])
+            ->where('p.entity_id', $entity)->where('p.is_active', 1)->where('p.id', $data['product_id'])
+            ->select('p.*', 'u.code as selling_unit_code', 'u.name as selling_unit_name')
             ->first();
 
         abort_unless($product, 404, 'Produk tidak ditemukan.');
 
         $cart = $this->cart($request);
         $id = (string) $product->id;
-
         if (isset($cart[$id])) {
             $cart[$id]['qty'] += (float) $data['qty'];
         } else {
             $cart[$id] = [
                 'product_id' => (int) $product->id,
-                'code' => $product->sku,
+                'code' => $product->sku ?: $product->code,
                 'barcode' => $product->barcode,
                 'name' => $product->name,
                 'selling_unit_code' => $product->selling_unit_code,
@@ -60,9 +59,7 @@ class PosController extends Controller
         }
 
         $request->session()->put('pos_cart', $cart);
-
-        if ($request->expectsJson()) return response()->json(['ok'=>true,'cart'=>$cart]);
-        return back();
+        return $request->expectsJson() ? response()->json(['ok'=>true,'cart'=>$cart]) : back();
     }
 
     public function updateItem(Request $request, string $id)
@@ -70,193 +67,117 @@ class PosController extends Controller
         $data = $request->validate(['qty'=>'required|numeric|gt:0','price'=>'required|numeric|min:0']);
         $cart = $this->cart($request);
         abort_unless(isset($cart[$id]), 404, 'Item transaksi tidak ditemukan.');
-
         $cart[$id]['qty'] = (float) $data['qty'];
         $cart[$id]['price'] = (float) $data['price'];
         $request->session()->put('pos_cart', $cart);
-
-        if ($request->expectsJson()) return response()->json(['ok'=>true,'cart'=>$cart]);
-        return back()->with('success','Item transaksi berhasil diperbarui.');
+        return $request->expectsJson() ? response()->json(['ok'=>true,'cart'=>$cart]) : back()->with('success','Item transaksi berhasil diperbarui.');
     }
 
     public function removeItem(Request $request, string $id)
     {
         $cart = $this->cart($request);
         abort_unless(isset($cart[$id]), 404, 'Item transaksi tidak ditemukan.');
-
         unset($cart[$id]);
         $request->session()->put('pos_cart', $cart);
-
-        if ($request->expectsJson()) return response()->json(['ok'=>true,'cart'=>$cart]);
-        return back()->with('success','Barang dihapus dari transaksi.');
+        return $request->expectsJson() ? response()->json(['ok'=>true,'cart'=>$cart]) : back()->with('success','Barang dihapus dari transaksi.');
     }
 
     public function clear(Request $request)
     {
         $request->session()->forget('pos_cart');
-        if ($request->expectsJson()) return response()->json(['ok'=>true,'cart'=>[]]);
-        return back()->with('success','Transaksi sementara dikosongkan.');
+        return $request->expectsJson() ? response()->json(['ok'=>true,'cart'=>[]]) : back()->with('success','Transaksi sementara dikosongkan.');
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
-            'payment_method' => 'required|in:Tunai,Transfer,QRIS',
-            'discount' => 'nullable|numeric|min:0',
-            'payment_amount' => 'required|numeric|min:0',
+            'business_unit_id' => ['required','integer'],
+            'payment_method' => ['required','in:Tunai,Transfer,QRIS'],
+            'discount' => ['nullable','numeric','min:0'],
+            'payment_amount' => ['required','numeric','min:0'],
         ]);
 
         $entity = $this->entityId();
+        $businessUnit = DB::table('business_units')->where('id',$data['business_unit_id'])->where('entity_id',$entity)->where('is_active',1)->first();
+        abort_unless($businessUnit, 422, 'Unit Bisnis tidak valid.');
+
         $cart = $this->cart($request);
         abort_if(empty($cart), 422, 'Belum ada barang dalam transaksi.');
 
-        $shift = DB::table('cash_shifts')
-            ->where('entity_id', $entity)
-            ->where('user_id', auth()->id())
-            ->where('status', 'open')
-            ->latest('id')
-            ->first();
+        $shift = DB::table('cash_shifts')->where('entity_id',$entity)->where('business_unit_id',$businessUnit->id)->where('user_id',auth()->id())->where('status','open')->latest('id')->first();
+        abort_unless($shift, 422, 'Buka shift kasir untuk Unit Bisnis tersebut terlebih dahulu.');
 
-        abort_unless($shift, 422, 'Buka shift kasir terlebih dahulu.');
+        $warehouse = DB::table('warehouses')->where('entity_id',$entity)->where('business_unit_id',$businessUnit->id)->where('is_active',1)->orderBy('id')->first();
+        abort_unless($warehouse, 422, 'Gudang aktif untuk Unit Bisnis tersebut belum tersedia.');
 
-        $subtotal = 0;
-        foreach ($cart as $item) {
-            $subtotal += (float) $item['price'] * (float) $item['qty'];
-        }
-
-        $discount = min((float) ($data['discount'] ?? 0), $subtotal);
-        $total = $subtotal - $discount;
-        $paidAmount = (float) $data['payment_amount'];
-        $changeAmount = $paidAmount - $total;
-
+        $subtotal = collect($cart)->sum(fn($item) => (float)$item['price'] * (float)$item['qty']);
+        $discount = min((float)($data['discount'] ?? 0), $subtotal);
+        $total = round($subtotal - $discount, 2);
+        $paidAmount = (float)$data['payment_amount'];
         abort_if($paidAmount < $total, 422, 'Nominal pembayaran kurang.');
+        $changeAmount = $data['payment_method'] === 'Tunai' ? round($paidAmount - $total,2) : 0;
         if ($data['payment_method'] !== 'Tunai') {
-            abort_if(round($paidAmount, 2) !== round($total, 2), 422, 'Transfer/QRIS harus dibayar tepat sesuai total.');
-            $changeAmount = 0;
+            abort_if(round($paidAmount,2) !== round($total,2), 422, 'Transfer/QRIS harus dibayar tepat sesuai total.');
         }
 
-        $invoiceNo = 'POS-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4));
+        $invoiceNo = 'POS-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4));
 
-        DB::transaction(function () use ($cart, $entity, $shift, $subtotal, $discount, $total, $paidAmount, $changeAmount, $data, $invoiceNo) {
-            $stockRows = [];
+        DB::transaction(function () use ($cart,$entity,$businessUnit,$warehouse,$shift,$subtotal,$discount,$total,$paidAmount,$changeAmount,$data,$invoiceNo) {
+            $customerId = DB::table('customers')->where('entity_id',$entity)->where('code','CUST-UMUM')->value('id');
 
-            foreach ($cart as $item) {
-                $stock = DB::table('warehouses_stocks')
-                    ->where('entity_id', $entity)
-                    ->where('product_id', $item['product_id'])
-                    ->orderBy('id')
-                    ->lockForUpdate()
-                    ->first();
-
-                $qty = (float) $item['qty'];
-                abort_if(!$stock || (float) $stock->qty < $qty, 422, 'Stok ' . $item['name'] . ' tidak mencukupi.');
-
-                $stockRows[] = [
-                    'stock_id' => $stock->id,
-                    'warehouse_id' => $stock->warehouse_id,
-                    'product_id' => $item['product_id'],
-                    'qty' => $qty,
-                    'avg_cost' => (float) $stock->avg_cost,
-                ];
-            }
-
-            $customerId = DB::table('customers')
-                ->where('entity_id', $entity)
-                ->where('code', 'CUST-UMUM')
-                ->value('id');
-
-            $sale = DB::table('sales')->insertGetId([
-                'entity_id' => $entity,
-                'customer_id' => $customerId,
-                'user_id' => auth()->id(),
-                'shift_id' => $shift->id,
-                'invoice_no' => $invoiceNo,
-                'sale_date' => now(),
-                'subtotal' => $subtotal,
-                'discount' => $discount,
-                'total' => $total,
-                'status' => 'posted',
-                'created_at' => now(),
-                'updated_at' => now(),
+            $saleId = DB::table('sales')->insertGetId([
+                'entity_id'=>$entity,
+                'business_unit_id'=>$businessUnit->id,
+                'customer_id'=>$customerId,
+                'user_id'=>auth()->id(),
+                'shift_id'=>$shift->id,
+                'invoice_no'=>$invoiceNo,
+                'sale_date'=>now(),
+                'subtotal'=>round($subtotal,2),
+                'discount'=>round($discount,2),
+                'total'=>$total,
+                'status'=>'posted',
+                'created_at'=>now(),
+                'updated_at'=>now(),
             ]);
 
             foreach ($cart as $item) {
+                $cost = $this->inventoryCost->issue($entity,$businessUnit->id,$warehouse->id,(int)$item['product_id'],(float)$item['qty'],'sale_out','sale',$saleId,auth()->id());
+                $lineGross = round((float)$item['price'] * (float)$item['qty'],2);
+                $lineDiscount = 0;
+                $lineTotal = $lineGross;
+
                 DB::table('sale_items')->insert([
-                    'sale_id' => $sale,
-                    'product_id' => $item['product_id'],
-                    'qty' => $item['qty'],
-                    'unit_price' => $item['price'],
-                    'discount' => 0,
-                    'total' => (float) $item['price'] * (float) $item['qty'],
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'sale_id'=>$saleId,
+                    'product_id'=>$item['product_id'],
+                    'qty'=>$item['qty'],
+                    'unit_price'=>$item['price'],
+                    'discount'=>$lineDiscount,
+                    'total'=>$lineTotal,
+                    'hpp_unit'=>$cost['unit_cost'],
+                    'hpp_total'=>$cost['total_cost'],
+                    'created_at'=>now(),
+                    'updated_at'=>now(),
                 ]);
             }
 
             DB::table('payments')->insert([
-                'entity_id' => $entity,
-                'sale_id' => $sale,
-                'user_id' => auth()->id(),
-                'payment_date' => now(),
-                'method' => $data['payment_method'],
-                'amount' => $total,
-                'paid_amount' => $paidAmount,
-                'change_amount' => $changeAmount,
-                'created_at' => now(),
-                'updated_at' => now(),
+                'entity_id'=>$entity,
+                'business_unit_id'=>$businessUnit->id,
+                'sale_id'=>$saleId,
+                'user_id'=>auth()->id(),
+                'payment_date'=>now(),
+                'method'=>$data['payment_method'],
+                'amount'=>$total,
+                'paid_amount'=>$paidAmount,
+                'change_amount'=>$changeAmount,
+                'created_at'=>now(),
+                'updated_at'=>now(),
             ]);
-
-            foreach ($stockRows as $row) {
-                DB::table('warehouses_stocks')->where('id', $row['stock_id'])->decrement('qty', $row['qty']);
-
-                DB::table('stock_movements')->insert([
-                    'entity_id' => $entity,
-                    'warehouse_id' => $row['warehouse_id'],
-                    'product_id' => $row['product_id'],
-                    'movement_type' => 'sale_out',
-                    'qty' => -$row['qty'],
-                    'unit_cost' => $row['avg_cost'],
-                    'reference_type' => 'sale',
-                    'reference_id' => $sale,
-                    'occurred_at' => now(),
-                    'created_by' => auth()->id(),
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-            }
         });
 
         $request->session()->forget('pos_cart');
 
-        if ($request->expectsJson()) {
-            $entityRow = DB::table('entities')->where('id', $entity)->first();
-            $customerName = DB::table('customers')
-                ->where('entity_id', $entity)
-                ->where('code', 'CUST-UMUM')
-                ->value('name') ?? 'Umum';
-
-            return response()->json([
-                'ok' => true,
-                'invoice_no' => $invoiceNo,
-                'sale_date' => now()->format('Y-m-d H:i:s'),
-                'entity' => [
-                    'name' => $entityRow?->name ?? 'MINI ERP',
-                    'address' => $entityRow?->address ?? '',
-                    'phone' => $entityRow?->phone ?? '',
-                ],
-                'cashier' => auth()->user()->name,
-                'shift_id' => $shift->id,
-                'customer' => $customerName,
-                'subtotal' => $subtotal,
-                'discount' => $discount,
-                'total' => $total,
-                'payment_method' => $data['payment_method'],
-                'paid_amount' => $paidAmount,
-                'change_amount' => $changeAmount,
-                'items' => array_values($cart),
-            ]);
-        }
-
-        return back()->with('success', 'Transaksi POS berhasil diposting.');
+        return back()->with('success','Transaksi POS berhasil diposting.');
     }
 }
