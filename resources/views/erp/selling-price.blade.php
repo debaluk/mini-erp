@@ -9,7 +9,20 @@
     <button type="button" class="btn btn-primary" id="btn-setup-awal" data-bs-toggle="modal" data-bs-target="#setupAwalModal">+ Setup Awal</button>
 </div>
 
-<div id="price-alert"></div>
+<div class="modal fade" id="priceMessageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header" id="price-message-header">
+                <h5 class="modal-title" id="price-message-title">Informasi</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+            </div>
+            <div class="modal-body" id="price-message-body"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div class="card shadow-sm">
     <div class="card-body border-bottom py-2">
@@ -96,8 +109,6 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <div id="setup-form-alert"></div>
-
                     <div class="mb-2">
                         <label class="form-label">Tanggal <span class="text-danger">*</span></label>
                         <input type="date" name="setup_date" class="form-control" value="{{ now()->toDateString() }}" required>
@@ -206,7 +217,7 @@
 
     document.getElementById('btn-export-excel').addEventListener('click', () => {
         if (typeof XLSX === 'undefined') {
-            alert('Library Excel belum termuat. Silakan refresh halaman lalu coba lagi.');
+            showMessage('warning', 'Library Excel belum termuat. Silakan refresh halaman lalu coba lagi.');
             return;
         }
 
@@ -269,6 +280,22 @@
         XLSX.utils.book_append_sheet(wb, ws, 'Harga Jual');
         XLSX.writeFile(wb, 'harga-jual-' + new Date().toISOString().slice(0,10) + '.xlsx');
     });
+
+    const priceMessageModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('priceMessageModal'));
+
+    function showMessage(type, message) {
+        const config = {
+            success: { title: 'Berhasil', icon: '✓', cls: 'bg-success text-white' },
+            danger: { title: 'Gagal', icon: '✕', cls: 'bg-danger text-white' },
+            warning: { title: 'Peringatan', icon: '!', cls: 'bg-warning text-dark' }
+        }[type] || { title: 'Informasi', icon: 'i', cls: 'bg-secondary text-white' };
+
+        const header = document.getElementById('price-message-header');
+        header.className = 'modal-header ' + config.cls;
+        document.getElementById('price-message-title').textContent = config.icon + ' ' + config.title;
+        document.getElementById('price-message-body').textContent = message;
+        priceMessageModal.show();
+    }
 
     function esc(v) {
         return String(v ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[s]));
@@ -348,7 +375,7 @@
         form.querySelector('[name="setup_date"]').value = '{{ now()->toDateString() }}';
         productId.value = '';
         document.getElementById('setup-product-unit').textContent = '';
-        document.getElementById('setup-form-alert').innerHTML = '';
+        document.getElementById('price-message-body').textContent = '';
         modal.show();
         setTimeout(() => search.focus(), 250);
     });
@@ -372,7 +399,7 @@
 
     document.querySelector('#selling-price-table tbody').addEventListener('click', e => {
         const edit=e.target.closest('.btn-edit');
-        if(edit){ editMode=true; modalTitle.textContent='Edit Setup Awal'; form.reset(); search.value=edit.dataset.name; productId.value=edit.dataset.id; setupPurchase.value=fmtMoney(edit.dataset.hpp); setupPurchase.readOnly=false; initialStock.value=fmtNum(edit.dataset.stock); initialStock.readOnly=false; markup.value=fmtNum(edit.dataset.up||'0'); selling.value=fmtMoney(edit.dataset.price); form.querySelector('[name="setup_date"]').value=edit.dataset.date||'{{ now()->toDateString() }}'; document.getElementById('setup-form-alert').innerHTML='<div class="alert alert-info py-2 small">Bisa diedit selama item belum memiliki transaksi Pembelian atau Penjualan.</div>'; popup.style.display='none'; modal.show(); return; }
+        if(edit){ editMode=true; modalTitle.textContent='Edit Setup Awal'; form.reset(); search.value=edit.dataset.name; productId.value=edit.dataset.id; setupPurchase.value=fmtMoney(edit.dataset.hpp); setupPurchase.readOnly=false; initialStock.value=fmtNum(edit.dataset.stock); initialStock.readOnly=false; markup.value=fmtNum(edit.dataset.up||'0'); selling.value=fmtMoney(edit.dataset.price); form.querySelector('[name="setup_date"]').value=edit.dataset.date||'{{ now()->toDateString() }}';  popup.style.display='none'; modal.show(); return; }
 
         const btn = e.target.closest('.btn-detail');
         if (!btn) return;
@@ -383,7 +410,7 @@
     form.addEventListener('submit', async e => {
         e.preventDefault();
         if (!productId.value) {
-            document.getElementById('setup-form-alert').innerHTML = '<div class="alert alert-danger py-2 small">Pilih barang dari popup pencarian.</div>';
+            showMessage('warning', 'Pilih barang dari popup pencarian.');
             return;
         }
         const save = document.getElementById('setup-save');
@@ -409,14 +436,15 @@
         });
         const payload = await response.json();
         if (!response.ok) {
-            const errors = payload.errors ? Object.values(payload.errors).flat().join('<br>') : (payload.message || 'Setup awal gagal disimpan.');
-            document.getElementById('setup-form-alert').innerHTML = '<div class="alert alert-danger py-2 small">'+errors+'</div>';
+            const errors = payload.errors ? Object.values(payload.errors).flat().join(' | ') : (payload.message || 'Setup awal gagal disimpan.');
+            showMessage('danger', errors);
             save.disabled = false;
             return;
         }
         modal.hide();
-        document.getElementById('price-alert').innerHTML = '<div class="alert alert-success py-2">'+payload.message+'</div>';
-        setTimeout(() => window.location.reload(), 500);
+        modal.hide();
+        showMessage('success', payload.message || 'Harga jual berhasil disimpan.');
+        setTimeout(() => window.location.reload(), 100);
     });
 })();
 </script>
