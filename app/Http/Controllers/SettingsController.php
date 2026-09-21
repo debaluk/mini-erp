@@ -95,7 +95,7 @@ class SettingsController extends Controller
     public function users(Request $request)
     {
         $entityId = $request->user()->entity_id;
-        abort_unless($request->user()->role === 'owner' && $entityId, 403);
+        abort_unless(in_array($request->user()->role, ['owner', 'admin'], true) && $entityId, 403);
 
         $users = DB::table('users')
             ->where('entity_id', $entityId)
@@ -132,7 +132,7 @@ class SettingsController extends Controller
 
     public function userStore(Request $request)
     {
-        abort_unless($request->user()->role === 'owner' && $request->user()->entity_id, 403);
+        abort_unless(in_array($request->user()->role, ['owner', 'admin'], true) && $request->user()->entity_id, 403);
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -142,7 +142,13 @@ class SettingsController extends Controller
             'modules' => ['required', 'array', 'min:1'],
             'modules.*' => ['string', Rule::in(array_keys($this->moduleCatalog()))],
             'business_units' => ['required', 'array', 'min:1'],
-            'business_units.*' => ['integer', 'exists:business_units,id'],
+            'business_units.*' => [
+                'integer',
+                Rule::exists('business_units', 'id')->where(fn ($query) => $query
+                    ->where('entity_id', $request->user()->entity_id)
+                    ->where('is_active', true)
+                ),
+            ],
         ]);
 
         $userId = DB::table('users')->insertGetId([
@@ -191,7 +197,13 @@ class SettingsController extends Controller
             'modules' => ['required', 'array', 'min:1'],
             'modules.*' => ['string', Rule::in(array_keys($this->moduleCatalog()))],
             'business_units' => ['required', 'array', 'min:1'],
-            'business_units.*' => ['integer', 'exists:business_units,id'],
+            'business_units.*' => [
+                'integer',
+                Rule::exists('business_units', 'id')->where(fn ($query) => $query
+                    ->where('entity_id', $request->user()->entity_id)
+                    ->where('is_active', true)
+                ),
+            ],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
         ]);
 
