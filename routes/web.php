@@ -143,7 +143,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/master/satuan', [ErpController::class, 'unitMaster'])->middleware('role:owner,admin')->name('master.menu.satuan');
         } else {
             if ($path === 'produk') {
-                Route::get('/master/'.$path, [ErpController::class, 'itemMaster'])->middleware('role:owner,admin')->name('master.menu.'.$path);
+                Route::get('/master/'.$path, [ErpController::class, 'itemMaster'])->middleware('access:master')->name('master.menu.'.$path);
             } else {
                 Route::get('/master/'.$path, function (Request $request) use ($type) {
                     return app(ErpController::class)->master($request, $type);
