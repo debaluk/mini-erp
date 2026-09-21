@@ -161,26 +161,50 @@ class ProductionCostEngine
             $plannedOutput = round((float) $bom->output_qty * $qty, 3);
             $rejectQty = 0;
             $recoverableValue = 0;
+            $secondaryOutputs = [];
 
             foreach ($rejects as $reject) {
-                $rejectQty += max(0, (float) ($reject['qty'] ?? 0));
-                $recoverableValue += max(0, (float) ($reject['recoverable_value'] ?? 0));
+                $rejectQtyRow = max(0, (float) ($reject['qty'] ?? 0));
+                $type = strtolower(trim((string) ($reject['reject_type'] ?? 'scrap')));
+                if (!in_array($type, ['scrap', 'saleable', 'rework', 'returned_to_material'], true)) {
+                    $type = 'scrap';
+                }
+
+                $value = max(0, (float) ($reject['recoverable_value'] ?? 0));
+                $rejectQty += $rejectQtyRow;
+                $recoverableValue += $value;
 
                 DB::table('production_rejects')->insert([
                     'production_id' => $productionId,
                     'product_id' => $reject['product_id'] ?? null,
-                    'qty' => max(0, (float) ($reject['qty'] ?? 0)),
-                    'reject_type' => $reject['reject_type'] ?? 'scrap',
+                    'qty' => $rejectQtyRow,
+                    'reject_type' => $type,
                     'description' => $reject['description'] ?? null,
-                    'recoverable_value' => max(0, (float) ($reject['recoverable_value'] ?? 0)),
+                    'recoverable_value' => $value,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
+
+                if (in_array($type, ['saleable', 'returned_to_material'], true) && $rejectQtyRow > 0 && !empty($reject['product_id'])) {
+                    $secondaryOutputs[] = [
+                        'product_id' => (int) $reject['product_id'],
+                        'qty' => $rejectQtyRow,
+                        'unit_cost' => round($value / $rejectQtyRow, 4),
+                        'output_type' => $type === 'saleable' ? 'reject_saleable' : 'recovered_material',
+                    ];
+                }
             }
 
-            $goodOutputQty = max(0, round($plannedOutput - $rejectQty, 3));
+            // Scrap, rework, and material-return rejects are not good output.
+            // Saleable/recovered material are recorded as secondary outputs and do not reduce the main good output.
+            $mainRejectQty = collect($rejects)->sum(function ($reject) {
+                $type = strtolower(trim((string) ($reject['reject_type'] ?? 'scrap')));
+                return in_array($type, ['saleable'], true) ? 0 : max(0, (float) ($reject['qty'] ?? 0));
+            });
+
+            $goodOutputQty = max(0, round($plannedOutput - $mainRejectQty, 3));
             if ($goodOutputQty <= 0) {
-                throw new RuntimeException('Output baik harus lebih besar dari nol.');
+                throw new RuntimeException('Output barang jadi baik harus lebih besar dari nol.');
             }
 
             $totalCost = round($materialCost + $extraCost - $recoverableValue, 2);
