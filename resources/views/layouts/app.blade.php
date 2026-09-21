@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ config('app.name', 'Mini ERP') }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/2.3.3/css/dataTables.bootstrap5.css" rel="stylesheet">
@@ -39,6 +40,7 @@
                 <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">MASTER DATA</a><ul class="dropdown-menu">
                     @foreach(['products'=>'Produk','customers'=>'Customer','suppliers'=>'Supplier','warehouses'=>'Gudang','units'=>'Satuan','unit-conversions'=>'Konversi Satuan'] as $route=>$label)<li><a class="dropdown-item" href="{{ route('master.menu.'.match ($route) { 'products' => 'produk', 'customers' => 'customer', 'suppliers' => 'supplier', 'warehouses' => 'gudang', 'units' => 'satuan', 'unit-conversions' => 'konversi-satuan', 'tariffs' => 'tarif' }) }}">{{ $label }}</a></li>@endforeach
                     <li><a class="dropdown-item" href="{{ route('master.menu.harga-jual') }}">Harga Jual</a></li>
+                    <li><a class="dropdown-item" href="{{ route('master.menu.harga-jual') }}">Harga Jual</a></li>
                 </ul></li>
                 @endif
                 @if(auth()->user()->hasModuleAccess('pos'))
@@ -48,7 +50,7 @@
                 @endif
                 @if(auth()->user()->hasAnyModuleAccess(['produksi','inventori']))
                 <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">INVENTORI</a><ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="{{ route('inventori.penjualan') }}">Penjualan</a></li><li><a class="dropdown-item" href="{{ route('inventori.pembelian') }}">Pembelian</a></li><li><a class="dropdown-item" href="{{ route('inventori.penerimaan') }}">Penerimaan</a></li><li><a class="dropdown-item" href="{{ route('inventori.stok') }}">Stok</a></li><li><a class="dropdown-item" href="{{ route('inventori.transfer') }}">Transfer</a></li><li><a class="dropdown-item" href="{{ route('inventori.adjustment') }}">Adjustment</a></li><li><a class="dropdown-item" href="{{ route('inventori.stock-opname') }}">Stock Opname</a></li>
+                    <li><a class="dropdown-item" href="{{ route('inventori.penjualan') }}">Penjualan</a></li><li><a class="dropdown-item" href="{{ route('inventori.setup-stok-harga') }}">Setup Stok &amp; Harga Awal</a></li><li><a class="dropdown-item" href="{{ route('inventori.pembelian') }}">Pembelian</a></li><li><a class="dropdown-item" href="{{ route('inventori.penerimaan') }}">Penerimaan</a></li><li><a class="dropdown-item" href="{{ route('inventori.stok') }}">Stok</a></li><li><a class="dropdown-item" href="{{ route('inventori.transfer') }}">Transfer</a></li><li><a class="dropdown-item" href="{{ route('inventori.adjustment') }}">Adjustment</a></li><li><a class="dropdown-item" href="{{ route('inventori.stock-opname') }}">Stock Opname</a></li>
                     @if(auth()->user()->hasModuleAccess('produksi'))
                     <li><hr class="dropdown-divider"></li><li><h6 class="dropdown-header">PRODUKSI</h6></li>
                     <li><a class="dropdown-item" href="{{ route('produksi.bom') }}">BOM / Formula</a></li><li><a class="dropdown-item" href="{{ route('produksi') }}">Produksi</a></li><li><a class="dropdown-item" href="{{ route('produksi.pemakaian-bahan') }}">Pemakaian Bahan</a></li><li><a class="dropdown-item" href="{{ route('produksi.hasil-produksi') }}">Hasil Produksi</a></li><li><a class="dropdown-item" href="{{ route('produksi.reject') }}">Reject</a></li><li><a class="dropdown-item" href="{{ route('produksi.hpp') }}">HPP Produksi</a></li>
