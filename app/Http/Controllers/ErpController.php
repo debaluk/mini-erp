@@ -354,7 +354,7 @@ class ErpController extends Controller
                 if ((int) $conversionUnitId === (int) $data['base_unit_id']) {
                     continue;
                 }
-                DB::table('unit_conversions')->insert([
+                DB::table('product_units')->insert([
                     'product_id' => $productId,
                     'unit_id' => $conversionUnitId,
                     'conversion_factor' => $conversionFactors[$index],
@@ -383,7 +383,7 @@ class ErpController extends Controller
         abort_if($hasTransactions, 422, 'Item sudah digunakan dalam transaksi dan tidak dapat dihapus. Nonaktifkan item jika tidak digunakan lagi.');
 
         DB::transaction(function () use ($id, $entity): void {
-            DB::table('unit_conversions')->where('product_id', $id)->delete();
+            DB::table('product_units')->where('product_id', $id)->delete();
             DB::table('product_business_units')->where('product_id', $id)->delete();
             DB::table('products')->where('entity_id', $entity)->where('id', $id)->delete();
         });
@@ -399,7 +399,7 @@ class ErpController extends Controller
         $units = DB::table('units')->where('entity_id', $entity)->where('is_active', 1)->orderBy('name')->get();
         $businessUnits = DB::table('business_units')->where('entity_id', $entity)->where('is_active', 1)->orderBy('id')->get();
         $selectedBusinessUnits = DB::table('product_business_units')->where('product_id', $id)->pluck('business_unit_id')->all();
-        $conversions = DB::table('unit_conversions')->where('product_id', $id)->get();
+        $conversions = DB::table('product_units')->where('product_id', $id)->get();
 
         if ($request->ajax()) {
             return response()->json([
@@ -437,8 +437,8 @@ class ErpController extends Controller
             DB::table('products')->where('entity_id',$entity)->where('id',$id)->update(['barcode'=>$barcode,'name'=>$data['name'],'unit_id'=>$data['base_unit_id'],'base_unit_id'=>$data['base_unit_id'],'minimum_stock'=>$minimumStock,'manage_stock'=>(bool)$data['manage_stock'],'is_active'=>(bool)$data['status'],'updated_at'=>now()]);
             DB::table('product_business_units')->where('product_id',$id)->delete();
             foreach($unitIds as $businessUnitId) DB::table('product_business_units')->insert(['product_id'=>$id,'business_unit_id'=>$businessUnitId,'created_at'=>now(),'updated_at'=>now()]);
-            DB::table('unit_conversions')->where('product_id',$id)->delete();
-            foreach($conversionUnits as $index=>$conversionUnitId){ if(!$conversionUnitId || empty($conversionFactors[$index]) || (int)$conversionUnitId===(int)$data['base_unit_id']) continue; DB::table('unit_conversions')->insert(['product_id'=>$id,'unit_id'=>$conversionUnitId,'conversion_factor'=>$conversionFactors[$index],'created_at'=>now(),'updated_at'=>now()]); }
+            DB::table('product_units')->where('product_id',$id)->delete();
+            foreach($conversionUnits as $index=>$conversionUnitId){ if(!$conversionUnitId || empty($conversionFactors[$index]) || (int)$conversionUnitId===(int)$data['base_unit_id']) continue; DB::table('product_units')->insert(['product_id'=>$id,'unit_id'=>$conversionUnitId,'conversion_factor'=>$conversionFactors[$index],'created_at'=>now(),'updated_at'=>now()]); }
         });
         if ($request->expectsJson()) {
             return response()->json(['message' => 'Item berhasil diperbarui.']);
@@ -565,7 +565,7 @@ class ErpController extends Controller
         $inUse = DB::table('products')->where('entity_id', $entity)->where(function ($q) use ($id) {
             $q->where('base_unit_id', $id)->orWhere('unit_id', $id);
         })->exists()
-            || DB::table('unit_conversions')->where('unit_id', $id)->exists();
+            || DB::table('product_units')->where('unit_id', $id)->exists();
 
         abort_if($inUse, 422, 'Satuan sudah digunakan oleh Item atau konversi dan tidak dapat dihapus. Nonaktifkan satuan jika tidak digunakan lagi.');
 
