@@ -19,23 +19,7 @@ class BusinessUnitAccountMappingController extends Controller
 
     public function index(Request $request)
     {
-        $entityId = $this->entityId($request);
-
-        $units = BusinessUnit::where('entity_id', $entityId)->orderBy('code')->get();
-
-        $accounts = DB::table('chart_of_accounts')
-            ->where('entity_id', $entityId)
-            ->where('is_active', true)
-            ->where('is_postable', true)
-            ->orderBy('code')
-            ->get();
-
-        $mappings = BusinessUnitAccountMapping::where('entity_id', $entityId)
-            ->where('mapping_key', 'hpp')
-            ->get()
-            ->keyBy('business_unit_id');
-
-        return view('settings.account-mapping', compact('units', 'accounts', 'mappings'));
+        return redirect()->route('pengaturan.konfigurasi') . '#setup-akun';
     }
 
     public function save(Request $request)
@@ -44,48 +28,82 @@ class BusinessUnitAccountMappingController extends Controller
 
         $data = $request->validate([
             'accounts' => ['required', 'array'],
-            'accounts.*' => ['required', 'integer'],
+            'defaults' => ['required', 'array'],
+            'accounts.*' => ['array'],
+            'accounts.*.*' => ['required', 'integer'],
+            'defaults.*' => ['required', 'integer'],
         ]);
 
         $units = BusinessUnit::where('entity_id', $entityId)
-            ->whereIn('id', array_keys($data['accounts']))
+            ->orderBy('id')
             ->get()
             ->keyBy('id');
 
-        if ($units->count() !== count($data['accounts'])) {
+        if ($units->isEmpty()) {
             throw ValidationException::withMessages([
-                'accounts' => 'Unit Bisnis tidak valid.',
+                'accounts' => 'Belum ada Unit Bisnis.',
             ]);
         }
 
-        $ids = array_values($data['accounts']);
+        $accountIds = [];
+        foreach ($data['accounts'] as $unitId => $items) {
+            if (!$units->has((int) $unitId)) {
+                throw ValidationException::withMessages([
+                    'accounts' => 'Unit Bisnis tidak valid.',
+                ]);
+            }
+            foreach ($items as $accountId) {
+                $accountIds[] = (int) $accountId;
+            }
+        }
+        foreach ($data['defaults'] as $accountId) {
+            $accountIds[] = (int) $accountId;
+        }
+
+        $accountIds = array_values(array_unique($accountIds));
         $validIds = DB::table('chart_of_accounts')
             ->where('entity_id', $entityId)
             ->where('is_active', true)
             ->where('is_postable', true)
-            ->whereIn('id', $ids)
+            ->whereIn('id', $accountIds)
             ->pluck('id')
+            ->map(fn ($id) => (int) $id)
             ->all();
 
-        if (count($validIds) !== count(array_unique($ids))) {
+        if (count($validIds) !== count($accountIds)) {
             throw ValidationException::withMessages([
                 'accounts' => 'Akun tidak valid untuk entitas ini.',
             ]);
         }
 
         DB::transaction(function () use ($data, $units, $entityId) {
-            foreach ($data['accounts'] as $unitId => $accountId) {
-                BusinessUnitAccountMapping::updateOrCreate(
-                    [
-                        'entity_id' => $entityId,
-                        'business_unit_id' => $units[$unitId]->id,
-                        'mapping_key' => 'hpp',
-                    ],
-                    ['account_id' => $accountId]
-                );
+            foreach ($data['accounts'] as $unitId => $items) {
+                foreach ($items as $mappingKey => $accountId) {
+                    BusinessUnitAccountMapping::updateOrCreate(
+                        [
+                            'entity_id' => $entityId,
+                            'business_unit_id' => $units[(int) $unitId]->id,
+                            'mapping_key' => $mappingKey,
+                        ],
+                        ['account_id' => $accountId]
+                    );
+                }
+            }
+
+            foreach ($units as $unit) {
+                foreach ($data['defaults'] as $mappingKey => $accountId) {
+                    BusinessUnitAccountMapping::updateOrCreate(
+                        [
+                            'entity_id' => $entityId,
+                            'business_unit_id' => $unit->id,
+                            'mapping_key' => $mappingKey,
+                        ],
+                        ['account_id' => $accountId]
+                    );
+                }
             }
         });
 
-        return back()->with('success', 'Mapping HPP berhasil disimpan.');
+        return back()->with('success', 'Setup Akun berhasil disimpan.');
     }
 }
