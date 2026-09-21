@@ -436,7 +436,6 @@
         e.preventDefault();
         const save = document.getElementById('item-save');
         save.disabled = true;
-        document.getElementById('item-form-alert').innerHTML = '';
         const id = document.getElementById('item-id').value;
         const url = id ? '{{ url('/master/produk') }}/' + id + '/edit' : '{{ route('master.item.store') }}';
         const response = await fetch(url, {
