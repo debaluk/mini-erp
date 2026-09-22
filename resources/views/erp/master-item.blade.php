@@ -207,7 +207,7 @@
             { data: 'minimum_stock', className: 'text-end', render: d => formatNumber(d) },
             { data: 'manage_stock', className: 'text-center', render: d => d ? 'Ya' : 'Tidak' },
             { data: 'is_active', className: 'text-center', render: d => d ? '<span class="badge text-bg-success">Aktif</span>' : '<span class="badge text-bg-secondary">Nonaktif</span>' },
-            { data: 'id', className: 'text-end', orderable: false, searchable: false, render: id => '<div class="d-inline-flex gap-1"><button type="button" class="btn btn-outline-primary btn-sm btn-edit-item" data-id="' + id + '">Edit</button><button type="button" class="btn btn-outline-danger btn-sm btn-delete-item" data-id="' + id + '">Hapus</button></div>' }
+            { data: 'id', className: 'text-end', orderable: false, searchable: false, render: id => '<div class="d-inline-flex gap-1"><button type="button" class="btn btn-outline-primary btn-sm btn-edit-item" data-id="' + id + '">Edit</button><a href="{{ url('/master/konversi-satuan') }}?product_id=' + id + '" class="btn btn-outline-secondary btn-sm">Konversi</a><button type="button" class="btn btn-outline-danger btn-sm btn-delete-item" data-id="' + id + '">Hapus</button></div>' }
         ]
     });
 
