@@ -145,8 +145,9 @@ return new class extends Migration
             }
         }
 
-        if (Schema::hasTable('products') && Schema::getConnection()->getDriverName() === 'mysql') {
+        if (Schema::hasTable('products') && in_array(Schema::getConnection()->getDriverName(), ['mysql','mariadb'], true)) {
             DB::statement("ALTER TABLE products MODIFY item_type ENUM('barang','jasa','aset') NOT NULL DEFAULT 'barang'");
+            DB::statement("ALTER TABLE products MODIFY type ENUM('raw_material','merchandise','wip','finished_goods','service','asset') NOT NULL DEFAULT 'merchandise'");
         }
     }
 
