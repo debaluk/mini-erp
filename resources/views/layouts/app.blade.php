@@ -110,7 +110,8 @@
         </div>
     </div>
 </div>
-\n<main class="container-fluid p-3 p-lg-4">
+
+<main class="container-fluid p-3 p-lg-4">
     @yield('content')
 </main>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -206,6 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 });
 </script>
-\n@stack('scripts')
+
+@stack('scripts')
 </body>
 </html>
