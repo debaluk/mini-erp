@@ -12,6 +12,42 @@ class PurchaseController extends Controller
         return (int) (DB::table('entities')->value('id') ?? 1);
     }
 
+    private function products(int $entity)
+    {
+        $products = DB::table('products as p')
+            ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
+            ->where('p.entity_id', $entity)
+            ->where('p.is_active', 1)
+            ->where('p.manage_stock', 1)
+            ->orderBy('p.name')
+            ->get(['p.id','p.code','p.sku','p.name','p.cost_price','p.base_unit_id','u.code as unit_code','u.name as unit_name']);
+
+        foreach ($products as $product) {
+            $product->transaction_units = DB::table('units as u')
+                ->where('u.id',$product->base_unit_id)
+                ->get(['u.id','u.code','u.name'])
+                ->map(fn($u)=>[
+                    'id'=>(int)$u->id,'code'=>$u->code,'name'=>$u->name,
+                    'factor'=>1.0,'default_purchase'=>false,'price'=>(float)$product->cost_price,
+                ])->values();
+
+            foreach (DB::table('product_unit_conversions as puc')
+                ->join('units as u','u.id','=','puc.unit_id')
+                ->where('puc.product_id',$product->id)
+                ->where('puc.is_active',1)
+                ->orderBy('u.name')
+                ->get(['u.id','u.code','u.name','puc.conversion_factor','puc.is_default_purchase']) as $conversion) {
+                $product->transaction_units->push([
+                    'id'=>(int)$conversion->id,'code'=>$conversion->code,'name'=>$conversion->name,
+                    'factor'=>(float)$conversion->conversion_factor,
+                    'default_purchase'=>(bool)$conversion->is_default_purchase,
+                    'price'=>round((float)$product->cost_price*(float)$conversion->conversion_factor,2),
+                ]);
+            }
+        }
+        return $products;
+    }
+
     public function index(Request $request)
     {
         $entity = $this->entityId();
@@ -64,14 +100,10 @@ class PurchaseController extends Controller
             ->orderBy('name')
             ->get(['id', 'code', 'name']);
 
-        $products = DB::table('products as p')
-            ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
-            ->where('p.entity_id', $entity)
-            ->where('p.is_active', 1)
-            ->orderBy('p.name')
-            ->get(['p.id', 'p.code', 'p.sku', 'p.name', 'p.cost_price', 'u.code as unit_code']);
+        $warehouses = DB::table('warehouses')->where('entity_id',$entity)->where('is_active',1)->orderBy('name')->get();
+        $products = $this->products($entity);
 
-        return view('erp.purchases.create', compact('suppliers', 'units', 'products'));
+        return view('erp.purchases.create', compact('suppliers', 'units', 'warehouses', 'products'));
     }
 
     public function edit(int $id)
@@ -99,12 +131,8 @@ class PurchaseController extends Controller
             ->orderBy('name')
             ->get(['id', 'code', 'name']);
 
-        $products = DB::table('products as p')
-            ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
-            ->where('p.entity_id', $entity)
-            ->where('p.is_active', 1)
-            ->orderBy('p.name')
-            ->get(['p.id', 'p.code', 'p.sku', 'p.name', 'p.cost_price', 'u.code as unit_code']);
+        $warehouses = DB::table('warehouses')->where('entity_id',$entity)->where('is_active',1)->orderBy('name')->get();
+        $products = $this->products($entity);
 
         $items = DB::table('purchase_items as pi')
             ->join('products as p', 'p.id', '=', 'pi.product_id')
@@ -113,6 +141,6 @@ class PurchaseController extends Controller
             ->orderBy('pi.id')
             ->get(['pi.product_id', 'p.code', 'p.sku', 'p.name', 'u.code as unit_code', 'pi.qty', 'pi.unit_cost', 'pi.total']);
 
-        return view('erp.purchases.create', compact('purchase', 'suppliers', 'units', 'products', 'items'));
+        return view('erp.purchases.create', compact('purchase', 'suppliers', 'units', 'warehouses', 'products', 'items'));
     }
 }
