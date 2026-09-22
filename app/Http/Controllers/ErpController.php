@@ -543,7 +543,7 @@ class ErpController extends Controller
 
         if ($request->ajax() && $request->has('draw')) {
             $columns = $config['columns'];
-            $query = DB::table($config['table'])->where('warehouses.entity_id', $entity);
+            $query = DB::table($config['table'])->where($config['table'].'.entity_id', $entity);
 
             if ($type === 'warehouses') {
                 $query->leftJoin('business_units', 'business_units.id', '=', 'warehouses.business_unit_id')
