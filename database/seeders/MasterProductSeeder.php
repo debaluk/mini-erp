@@ -128,7 +128,7 @@ class MasterProductSeeder extends Seeder
                 ['sku' => 'TB-007', 'barcode' => '899100000207', 'name' => 'Besi Beton 10 mm', 'type' => 'merchandise', 'unit' => 'BATANG', 'cost' => 72000, 'sell' => 82000, 'min' => 20],
                 ['sku' => 'TB-008', 'barcode' => '899100000208', 'name' => 'Bata Merah', 'type' => 'merchandise', 'unit' => 'PCS', 'cost' => 1200, 'sell' => 1800, 'min' => 500],
                 ['sku' => 'TB-009', 'barcode' => '899100000209', 'name' => 'Keramik 40x40', 'type' => 'merchandise', 'unit' => 'DUS', 'cost' => 85000, 'sell' => 105000, 'min' => 10],
-                ['sku' => 'TB-010', 'barcode' => '899100000210', 'name' => 'Cat Tembok 5 Kg', 'type' => 'merchandise', 'unit' => 'PAIL', 'cost' => 95000, 'sell' => 120000, 'min' => 5],
+                ['sku' => 'TB-010', 'barcode' => '899100000210', 'name' => 'Cat Tembok 5 Kg', 'type' => 'merchandise', 'unit' => 'KG', 'cost' => 19000, 'sell' => 24000, 'min' => 25],
                 ['sku' => 'TB-011', 'barcode' => '899100000211', 'name' => 'Lem Keramik', 'type' => 'merchandise', 'unit' => 'KG', 'cost' => 9000, 'sell' => 12000, 'min' => 20],
                 ['sku' => 'TB-012', 'barcode' => '899100000212', 'name' => 'Pipa PVC 1/2 Inch', 'type' => 'merchandise', 'unit' => 'BATANG', 'cost' => 18000, 'sell' => 25000, 'min' => 20],
                 ['sku' => 'TB-013', 'barcode' => '899100000213', 'name' => 'Elbow PVC 1/2 Inch', 'type' => 'merchandise', 'unit' => 'PCS', 'cost' => 2500, 'sell' => 4000, 'min' => 20],
@@ -180,6 +180,7 @@ class MasterProductSeeder extends Seeder
                 ['sku' => 'TB-003', 'unit' => 'BOX', 'factor' => 20],
                 ['sku' => 'TB-004', 'unit' => 'BOX', 'factor' => 20],
                 ['sku' => 'TB-009', 'unit' => 'PCS', 'factor' => 10],
+                ['sku' => 'TB-010', 'unit' => 'PAIL', 'factor' => 5],
                 ['sku' => 'TB-015', 'unit' => 'BOX', 'factor' => 100],
                 ['sku' => 'TB-016', 'unit' => 'BOX', 'factor' => 100],
             ];
