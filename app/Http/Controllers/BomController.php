@@ -75,8 +75,17 @@ class BomController extends Controller
                 ->count();
             abort_unless($validMaterials === count(array_unique($materialIds)), 422, 'Ada bahan baku yang tidak valid.');
 
+            $businessUnitId = DB::table('business_units')
+                ->where('entity_id', $entity)
+                ->where('business_type', 'production')
+                ->where('is_active', 1)
+                ->orderBy('id')
+                ->value('id');
+            abort_unless($businessUnitId, 422, 'Business Unit Produksi belum tersedia.');
+
             $bom = DB::table('boms')->insertGetId([
                 'entity_id' => $entity,
+                'business_unit_id' => $businessUnitId,
                 'product_id' => $product->id,
                 'code' => $data['code'],
                 'name' => $data['name'],

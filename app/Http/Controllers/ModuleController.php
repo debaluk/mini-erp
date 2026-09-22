@@ -26,7 +26,7 @@ class ModuleController extends Controller
             'title' => $title,
             'entity' => DB::table('entities')->where('id', $entity)->first(),
             'products' => DB::table('products as p')
-                ->join('product_units as pu', function ($join) use ($entity) {
+                ->join('product_business_units as pu', function ($join) use ($entity) {
                     $join->on('pu.product_id', '=', 'p.id')
                         ->where('pu.business_unit_id', function ($query) use ($entity) {
                             $query->select('id')
@@ -870,7 +870,7 @@ class ModuleController extends Controller
             abort_if($delta<0 && (!$stock || $stock->qty < abs($delta)),422,'Stok tidak mencukupi.');
             if($stock) DB::table('warehouses_stocks')->where('id',$stock->id)->update(['qty'=>$stock->qty+$delta,'updated_at'=>now()]);
             else DB::table('warehouses_stocks')->insert(['entity_id'=>$entity,'warehouse_id'=>$warehouse->id,'product_id'=>$product->id,'qty'=>$delta,'avg_cost'=>$data['unit_cost']??$product->cost_price,'created_at'=>now(),'updated_at'=>now()]);
-            DB::table('stock_movements')->insert(['entity_id'=>$entity,'warehouse_id'=>$warehouse->id,'product_id'=>$product->id,'movement_type'=>$data['movement_type'],'qty'=>$delta,'unit_cost'=>$data['unit_cost']??$product->cost_price,'reference_type'=>'adjustment','occurred_at'=>now(),'created_by'=>auth()->id(),'created_at'=>now(),'updated_at'=>now()]);
+            DB::table('stock_movements')->insert(['entity_id'=>$entity,'business_unit_id'=>$warehouse->business_unit_id,'warehouse_id'=>$warehouse->id,'product_id'=>$product->id,'unit_id'=>$product->base_unit_id,'transaction_qty'=>abs($delta),'conversion_factor'=>1,'movement_type'=>$data['movement_type'],'qty'=>$delta,'unit_cost'=>$data['unit_cost']??$product->cost_price,'reference_type'=>'adjustment','occurred_at'=>now(),'created_by'=>auth()->id(),'created_at'=>now(),'updated_at'=>now()]);
         });
         return back()->with('success','Mutasi stok berhasil disimpan.');
     }
@@ -884,7 +884,7 @@ class ModuleController extends Controller
             DB::table('stock_opname_items')->insert(['stock_opname_id'=>$id,'product_id'=>$data['product_id'],'system_qty'=>$system,'actual_qty'=>$actual,'difference'=>$diff,'created_at'=>now(),'updated_at'=>now()]);
             $stock=DB::table('warehouses_stocks')->where(['warehouse_id'=>$data['warehouse_id'],'product_id'=>$data['product_id']])->first();
             if($stock) DB::table('warehouses_stocks')->where('id',$stock->id)->update(['qty'=>$actual,'updated_at'=>now()]); else DB::table('warehouses_stocks')->insert(['entity_id'=>$entity,'warehouse_id'=>$data['warehouse_id'],'product_id'=>$data['product_id'],'qty'=>$actual,'avg_cost'=>0,'created_at'=>now(),'updated_at'=>now()]);
-            if(abs($diff)>0) DB::table('stock_movements')->insert(['entity_id'=>$entity,'warehouse_id'=>$data['warehouse_id'],'product_id'=>$data['product_id'],'movement_type'=>'opname','qty'=>$diff,'unit_cost'=>$stock->avg_cost??0,'reference_type'=>'stock_opname','reference_id'=>$id,'occurred_at'=>now(),'created_by'=>auth()->id(),'created_at'=>now(),'updated_at'=>now()]);
+            if(abs($diff)>0) DB::table('stock_movements')->insert(['entity_id'=>$entity,'business_unit_id'=>DB::table('warehouses')->where('id',$data['warehouse_id'])->value('business_unit_id'),'warehouse_id'=>$data['warehouse_id'],'product_id'=>$data['product_id'],'unit_id'=>DB::table('products')->where('id',$data['product_id'])->value('base_unit_id'),'transaction_qty'=>abs($diff),'conversion_factor'=>1,'movement_type'=>'opname','qty'=>$diff,'unit_cost'=>$stock->avg_cost??0,'reference_type'=>'stock_opname','reference_id'=>$id,'occurred_at'=>now(),'created_by'=>auth()->id(),'created_at'=>now(),'updated_at'=>now()]);
         });
         return back()->with('success','Stock opname berhasil diposting.');
     }
@@ -895,7 +895,8 @@ class ModuleController extends Controller
         $entity=$this->entityId();
         DB::transaction(function() use($data,$entity){
             $product=DB::table('products')->where('entity_id',$entity)->find($data['product_id']); $material=DB::table('products')->where('entity_id',$entity)->find($data['material_product_id']); abort_unless($product && $material,404);
-            $bom=DB::table('boms')->insertGetId(['entity_id'=>$entity,'product_id'=>$product->id,'code'=>$data['code'],'name'=>$data['name'],'output_qty'=>$data['output_qty'],'is_active'=>1,'created_at'=>now(),'updated_at'=>now()]);
+            $businessUnitId=DB::table('business_units')->where('entity_id',$entity)->where('business_type','production')->where('is_active',1)->orderBy('id')->value('id'); abort_unless($businessUnitId,422,'Business Unit Produksi belum tersedia.');
+            $bom=DB::table('boms')->insertGetId(['entity_id'=>$entity,'business_unit_id'=>$businessUnitId,'product_id'=>$product->id,'code'=>$data['code'],'name'=>$data['name'],'output_qty'=>$data['output_qty'],'is_active'=>1,'created_at'=>now(),'updated_at'=>now()]);
             DB::table('bom_items')->insert(['bom_id'=>$bom,'product_id'=>$material->id,'qty'=>$data['material_qty'],'created_at'=>now(),'updated_at'=>now()]);
         });
         return back()->with('success','Formula / BOM berhasil disimpan.');

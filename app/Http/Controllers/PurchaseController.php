@@ -20,11 +20,11 @@ class PurchaseController extends Controller
 
         $rows = DB::table('purchases as p')
             ->leftJoin('suppliers as s', 's.id', '=', 'p.supplier_id')
-            ->leftJoin('business_units as bu', 'bu.id', '=', 'p.unit_id')
+            ->leftJoin('business_units as bu', 'bu.id', '=', 'p.business_unit_id')
             ->where('p.entity_id', $entity)
             ->whereBetween('p.purchase_date', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
             ->when($request->filled('supplier'), fn ($q) => $q->where('s.name', 'like', '%' . $request->supplier . '%'))
-            ->when($request->filled('unit_id'), fn ($q) => $q->where('p.unit_id', $request->unit_id))
+            ->when($request->filled('unit_id'), fn ($q) => $q->where('p.business_unit_id', $request->unit_id))
             ->when($request->filled('payment_method'), fn ($q) => $q->where('p.payment_method', $request->payment_method))
             ->when($request->filled('status'), fn ($q) => $q->where('p.status', $request->status))
             ->select('p.*', 's.name as supplier_name', 'bu.name as unit_name')
@@ -70,8 +70,14 @@ class PurchaseController extends Controller
             ->where('p.is_active', 1)
             ->orderBy('p.name')
             ->get(['p.id', 'p.code', 'p.sku', 'p.name', 'p.cost_price', 'u.code as unit_code']);
+        $productUoms = DB::table('product_unit_conversions as puc')
+            ->join('units as u', 'u.id', '=', 'puc.unit_id')
+            ->where('puc.is_active', 1)
+            ->whereIn('puc.product_id', $products->pluck('id'))
+            ->get(['puc.product_id','puc.unit_id','puc.conversion_factor','puc.is_default_purchase','u.code','u.name'])
+            ->groupBy('product_id');
 
-        return view('erp.purchases.create', compact('suppliers', 'units', 'products'));
+        return view('erp.purchases.create', compact('suppliers', 'units', 'products', 'productUoms'));
     }
 
     public function edit(int $id)
@@ -112,7 +118,13 @@ class PurchaseController extends Controller
             ->where('pi.purchase_id', $id)
             ->orderBy('pi.id')
             ->get(['pi.product_id', 'p.code', 'p.sku', 'p.name', 'u.code as unit_code', 'pi.qty', 'pi.unit_cost', 'pi.total']);
+        $productUoms = DB::table('product_unit_conversions as puc')
+            ->join('units as u', 'u.id', '=', 'puc.unit_id')
+            ->where('puc.is_active', 1)
+            ->whereIn('puc.product_id', $products->pluck('id'))
+            ->get(['puc.product_id','puc.unit_id','puc.conversion_factor','puc.is_default_purchase','u.code','u.name'])
+            ->groupBy('product_id');
 
-        return view('erp.purchases.create', compact('purchase', 'suppliers', 'units', 'products', 'items'));
+        return view('erp.purchases.create', compact('purchase', 'suppliers', 'units', 'products', 'items', 'productUoms'));
     }
 }

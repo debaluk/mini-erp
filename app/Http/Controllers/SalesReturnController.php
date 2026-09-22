@@ -277,16 +277,18 @@ class SalesReturnController extends Controller
 
                 $qty = (float) $input['qty'];
                 abort_if($qty > max(0, (float) $item->qty - $returned), 422, 'Qty retur melebihi qty yang masih dapat diretur.');
+                $conversionFactor = (float) ($item->conversion_factor ?: 1);
+                $baseQty = (float) ($item->base_qty ?: ($qty * $conversionFactor));
 
                 $grossItem = (float) $item->total;
                 $allocatedDiscount = $subtotal > 0 ? ($grossItem / $subtotal) * $saleDiscount : 0;
                 $netItem = max(0, $grossItem - $allocatedDiscount);
                 $netUnitPrice = (float) $item->qty > 0 ? $netItem / (float) $item->qty : 0;
                 $returnValue = round($netUnitPrice * $qty, 2);
-                $hppUnit = $this->saleHppUnit($sale->id, (int) $item->product_id);
-                $hppTotal = round($hppUnit * $qty, 2);
+                $hppUnit = (float) ($item->hpp_unit ?: $this->saleHppUnit($sale->id, (int) $item->product_id));
+                $hppTotal = round($hppUnit * $baseQty, 2);
 
-                $prepared[] = compact('item', 'qty', 'returnValue', 'hppUnit', 'hppTotal') + ['condition' => $input['condition']];
+                $prepared[] = compact('item', 'qty', 'baseQty', 'conversionFactor', 'returnValue', 'hppUnit', 'hppTotal') + ['condition' => $input['condition']];
                 $returnTotal += $returnValue;
             }
 
@@ -295,6 +297,7 @@ class SalesReturnController extends Controller
             $returnNo = 'RET-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4));
             $returnId = DB::table('sales_returns')->insertGetId([
                 'entity_id' => $entity,
+                'business_unit_id' => $sale->business_unit_id,
                 'sale_id' => $sale->id,
                 'customer_id' => $sale->customer_id,
                 'warehouse_id' => $warehouse->id,
@@ -314,7 +317,10 @@ class SalesReturnController extends Controller
                     'sales_return_id' => $returnId,
                     'sale_item_id' => $item->id,
                     'product_id' => $item->product_id,
+                    'unit_id' => $item->unit_id,
                     'qty' => $p['qty'],
+                    'conversion_factor' => $p['conversionFactor'],
+                    'base_qty' => $p['baseQty'],
                     'unit_price' => $p['returnValue'] / $p['qty'],
                     'return_value' => $p['returnValue'],
                     'hpp_unit' => $p['hppUnit'],
@@ -335,7 +341,7 @@ class SalesReturnController extends Controller
                     if ($stock) {
                         $oldQty = (float) $stock->qty;
                         $oldCost = (float) $stock->avg_cost;
-                        $newQty = $oldQty + $p['qty'];
+                        $newQty = $oldQty + $p['baseQty'];
                         $newAvg = $newQty > 0 ? (($oldQty * $oldCost) + ($p['qty'] * $p['hppUnit'])) / $newQty : $p['hppUnit'];
                         DB::table('warehouses_stocks')->where('id', $stock->id)->update(['qty' => $newQty, 'avg_cost' => $newAvg, 'updated_at' => now()]);
                     } else {
@@ -343,7 +349,7 @@ class SalesReturnController extends Controller
                             'entity_id' => $entity,
                             'warehouse_id' => $warehouse->id,
                             'product_id' => $item->product_id,
-                            'qty' => $p['qty'],
+                            'qty' => $p['baseQty'],
                             'avg_cost' => $p['hppUnit'],
                             'created_at' => now(),
                             'updated_at' => now(),
@@ -353,10 +359,14 @@ class SalesReturnController extends Controller
 
                 DB::table('stock_movements')->insert([
                     'entity_id' => $entity,
+                    'business_unit_id' => $warehouse->business_unit_id,
                     'warehouse_id' => $warehouse->id,
                     'product_id' => $item->product_id,
+                    'unit_id' => $item->unit_id,
+                    'transaction_qty' => $p['qty'],
+                    'conversion_factor' => $p['conversionFactor'],
                     'movement_type' => $p['condition'] === 'good' ? 'sale_return_in' : 'sale_return_reject',
-                    'qty' => $p['qty'],
+                    'qty' => $p['baseQty'],
                     'unit_cost' => $p['hppUnit'],
                     'reference_type' => 'sales_return',
                     'reference_id' => $returnId,
@@ -381,6 +391,7 @@ class SalesReturnController extends Controller
             $journalNo = 'JRN-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(3));
             $journalId = DB::table('journals')->insertGetId([
                 'entity_id' => $entity,
+                'business_unit_id' => $sale->business_unit_id,
                 'journal_no' => $journalNo,
                 'journal_date' => today(),
                 'source_type' => 'sales_return',

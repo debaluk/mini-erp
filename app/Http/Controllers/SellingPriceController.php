@@ -51,7 +51,7 @@ class SellingPriceController extends Controller
             ->value('id');
 
         $products = DB::table('products as p')
-            ->join('product_units as pu', 'pu.product_id', '=', 'p.id')
+            ->join('product_business_units as pu', 'pu.product_id', '=', 'p.id')
             ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
             ->where('p.entity_id', $entity)
             ->where('p.is_active', 1)
@@ -94,7 +94,7 @@ class SellingPriceController extends Controller
             ->value('id');
 
         abort_unless(
-            $retailUnitId && DB::table('product_units')->where('product_id', $product->id)->where('business_unit_id', $retailUnitId)->exists(),
+            $retailUnitId && DB::table('product_business_units')->where('product_id', $product->id)->where('business_unit_id', $retailUnitId)->exists(),
             422,
             'Item belum dipilih untuk Unit Retail.'
         );
@@ -160,8 +160,12 @@ class SellingPriceController extends Controller
 
             DB::table('stock_movements')->insert([
                 'entity_id' => $entity,
+                'business_unit_id' => $warehouse->business_unit_id,
                 'warehouse_id' => $warehouse->id,
                 'product_id' => $product->id,
+                'unit_id' => $product->base_unit_id,
+                'transaction_qty' => $data['initial_stock'],
+                'conversion_factor' => 1,
                 'movement_type' => 'opening',
                 'qty' => $data['initial_stock'],
                 'unit_cost' => $data['purchase_price'],
