@@ -133,6 +133,19 @@ return new class extends Migration
             }
         }
 
+        foreach (['purchase_items','sale_items','sales_return_items','production_material_usages','production_outputs'] as $table) {
+            if (!Schema::hasTable($table)) {
+                continue;
+            }
+            foreach (['unit_cost','hpp_unit'] as $column) {
+                if (Schema::hasColumn($table, $column)) {
+                    Schema::table($table, function (Blueprint $t) use ($column) {
+                        $t->decimal($column, 18, 6)->change();
+                    });
+                }
+            }
+        }
+
         foreach (['warehouses_stocks', 'stock_movements'] as $table) {
             if (!Schema::hasTable($table)) {
                 continue;
