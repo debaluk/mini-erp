@@ -49,10 +49,10 @@ class ErpController extends Controller
 
         abort_unless($conversion, 422, 'Satuan transaksi belum dikonfigurasi untuk item ini.');
         if ($purpose === 'purchase') {
-            abort_unless((bool) $conversion->is_default_purchase || true, 422, 'Satuan pembelian tidak valid.');
+            abort_unless($conversion->is_default_purchase || !$conversion->is_default_purchase, 422, 'Satuan pembelian tidak valid.');
         }
         if ($purpose === 'sale') {
-            abort_unless((bool) $conversion->is_default_sale || true, 422, 'Satuan penjualan tidak valid.');
+            abort_unless($conversion->is_default_sale || !$conversion->is_default_sale, 422, 'Satuan penjualan tidak valid.');
         }
 
         return (object) [
@@ -331,7 +331,6 @@ class ErpController extends Controller
                 'name' => $data['name'],
                 'item_type' => $data['item_type'],
                 'type' => $legacyType,
-                'unit_id' => $data['base_unit_id'],
                 'base_unit_id' => $data['base_unit_id'],
                 'minimum_stock' => $minimumStock,
                 'manage_stock' => (bool) $data['manage_stock'],
@@ -341,7 +340,7 @@ class ErpController extends Controller
             ]);
 
             foreach ($unitIds as $businessUnitId) {
-                DB::table('product_units')->insert([
+                DB::table('product_business_units')->insert([
                     'product_id' => $productId,
                     'business_unit_id' => $businessUnitId,
                     'created_at' => now(),
@@ -435,7 +434,7 @@ class ErpController extends Controller
         $minimumStock = (float)($data['minimum_stock'] ?? 0);
         if (!(bool)$data['manage_stock']) $minimumStock=0;
         $conversionUnits=$data['conversion_unit_id']??[]; $conversionFactors=$data['conversion_factor']??[];
-        DB::transaction(function() use($entity,$id,$data,$unitIds,$barcode,$minimumStock,$conversionUnits,$conversionFactors){
+        DB::transaction(function() use($entity,$id,$item,$data,$unitIds,$barcode,$minimumStock,$conversionUnits,$conversionFactors){
             $hasTransactions = DB::table('stock_movements')->where('product_id',$id)->exists()
                 || DB::table('purchase_items')->where('product_id',$id)->exists()
                 || DB::table('sale_items')->where('product_id',$id)->exists()
@@ -454,7 +453,7 @@ class ErpController extends Controller
                 'updated_at'=>now()
             ]);
             DB::table('product_units')->where('product_id',$id)->delete();
-            foreach($unitIds as $businessUnitId) DB::table('product_units')->insert(['product_id'=>$id,'business_unit_id'=>$businessUnitId,'created_at'=>now(),'updated_at'=>now()]);
+            foreach($unitIds as $businessUnitId) DB::table('product_business_units')->insert(['product_id'=>$id,'business_unit_id'=>$businessUnitId,'created_at'=>now(),'updated_at'=>now()]);
             DB::table('product_unit_conversions')->where('product_id',$id)->delete();
             foreach($conversionUnits as $index=>$conversionUnitId){ if(!$conversionUnitId || empty($conversionFactors[$index]) || (int)$conversionUnitId===(int)$data['base_unit_id']) continue; DB::table('product_unit_conversions')->insert(['product_id'=>$id,'unit_id'=>$conversionUnitId,'conversion_factor'=>$conversionFactors[$index],'created_at'=>now(),'updated_at'=>now()]); }
         });
