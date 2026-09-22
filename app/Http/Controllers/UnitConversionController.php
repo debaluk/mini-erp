@@ -15,6 +15,7 @@ class UnitConversionController extends Controller
     public function index(Request $request)
     {
         $entity = $this->entityId();
+        $productId = $request->integer('product_id');
 
         $baseQuery = DB::table('product_unit_conversions as puc')
             ->join('products as p', 'p.id', '=', 'puc.product_id')
@@ -22,6 +23,10 @@ class UnitConversionController extends Controller
             ->leftJoin('units as bu', 'bu.id', '=', 'p.base_unit_id')
             ->where('p.entity_id', $entity)
             ->where('puc.is_active', 1);
+
+        if ($productId > 0) {
+            $baseQuery->where('p.id', $productId);
+        }
 
         if ($request->ajax() && $request->has('draw')) {
             $search = trim((string) $request->input('search.value', ''));
