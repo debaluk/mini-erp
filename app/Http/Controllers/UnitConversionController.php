@@ -16,11 +16,12 @@ class UnitConversionController extends Controller
     {
         $entity = $this->entityId();
 
-        $baseQuery = DB::table('unit_conversions as pu')
-            ->join('products as p', 'p.id', '=', 'pu.product_id')
-            ->join('units as u', 'u.id', '=', 'pu.unit_id')
-            ->leftJoin('units as du', 'du.id', '=', 'p.unit_id')
-            ->where('p.entity_id', $entity);
+        $baseQuery = DB::table('product_unit_conversions as puc')
+            ->join('products as p', 'p.id', '=', 'puc.product_id')
+            ->join('units as u', 'u.id', '=', 'puc.unit_id')
+            ->leftJoin('units as bu', 'bu.id', '=', 'p.base_unit_id')
+            ->where('p.entity_id', $entity)
+            ->where('puc.is_active', 1);
 
         if ($request->ajax() && $request->has('draw')) {
             $search = trim((string) $request->input('search.value', ''));
@@ -30,25 +31,14 @@ class UnitConversionController extends Controller
                 $query->where(function ($q) use ($search) {
                     $q->where('p.name', 'like', '%'.$search.'%')
                         ->orWhere('u.code', 'like', '%'.$search.'%')
-                        ->orWhere('du.code', 'like', '%'.$search.'%');
+                        ->orWhere('bu.code', 'like', '%'.$search.'%');
                 });
             }
 
-            $total = DB::table('unit_conversions as uc')
-                ->join('products as p', 'p.id', '=', 'uc.product_id')
-                ->where('p.entity_id', $entity)
-                ->count();
+            $total = (clone $baseQuery)->count();
+            $filtered = (clone $query)->count();
 
-            $filtered = $query->count();
-
-            $columns = [
-                'p.name',
-                'du.code',
-                'u.code',
-                'pu.conversion_factor',
-                'p.unit_id',
-            ];
-
+            $columns = ['p.name', 'bu.code', 'u.code', 'puc.conversion_factor'];
             $orderIndex = (int) $request->input('order.0.column', 0);
             $orderDir = strtolower((string) $request->input('order.0.dir', 'asc')) === 'desc' ? 'desc' : 'asc';
             $orderColumn = $columns[$orderIndex] ?? 'p.name';
@@ -57,18 +47,19 @@ class UnitConversionController extends Controller
 
             $rows = $query
                 ->select(
-                    'pu.id',
-                    'pu.product_id',
-                    'pu.unit_id',
-                    'pu.conversion_factor',
-                    DB::raw('CASE WHEN p.unit_id = pu.unit_id THEN 1 ELSE 0 END as is_default'),
+                    'puc.id',
+                    'puc.product_id',
+                    'puc.unit_id',
+                    'puc.conversion_factor',
+                    'puc.is_default_purchase',
+                    'puc.is_default_sale',
                     'p.name as product_name',
                     'u.code as unit_code',
                     'u.name as unit_name',
-                    'du.code as default_unit_code'
+                    'bu.code as default_unit_code'
                 )
                 ->orderBy($orderColumn, $orderDir)
-                ->orderBy('pu.id', 'desc')
+                ->orderByDesc('puc.id')
                 ->offset($start)
                 ->limit($length > 0 ? $length : 15)
                 ->get();
@@ -83,17 +74,18 @@ class UnitConversionController extends Controller
 
         $rows = $baseQuery
             ->select(
-                'pu.id',
-                'pu.product_id',
-                'pu.unit_id',
-                'pu.conversion_factor',
-                DB::raw('CASE WHEN p.unit_id = pu.unit_id THEN 1 ELSE 0 END as is_default'),
+                'puc.id',
+                'puc.product_id',
+                'puc.unit_id',
+                'puc.conversion_factor',
+                'puc.is_default_purchase',
+                'puc.is_default_sale',
                 'p.name as product_name',
                 'u.code as unit_code',
                 'u.name as unit_name',
-                'du.code as default_unit_code'
+                'bu.code as default_unit_code'
             )
-            ->orderBy('pu.id', 'desc')
+            ->orderByDesc('puc.id')
             ->paginate(15)
             ->withQueryString();
 
@@ -101,10 +93,11 @@ class UnitConversionController extends Controller
             ->where('entity_id', $entity)
             ->where('is_active', 1)
             ->orderBy('name')
-            ->get(['id', 'name', 'unit_id']);
+            ->get(['id', 'name', 'base_unit_id']);
 
         $units = DB::table('units')
             ->where('entity_id', $entity)
+            ->where('is_active', 1)
             ->orderBy('name')
             ->get();
 
@@ -114,59 +107,63 @@ class UnitConversionController extends Controller
     private function save(Request $request, ?int $id = null)
     {
         $data = $request->validate([
-            'product_id' => 'required|integer',
-            'unit_id' => 'required|integer',
-            'conversion_factor' => 'required|numeric|gt:0',
-            'is_default' => 'nullable|boolean',
+            'product_id' => ['required', 'integer'],
+            'unit_id' => ['required', 'integer'],
+            'conversion_factor' => ['required', 'numeric', 'gt:0'],
+            'is_default_purchase' => ['nullable', 'boolean'],
+            'is_default_sale' => ['nullable', 'boolean'],
         ]);
 
         $entity = $this->entityId();
+        $product = DB::table('products')
+            ->where('entity_id', $entity)
+            ->where('id', $data['product_id'])
+            ->first();
+        abort_unless($product, 422, 'Produk tidak valid.');
 
         abort_unless(
-            DB::table('products')->where('entity_id', $entity)->where('id', $data['product_id'])->exists(),
-            422,
-            'Produk tidak valid.'
-        );
-
-        abort_unless(
-            DB::table('units')->where('entity_id', $entity)->where('id', $data['unit_id'])->exists(),
+            DB::table('units')->where('entity_id', $entity)->where('is_active', 1)->where('id', $data['unit_id'])->exists(),
             422,
             'Satuan tidak valid.'
         );
 
+        abort_if((int) $product->base_unit_id === (int) $data['unit_id'], 422, 'Base Unit tidak perlu dibuat sebagai konversi.');
+
+        if (($data['is_default_purchase'] ?? false)) {
+            DB::table('product_unit_conversions')
+                ->where('product_id', $product->id)
+                ->when($id, fn ($q) => $q->where('id', '<>', $id))
+                ->update(['is_default_purchase' => 0, 'updated_at' => now()]);
+        }
+
+        if (($data['is_default_sale'] ?? false)) {
+            DB::table('product_unit_conversions')
+                ->where('product_id', $product->id)
+                ->when($id, fn ($q) => $q->where('id', '<>', $id))
+                ->update(['is_default_sale' => 0, 'updated_at' => now()]);
+        }
+
         $values = [
-            'product_id' => $data['product_id'],
+            'product_id' => $product->id,
             'unit_id' => $data['unit_id'],
             'conversion_factor' => $data['conversion_factor'],
+            'is_default_purchase' => (bool) ($data['is_default_purchase'] ?? false),
+            'is_default_sale' => (bool) ($data['is_default_sale'] ?? false),
+            'is_active' => 1,
             'updated_at' => now(),
         ];
 
         if ($id) {
-            DB::table('unit_conversions')
+            DB::table('product_unit_conversions')
                 ->where('id', $id)
-                ->where('product_id', $data['product_id'])
+                ->where('product_id', $product->id)
                 ->update($values);
         } else {
             $values['created_at'] = now();
-
-            DB::table('unit_conversions')->updateOrInsert(
-                [
-                    'product_id' => $data['product_id'],
-                    'unit_id' => $data['unit_id'],
-                ],
+            DB::table('product_unit_conversions')->updateOrInsert(
+                ['product_id' => $product->id, 'unit_id' => $data['unit_id']],
                 $values
             );
-        }
-
-        if (($data['is_default'] ?? false)) {
-            DB::table('products')
-                ->where('entity_id', $entity)
-                ->where('id', $data['product_id'])
-                ->update([
-                    'unit_id' => $data['unit_id'],
-                    'base_unit_id' => $data['unit_id'],
-                    'updated_at' => now(),
-                ]);
         }
 
         return response()->json([
@@ -182,10 +179,10 @@ class UnitConversionController extends Controller
     public function update(Request $request, int $id)
     {
         abort_unless(
-            DB::table('unit_conversions as uc')
-                ->join('products as p', 'p.id', '=', 'uc.product_id')
+            DB::table('product_unit_conversions as puc')
+                ->join('products as p', 'p.id', '=', 'puc.product_id')
                 ->where('p.entity_id', $this->entityId())
-                ->where('uc.id', $id)
+                ->where('puc.id', $id)
                 ->exists(),
             404
         );
@@ -195,20 +192,21 @@ class UnitConversionController extends Controller
 
     public function destroy(int $id)
     {
-        $deleted = DB::table('unit_conversions as uc')
-            ->where('uc.id', $id)
-            ->whereExists(function ($query) {
-                $query->select(DB::raw(1))
-                    ->from('products as p')
-                    ->whereColumn('p.id', 'uc.product_id')
-                    ->where('p.entity_id', $this->entityId());
-            })
-            ->delete();
+        $row = DB::table('product_unit_conversions as puc')
+            ->join('products as p', 'p.id', '=', 'puc.product_id')
+            ->where('p.entity_id', $this->entityId())
+            ->where('puc.id', $id)
+            ->select('puc.*')
+            ->first();
 
-        abort_unless($deleted, 404);
+        abort_unless($row, 404);
+
+        DB::table('product_unit_conversions')
+            ->where('id', $id)
+            ->update(['is_active' => 0, 'updated_at' => now()]);
 
         return response()->json([
-            'message' => 'Konversi satuan berhasil dihapus.',
+            'message' => 'Konversi satuan dinonaktifkan.',
         ]);
     }
 }

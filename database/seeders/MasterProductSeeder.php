@@ -43,7 +43,8 @@ class MasterProductSeeder extends Seeder
                 'stock_movements',
                 'warehouses_stocks',
                 'purchase_price_histories',
-                'product_units',
+                'product_unit_conversions',
+                'product_business_units',
             ];
 
             foreach ($tables as $table) {
@@ -148,7 +149,8 @@ class MasterProductSeeder extends Seeder
                 $productId = DB::table('products')->insertGetId([
                     'entity_id' => $entityId,
                     'category_id' => null,
-                    'unit_id' => $unitIds[$p['unit']],
+                    'base_unit_id' => $unitIds[$p['unit']],
+                    'item_type' => 'barang',
                     'sku' => $p['sku'],
                     'barcode' => $p['barcode'],
                     'name' => $p['name'],
@@ -187,28 +189,37 @@ class MasterProductSeeder extends Seeder
                     continue;
                 }
 
-                DB::table('product_units')->insert([
-                    'entity_id' => $entityId,
+                DB::table('product_unit_conversions')->insert([
                     'product_id' => $productIds[$c['sku']],
                     'unit_id' => $unitIds[$c['unit']],
                     'conversion_factor' => $c['factor'],
-                    'is_default' => 0,
+                    'is_default_purchase' => 1,
+                    'is_default_sale' => 0,
+                    'is_active' => 1,
                     'created_at' => $now,
                     'updated_at' => $now,
                 ]);
             }
 
-            // Pastikan satuan dasar tiap produk selalu tersedia di product_units.
+            // Mapping item ke Business Unit dipisahkan dari UOM conversion.
+            $retailBu = DB::table('business_units')->where('entity_id', $entityId)->where('business_type', 'retail')->where('is_active', 1)->orderBy('id')->value('id');
+            $productionBu = DB::table('business_units')->where('entity_id', $entityId)->where('business_type', 'production')->where('is_active', 1)->orderBy('id')->value('id');
+            $serviceBu = DB::table('business_units')->where('entity_id', $entityId)->where('business_type', 'service')->where('is_active', 1)->orderBy('id')->value('id');
+
             foreach ($products as $p) {
-                DB::table('product_units')->insert([
-                    'entity_id' => $entityId,
-                    'product_id' => $productIds[$p['sku']],
-                    'unit_id' => $unitIds[$p['unit']],
-                    'conversion_factor' => 1,
-                    'is_default' => 1,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ]);
+                $businessUnitId = match ($p['type']) {
+                    'raw_material', 'finished_goods' => $productionBu,
+                    default => str_starts_with($p['sku'], 'OP-') ? $serviceBu : $retailBu,
+                };
+
+                if ($businessUnitId) {
+                    DB::table('product_business_units')->insert([
+                        'product_id' => $productIds[$p['sku']],
+                        'business_unit_id' => $businessUnitId,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ]);
+                }
             }
 
             // Gudang utama.

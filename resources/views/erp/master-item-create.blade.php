@@ -155,8 +155,10 @@
     const units = @json($units);
     const oldUnitIds = @json(old('conversion_unit_id', []));
     const oldFactors = @json(old('conversion_factor', []));
+    const oldDefaultPurchase = @json(old('conversion_default_purchase', []));
+    const oldDefaultSale = @json(old('conversion_default_sale', []));
 
-    function addRow(unitId = '', factor = '') {
+    function addRow(unitId = '', factor = '', defaultPurchase = false, defaultSale = false) {
         const row = document.createElement('div');
         row.className = 'row g-2 align-items-end mb-2 conversion-row';
         row.innerHTML = `
@@ -167,9 +169,13 @@
                     ${units.map(unit => `<option value="${unit.id}" ${String(unit.id) === String(unitId) ? 'selected' : ''}>${unit.name}</option>`).join('')}
                 </select>
             </div>
-            <div class="col-md-5">
+            <div class="col-md-3">
                 <label class="form-label">Faktor</label>
-                <input type="text" inputmode="decimal" name="conversion_factor[]" class="form-control" value="${String(factor).replace(/(\\.\\d*?[1-9])0+$|\\.0+$/,"$1")}"}>
+                <input type="text" inputmode="decimal" name="conversion_factor[]" class="form-control" value="${String(factor).replace(/(\\.\\d*?[1-9])0+$|\\.0+$/,"$1")}">
+            </div>
+            <div class="col-md-2">
+                <div class="form-check"><input class="form-check-input" type="checkbox" name="conversion_default_purchase[]" value="1" ${defaultPurchase ? 'checked' : ''}><label class="form-check-label small">Default Beli</label></div>
+                <div class="form-check"><input class="form-check-input" type="checkbox" name="conversion_default_sale[]" value="1" ${defaultSale ? 'checked' : ''}><label class="form-check-label small">Default Jual</label></div>
             </div>
             <div class="col-md-2">
                 <button type="button" class="btn btn-outline-danger w-100 remove-conversion">Hapus</button>
@@ -178,11 +184,10 @@
         conversionRows.appendChild(row);
         row.querySelector('.remove-conversion').addEventListener('click', () => row.remove());
     }
-
     addConversion.addEventListener('click', () => addRow());
 
     oldUnitIds.forEach((unitId, index) => {
-        addRow(unitId, oldFactors[index] ?? '');
+        addRow(unitId, oldFactors[index] ?? '', Boolean(oldDefaultPurchase[index]), Boolean(oldDefaultSale[index]));
     });
 
     document.querySelectorAll('input[name="manage_stock"]').forEach(input => {

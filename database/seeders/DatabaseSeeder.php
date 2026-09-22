@@ -253,18 +253,6 @@ class DatabaseSeeder extends Seeder
                 ->where('code', $product['code'])
                 ->value('id');
 
-            DB::table('product_units')->updateOrInsert(
-                [
-                    'product_id' => $productIds[$product['code']],
-                    'unit_id' => $unitIds[$product['unit']],
-                ],
-                [
-                    'conversion_factor' => 1,
-                    'is_default' => true,
-                    'updated_at' => $now,
-                ]
-            );
-
             DB::table('product_business_units')
                 ->where('product_id', $productIds[$product['code']])
                 ->delete();

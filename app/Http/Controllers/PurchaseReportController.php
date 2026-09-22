@@ -16,14 +16,14 @@ class PurchaseReportController extends Controller
     {
         return DB::table('purchases as p')
             ->leftJoin('suppliers as s', 's.id', '=', 'p.supplier_id')
-            ->leftJoin('business_units as bu', 'bu.id', '=', 'p.unit_id')
+            ->leftJoin('business_units as bu', 'bu.id', '=', 'p.base_unit_id')
             ->where('p.entity_id', $entity)
             ->whereBetween('p.purchase_date', [
                 $request->input('start_date', now()->startOfMonth()->toDateString()) . ' 00:00:00',
                 $request->input('end_date', now()->endOfMonth()->toDateString()) . ' 23:59:59',
             ])
             ->when($request->filled('supplier'), fn ($q) => $q->where('s.name', 'like', '%' . $request->supplier . '%'))
-            ->when($request->filled('unit_id'), fn ($q) => $q->where('p.unit_id', $request->unit_id))
+            ->when($request->filled('unit_id'), fn ($q) => $q->where('p.base_unit_id', $request->unit_id))
             ->when($request->filled('payment_method'), fn ($q) => $q->where('p.payment_method', $request->payment_method))
             ->when($request->filled('status'), fn ($q) => $q->where('p.status', $request->status));
     }

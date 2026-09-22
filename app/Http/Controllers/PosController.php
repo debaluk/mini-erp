@@ -25,7 +25,7 @@ class PosController extends Controller
         $data = $request->validate(['product_id'=>'required|integer','qty'=>'required|numeric|gt:0']);
         $entity = $this->entityId();
         $product = DB::table('products as p')
-            ->join('product_units as pu', 'pu.product_id', '=', 'p.id')
+            ->join('product_business_units as pu', 'pu.product_id', '=', 'p.id')
             ->join('business_units as bu', function ($join) use ($entity) {
                 $join->on('bu.id', '=', 'pu.business_unit_id')
                     ->where('bu.entity_id', $entity)
@@ -155,6 +155,7 @@ class PosController extends Controller
                     'stock_id' => $stock->id,
                     'warehouse_id' => $stock->warehouse_id,
                     'product_id' => $item['product_id'],
+                    'unit_id' => $item['selling_unit_id'],
                     'qty' => $qty,
                     'avg_cost' => (float) $stock->avg_cost,
                 ];
@@ -165,8 +166,10 @@ class PosController extends Controller
                 ->where('code', 'CUST-UMUM')
                 ->value('id');
 
+            $businessUnitId = (int) ($shift->business_unit_id ?? 1);
             $sale = DB::table('sales')->insertGetId([
                 'entity_id' => $entity,
+                'business_unit_id' => $businessUnitId,
                 'customer_id' => $customerId,
                 'user_id' => auth()->id(),
                 'shift_id' => $shift->id,
@@ -184,8 +187,12 @@ class PosController extends Controller
                 DB::table('sale_items')->insert([
                     'sale_id' => $sale,
                     'product_id' => $item['product_id'],
+                    'unit_id' => $item['selling_unit_id'],
                     'qty' => $item['qty'],
+                    'conversion_factor' => 1,
+                    'base_qty' => $item['qty'],
                     'unit_price' => $item['price'],
+                    'base_unit_cost' => $stockRows[array_search($item['product_id'], array_column($stockRows, 'product_id'))]['avg_cost'] ?? 0,
                     'discount' => 0,
                     'total' => (float) $item['price'] * (float) $item['qty'],
                     'created_at' => now(),
@@ -195,6 +202,7 @@ class PosController extends Controller
 
             DB::table('payments')->insert([
                 'entity_id' => $entity,
+                'business_unit_id' => $businessUnitId,
                 'sale_id' => $sale,
                 'user_id' => auth()->id(),
                 'payment_date' => now(),
@@ -211,8 +219,12 @@ class PosController extends Controller
 
                 DB::table('stock_movements')->insert([
                     'entity_id' => $entity,
+                    'business_unit_id' => $businessUnitId,
                     'warehouse_id' => $row['warehouse_id'],
                     'product_id' => $row['product_id'],
+                    'unit_id' => $row['unit_id'],
+                    'transaction_qty' => $row['qty'],
+                    'conversion_factor' => 1,
                     'movement_type' => 'sale_out',
                     'qty' => -$row['qty'],
                     'unit_cost' => $row['avg_cost'],
