@@ -103,13 +103,30 @@ class SettingsController extends Controller
             ->get();
 
         $moduleCatalog = $this->moduleCatalog();
+        $businessUnits = DB::table('business_units')
+            ->where('entity_id', $entityId)
+            ->where('is_active', true)
+            ->orderBy('code')
+            ->get();
+
         $userModules = DB::table('user_module_permissions')
             ->whereIn('user_id', $users->pluck('id'))
             ->get()
             ->groupBy('user_id')
             ->map(fn ($rows) => $rows->pluck('module')->values()->all());
 
-        return view('settings.users', compact('users', 'moduleCatalog', 'userModules'));
+        $userBusinessUnits = DB::table('user_business_units')
+            ->whereIn('user_id', $users->pluck('id'))
+            ->get()
+            ->groupBy('user_id');
+
+        return view('settings.users', compact(
+            'users',
+            'moduleCatalog',
+            'businessUnits',
+            'userModules',
+            'userBusinessUnits'
+        ));
     }
 
     public function userStore(Request $request)
@@ -123,6 +140,13 @@ class SettingsController extends Controller
             'role' => ['required', Rule::in(['admin', 'kasir', 'inventori', 'akuntansi'])],
             'modules' => ['nullable', 'array'],
             'modules.*' => ['string', Rule::in(array_keys($this->moduleCatalog()))],
+            'business_units' => ['required', 'array', 'min:1'],
+            'business_units.*' => ['integer', Rule::exists('business_units', 'id')->where(
+                fn ($query) => $query->where('entity_id', $request->user()->entity_id)->where('is_active', true)
+            )],
+            'default_business_unit_id' => ['required', 'integer', Rule::exists('business_units', 'id')->where(
+                fn ($query) => $query->where('entity_id', $request->user()->entity_id)->where('is_active', true)
+            )],
         ]);
 
         $userId = DB::table('users')->insertGetId([
@@ -136,6 +160,9 @@ class SettingsController extends Controller
             'updated_at' => now(),
         ]);
 
+        // IMPORTANT: default BU must always be one of the user's mapped BUs.
+        abort_unless(in_array((int) $data['default_business_unit_id'], array_map('intval', $data['business_units']), true), 422);
+
         DB::table('user_module_permissions')->insert(array_map(fn ($module) => [
             'user_id' => $userId,
             'module' => $module,
@@ -143,12 +170,22 @@ class SettingsController extends Controller
             'updated_at' => now(),
         ], array_values(array_unique($data['modules'] ?? []))));
 
+        foreach (array_values(array_unique($data['business_units'])) as $businessUnitId) {
+            DB::table('user_business_units')->insert([
+                'user_id' => $userId,
+                'business_unit_id' => $businessUnitId,
+                'is_default' => (int) $data['default_business_unit_id'] === (int) $businessUnitId,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
         return back()->with('success', 'User berhasil ditambahkan.');
     }
 
     public function userUpdate(Request $request, int $id)
     {
-        abort_unless($request->user()->role === 'owner' && $request->user()->entity_id, 403);
+        abort_unless(in_array($request->user()->role, ['owner', 'admin'], true) && $request->user()->entity_id, 403);
 
         $user = DB::table('users')
             ->where('id', $id)
@@ -160,15 +197,26 @@ class SettingsController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($id)],
             'role' => ['required', Rule::in(['admin', 'kasir', 'inventori', 'akuntansi'])],
-            'modules' => ['required', 'array', 'min:1'],
+            'modules' => ['nullable', 'array'],
             'modules.*' => ['string', Rule::in(array_keys($this->moduleCatalog()))],
+            'business_units' => ['required', 'array', 'min:1'],
+            'business_units.*' => ['integer', Rule::exists('business_units', 'id')->where(
+                fn ($query) => $query->where('entity_id', $request->user()->entity_id)->where('is_active', true)
+            )],
+            'default_business_unit_id' => ['required', 'integer', Rule::exists('business_units', 'id')->where(
+                fn ($query) => $query->where('entity_id', $request->user()->entity_id)->where('is_active', true)
+            )],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
         ]);
+
+        // IMPORTANT: default BU must always be one of the user's mapped BUs.
+        abort_unless(in_array((int) $data['default_business_unit_id'], array_map('intval', $data['business_units']), true), 422);
 
         $payload = [
             'name' => $data['name'],
             'email' => $data['email'],
             'role' => $data['role'],
+            'default_business_unit_id' => $data['default_business_unit_id'],
             'updated_at' => now(),
         ];
 
@@ -184,7 +232,18 @@ class SettingsController extends Controller
             'module' => $module,
             'created_at' => now(),
             'updated_at' => now(),
-        ], array_values(array_unique($data['modules']))));
+        ], array_values(array_unique($data['modules'] ?? []))));
+
+        DB::table('user_business_units')->where('user_id', $id)->delete();
+        foreach (array_values(array_unique($data['business_units'])) as $businessUnitId) {
+            DB::table('user_business_units')->insert([
+                'user_id' => $id,
+                'business_unit_id' => $businessUnitId,
+                'is_default' => (int) $data['default_business_unit_id'] === (int) $businessUnitId,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
 
         return back()->with('success', 'User berhasil diperbarui.');
     }
