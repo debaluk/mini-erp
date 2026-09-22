@@ -614,12 +614,14 @@ class DatabaseSeeder extends Seeder
         // MODULE PERMISSIONS
         // Baseline permission sederhana sesuai role yang dikunci.
         // ================================================================
+        // Access keys are the canonical module gates used by ModuleAccessMiddleware.
+        // IMPORTANT: keep these keys aligned with routes/web.php. Do not use menu labels here.
         $roleModules = [
-            'owner' => ['dashboard','master','pos','inventory','production','fleet','accounting','reports','settings'],
-            'admin' => ['dashboard','master','settings'],
-            'kasir' => ['dashboard','pos'],
-            'inventori' => ['dashboard','master','inventory','production','fleet'],
-            'akuntansi' => ['dashboard','accounting','reports'],
+            'owner' => ['pos_retail','master_data','inventori','produksi','armada_jasa','akuntansi','laporan','konfigurasi'],
+            'admin' => ['master_data','konfigurasi'],
+            'kasir' => ['pos_retail'],
+            'inventori' => ['inventori','produksi','armada_jasa'],
+            'akuntansi' => ['akuntansi','laporan'],
         ];
 
         foreach ($users as $user) {
