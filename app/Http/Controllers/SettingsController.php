@@ -146,7 +146,7 @@ class SettingsController extends Controller
             )],
             'default_business_unit_id' => ['required', 'integer', Rule::exists('business_units', 'id')->where(
                 fn ($query) => $query->where('entity_id', $request->user()->entity_id)->where('is_active', true)
-            )],
+            ), Rule::in(array_map('intval', $request->input('business_units', [])))],
         ]);
 
         $userId = DB::table('users')->insertGetId([
@@ -160,9 +160,6 @@ class SettingsController extends Controller
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-
-        // IMPORTANT: default BU must always be one of the user's mapped BUs.
-        abort_unless(in_array((int) $data['default_business_unit_id'], array_map('intval', $data['business_units']), true), 422);
 
         DB::table('user_module_permissions')->insert(array_map(fn ($module) => [
             'user_id' => $userId,
@@ -206,7 +203,7 @@ class SettingsController extends Controller
             )],
             'default_business_unit_id' => ['required', 'integer', Rule::exists('business_units', 'id')->where(
                 fn ($query) => $query->where('entity_id', $request->user()->entity_id)->where('is_active', true)
-            )],
+            ), Rule::in(array_map('intval', $request->input('business_units', [])))],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
         ]);
 
