@@ -62,21 +62,6 @@
     </div>
 </div>
 
-<div class="modal fade" id="masterMessageModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-sm modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header py-2">
-                <h5 class="modal-title" id="masterMessageTitle">Informasi</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="masterMessageBody"></div>
-            <div class="modal-footer py-2">
-                <button type="button" class="btn btn-primary btn-sm" data-bs-dismiss="modal">OK</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <div class="modal fade" id="masterConfirmModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-sm modal-dialog-centered">
         <div class="modal-content">
@@ -102,24 +87,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const modal = new bootstrap.Modal(document.getElementById('masterModal'));
-    const messageModal = new bootstrap.Modal(document.getElementById('masterMessageModal'));
     const confirmModal = new bootstrap.Modal(document.getElementById('masterConfirmModal'));
     const form = document.getElementById('masterForm');
     const title = document.getElementById('masterModalTitle');
-    const messageTitle = document.getElementById('masterMessageTitle');
-    const messageBody = document.getElementById('masterMessageBody');
     const submitButton = document.getElementById('masterSubmit');
     const baseUrl = @json(url('/master/'.$type));
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content || @json(csrf_token());
 
     let editId = null;
     let deleteId = null;
-
-    const showMessage = (message, type = 'success') => {
-        messageTitle.textContent = type === 'danger' ? 'Gagal' : (type === 'warning' ? 'Peringatan' : 'Berhasil');
-        messageBody.innerHTML = message;
-        messageModal.show();
-    };
 
     const dataTable = new DataTable('#masterDataTable', {
         processing: true,
@@ -235,16 +211,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!response.ok) {
                 const errors = Object.values(data.errors || {}).flat();
-                showMessage(data.message || errors.join('<br>') || 'Gagal menyimpan data.', 'danger');
+                window.erpNotify(data.message || (errors.length ? errors : 'Gagal menyimpan data.'), 'danger');
                 return;
             }
 
             modal.hide();
             dataTable.ajax.reload(null, false);
-            showMessage(data.message || 'Data berhasil disimpan.');
+            window.erpNotify(data.message || 'Data berhasil disimpan.', 'success');
         } catch (error) {
             console.error(error);
-            showMessage('Terjadi kesalahan saat menyimpan data.', 'danger');
+            window.erpNotify(error.message || 'Terjadi kesalahan saat menyimpan data.', 'danger');
         }
     });
 
@@ -291,15 +267,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json().catch(() => ({}));
 
             if (!response.ok) {
-                showMessage(data.message || 'Data tidak dapat dihapus karena sudah digunakan oleh data lain.', 'danger');
+                window.erpNotify(data.message || 'Data tidak dapat dihapus karena sudah digunakan oleh data lain.', 'danger');
                 return;
             }
 
             dataTable.ajax.reload(null, false);
-            showMessage(data.message || 'Data berhasil dihapus.');
+            window.erpNotify(data.message || 'Data berhasil dihapus.', 'success');
         } catch (error) {
             console.error(error);
-            showMessage('Terjadi kesalahan saat menghapus data.', 'danger');
+            window.erpNotify(error.message || 'Terjadi kesalahan saat menghapus data.', 'danger');
         } finally {
             deleteId = null;
         }
