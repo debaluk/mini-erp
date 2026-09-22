@@ -388,6 +388,7 @@ class SalesReturnController extends Controller
             $journalNo = 'JRN-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(3));
             $journalId = DB::table('journals')->insertGetId([
                 'entity_id' => $entity,
+                'business_unit_id' => $sale->business_unit_id,
                 'journal_no' => $journalNo,
                 'journal_date' => today(),
                 'source_type' => 'sales_return',
