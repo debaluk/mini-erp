@@ -342,7 +342,7 @@ class SalesReturnController extends Controller
                         $oldQty = (float) $stock->qty;
                         $oldCost = (float) $stock->avg_cost;
                         $newQty = $oldQty + $p['baseQty'];
-                        $newAvg = $newQty > 0 ? (($oldQty * $oldCost) + ($p['qty'] * $p['hppUnit'])) / $newQty : $p['hppUnit'];
+                        $newAvg = $newQty > 0 ? (($oldQty * $oldCost) + ($p['baseQty'] * $p['hppUnit'])) / $newQty : $p['hppUnit'];
                         DB::table('warehouses_stocks')->where('id', $stock->id)->update(['qty' => $newQty, 'avg_cost' => $newAvg, 'updated_at' => now()]);
                     } else {
                         DB::table('warehouses_stocks')->insert([
