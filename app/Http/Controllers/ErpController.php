@@ -319,7 +319,7 @@ class ErpController extends Controller
                     'Satuan konversi tidak valid.'
                 );
 
-                DB::table('product_product_unit_conversions')->insert([
+                DB::table('product_unit_conversions')->insert([
                     'product_id' => $productId,
                     'unit_id' => $conversionUnitId,
                     'conversion_factor' => $conversionFactors[$index],
@@ -351,7 +351,7 @@ class ErpController extends Controller
         abort_if($hasTransactions, 422, 'Item sudah digunakan dalam transaksi dan tidak dapat dihapus. Nonaktifkan item jika tidak digunakan lagi.');
 
         DB::transaction(function () use ($id, $entity): void {
-            DB::table('product_product_unit_conversions')->where('product_id', $id)->delete();
+            DB::table('product_unit_conversions')->where('product_id', $id)->delete();
             DB::table('product_business_units')->where('product_id', $id)->delete();
             DB::table('products')->where('entity_id', $entity)->where('id', $id)->delete();
         });
@@ -367,7 +367,7 @@ class ErpController extends Controller
         $units = DB::table('units')->where('entity_id', $entity)->where('is_active', 1)->orderBy('name')->get();
         $businessUnits = DB::table('business_units')->where('entity_id', $entity)->where('is_active', 1)->orderBy('id')->get();
         $selectedBusinessUnits = DB::table('product_business_units')->where('product_id', $id)->pluck('business_unit_id')->all();
-        $conversions = DB::table('product_product_unit_conversions')->where('product_id', $id)->get();
+        $conversions = DB::table('product_unit_conversions')->where('product_id', $id)->get();
 
         if ($request->ajax()) {
             return response()->json([
@@ -417,11 +417,11 @@ class ErpController extends Controller
             DB::table('products')->where('entity_id',$entity)->where('id',$id)->update(['barcode'=>$barcode,'name'=>$data['name'],'base_unit_id'=>$data['base_unit_id'],'minimum_stock'=>$minimumStock,'manage_stock'=>(bool)$data['manage_stock'],'is_active'=>(bool)$data['status'],'updated_at'=>now()]);
             DB::table('product_business_units')->where('product_id',$id)->delete();
             foreach($unitIds as $businessUnitId) DB::table('product_business_units')->insert(['product_id'=>$id,'business_unit_id'=>$businessUnitId,'created_at'=>now(),'updated_at'=>now()]);
-            DB::table('product_product_unit_conversions')->where('product_id',$id)->delete();
+            DB::table('product_unit_conversions')->where('product_id',$id)->delete();
             foreach($conversionUnits as $index=>$conversionUnitId){
                 if(!$conversionUnitId || empty($conversionFactors[$index]) || (int)$conversionUnitId===(int)$data['base_unit_id']) continue;
                 abort_unless(DB::table('units')->where('entity_id',$entity)->where('is_active',1)->where('id',(int)$conversionUnitId)->exists(),422,'Satuan konversi tidak valid.');
-                DB::table('product_product_unit_conversions')->insert(['product_id'=>$id,'unit_id'=>(int)$conversionUnitId,'conversion_factor'=>$conversionFactors[$index],'is_default_purchase'=>!empty($conversionDefaultPurchase[$index]),'is_default_sale'=>!empty($conversionDefaultSale[$index]),'is_active'=>1,'created_at'=>now(),'updated_at'=>now()]);
+                DB::table('product_unit_conversions')->insert(['product_id'=>$id,'unit_id'=>(int)$conversionUnitId,'conversion_factor'=>$conversionFactors[$index],'is_default_purchase'=>!empty($conversionDefaultPurchase[$index]),'is_default_sale'=>!empty($conversionDefaultSale[$index]),'is_active'=>1,'created_at'=>now(),'updated_at'=>now()]);
             }
         });
         if ($request->expectsJson()) {
@@ -549,7 +549,7 @@ class ErpController extends Controller
         $inUse = DB::table('products')->where('entity_id', $entity)->where(function ($q) use ($id) {
             $q->where('base_unit_id', $id);
         })->exists()
-            || DB::table('product_product_unit_conversions')->where('unit_id', $id)->exists();
+            || DB::table('product_unit_conversions')->where('unit_id', $id)->exists();
 
         abort_if($inUse, 422, 'Satuan sudah digunakan oleh Item atau konversi dan tidak dapat dihapus. Nonaktifkan satuan jika tidak digunakan lagi.');
 
@@ -686,7 +686,7 @@ class ErpController extends Controller
         $map=['sales'=>'sales','payments'=>'payments','shifts'=>'cash_shifts','purchases'=>'purchases','receipts'=>'purchases','payables'=>'purchases','stock'=>'warehouses_stocks','movements'=>'stock_movements','opname'=>'stock_opnames','bom'=>'boms','production'=>'productions','production-results'=>'productions','material-usage'=>'productions','production-cost'=>'productions','fleet'=>'vehicles','deliveries'=>'deliveries','operations'=>'vehicle_operations','fleet-costs'=>'fleet_costs','journals'=>'journals'];
         $data['rows']=isset($map[$module]) ? DB::table($map[$module])->where('entity_id',$entity)->latest('id')->paginate(15)->withQueryString() : collect();
         $data['products']=DB::table('products as p')->leftJoin('units as u','u.id','=','p.base_unit_id')->where('p.entity_id',$entity)->where('p.is_active',1)->orderBy('p.name')->select('p.*','u.name as base_unit_name')->get();
-        $data['productUoms'] = DB::table('product_product_unit_conversions as puc')
+        $data['productUoms'] = DB::table('product_unit_conversions as puc')
             ->join('units as u', 'u.id', '=', 'puc.unit_id')
             ->where('puc.is_active', 1)
             ->whereIn('puc.product_id', $data['products']->pluck('id'))
