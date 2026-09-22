@@ -9,13 +9,13 @@ return new class extends Migration
 {
     public function up(): void
     {
-        DB::table('warehouses')
-            ->where('type', 'general')
-            ->update(['type' => null]);
-
         Schema::table('warehouses', function (Blueprint $table) {
             $table->string('type')->nullable()->default(null)->change();
         });
+
+        DB::table('warehouses')
+            ->where('type', 'general')
+            ->update(['type' => null]);
     }
 
     public function down(): void
