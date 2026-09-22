@@ -18,6 +18,57 @@ class ErpController extends Controller
         return $entity->id;
     }
 
+    private function baseUnit(int $productId): object
+    {
+        $product = DB::table('products')->where('id', $productId)->first(['id', 'base_unit_id']);
+        abort_unless($product && $product->base_unit_id, 422, 'Item belum memiliki satuan dasar.');
+        return DB::table('units')->where('id', $product->base_unit_id)->first();
+    }
+
+    private function resolveProductUnit(int $productId, ?int $unitId, string $purpose = 'sale'): object
+    {
+        $product = DB::table('products')->where('id', $productId)->first(['id', 'base_unit_id', 'entity_id']);
+        abort_unless($product, 422, 'Item tidak valid.');
+        $baseUnit = DB::table('units')->where('id', $product->base_unit_id)->first();
+        abort_unless($baseUnit, 422, 'Satuan dasar item tidak valid.');
+
+        $unitId = $unitId ?: (int) $product->base_unit_id;
+        if ($unitId === (int) $product->base_unit_id) {
+            return (object) [
+                'unit_id' => $unitId,
+                'conversion_factor' => 1.0,
+                'base_unit_id' => (int) $product->base_unit_id,
+            ];
+        }
+
+        $conversion = DB::table('product_unit_conversions')
+            ->where('product_id', $productId)
+            ->where('unit_id', $unitId)
+            ->where('is_active', 1)
+            ->first();
+
+        abort_unless($conversion, 422, 'Satuan transaksi belum dikonfigurasi untuk item ini.');
+        if ($purpose === 'purchase') {
+            abort_unless((bool) $conversion->is_default_purchase || true, 422, 'Satuan pembelian tidak valid.');
+        }
+        if ($purpose === 'sale') {
+            abort_unless((bool) $conversion->is_default_sale || true, 422, 'Satuan penjualan tidak valid.');
+        }
+
+        return (object) [
+            'unit_id' => (int) $conversion->unit_id,
+            'conversion_factor' => (float) $conversion->conversion_factor,
+            'base_unit_id' => (int) $product->base_unit_id,
+        ];
+    }
+
+    private function stockBusinessUnit(int $warehouseId): int
+    {
+        $warehouse = DB::table('warehouses')->where('id', $warehouseId)->first(['business_unit_id']);
+        abort_unless($warehouse && $warehouse->business_unit_id, 422, 'Gudang belum memiliki Unit Bisnis.');
+        return (int) $warehouse->business_unit_id;
+    }
+
     private function masterConfig(string $type): array
     {
         return [
@@ -95,9 +146,9 @@ class ErpController extends Controller
         $items = DB::table('products')
             ->leftJoin('units as base_units', 'base_units.id', '=', 'products.base_unit_id')
             ->when($request->filled('business_unit_id'), function ($query) use ($request) {
-                $query->join('product_units', function ($join) {
+                $query->join('product_business_units', function ($join) {
                     $join->on('product_units.product_id', '=', 'products.id');
-                })->where('product_units.business_unit_id', (int) $request->business_unit_id);
+                })->where('product_business_units.business_unit_id', (int) $request->business_unit_id);
             })
             ->where('products.entity_id', $entity)
             ->select(
@@ -305,7 +356,7 @@ class ErpController extends Controller
                 if ((int) $conversionUnitId === (int) $data['base_unit_id']) {
                     continue;
                 }
-                DB::table('unit_conversions')->insert([
+                DB::table('product_unit_conversions')->insert([
                     'product_id' => $productId,
                     'unit_id' => $conversionUnitId,
                     'conversion_factor' => $conversionFactors[$index],
@@ -334,8 +385,8 @@ class ErpController extends Controller
         abort_if($hasTransactions, 422, 'Item sudah digunakan dalam transaksi dan tidak dapat dihapus. Nonaktifkan item jika tidak digunakan lagi.');
 
         DB::transaction(function () use ($id, $entity): void {
-            DB::table('unit_conversions')->where('product_id', $id)->delete();
-            DB::table('product_units')->where('product_id', $id)->delete();
+            DB::table('product_unit_conversions')->where('product_id', $id)->delete();
+            DB::table('product_business_units')->where('product_id', $id)->delete();
             DB::table('products')->where('entity_id', $entity)->where('id', $id)->delete();
         });
 
@@ -349,8 +400,8 @@ class ErpController extends Controller
         abort_unless($item, 404);
         $units = DB::table('units')->where('entity_id', $entity)->where('is_active', 1)->orderBy('name')->get();
         $businessUnits = DB::table('business_units')->where('entity_id', $entity)->where('is_active', 1)->orderBy('id')->get();
-        $selectedBusinessUnits = DB::table('product_units')->where('product_id', $id)->pluck('business_unit_id')->all();
-        $conversions = DB::table('unit_conversions')->where('product_id', $id)->get();
+        $selectedBusinessUnits = DB::table('product_business_units')->where('product_id', $id)->pluck('business_unit_id')->all();
+        $conversions = DB::table('product_unit_conversions')->where('product_id', $id)->get();
 
         if ($request->ajax()) {
             return response()->json([
@@ -385,11 +436,27 @@ class ErpController extends Controller
         if (!(bool)$data['manage_stock']) $minimumStock=0;
         $conversionUnits=$data['conversion_unit_id']??[]; $conversionFactors=$data['conversion_factor']??[];
         DB::transaction(function() use($entity,$id,$data,$unitIds,$barcode,$minimumStock,$conversionUnits,$conversionFactors){
-            DB::table('products')->where('entity_id',$entity)->where('id',$id)->update(['barcode'=>$barcode,'name'=>$data['name'],'unit_id'=>$data['base_unit_id'],'base_unit_id'=>$data['base_unit_id'],'minimum_stock'=>$minimumStock,'manage_stock'=>(bool)$data['manage_stock'],'is_active'=>(bool)$data['status'],'updated_at'=>now()]);
+            $hasTransactions = DB::table('stock_movements')->where('product_id',$id)->exists()
+                || DB::table('purchase_items')->where('product_id',$id)->exists()
+                || DB::table('sale_items')->where('product_id',$id)->exists()
+                || DB::table('production_material_usages')->where('product_id',$id)->exists()
+                || DB::table('production_outputs')->where('product_id',$id)->exists();
+            if ($hasTransactions) {
+                abort_if((int)$item->base_unit_id !== (int)$data['base_unit_id'], 422, 'Satuan dasar tidak dapat diubah karena item sudah memiliki transaksi.');
+            }
+            DB::table('products')->where('entity_id',$entity)->where('id',$id)->update([
+                'barcode'=>$barcode,
+                'name'=>$data['name'],
+                'base_unit_id'=>$data['base_unit_id'],
+                'minimum_stock'=>$minimumStock,
+                'manage_stock'=>(bool)$data['manage_stock'],
+                'is_active'=>(bool)$data['status'],
+                'updated_at'=>now()
+            ]);
             DB::table('product_units')->where('product_id',$id)->delete();
             foreach($unitIds as $businessUnitId) DB::table('product_units')->insert(['product_id'=>$id,'business_unit_id'=>$businessUnitId,'created_at'=>now(),'updated_at'=>now()]);
-            DB::table('unit_conversions')->where('product_id',$id)->delete();
-            foreach($conversionUnits as $index=>$conversionUnitId){ if(!$conversionUnitId || empty($conversionFactors[$index]) || (int)$conversionUnitId===(int)$data['base_unit_id']) continue; DB::table('unit_conversions')->insert(['product_id'=>$id,'unit_id'=>$conversionUnitId,'conversion_factor'=>$conversionFactors[$index],'created_at'=>now(),'updated_at'=>now()]); }
+            DB::table('product_unit_conversions')->where('product_id',$id)->delete();
+            foreach($conversionUnits as $index=>$conversionUnitId){ if(!$conversionUnitId || empty($conversionFactors[$index]) || (int)$conversionUnitId===(int)$data['base_unit_id']) continue; DB::table('product_unit_conversions')->insert(['product_id'=>$id,'unit_id'=>$conversionUnitId,'conversion_factor'=>$conversionFactors[$index],'created_at'=>now(),'updated_at'=>now()]); }
         });
         if ($request->expectsJson()) {
             return response()->json(['message' => 'Item berhasil diperbarui.']);
@@ -516,7 +583,7 @@ class ErpController extends Controller
         $inUse = DB::table('products')->where('entity_id', $entity)->where(function ($q) use ($id) {
             $q->where('base_unit_id', $id)->orWhere('unit_id', $id);
         })->exists()
-            || DB::table('unit_conversions')->where('unit_id', $id)->exists();
+            || DB::table('product_unit_conversions')->where('unit_id', $id)->exists();
 
         abort_if($inUse, 422, 'Satuan sudah digunakan oleh Item atau konversi dan tidak dapat dihapus. Nonaktifkan satuan jika tidak digunakan lagi.');
 
@@ -676,18 +743,130 @@ class ErpController extends Controller
 
     public function purchaseStore(Request $request)
     {
-        $data=$request->validate(['supplier_id'=>'required|integer','product_id'=>'required|integer','warehouse_id'=>'required|integer','qty'=>'required|numeric|min:0.001','unit_cost'=>'required|numeric|min:0']); $entity=$this->entityId();
-        abort_unless(DB::table('suppliers')->where('entity_id',$entity)->where('is_active',1)->where('id',$data['supplier_id'])->exists(),422,'Supplier tidak valid.');
-        abort_unless(DB::table('products')->where('entity_id',$entity)->where('is_active',1)->where('id',$data['product_id'])->exists(),422,'Produk tidak valid.');
-        abort_unless(DB::table('warehouses')->where('entity_id',$entity)->where('is_active',1)->where('id',$data['warehouse_id'])->exists(),422,'Gudang tidak valid.');
-        $total=$data['qty']*$data['unit_cost'];
-        DB::transaction(function() use($data,$entity,$total){
-            $no='PO-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4)); $id=DB::table('purchases')->insertGetId(['entity_id'=>$entity,'supplier_id'=>$data['supplier_id'],'user_id'=>auth()->id(),'purchase_no'=>$no,'purchase_date'=>now(),'subtotal'=>$total,'total'=>$total,'status'=>'received','created_at'=>now(),'updated_at'=>now()]);
-            DB::table('purchase_items')->insert(['purchase_id'=>$id,'product_id'=>$data['product_id'],'qty'=>$data['qty'],'unit_cost'=>$data['unit_cost'],'total'=>$total,'created_at'=>now(),'updated_at'=>now()]);
-            $stock=DB::table('warehouses_stocks')->where(['warehouse_id'=>$data['warehouse_id'],'product_id'=>$data['product_id']])->first();
-            if($stock) DB::table('warehouses_stocks')->where('id',$stock->id)->update(['qty'=>$stock->qty+$data['qty'],'avg_cost'=>$data['unit_cost'],'updated_at'=>now()]); else DB::table('warehouses_stocks')->insert(['entity_id'=>$entity,'warehouse_id'=>$data['warehouse_id'],'product_id'=>$data['product_id'],'qty'=>$data['qty'],'avg_cost'=>$data['unit_cost'],'created_at'=>now(),'updated_at'=>now()]);
-            DB::table('stock_movements')->insert(['entity_id'=>$entity,'warehouse_id'=>$data['warehouse_id'],'product_id'=>$data['product_id'],'movement_type'=>'purchase_in','qty'=>$data['qty'],'unit_cost'=>$data['unit_cost'],'reference_type'=>'purchase','reference_id'=>$id,'occurred_at'=>now(),'created_by'=>auth()->id(),'created_at'=>now(),'updated_at'=>now()]);
-        }); return back()->with('success','Pembelian dan penerimaan stok berhasil.');
+        $data = $request->validate([
+            'supplier_id' => ['required','integer'],
+            'product_id' => ['required','integer'],
+            'warehouse_id' => ['required','integer'],
+            'unit_id' => ['nullable','integer'],
+            'qty' => ['required','numeric','gt:0'],
+            'unit_cost' => ['required','numeric','min:0'],
+        ]);
+
+        $entity = $this->entityId();
+        $supplier = DB::table('suppliers')->where('entity_id',$entity)->where('is_active',1)->where('id',$data['supplier_id'])->first();
+        $product = DB::table('products')->where('entity_id',$entity)->where('is_active',1)->where('id',$data['product_id'])->first();
+        $warehouse = DB::table('warehouses')->where('entity_id',$entity)->where('is_active',1)->where('id',$data['warehouse_id'])->first();
+
+        abort_unless($supplier,422,'Supplier tidak valid.');
+        abort_unless($product,422,'Produk tidak valid.');
+        abort_unless($warehouse,422,'Gudang tidak valid.');
+        abort_unless((bool)$product->manage_stock,422,'Item ini tidak dikelola sebagai stok.');
+
+        $uom = $this->resolveProductUnit((int)$product->id, isset($data['unit_id']) ? (int)$data['unit_id'] : null, 'purchase');
+        $transactionQty = (float)$data['qty'];
+        $transactionUnitCost = (float)$data['unit_cost'];
+        $baseQty = $transactionQty * $uom->conversion_factor;
+        $baseUnitCost = $uom->conversion_factor > 0 ? $transactionUnitCost / $uom->conversion_factor : 0;
+        $total = round($transactionQty * $transactionUnitCost, 2);
+        $businessUnitId = (int)$warehouse->business_unit_id;
+
+        DB::transaction(function () use ($data,$entity,$product,$warehouse,$uom,$transactionQty,$transactionUnitCost,$baseQty,$baseUnitCost,$total,$businessUnitId) {
+            $no = 'PO-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4));
+            $id = DB::table('purchases')->insertGetId([
+                'entity_id'=>$entity,
+                'business_unit_id'=>$businessUnitId,
+                'supplier_id'=>$data['supplier_id'],
+                'user_id'=>auth()->id(),
+                'purchase_no'=>$no,
+                'purchase_date'=>now(),
+                'subtotal'=>$total,
+                'total'=>$total,
+                'status'=>'received',
+                'created_at'=>now(),
+                'updated_at'=>now(),
+            ]);
+
+            DB::table('purchase_items')->insert([
+                'purchase_id'=>$id,
+                'product_id'=>$product->id,
+                'transaction_unit_id'=>$uom->unit_id,
+                'conversion_factor'=>$uom->conversion_factor,
+                'base_qty'=>$baseQty,
+                'base_unit_id'=>$uom->base_unit_id,
+                'qty'=>$transactionQty,
+                'unit_cost'=>$transactionUnitCost,
+                'total'=>$total,
+                'created_at'=>now(),
+                'updated_at'=>now(),
+            ]);
+
+            $stock = DB::table('warehouses_stocks')
+                ->where('entity_id',$entity)
+                ->where('warehouse_id',$warehouse->id)
+                ->where('product_id',$product->id)
+                ->lockForUpdate()
+                ->first();
+
+            if ($stock) {
+                $oldQty = (float)$stock->qty;
+                $oldAvg = (float)$stock->avg_cost;
+                $newQty = $oldQty + $baseQty;
+                $newAvg = $newQty > 0 ? (($oldQty * $oldAvg) + ($baseQty * $baseUnitCost)) / $newQty : $baseUnitCost;
+                DB::table('warehouses_stocks')->where('id',$stock->id)->update([
+                    'qty'=>$newQty,
+                    'avg_cost'=>$newAvg,
+                    'updated_at'=>now(),
+                ]);
+            } else {
+                DB::table('warehouses_stocks')->insert([
+                    'entity_id'=>$entity,
+                    'warehouse_id'=>$warehouse->id,
+                    'product_id'=>$product->id,
+                    'qty'=>$baseQty,
+                    'avg_cost'=>$baseUnitCost,
+                    'created_at'=>now(),
+                    'updated_at'=>now(),
+                ]);
+            }
+
+            DB::table('stock_movements')->insert([
+                'entity_id'=>$entity,
+                'business_unit_id'=>$businessUnitId,
+                'warehouse_id'=>$warehouse->id,
+                'product_id'=>$product->id,
+                'movement_type'=>'purchase_in',
+                'qty'=>$baseQty,
+                'unit_cost'=>$baseUnitCost,
+                'reference_type'=>'purchase',
+                'reference_id'=>$id,
+                'occurred_at'=>now(),
+                'created_by'=>auth()->id(),
+                'created_at'=>now(),
+                'updated_at'=>now(),
+            ]);
+
+            DB::table('purchase_price_histories')->insert([
+                'entity_id'=>$entity,
+                'business_unit_id'=>$businessUnitId,
+                'product_id'=>$product->id,
+                'supplier_id'=>$data['supplier_id'],
+                'transaction_unit_id'=>$uom->unit_id,
+                'conversion_factor'=>$uom->conversion_factor,
+                'base_qty'=>$baseQty,
+                'base_unit_price'=>$baseUnitCost,
+                'price_date'=>now(),
+                'qty'=>$transactionQty,
+                'unit_price'=>$transactionUnitCost,
+                'source'=>'purchase',
+                'reference_id'=>$id,
+                'created_at'=>now(),
+                'updated_at'=>now(),
+            ]);
+        });
+
+        return $request->expectsJson()
+            ? response()->json(['message'=>'Pembelian dan penerimaan stok berhasil.'])
+            : back()->with('success','Pembelian dan penerimaan stok berhasil.');
     }
 
     public function productionStore(Request $request)
