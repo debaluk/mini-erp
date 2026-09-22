@@ -14,7 +14,7 @@
         <div class="table-responsive">
             <table class="table table-sm table-hover align-middle mb-0" id="conversionDataTable" style="width:100%">
                 <thead><tr>
-                    <th>Produk</th><th>Dasar</th><th>Satuan</th><th>Faktor</th><th>Default</th><th class="text-end">Aksi</th>
+                    <th>Produk</th><th>Base Unit</th><th>Satuan Transaksi</th><th>Faktor</th><th>Default Beli</th><th>Default Jual</th><th class="text-end">Aksi</th>
                 </tr></thead>
             </table>
         </div>
@@ -54,11 +54,11 @@
                         <label class="form-label">Faktor ke satuan dasar</label>
                         <input name="conversion_factor" id="conversion_factor" type="number" step="0.000001" min="0.000001" class="form-control" value="1" required>
                     </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="is_default" id="is_default" value="1">
-                        <label class="form-check-label" for="is_default">Jadikan satuan dasar produk</label>
+                    <div class="row g-2">
+                        <div class="col-6"><div class="form-check"><input class="form-check-input" type="checkbox" name="is_default_purchase" id="is_default_purchase" value="1"><label class="form-check-label" for="is_default_purchase">Default Beli</label></div></div>
+                        <div class="col-6"><div class="form-check"><input class="form-check-input" type="checkbox" name="is_default_sale" id="is_default_sale" value="1"><label class="form-check-label" for="is_default_sale">Default Jual</label></div></div>
                     </div>
-                    <div class="small text-secondary mt-2">Contoh: 1 SAK Semen = 50 KG, maka faktor = 50.</div>
+                    <div class="small text-secondary mt-2">Konversi selalu milik Item. Contoh: 1 SAK Semen = 50 KG, maka faktor = 50.</div>
                 </div>
                 <div class="modal-footer py-2">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
@@ -102,9 +102,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 const n=Number(d);
                 return Number.isInteger(n) ? n : n.toFixed(6).replace(/0+$/,'').replace(/.$/,'');
             }},
-            {data:'is_default', render:d => d ? '<span class="badge text-bg-primary">Ya</span>' : 'Tidak'},
+            {data:'is_default_purchase', render:d => d ? '<span class="badge text-bg-primary">Ya</span>' : 'Tidak'},
+            {data:'is_default_sale', render:d => d ? '<span class="badge text-bg-primary">Ya</span>' : 'Tidak'},
             {data:null, orderable:false, searchable:false, className:'text-end', render:(d,t,r) =>
-                '<button type="button" class="btn btn-outline-secondary btn-sm me-1" onclick="editConversion('+r.id+', '+r.product_id+', '+r.unit_id+', '+r.conversion_factor+', '+(r.is_default?1:0)+')">Edit</button>'+
+                '<button type="button" class="btn btn-outline-secondary btn-sm me-1" onclick="editConversion('+r.id+', '+r.product_id+', '+r.unit_id+', '+r.conversion_factor+', '+(r.is_default_purchase?1:0)+', '+(r.is_default_sale?1:0)+')">Edit</button>'+
                 '<button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteConversion('+r.id+')">Hapus</button>'
             }
         ],
@@ -128,13 +129,14 @@ document.addEventListener('DOMContentLoaded', function () {
         bootstrap.Modal.getOrCreateInstance(document.getElementById('conversionModal')).show();
     };
 
-    window.editConversion = function(id, productId, unitId, factor, isDefault) {
+    window.editConversion = function(id, productId, unitId, factor, isDefaultPurchase, isDefaultSale) {
         document.getElementById('conversionForm').reset();
         document.getElementById('conversionId').value=id;
         document.getElementById('product_id').value=productId;
         document.getElementById('unit_id').value=unitId;
         document.getElementById('conversion_factor').value=factor;
-        document.getElementById('is_default').checked=!!isDefault;
+        document.getElementById('is_default_purchase').checked=!!isDefaultPurchase;
+        document.getElementById('is_default_sale').checked=!!isDefaultSale;
         document.getElementById('conversionModalTitle').textContent='Edit Konversi Satuan';
         bootstrap.Modal.getOrCreateInstance(document.getElementById('conversionModal')).show();
     };
