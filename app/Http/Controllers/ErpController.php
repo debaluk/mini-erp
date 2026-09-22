@@ -536,9 +536,10 @@ class ErpController extends Controller
                 ->where('is_active', 1)
                 ->orderBy('name')
                 ->get(['id', 'code', 'name']);
-            $config['fields']['business_unit_id']['options'] = $businessUnits
-                ->mapWithKeys(fn ($unit) => [$unit->id => $unit->code.' - '.$unit->name])
-                ->all();
+            $config['fields']['business_unit_id']['options'] = ['' => 'Pilih Unit Bisnis']
+                + $businessUnits
+                    ->mapWithKeys(fn ($unit) => [$unit->id => $unit->code.' - '.$unit->name])
+                    ->all();
         }
 
         if ($request->ajax() && $request->has('draw')) {
