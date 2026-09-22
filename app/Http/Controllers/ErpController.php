@@ -140,7 +140,7 @@ class ErpController extends Controller
             ->leftJoin('units as base_units', 'base_units.id', '=', 'products.base_unit_id')
             ->when($request->filled('business_unit_id'), function ($query) use ($request) {
                 $query->join('product_business_units', function ($join) {
-                    $join->on('product_units.product_id', '=', 'products.id');
+                    $join->on('product_business_units.product_id', '=', 'products.id');
                 })->where('product_business_units.business_unit_id', (int) $request->business_unit_id);
             })
             ->where('products.entity_id', $entity)
@@ -454,7 +454,7 @@ class ErpController extends Controller
                 'is_active'=>(bool)$data['status'],
                 'updated_at'=>now()
             ]);
-            DB::table('product_units')->where('product_id',$id)->delete();
+            DB::table('product_business_units')->where('product_id',$id)->delete();
             foreach($unitIds as $businessUnitId) DB::table('product_business_units')->insert(['product_id'=>$id,'business_unit_id'=>$businessUnitId,'created_at'=>now(),'updated_at'=>now()]);
             DB::table('product_unit_conversions')->where('product_id',$id)->delete();
             foreach($conversionUnits as $index=>$conversionUnitId){ if(!$conversionUnitId || empty($conversionFactors[$index]) || (int)$conversionUnitId===(int)$data['base_unit_id']) continue; DB::table('product_unit_conversions')->insert(['product_id'=>$id,'unit_id'=>$conversionUnitId,'conversion_factor'=>$conversionFactors[$index],'is_default_purchase'=>!empty($conversionDefaultPurchase[$index]),'is_default_sale'=>!empty($conversionDefaultSale[$index]),'is_active'=>true,'created_at'=>now(),'updated_at'=>now()]); }
