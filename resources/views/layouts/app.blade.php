@@ -83,16 +83,54 @@
 <main class="container-fluid p-3 p-lg-4">
     @yield('content')
 </main>
+
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 2000;">
+    <div id="appToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <strong id="appToastTitle" class="me-auto">Mini ERP</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Tutup"></button>
+        </div>
+        <div id="appToastBody" class="toast-body"></div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.datatables.net/2.3.3/js/dataTables.js"></script>
 <script src="https://cdn.datatables.net/2.3.3/js/dataTables.bootstrap5.js"></script>
 <script>
+    window.showAppToast = function (message, type = 'success') {
+        const toast = document.getElementById('appToast');
+        const title = document.getElementById('appToastTitle');
+        const body = document.getElementById('appToastBody');
+        if (!toast || !title || !body) return;
+
+        const labels = { success: 'Berhasil', danger: 'Gagal', warning: 'Perhatian', info: 'Informasi' };
+        const classes = { success: 'text-bg-success', danger: 'text-bg-danger', warning: 'text-bg-warning', info: 'text-bg-info' };
+
+        toast.className = 'toast ' + (classes[type] || classes.info);
+        title.textContent = labels[type] || 'Informasi';
+        body.textContent = String(message ?? '').replace(/\\n/g, '\n');
+
+        bootstrap.Toast.getOrCreateInstance(toast, { delay: 4500 }).show();
+    };
+
     DataTable.defaults.language = {
         ...DataTable.defaults.language,
         processing: 'Memproses...', search: 'Cari:', lengthMenu: 'Tampilkan _MENU_ data', info: 'Menampilkan _START_ sampai _END_ dari _TOTAL_ data', infoEmpty: 'Menampilkan 0 sampai 0 dari _TOTAL_ data', infoFiltered: '(disaring dari _MAX_ total data)', loadingRecords: 'Memuat...', zeroRecords: 'Data tidak ditemukan', emptyTable: 'Belum ada data', paginate: { first: '<<', previous: '<', next: '>', last: '>>' }
     };
 </script>
+
+@if(session('success'))
+<script>showAppToast(@json(session('success')), 'success');</script>
+@endif
+@if(session('error'))
+<script>showAppToast(@json(session('error')), 'danger');</script>
+@endif
+@if($errors->any())
+<script>showAppToast(@json($errors->first()), 'danger');</script>
+@endif
+
 @stack('scripts')
 </body>
 </html>
