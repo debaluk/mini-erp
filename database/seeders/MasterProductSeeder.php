@@ -43,7 +43,7 @@ class MasterProductSeeder extends Seeder
                 'stock_movements',
                 'warehouses_stocks',
                 'purchase_price_histories',
-                'product_units',
+                'product_unit_conversions',
             ];
 
             foreach ($tables as $table) {
@@ -56,7 +56,7 @@ class MasterProductSeeder extends Seeder
             DB::table('products')
                 ->where('entity_id', $entityId)
                 ->update([
-                    'unit_id' => null,
+                    'base_unit_id' => null,
                     'category_id' => null,
                     'updated_at' => now(),
                 ]);
@@ -148,7 +148,7 @@ class MasterProductSeeder extends Seeder
                 $productId = DB::table('products')->insertGetId([
                     'entity_id' => $entityId,
                     'category_id' => null,
-                    'unit_id' => $unitIds[$p['unit']],
+                    'base_unit_id' => $unitIds[$p['unit']],
                     'sku' => $p['sku'],
                     'barcode' => $p['barcode'],
                     'name' => $p['name'],
@@ -187,25 +187,13 @@ class MasterProductSeeder extends Seeder
                     continue;
                 }
 
-                DB::table('product_units')->insert([
-                    'entity_id' => $entityId,
+                DB::table('product_unit_conversions')->insert([
                     'product_id' => $productIds[$c['sku']],
                     'unit_id' => $unitIds[$c['unit']],
                     'conversion_factor' => $c['factor'],
-                    'is_default' => 0,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ]);
-            }
-
-            // Pastikan satuan dasar tiap produk selalu tersedia di product_units.
-            foreach ($products as $p) {
-                DB::table('product_units')->insert([
-                    'entity_id' => $entityId,
-                    'product_id' => $productIds[$p['sku']],
-                    'unit_id' => $unitIds[$p['unit']],
-                    'conversion_factor' => 1,
-                    'is_default' => 1,
+                    'is_default_purchase' => false,
+                    'is_default_sale' => false,
+                    'is_active' => true,
                     'created_at' => $now,
                     'updated_at' => $now,
                 ]);
