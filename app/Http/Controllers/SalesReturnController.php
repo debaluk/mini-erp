@@ -297,6 +297,7 @@ class SalesReturnController extends Controller
             $returnNo = 'RET-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4));
             $returnId = DB::table('sales_returns')->insertGetId([
                 'entity_id' => $entity,
+                'business_unit_id' => $sale->business_unit_id,
                 'sale_id' => $sale->id,
                 'customer_id' => $sale->customer_id,
                 'warehouse_id' => $warehouse->id,
@@ -349,7 +350,7 @@ class SalesReturnController extends Controller
                             'entity_id' => $entity,
                             'warehouse_id' => $warehouse->id,
                             'product_id' => $item->product_id,
-                            'qty' => $p['qty'],
+                            'qty' => $p['baseQty'],
                             'avg_cost' => $p['hppUnit'],
                             'created_at' => now(),
                             'updated_at' => now(),
