@@ -138,62 +138,62 @@
 @push('scripts')
 <script>
 (function () {
-    const typeSelect = document.getElementById('item_type');
-    const codePreview = document.getElementById('code_preview');
-    const prefixes = { barang: 'BRG', jasa: 'JSA', aset: 'AST' };
-
-    function updateCodePreview() {
-        const prefix = prefixes[typeSelect.value] || 'BRG';
-        codePreview.value = prefix + '-00001';
-    }
-
-    typeSelect.addEventListener('change', updateCodePreview);
-    updateCodePreview();
-
     const conversionRows = document.getElementById('conversion-rows');
-    const addConversion = document.getElementById('add-conversion');
+    const addButton = document.getElementById('add-conversion');
     const units = @json($units);
-    const oldUnitIds = @json(old('conversion_unit_id', []));
+    const existing = @json($conversions ?? []);
+    const oldIds = @json(old('conversion_unit_id', []));
     const oldFactors = @json(old('conversion_factor', []));
-    const oldDefaultPurchase = @json(old('conversion_default_purchase', []));
-    const oldDefaultSale = @json(old('conversion_default_sale', []));
+    const oldPurchase = @json(old('conversion_default_purchase', []));
+    const oldSale = @json(old('conversion_default_sale', []));
 
     function addRow(unitId = '', factor = '', defaultPurchase = false, defaultSale = false) {
         const row = document.createElement('div');
         row.className = 'row g-2 align-items-end mb-2 conversion-row';
         row.innerHTML = `
-            <div class="col-md-5">
+            <div class="col-md-4">
                 <label class="form-label">Satuan Alternatif</label>
                 <select name="conversion_unit_id[]" class="form-select">
                     <option value="">Pilih satuan</option>
-                    ${units.map(unit => `<option value="${unit.id}" ${String(unit.id) === String(unitId) ? 'selected' : ''}>${unit.name}</option>`).join('')}
+                    ${units.map(u => `<option value="${u.id}" ${String(u.id) === String(unitId) ? 'selected' : ''}>${u.name}</option>`).join('')}
                 </select>
             </div>
-            <div class="col-md-5">
-                <label class="form-label">Faktor</label>
-                <input type="text" inputmode="decimal" name="conversion_factor[]" class="form-control" value="${String(factor).replace(/(\\.\\d*?[1-9])0+$|\\.0+$/,"$1")}"}>
+            <div class="col-md-3">
+                <label class="form-label">Faktor ke Base Unit</label>
+                <input type="text" inputmode="decimal" name="conversion_factor[]" class="form-control" value="${String(factor).replace(/(\\.\\d*?[1-9])0+$|\\.0+$/,"$1")}">
             </div>
             <div class="col-md-2">
-                <button type="button" class="btn btn-outline-danger w-100 remove-conversion">Hapus</button>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="conversion_default_purchase[]" value="1" ${defaultPurchase ? 'checked' : ''}>
+                    <label class="form-check-label">Default Beli</label>
+                </div>
             </div>
-        `;
+            <div class="col-md-2">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="conversion_default_sale[]" value="1" ${defaultSale ? 'checked' : ''}>
+                    <label class="form-check-label">Default Jual</label>
+                </div>
+            </div>
+            <div class="col-md-1">
+                <button type="button" class="btn btn-outline-danger w-100 remove">×</button>
+            </div>`;
         conversionRows.appendChild(row);
-        row.querySelector('.remove-conversion').addEventListener('click', () => row.remove());
+        row.querySelector('.remove').addEventListener('click', () => row.remove());
     }
 
-    addConversion.addEventListener('click', () => addRow());
+    addButton.addEventListener('click', () => addRow());
 
-    oldUnitIds.forEach((unitId, index) => {
-        addRow(unitId, oldFactors[index] ?? '', !!oldDefaultPurchase[index], !!oldDefaultSale[index]);
-    });
+    if (oldIds.length) {
+        oldIds.forEach((id, i) => addRow(id, oldFactors[i] ?? '', !!oldPurchase[i], !!oldSale[i]));
+    } else {
+        existing.forEach(x => addRow(x.unit_id, x.conversion_factor, !!x.is_default_purchase, !!x.is_default_sale));
+    }
 
-    document.querySelectorAll('input[name="manage_stock"]').forEach(input => {
-        input.addEventListener('change', function () {
-            const minimum = document.getElementById('minimum_stock');
-            minimum.disabled = this.value === '0';
-            if (this.value === '0') minimum.value = '0';
-        });
-    });
+    document.querySelectorAll('input[name="manage_stock"]').forEach(input => input.addEventListener('change', function () {
+        const minimum = document.getElementById('minimum_stock');
+        minimum.disabled = this.value === '0';
+        if (this.value === '0') minimum.value = '0';
+    }));
 })();
 </script>
 @endpush
