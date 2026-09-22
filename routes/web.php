@@ -243,10 +243,11 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/pengaturan/entitas', [SettingsController::class, 'entity'])->middleware('role:superadmin,owner')->name('pengaturan.entitas');
     Route::put('/pengaturan/entitas', [SettingsController::class, 'entityUpdate'])->middleware('role:superadmin,owner')->name('pengaturan.entitas.update');
-    Route::get('/pengaturan/user', [SettingsController::class, 'users'])->middleware('role:owner')->name('pengaturan.user');
-    Route::post('/pengaturan/user', [SettingsController::class, 'userStore'])->middleware('role:owner')->name('pengaturan.user.store');
-    Route::put('/pengaturan/user/{id}', [SettingsController::class, 'userUpdate'])->middleware('role:owner')->name('pengaturan.user.update');
-    Route::patch('/pengaturan/user/{id}/toggle', [SettingsController::class, 'userToggle'])->middleware('role:owner')->name('pengaturan.user.toggle');
+    // Admin is responsible for user/master/config administration; Owner retains full access.
+    Route::get('/pengaturan/user', [SettingsController::class, 'users'])->middleware('role:owner,admin')->name('pengaturan.user');
+    Route::post('/pengaturan/user', [SettingsController::class, 'userStore'])->middleware('role:owner,admin')->name('pengaturan.user.store');
+    Route::put('/pengaturan/user/{id}', [SettingsController::class, 'userUpdate'])->middleware('role:owner,admin')->name('pengaturan.user.update');
+    Route::patch('/pengaturan/user/{id}/toggle', [SettingsController::class, 'userToggle'])->middleware('role:owner,admin')->name('pengaturan.user.toggle');
     Route::get('/pengaturan/role', [SettingsController::class, 'roles'])->middleware('role:superadmin,owner')->name('pengaturan.role');
     Route::get('/pengaturan/konfigurasi', [SettingsController::class, 'configuration'])->middleware('access:konfigurasi')->name('pengaturan.konfigurasi');
     Route::get('/pengaturan/konfigurasi/unit-bisnis', [BusinessUnitController::class, 'index'])->middleware('access:konfigurasi')->name('pengaturan.unit-bisnis');
