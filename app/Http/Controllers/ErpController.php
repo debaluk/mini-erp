@@ -55,7 +55,7 @@ class ErpController extends Controller
                     'is_active'=>['label'=>'Status','type'=>'select','options'=>['1'=>'Aktif','0'=>'Nonaktif']]
                 ]
             ],
-            'warehouses'=>['title'=>'Gudang','table'=>'warehouses','columns'=>['code','name','type','address'],'fields'=>['code'=>['label'=>'Kode','type'=>'text','required'=>true],'name'=>['label'=>'Nama Gudang','type'=>'text','required'=>true],'type'=>['label'=>'Tipe','type'=>'text'],'address'=>['label'=>'Alamat','type'=>'textarea']]],
+            'warehouses'=>['title'=>'Gudang','table'=>'warehouses','columns'=>['code','name','business_unit_name','address','is_active'],'column_labels'=>['code'=>'Kode','name'=>'Nama Gudang','business_unit_name'=>'Unit Bisnis','address'=>'Alamat','is_active'=>'Status'],'fields'=>['code'=>['label'=>'Kode','type'=>'text','required'=>true],'name'=>['label'=>'Nama Gudang','type'=>'text','required'=>true],'business_unit_id'=>['label'=>'Unit Bisnis','type'=>'select','required'=>true,'options'=>[]],'address'=>['label'=>'Alamat','type'=>'textarea'],'is_active'=>['label'=>'Status','type'=>'select','options'=>['1'=>'Aktif','0'=>'Nonaktif']]]],
             'units'=>['title'=>'Satuan','table'=>'units','columns'=>['code','name'],'fields'=>['code'=>['label'=>'Kode','type'=>'text','required'=>true],'name'=>['label'=>'Nama Satuan','type'=>'text','required'=>true]]],
             'tariffs'=>['title'=>'Tarif','table'=>'tariffs','columns'=>['code','name','tariff_type','base_price','price_per_km','price_per_hour','minimum_charge'],'fields'=>['code'=>['label'=>'Kode','type'=>'text','required'=>true],'name'=>['label'=>'Nama Tarif','type'=>'text','required'=>true],'tariff_type'=>['label'=>'Jenis','type'=>'text','required'=>true],'base_price'=>['label'=>'Harga Dasar','type'=>'number','step'=>'0.01'],'price_per_km'=>['label'=>'Harga/KM','type'=>'number','step'=>'0.01'],'price_per_hour'=>['label'=>'Harga/Jam','type'=>'number','step'=>'0.01'],'minimum_charge'=>['label'=>'Minimum Charge','type'=>'number','step'=>'0.01']]],
             'vehicles'=>['title'=>'Kendaraan','table'=>'vehicles','columns'=>['code','plate_number','model','vehicle_type','capacity','current_km','status'],'fields'=>['code'=>['label'=>'Kode','type'=>'text','required'=>true],'plate_number'=>['label'=>'No. Polisi','type'=>'text','required'=>true],'model'=>['label'=>'Model','type'=>'text'],'vehicle_type'=>['label'=>'Jenis','type'=>'text'],'capacity'=>['label'=>'Kapasitas','type'=>'number','step'=>'0.001'],'current_km'=>['label'=>'KM Saat Ini','type'=>'number','step'=>'1'],'status'=>['label'=>'Status','type'=>'text']]],
@@ -530,15 +530,37 @@ class ErpController extends Controller
         $config = $this->masterConfig($type);
         $entity = $this->entityId();
 
+        if ($type === 'warehouses') {
+            $businessUnits = DB::table('business_units')
+                ->where('entity_id', $entity)
+                ->where('is_active', 1)
+                ->orderBy('name')
+                ->get(['id', 'code', 'name']);
+            $config['fields']['business_unit_id']['options'] = $businessUnits
+                ->mapWithKeys(fn ($unit) => [$unit->id => $unit->code.' - '.$unit->name])
+                ->all();
+        }
+
         if ($request->ajax() && $request->has('draw')) {
             $columns = $config['columns'];
-            $query = DB::table($config['table'])->where('entity_id', $entity);
+            $query = DB::table($config['table'])->where('warehouses.entity_id', $entity);
+
+            if ($type === 'warehouses') {
+                $query->leftJoin('business_units', 'business_units.id', '=', 'warehouses.business_unit_id')
+                    ->select('warehouses.*', 'business_units.name as business_unit_name');
+            }
 
             $search = trim((string) $request->input('search.value', ''));
             if ($search !== '') {
-                $query->where(function ($q) use ($columns, $search) {
+                $query->where(function ($q) use ($columns, $search, $type) {
                     foreach ($columns as $column) {
-                        $q->orWhere($column, 'like', '%'.$search.'%');
+                        $searchColumn = $column;
+                        if ($type === 'warehouses' && $column === 'business_unit_name') {
+                            $searchColumn = 'business_units.name';
+                        } elseif ($type === 'warehouses') {
+                            $searchColumn = 'warehouses.'.$column;
+                        }
+                        $q->orWhere($searchColumn, 'like', '%'.$search.'%');
                     }
                 });
             }
@@ -553,8 +575,12 @@ class ErpController extends Controller
             $length = (int) $request->input('length', 15);
             $start = max(0, (int) $request->input('start', 0));
 
+            if ($type === 'warehouses') {
+                $orderColumn = $orderColumn === 'business_unit_name' ? 'business_units.name' : 'warehouses.'.$orderColumn;
+            }
+
             $rows = $query->orderBy($orderColumn, $orderDir)
-                ->orderBy('id', 'desc')
+                ->orderBy($type === 'warehouses' ? 'warehouses.id' : 'id', 'desc')
                 ->offset($start)
                 ->limit($length > 0 ? $length : 15)
                 ->get();
@@ -583,6 +609,22 @@ class ErpController extends Controller
             if ($value !== null && $value !== '') $data[$key] = $value;
         }
         $entity = $this->entityId();
+
+        if ($type === 'warehouses') {
+            $businessUnitId = (int) ($data['business_unit_id'] ?? 0);
+            abort_unless(
+                DB::table('business_units')
+                    ->where('id', $businessUnitId)
+                    ->where('entity_id', $entity)
+                    ->where('is_active', 1)
+                    ->exists(),
+                422,
+                'Unit Bisnis tidak valid atau sudah tidak aktif.'
+            );
+            $data['business_unit_id'] = $businessUnitId;
+            $data['is_active'] = (int) ($data['is_active'] ?? 1);
+        }
+
         if (in_array($type, ['customers','suppliers'], true)) {
             $prefix = $type === 'customers' ? 'CUS' : 'SUP';
             $lastNumber = DB::table($config['table'])->where('entity_id', $entity)->where('code', 'like', $prefix.'-%')->get(['code'])
@@ -614,6 +656,22 @@ class ErpController extends Controller
             if ($value !== null && $value !== '') $data[$key] = $value;
         }
         unset($data['entity_id']);
+
+        if ($type === 'warehouses') {
+            $businessUnitId = (int) ($data['business_unit_id'] ?? 0);
+            abort_unless(
+                DB::table('business_units')
+                    ->where('id', $businessUnitId)
+                    ->where('entity_id', $this->entityId())
+                    ->where('is_active', 1)
+                    ->exists(),
+                422,
+                'Unit Bisnis tidak valid atau sudah tidak aktif.'
+            );
+            $data['business_unit_id'] = $businessUnitId;
+            $data['is_active'] = (int) ($data['is_active'] ?? 1);
+        }
+
         if (in_array($type, ['customers','suppliers'], true)) {
             unset($data['code']);
             $data['is_active'] = array_key_exists('is_active', $data) ? (int) $data['is_active'] : 1;
@@ -629,13 +687,51 @@ class ErpController extends Controller
     public function masterDelete(Request $request, string $type, int $id)
     {
         $config = $this->masterConfig($type);
+        $entity = $this->entityId();
+
         try {
+            if ($type === 'warehouses') {
+                $warehouse = DB::table('warehouses')
+                    ->where('entity_id', $entity)
+                    ->where('id', $id)
+                    ->first();
+
+                abort_unless($warehouse, 404, 'Gudang tidak ditemukan.');
+
+                $references = DB::select(
+                    "SELECT TABLE_NAME, COLUMN_NAME
+                     FROM information_schema.KEY_COLUMN_USAGE
+                     WHERE REFERENCED_TABLE_SCHEMA = DATABASE()
+                       AND REFERENCED_TABLE_NAME = 'warehouses'
+                       AND REFERENCED_COLUMN_NAME = 'id'"
+                );
+
+                foreach ($references as $reference) {
+                    $table = $reference->TABLE_NAME;
+                    $column = $reference->COLUMN_NAME;
+                    if (DB::table($table)->where($column, $id)->exists()) {
+                        abort(
+                            422,
+                            'Gudang tidak dapat dihapus karena sudah digunakan oleh data/transaksi lain.'
+                        );
+                    }
+                }
+            }
+
             $deleted=DB::table($config['table'])
-                ->where('entity_id',$this->entityId())
+                ->where('entity_id',$entity)
                 ->where('id',$id)
                 ->delete();
             abort_unless($deleted,404,'Data tidak ditemukan.');
         } catch (\Throwable $e) {
+            if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface) {
+                $status = $e->getStatusCode();
+                $message = $e->getMessage();
+                return $request->expectsJson()
+                    ? response()->json(['message'=>$message],$status)
+                    : back()->withErrors(['delete'=>$message]);
+            }
+
             return $request->expectsJson()
                 ? response()->json(['message'=>'Data tidak dapat dihapus karena sudah digunakan oleh transaksi/data lain.'],422)
                 : back()->withErrors(['delete'=>'Data tidak dapat dihapus karena sudah digunakan oleh transaksi/data lain.']);
