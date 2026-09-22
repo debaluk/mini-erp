@@ -16,10 +16,10 @@ class UnitConversionController extends Controller
     {
         $entity = $this->entityId();
 
-        $baseQuery = DB::table('unit_conversions as pu')
+        $baseQuery = DB::table('product_unit_conversions as pu')
             ->join('products as p', 'p.id', '=', 'pu.product_id')
             ->join('units as u', 'u.id', '=', 'pu.unit_id')
-            ->leftJoin('units as du', 'du.id', '=', 'p.unit_id')
+            ->leftJoin('units as du', 'du.id', '=', 'p.base_unit_id')
             ->where('p.entity_id', $entity);
 
         if ($request->ajax() && $request->has('draw')) {
@@ -34,7 +34,7 @@ class UnitConversionController extends Controller
                 });
             }
 
-            $total = DB::table('unit_conversions as uc')
+            $total = DB::table('product_unit_conversions as uc')
                 ->join('products as p', 'p.id', '=', 'uc.product_id')
                 ->where('p.entity_id', $entity)
                 ->count();
@@ -46,7 +46,7 @@ class UnitConversionController extends Controller
                 'du.code',
                 'u.code',
                 'pu.conversion_factor',
-                'p.unit_id',
+                'p.base_unit_id',
             ];
 
             $orderIndex = (int) $request->input('order.0.column', 0);
@@ -61,7 +61,7 @@ class UnitConversionController extends Controller
                     'pu.product_id',
                     'pu.unit_id',
                     'pu.conversion_factor',
-                    DB::raw('CASE WHEN p.unit_id = pu.unit_id THEN 1 ELSE 0 END as is_default'),
+                    DB::raw('0 as is_default'),
                     'p.name as product_name',
                     'u.code as unit_code',
                     'u.name as unit_name',
@@ -101,7 +101,7 @@ class UnitConversionController extends Controller
             ->where('entity_id', $entity)
             ->where('is_active', 1)
             ->orderBy('name')
-            ->get(['id', 'name', 'unit_id']);
+            ->get(['id', 'name', 'base_unit_id']);
 
         $units = DB::table('units')
             ->where('entity_id', $entity)
@@ -118,6 +118,8 @@ class UnitConversionController extends Controller
             'unit_id' => 'required|integer',
             'conversion_factor' => 'required|numeric|gt:0',
             'is_default' => 'nullable|boolean',
+            'is_default_purchase' => 'nullable|boolean',
+            'is_default_sale' => 'nullable|boolean',
         ]);
 
         $entity = $this->entityId();
@@ -134,39 +136,34 @@ class UnitConversionController extends Controller
             'Satuan tidak valid.'
         );
 
+        $baseUnitId = (int) DB::table('products')->where('id', $data['product_id'])->value('base_unit_id');
+        abort_if($baseUnitId === (int)$data['unit_id'], 422, 'Satuan dasar tidak perlu dibuat sebagai konversi.');
+
         $values = [
             'product_id' => $data['product_id'],
             'unit_id' => $data['unit_id'],
             'conversion_factor' => $data['conversion_factor'],
+            'is_default_purchase' => (bool)($data['is_default_purchase'] ?? false),
+            'is_default_sale' => (bool)($data['is_default_sale'] ?? false),
+            'is_active' => true,
             'updated_at' => now(),
         ];
 
         if ($id) {
-            DB::table('unit_conversions')
+            DB::table('product_unit_conversions')
                 ->where('id', $id)
                 ->where('product_id', $data['product_id'])
                 ->update($values);
         } else {
             $values['created_at'] = now();
 
-            DB::table('unit_conversions')->updateOrInsert(
+            DB::table('product_unit_conversions')->updateOrInsert(
                 [
                     'product_id' => $data['product_id'],
                     'unit_id' => $data['unit_id'],
                 ],
                 $values
             );
-        }
-
-        if (($data['is_default'] ?? false)) {
-            DB::table('products')
-                ->where('entity_id', $entity)
-                ->where('id', $data['product_id'])
-                ->update([
-                    'unit_id' => $data['unit_id'],
-                    'base_unit_id' => $data['unit_id'],
-                    'updated_at' => now(),
-                ]);
         }
 
         return response()->json([
@@ -182,7 +179,7 @@ class UnitConversionController extends Controller
     public function update(Request $request, int $id)
     {
         abort_unless(
-            DB::table('unit_conversions as uc')
+            DB::table('product_unit_conversions as uc')
                 ->join('products as p', 'p.id', '=', 'uc.product_id')
                 ->where('p.entity_id', $this->entityId())
                 ->where('uc.id', $id)
@@ -195,7 +192,7 @@ class UnitConversionController extends Controller
 
     public function destroy(int $id)
     {
-        $deleted = DB::table('unit_conversions as uc')
+        $deleted = DB::table('product_unit_conversions as uc')
             ->where('uc.id', $id)
             ->whereExists(function ($query) {
                 $query->select(DB::raw(1))
