@@ -138,6 +138,15 @@
 @push('scripts')
 <script>
 (function () {
+    const typeSelect = document.getElementById('item_type');
+    const codePreview = document.getElementById('code_preview');
+    const prefixes = {barang:'BRG', jasa:'JSA', aset:'AST'};
+    function updateCodePreview() {
+        codePreview.value = (prefixes[typeSelect.value] || 'BRG') + '-00001';
+    }
+    typeSelect.addEventListener('change', updateCodePreview);
+    updateCodePreview();
+
     const conversionRows = document.getElementById('conversion-rows');
     const addButton = document.getElementById('add-conversion');
     const units = @json($units);
