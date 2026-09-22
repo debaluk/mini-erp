@@ -52,6 +52,7 @@ class PosController extends Controller
             $cart[$id]['qty'] += (float)$data['qty'];
         } else {
             $cart[$id] = [
+                'cart_key' => $id,
                 'product_id' => (int)$product->id,
                 'unit_id' => $unitId,
                 'conversion_factor' => $factor,
