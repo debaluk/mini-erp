@@ -26,19 +26,9 @@ class ModuleController extends Controller
             'title' => $title,
             'entity' => DB::table('entities')->where('id', $entity)->first(),
             'products' => DB::table('products as p')
-                ->join('product_units as pu', function ($join) use ($entity) {
-                    $join->on('pu.product_id', '=', 'p.id')
-                        ->where('pu.business_unit_id', function ($query) use ($entity) {
-                            $query->select('id')
-                                ->from('business_units')
-                                ->where('entity_id', $entity)
-                                ->where('code', 'RET')
-                                ->where('is_active', 1)
-                                ->limit(1);
-                        });
-                })
                 ->where('p.entity_id', $entity)
                 ->where('p.is_active', 1)
+                ->where('p.manage_stock', 1)
                 ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
                 ->leftJoin(DB::raw('(SELECT entity_id, product_id, SUM(qty) AS stock_qty FROM warehouses_stocks GROUP BY entity_id, product_id) AS ws'), function ($join) {
                     $join->on('ws.product_id', '=', 'p.id')
@@ -52,7 +42,39 @@ class ModuleController extends Controller
                     'u.name as selling_unit_name',
                     DB::raw('COALESCE(ws.stock_qty, 0) as stock_qty')
                 )
-                ->get(),
+                ->get()
+                ->each(function ($product) {
+                    $units = DB::table('units as u')
+                        ->where('u.id', $product->base_unit_id)
+                        ->get(['u.id','u.code','u.name'])
+                        ->map(fn ($u) => [
+                            'id' => (int)$u->id,
+                            'code' => $u->code,
+                            'name' => $u->name,
+                            'factor' => 1.0,
+                            'price' => (float)$product->selling_price,
+                        ])->values();
+
+                    $conversions = DB::table('product_unit_conversions as puc')
+                        ->join('units as u','u.id','=','puc.unit_id')
+                        ->where('puc.product_id',$product->id)
+                        ->where('puc.is_active',1)
+                        ->orderBy('u.name')
+                        ->get(['u.id','u.code','u.name','puc.conversion_factor','puc.is_default_sale']);
+
+                    foreach ($conversions as $conversion) {
+                        $units->push([
+                            'id' => (int)$conversion->id,
+                            'code' => $conversion->code,
+                            'name' => $conversion->name,
+                            'factor' => (float)$conversion->conversion_factor,
+                            'price' => round((float)$product->selling_price * (float)$conversion->conversion_factor, 2),
+                            'default_sale' => (bool)$conversion->is_default_sale,
+                        ]);
+                    }
+
+                    $product->transaction_units = $units->values();
+                }),
             'warehouses' => DB::table('warehouses')->where('entity_id', $entity)->where('is_active', 1)->orderBy('name')->get(),
             'vehicles' => DB::table('vehicles')->where('entity_id', $entity)->where('status', 'active')->orderBy('code')->get(),
             'drivers' => DB::table('drivers')->where('entity_id', $entity)->where('is_active', 1)->orderBy('name')->get(),
