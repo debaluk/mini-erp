@@ -93,7 +93,7 @@ return new class extends Migration
             $t->string('name');
             $t->foreignId('category_id')->nullable()->constrained('product_categories')->nullOnDelete();
             $t->foreignId('base_unit_id')->nullable()->constrained('units')->nullOnDelete();
-            $t->enum('item_type', ['barang', 'jasa'])->default('barang');
+            $t->enum('item_type', ['barang', 'jasa', 'aset'])->default('barang');
             $t->enum('type', ['raw_material', 'merchandise', 'wip', 'finished_goods'])->default('merchandise');
             $t->string('sku')->nullable();
             $t->string('barcode')->nullable();
@@ -117,14 +117,17 @@ return new class extends Migration
             $t->unique(['product_id', 'business_unit_id']);
         });
 
-        Schema::create('product_units', function (Blueprint $t) {
+        Schema::create('product_unit_conversions', function (Blueprint $t) {
             $t->id();
             $t->foreignId('product_id')->constrained('products')->cascadeOnDelete();
-            $t->foreignId('unit_id')->constrained('units')->cascadeOnDelete();
-            $t->decimal('conversion_factor', 18, 6)->default(1);
-            $t->boolean('is_default')->default(false);
+            $t->foreignId('unit_id')->constrained('units')->restrictOnDelete();
+            $t->decimal('conversion_factor', 18, 6);
+            $t->boolean('is_default_purchase')->default(false);
+            $t->boolean('is_default_sale')->default(false);
+            $t->boolean('is_active')->default(true);
             $t->timestamps();
             $t->unique(['product_id', 'unit_id']);
+            $t->index(['product_id', 'is_active']);
         });
 
         Schema::create('customers', function (Blueprint $t) {
@@ -241,8 +244,8 @@ return new class extends Migration
             $t->foreignId('entity_id')->constrained()->cascadeOnDelete();
             $t->foreignId('warehouse_id')->constrained('warehouses')->cascadeOnDelete();
             $t->foreignId('product_id')->constrained('products')->restrictOnDelete();
-            $t->decimal('qty', 18, 3)->default(0);
-            $t->decimal('avg_cost', 18, 4)->default(0);
+            $t->decimal('qty', 18, 6)->default(0);
+            $t->decimal('avg_cost', 18, 6)->default(0);
             $t->timestamps();
             $t->unique(['warehouse_id', 'product_id']);
         });
@@ -254,7 +257,7 @@ return new class extends Migration
             $t->foreignId('warehouse_id')->constrained('warehouses')->restrictOnDelete();
             $t->foreignId('product_id')->constrained('products')->restrictOnDelete();
             $t->string('movement_type');
-            $t->decimal('qty', 18, 3);
+            $t->decimal('qty', 18, 6);
             $t->decimal('unit_cost', 18, 4)->default(0);
             $t->string('reference_type')->nullable();
             $t->unsignedBigInteger('reference_id')->nullable();
@@ -703,7 +706,7 @@ return new class extends Migration
             'warehouses',
             'customers',
             'suppliers',
-            'product_units',
+            'product_unit_conversions',
             'product_business_units',
             'products',
             'product_categories',
