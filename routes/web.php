@@ -16,6 +16,7 @@ use App\Http\Controllers\SalesReturnController;
 use App\Http\Controllers\SalesController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\SellingPriceController;
+use App\Http\Controllers\ProductPriceController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\BusinessUnitController;
 use App\Http\Controllers\BusinessUnitAccountMappingController;
@@ -141,9 +142,14 @@ Route::middleware('auth')->group(function () {
         'gudang' => 'warehouses', 'satuan' => 'units',
         'konversi-satuan' => 'unit-conversions',
     ];
-    Route::get('/master/harga-jual', [SellingPriceController::class, 'index'])->middleware('role:owner,admin')->name('master.menu.harga-jual');
-    Route::post('/master/harga-jual/setup-awal', [SellingPriceController::class, 'storeInitial'])->middleware('role:owner,admin')->name('master.harga-jual.setup-awal');
-    Route::put('/master/harga-jual/{product}/edit', [SellingPriceController::class, 'update'])->middleware('role:owner,admin')->name('master.harga-jual.update');
+    Route::get('/master/harga-jual', [ProductPriceController::class, 'index'])->middleware('role:owner,admin')->name('master.menu.harga-jual');
+    Route::post('/master/harga-jual', [ProductPriceController::class, 'store'])->middleware('role:owner,admin')->name('master.harga-jual.store');
+    Route::put('/master/harga-jual/{id}', [ProductPriceController::class, 'update'])->middleware('role:owner,admin')->name('master.harga-jual.update');
+    Route::delete('/master/harga-jual/{id}', [ProductPriceController::class, 'destroy'])->middleware('role:owner,admin')->name('master.harga-jual.destroy');
+
+    Route::get('/inventory/initial-setup', [SellingPriceController::class, 'index'])->middleware('role:owner,admin')->name('inventory.initial-setup');
+    Route::post('/inventory/initial-setup', [SellingPriceController::class, 'storeInitial'])->middleware('role:owner,admin')->name('inventory.initial-setup.store');
+    Route::put('/inventory/initial-setup/{product}', [SellingPriceController::class, 'update'])->middleware('role:owner,admin')->name('inventory.initial-setup.update');
 
     foreach ($masterMenuPaths as $path => $type) {
         if ($type === 'unit-conversions') {
@@ -259,3 +265,7 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
+
+Route::get('/master/pekerja', function () {
+    return view('master.pekerja');
+})->name('master.menu.pekerja');

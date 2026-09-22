@@ -38,8 +38,24 @@
                 <li class="nav-item"><a class="nav-link" href="{{ route('dashboard') }}">Dashboard</a></li>
                 @if(auth()->user()->hasModuleAccess('master_data'))
                 <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">MASTER DATA</a><ul class="dropdown-menu">
-                    @foreach(['products'=>'Produk','customers'=>'Customer','suppliers'=>'Supplier','warehouses'=>'Gudang','units'=>'Satuan','unit-conversions'=>'Konversi Satuan'] as $route=>$label)<li><a class="dropdown-item" href="{{ route('master.menu.'.match ($route) { 'products' => 'produk', 'customers' => 'customer', 'suppliers' => 'supplier', 'warehouses' => 'gudang', 'units' => 'satuan', 'unit-conversions' => 'konversi-satuan', 'tariffs' => 'tarif' }) }}">{{ $label }}</a></li>@endforeach
-                    <li><a class="dropdown-item" href="{{ route('master.menu.harga-jual') }}">Harga Jual</a></li>
+                    @foreach([
+    ['route' => 'pengaturan.unit-bisnis', 'label' => 'Data Unit Bisnis'],
+    ['route' => 'master.menu.gudang', 'label' => 'Gudang'],
+    ['route' => 'master.menu.satuan', 'label' => 'Satuan'],
+    ['route' => 'master.menu.produk', 'label' => 'Item Barang'],
+    ['route' => 'master.menu.harga-jual', 'label' => 'Daftar Harga Jual'],
+    ['route' => 'master.menu.customer', 'label' => 'Pelanggan'],
+    ['route' => 'master.menu.supplier', 'label' => 'Supplier'],
+    ['route' => 'master.menu.pekerja', 'label' => 'Pekerja'],
+    ['route' => 'erp.bom', 'label' => 'BOM'],
+    ['route' => 'akuntansi.akun', 'label' => 'COA/Akun'],
+] as $menu)
+    <li>
+        <a class="dropdown-item" href="{{ route($menu['route']) }}">
+            {{ $menu['label'] }}
+        </a>
+    </li>
+@endforeach
                 </ul></li>
                 @endif
                 @if(auth()->user()->hasModuleAccess('pos_retail'))
@@ -49,6 +65,7 @@
                 @endif
                 @if(auth()->user()->hasAnyModuleAccess(['produksi','inventori']))
                 <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">INVENTORI</a><ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="{{ route('inventory.initial-setup') }}">Initial Setup</a></li>
                     <li><a class="dropdown-item" href="{{ route('inventori.penjualan') }}">Penjualan</a></li><li><a class="dropdown-item" href="{{ route('inventori.pembelian') }}">Pembelian</a></li><li><a class="dropdown-item" href="{{ route('inventori.penerimaan') }}">Penerimaan</a></li><li><a class="dropdown-item" href="{{ route('inventori.stok') }}">Stok</a></li><li><a class="dropdown-item" href="{{ route('inventori.transfer') }}">Transfer</a></li><li><a class="dropdown-item" href="{{ route('inventori.adjustment') }}">Adjustment</a></li><li><a class="dropdown-item" href="{{ route('inventori.stock-opname') }}">Stock Opname</a></li>
                     @if(auth()->user()->hasModuleAccess('produksi'))
                     <li><hr class="dropdown-divider"></li><li><h6 class="dropdown-header">PRODUKSI</h6></li>
