@@ -95,7 +95,7 @@ class SettingsController extends Controller
     public function users(Request $request)
     {
         $entityId = $request->user()->entity_id;
-        abort_unless($request->user()->role === 'owner' && $entityId, 403);
+        abort_unless(in_array($request->user()->role, ['owner', 'admin'], true) && $entityId, 403);
 
         $users = DB::table('users')
             ->where('entity_id', $entityId)
@@ -114,14 +114,14 @@ class SettingsController extends Controller
 
     public function userStore(Request $request)
     {
-        abort_unless($request->user()->role === 'owner' && $request->user()->entity_id, 403);
+        abort_unless(in_array($request->user()->role, ['owner', 'admin'], true) && $request->user()->entity_id, 403);
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'role' => ['required', Rule::in(['admin', 'kasir', 'inventori', 'akuntansi'])],
-            'modules' => ['required', 'array', 'min:1'],
+            'modules' => ['nullable', 'array'],
             'modules.*' => ['string', Rule::in(array_keys($this->moduleCatalog()))],
         ]);
 
@@ -141,7 +141,7 @@ class SettingsController extends Controller
             'module' => $module,
             'created_at' => now(),
             'updated_at' => now(),
-        ], array_values(array_unique($data['modules']))));
+        ], array_values(array_unique($data['modules'] ?? []))));
 
         return back()->with('success', 'User berhasil ditambahkan.');
     }
