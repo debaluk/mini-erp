@@ -87,7 +87,7 @@ class UnitConversionController extends Controller
                 'pu.product_id',
                 'pu.unit_id',
                 'pu.conversion_factor',
-                DB::raw('CASE WHEN p.unit_id = pu.unit_id THEN 1 ELSE 0 END as is_default'),
+                DB::raw('0 as is_default'),
                 'p.name as product_name',
                 'u.code as unit_code',
                 'u.name as unit_name',
@@ -148,6 +148,19 @@ class UnitConversionController extends Controller
             'is_active' => true,
             'updated_at' => now(),
         ];
+
+        if (($data['is_default_purchase'] ?? false)) {
+            DB::table('product_unit_conversions')
+                ->where('product_id', $data['product_id'])
+                ->where('id', '<>', $id ?? 0)
+                ->update(['is_default_purchase' => false, 'updated_at' => now()]);
+        }
+        if (($data['is_default_sale'] ?? false)) {
+            DB::table('product_unit_conversions')
+                ->where('product_id', $data['product_id'])
+                ->where('id', '<>', $id ?? 0)
+                ->update(['is_default_sale' => false, 'updated_at' => now()]);
+        }
 
         if ($id) {
             DB::table('product_unit_conversions')
