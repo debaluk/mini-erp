@@ -311,7 +311,7 @@ return new class extends Migration
             $t->foreignId('purchase_id')->constrained('purchases')->cascadeOnDelete();
             $t->foreignId('product_id')->constrained('products')->restrictOnDelete();
             $t->decimal('qty', 18, 6);
-            $t->decimal('unit_cost', 18, 4);
+            $t->decimal('unit_cost', 18, 6);
             $t->decimal('discount', 18, 2)->default(0);
             $t->decimal('total', 18, 2);
             $t->timestamps();
@@ -416,7 +416,7 @@ return new class extends Migration
             $t->decimal('unit_price', 18, 4);
             $t->decimal('discount', 18, 2)->default(0);
             $t->decimal('total', 18, 2);
-            $t->decimal('hpp_unit', 18, 4)->default(0);
+            $t->decimal('hpp_unit', 18, 6)->default(0);
             $t->decimal('hpp_total', 18, 2)->default(0);
             $t->timestamps();
         });
@@ -462,7 +462,7 @@ return new class extends Migration
             $t->decimal('qty', 18, 6);
             $t->decimal('unit_price', 18, 4);
             $t->decimal('return_value', 18, 2);
-            $t->decimal('hpp_unit', 18, 4)->default(0);
+            $t->decimal('hpp_unit', 18, 6)->default(0);
             $t->decimal('hpp_total', 18, 2)->default(0);
             $t->string('condition')->default('good');
             $t->timestamps();
@@ -516,7 +516,7 @@ return new class extends Migration
             $t->foreignId('product_id')->constrained('products')->restrictOnDelete();
             $t->foreignId('warehouse_id')->constrained('warehouses')->restrictOnDelete();
             $t->decimal('qty', 18, 6);
-            $t->decimal('unit_cost', 18, 4);
+            $t->decimal('unit_cost', 18, 6);
             $t->decimal('total_cost', 18, 2);
             $t->string('source')->default('stock');
             $t->timestamps();
@@ -541,7 +541,7 @@ return new class extends Migration
             $t->foreignId('product_id')->constrained('products')->restrictOnDelete();
             $t->foreignId('warehouse_id')->constrained('warehouses')->restrictOnDelete();
             $t->decimal('qty', 18, 6);
-            $t->decimal('unit_cost', 18, 4);
+            $t->decimal('unit_cost', 18, 6);
             $t->decimal('total_cost', 18, 2);
             $t->string('output_type')->default('good');
             $t->timestamps();
