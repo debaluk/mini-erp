@@ -43,7 +43,12 @@ return new class extends Migration
                  FROM product_units pu
                  LEFT JOIN product_unit_conversions puc
                     ON puc.product_id = pu.product_id AND puc.unit_id = pu.unit_id
-                 WHERE puc.id IS NULL'
+                 WHERE puc.id IS NULL
+                   AND pu.unit_id <> (
+                       SELECT p.base_unit_id
+                       FROM products p
+                       WHERE p.id = pu.product_id
+                   )'
             );
             Schema::dropIfExists('product_units');
         }
