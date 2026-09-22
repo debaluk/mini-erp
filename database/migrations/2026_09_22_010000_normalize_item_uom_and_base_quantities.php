@@ -127,7 +127,7 @@ return new class extends Migration
             foreach (['qty','output_qty','good_output_qty','reject_qty'] as $column) {
                 if (Schema::hasColumn($table, $column)) {
                     Schema::table($table, function (Blueprint $t) use ($column) {
-                        if ($column === 'hpp_unit') { $t->decimal($column, 18, 6)->default(0)->change(); } else { $t->decimal($column, 18, 6)->change(); }
+                        $t->decimal($column, 18, 6)->change();
                     });
                 }
             }
@@ -140,7 +140,7 @@ return new class extends Migration
             foreach (['unit_cost','hpp_unit'] as $column) {
                 if (Schema::hasColumn($table, $column)) {
                     Schema::table($table, function (Blueprint $t) use ($column) {
-                        $t->decimal($column, 18, 6)->change();
+                        if ($column === 'hpp_unit') { $t->decimal($column, 18, 6)->default(0)->change(); } else { $t->decimal($column, 18, 6)->change(); }
                     });
                 }
             }
