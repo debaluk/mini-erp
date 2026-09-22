@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ config('app.name', 'Mini ERP') }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/2.3.3/css/dataTables.bootstrap5.css" rel="stylesheet">
@@ -79,7 +80,37 @@
         </div>
     </div>
 </nav>
-<main class="container-fluid p-3 p-lg-4">
+
+<div class="modal fade" id="erpMessageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h5 class="modal-title" id="erpMessageTitle">Informasi</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="erpMessageBody"></div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-primary btn-sm" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="erpConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h5 class="modal-title" id="erpConfirmTitle">Konfirmasi</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="erpConfirmBody">Apakah Anda yakin?</div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-light btn-sm" id="erpConfirmNo">Batal</button>
+                <button type="button" class="btn btn-danger btn-sm" id="erpConfirmYes">Ya, Lanjutkan</button>
+            </div>
+        </div>
+    </div>
+</div>
+\n<main class="container-fluid p-3 p-lg-4">
     @yield('content')
 </main>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -92,6 +123,89 @@
         processing: 'Memproses...', search: 'Cari:', lengthMenu: 'Tampilkan _MENU_ data', info: 'Menampilkan _START_ sampai _END_ dari _TOTAL_ data', infoEmpty: 'Menampilkan 0 sampai 0 dari _TOTAL_ data', infoFiltered: '(disaring dari _MAX_ total data)', loadingRecords: 'Memuat...', zeroRecords: 'Data tidak ditemukan', emptyTable: 'Belum ada data', paginate: { first: '<<', previous: '<', next: '>', last: '>>' }
     };
 </script>
-@stack('scripts')
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const messageEl = document.getElementById('erpMessageModal');
+    const confirmEl = document.getElementById('erpConfirmModal');
+    if (!messageEl || !confirmEl || typeof bootstrap === 'undefined') return;
+
+    const messageModal = new bootstrap.Modal(messageEl);
+    const confirmModal = new bootstrap.Modal(confirmEl);
+    const messageTitle = document.getElementById('erpMessageTitle');
+    const messageBody = document.getElementById('erpMessageBody');
+    const confirmTitle = document.getElementById('erpConfirmTitle');
+    const confirmBody = document.getElementById('erpConfirmBody');
+    const confirmYes = document.getElementById('erpConfirmYes');
+    const confirmNo = document.getElementById('erpConfirmNo');
+    let confirmResolve = null;
+
+    window.erpNotify = (message, type = 'success') => {
+        const titles = {success:'Berhasil', danger:'Gagal', warning:'Peringatan', info:'Informasi'};
+        const buttons = {success:'btn-primary', danger:'btn-danger', warning:'btn-warning', info:'btn-primary'};
+        messageTitle.textContent = titles[type] || titles.info;
+        messageBody.innerHTML = '';
+        if (Array.isArray(message)) {
+            const ul = document.createElement('ul');
+            ul.className = 'mb-0 ps-3';
+            message.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = item;
+                ul.appendChild(li);
+            });
+            messageBody.appendChild(ul);
+        } else {
+            messageBody.textContent = String(message ?? '');
+        }
+        const okButton = messageEl.querySelector('.modal-footer button');
+        okButton.className = 'btn btn-sm ' + (buttons[type] || buttons.info);
+        messageModal.show();
+    };
+
+    window.erpConfirm = (message = 'Apakah Anda yakin?', title = 'Konfirmasi') => new Promise(resolve => {
+        confirmResolve = resolve;
+        confirmTitle.textContent = title;
+        confirmBody.textContent = message;
+        confirmModal.show();
+    });
+
+    confirmYes.addEventListener('click', () => {
+        confirmModal.hide();
+        if (confirmResolve) confirmResolve(true);
+        confirmResolve = null;
+    });
+    confirmNo.addEventListener('click', () => {
+        confirmModal.hide();
+        if (confirmResolve) confirmResolve(false);
+        confirmResolve = null;
+    });
+    confirmEl.addEventListener('hidden.bs.modal', () => {
+        if (confirmResolve) confirmResolve(false);
+        confirmResolve = null;
+    });
+
+    window.erpFetchJson = async (url, options = {}) => {
+        const headers = {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+            ...(options.headers || {})
+        };
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
+        if (csrf && !headers['X-CSRF-TOKEN']) headers['X-CSRF-TOKEN'] = csrf;
+        const response = await fetch(url, {...options, headers});
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            const errors = Object.values(data.errors || {}).flat().filter(Boolean);
+            const message = data.message || (errors.length ? errors : 'Terjadi kesalahan pada server.');
+            const error = new Error(Array.isArray(message) ? message.join(' ') : message);
+            error.status = response.status;
+            error.data = data;
+            throw error;
+        }
+        return data;
+    };
+});
+</script>
+\n@stack('scripts')
 </body>
 </html>
