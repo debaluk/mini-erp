@@ -155,6 +155,7 @@ class SettingsController extends Controller
             'password' => Hash::make($data['password']),
             'role' => $data['role'],
             'entity_id' => $request->user()->entity_id,
+            'default_business_unit_id' => $data['default_business_unit_id'],
             'is_active' => 1,
             'created_at' => now(),
             'updated_at' => now(),
