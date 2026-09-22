@@ -48,7 +48,8 @@ class BomController extends Controller
             'product_id' => ['required', 'integer'],
             'code' => ['required', 'string', 'max:100'],
             'name' => ['required', 'string', 'max:255'],
-            'output_qty' => ['required', 'numeric', 'min:0.001'],
+            'output_qty' => ['required', 'numeric', 'gt:0'],
+            'business_unit_id' => ['nullable', 'integer'],
             'material_product_id' => ['required', 'array', 'min:1'],
             'material_product_id.*' => ['required', 'integer'],
             'material_qty' => ['required', 'array', 'min:1'],
@@ -66,7 +67,14 @@ class BomController extends Controller
                 ->where('entity_id', $entity)
                 ->where('id', $data['product_id'])
                 ->first();
-            abort_unless($product, 404);
+            abort_unless($product && $product->base_unit_id, 422, 'Produk hasil belum memiliki Base Unit.');
+
+            $businessUnitId = (int)($data['business_unit_id'] ?? auth()->user()->default_business_unit_id ?? 0);
+            if (!$businessUnitId) {
+                $businessUnitId = (int)DB::table('business_units')->where('entity_id',$entity)->where('business_type','production')->where('is_active',1)->value('id');
+            }
+            abort_unless($businessUnitId,422,'Unit Bisnis Produksi belum tersedia.');
+            abort_unless(DB::table('business_units')->where('entity_id',$entity)->where('id',$businessUnitId)->where('business_type','production')->where('is_active',1)->exists(),422,'Unit Bisnis Produksi tidak valid.');
 
             $materialIds = array_map('intval', $data['material_product_id']);
             $validMaterials = DB::table('products')
@@ -78,6 +86,7 @@ class BomController extends Controller
             $bom = DB::table('boms')->insertGetId([
                 'entity_id' => $entity,
                 'product_id' => $product->id,
+                'business_unit_id' => $businessUnitId,
                 'code' => $data['code'],
                 'name' => $data['name'],
                 'output_qty' => $data['output_qty'],
@@ -88,6 +97,8 @@ class BomController extends Controller
 
             $items = [];
             foreach ($data['material_product_id'] as $i => $materialId) {
+                $material = DB::table('products')->where('entity_id',$entity)->where('id',$materialId)->first();
+                abort_unless($material && $material->base_unit_id,422,'Bahan BOM belum memiliki Base Unit.');
                 $items[] = [
                     'bom_id' => $bom,
                     'product_id' => $materialId,
