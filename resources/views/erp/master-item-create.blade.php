@@ -173,13 +173,13 @@
             </div>
             <div class="col-md-2">
                 <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="conversion_default_purchase[]" value="1" ${defaultPurchase ? 'checked' : ''}>
+                    <input type="hidden" name="conversion_default_purchase[]" value="0"><input class="form-check-input" type="checkbox" name="conversion_default_purchase[]" value="1" ${defaultPurchase ? 'checked' : ''}>
                     <label class="form-check-label">Default Beli</label>
                 </div>
             </div>
             <div class="col-md-2">
                 <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="conversion_default_sale[]" value="1" ${defaultSale ? 'checked' : ''}>
+                    <input type="hidden" name="conversion_default_sale[]" value="0"><input class="form-check-input" type="checkbox" name="conversion_default_sale[]" value="1" ${defaultSale ? 'checked' : ''}>
                     <label class="form-check-label">Default Jual</label>
                 </div>
             </div>
