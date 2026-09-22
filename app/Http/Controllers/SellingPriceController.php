@@ -32,7 +32,7 @@ class SellingPriceController extends Controller
                 'p.code',
                 'p.name',
                 'p.item_type',
-                'p.selling_price',
+                's.selling_price',
                 'u.code as unit_code',
                 'u.name as unit_name',
                 's.setup_date',
@@ -63,7 +63,7 @@ class SellingPriceController extends Controller
                     ->where('existing.entity_id', $entity);
             })
             ->when($retailUnitId, fn ($q) => $q->where('pu.business_unit_id', $retailUnitId))
-            ->select('p.id', 'p.code', 'p.barcode', 'p.name', 'p.selling_price', 'u.code as unit_code', 'u.name as unit_name')
+            ->select('p.id', 'p.code', 'p.barcode', 'p.name', 'u.code as unit_code', 'u.name as unit_name')
             ->orderBy('p.name')
             ->distinct()
             ->get();
@@ -124,12 +124,6 @@ class SellingPriceController extends Controller
                 'markup_percent' => $data['markup_percent'] ?? 0,
                 'selling_price' => $data['selling_price'],
                 'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            DB::table('products')->where('id', $product->id)->update([
-                'selling_price' => $data['selling_price'],
-                'cost_price' => $data['purchase_price'],
                 'updated_at' => now(),
             ]);
 
@@ -196,7 +190,6 @@ class SellingPriceController extends Controller
         abort_if($hasTransaction, 422, 'Harga jual tidak dapat diedit karena item sudah memiliki transaksi Pembelian atau Penjualan.');
         DB::transaction(function () use ($entity,$product,$data,$setup): void {
             DB::table('item_initial_setups')->where('entity_id',$entity)->where('product_id',$product)->update(['setup_date'=>$data['setup_date'],'purchase_price'=>$data['purchase_price'],'initial_stock'=>$data['initial_stock'],'markup_percent'=>$data['markup_percent'],'selling_price'=>$data['selling_price'],'updated_at'=>now()]);
-            DB::table('products')->where('entity_id',$entity)->where('id',$product)->update(['selling_price'=>$data['selling_price'],'cost_price'=>$data['purchase_price'],'updated_at'=>now()]);
             $stock=DB::table('warehouses_stocks')->where('entity_id',$entity)->where('warehouse_id',$setup->warehouse_id)->where('product_id',$product)->first();
             if($stock){ $delta=(float)$data['initial_stock']-(float)$setup->initial_stock; DB::table('warehouses_stocks')->where('id',$stock->id)->update(['qty'=>(float)$stock->qty+$delta,'avg_cost'=>$data['purchase_price'],'updated_at'=>now()]); }
             DB::table('stock_movements')->where('entity_id',$entity)->where('product_id',$product)->where('reference_type','item_initial_setup')->where('reference_id',$product)->update(['qty'=>$data['initial_stock'],'unit_cost'=>$data['purchase_price'],'occurred_at'=>$data['setup_date'].' 00:00:00','updated_at'=>now()]);

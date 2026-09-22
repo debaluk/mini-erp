@@ -235,7 +235,16 @@ class SalesReturnController extends Controller
             return (float) $movement->cost / (float) $movement->qty;
         }
 
-        return (float) (DB::table('products')->where('id', $productId)->value('cost_price') ?? 0);
+        $saleHpp = DB::table('sale_items')
+            ->where('sale_id', $saleId)
+            ->where('product_id', $productId)
+            ->whereNotNull('hpp_unit')
+            ->selectRaw('
+                SUM(COALESCE(base_qty, qty) * hpp_unit) / NULLIF(SUM(COALESCE(base_qty, qty)), 0) AS hpp_unit
+            ')
+            ->value('hpp_unit');
+
+        return (float) ($saleHpp ?? 0);
     }
 
     public function store(Request $request)

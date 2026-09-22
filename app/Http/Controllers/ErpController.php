@@ -21,10 +21,10 @@ class ErpController extends Controller
     private function masterConfig(string $type): array
     {
         return [
-            'products'=>['title'=>'Produk','table'=>'products','columns'=>['sku','barcode','name','type','cost_price','selling_price','minimum_stock'],'fields'=>[
+            'products'=>['title'=>'Produk','table'=>'products','columns'=>['sku','barcode','name','minimum_stock'],'fields'=>[
                 'sku'=>['label'=>'SKU','type'=>'text'],'barcode'=>['label'=>'Barcode','type'=>'text'],'name'=>['label'=>'Nama Produk','type'=>'text','required'=>true],
-                'type'=>['label'=>'Tipe','type'=>'select','options'=>['raw_material'=>'Bahan Baku','merchandise'=>'Barang Dagang','wip'=>'WIP','finished_goods'=>'Barang Jadi']],
-                'cost_price'=>['label'=>'Harga Pokok','type'=>'number','step'=>'0.01'],'selling_price'=>['label'=>'Harga Jual','type'=>'number','step'=>'0.01'],'minimum_stock'=>['label'=>'Minimum Stok','type'=>'number','step'=>'0.001']]],
+                
+                'minimum_stock'=>['label'=>'Minimum Stok','type'=>'number','step'=>'0.001']]],
             'customers'=>[
                 'title'=>'Customer','table'=>'customers',
                 'columns'=>['code','name','customer_type','phone','address','is_active'],
@@ -262,11 +262,6 @@ class ErpController extends Controller
             $number++;
         } while (DB::table('products')->where('entity_id', $entity)->where('code', $code)->exists());
 
-        $legacyType = match ($data['item_type']) {
-            'barang' => 'merchandise',
-            'jasa' => 'service',
-            'aset' => 'asset',
-        };
         $minimumStock = (float) ($data['minimum_stock'] ?? 0);
         if (!(bool) $data['manage_stock']) {
             $minimumStock = 0;
@@ -279,7 +274,7 @@ class ErpController extends Controller
         abort_if(collect($conversionDefaultPurchase)->filter(fn ($v) => (bool) $v)->count() > 1, 422, 'Hanya satu Satuan Konversi boleh menjadi default pembelian.');
         abort_if(collect($conversionDefaultSale)->filter(fn ($v) => (bool) $v)->count() > 1, 422, 'Hanya satu Satuan Konversi boleh menjadi default penjualan.');
 
-        DB::transaction(function () use ($entity, $data, $unitIds, $barcode, $code, $legacyType, $minimumStock, $conversionUnits, $conversionFactors, $conversionDefaultPurchase, $conversionDefaultSale): void {
+        DB::transaction(function () use ($entity, $data, $unitIds, $barcode, $code, $minimumStock, $conversionUnits, $conversionFactors, $conversionDefaultPurchase, $conversionDefaultSale): void {
             $productId = DB::table('products')->insertGetId([
                 'entity_id' => $entity,
                 'code' => $code,
@@ -287,7 +282,6 @@ class ErpController extends Controller
                 'barcode' => $barcode,
                 'name' => $data['name'],
                 'item_type' => $data['item_type'],
-                'type' => $legacyType,
                 'base_unit_id' => $data['base_unit_id'],
                 'minimum_stock' => $minimumStock,
                 'manage_stock' => (bool) $data['manage_stock'],
@@ -677,7 +671,6 @@ class ErpController extends Controller
         if (Schema::hasColumn($config['table'], 'is_active') && !array_key_exists('is_active', $data)) $data['is_active']=1;
         $data['created_at']=now();
         $data['updated_at']=now();
-        if ($type==='products') { $data['unit_id']=$data['unit_id']??null; $data['category_id']=$data['category_id']??null; }
         try {
             DB::table($config['table'])->insert($data);
         } catch (\Throwable $e) {
