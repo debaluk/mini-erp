@@ -61,6 +61,8 @@ class UnitConversionController extends Controller
                     'pu.product_id',
                     'pu.unit_id',
                     'pu.conversion_factor',
+                    'pu.is_default_purchase',
+                    'pu.is_default_sale',
                     DB::raw('0 as is_default'),
                     'p.name as product_name',
                     'u.code as unit_code',
