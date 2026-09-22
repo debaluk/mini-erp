@@ -94,7 +94,7 @@ return new class extends Migration
             $t->foreignId('category_id')->nullable()->constrained('product_categories')->nullOnDelete();
             $t->foreignId('base_unit_id')->nullable()->constrained('units')->nullOnDelete();
             $t->enum('item_type', ['barang', 'jasa', 'aset'])->default('barang');
-            $t->enum('type', ['raw_material', 'merchandise', 'wip', 'finished_goods'])->default('merchandise');
+            $t->enum('type', ['raw_material', 'merchandise', 'wip', 'finished_goods', 'service', 'asset'])->default('merchandise');
             $t->string('sku')->nullable();
             $t->string('barcode')->nullable();
             $t->decimal('cost_price', 18, 4)->default(0);
