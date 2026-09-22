@@ -601,7 +601,11 @@ class ErpController extends Controller
 
         abort_if($inUse, 422, 'Satuan sudah digunakan oleh Item atau konversi dan tidak dapat dihapus. Nonaktifkan satuan jika tidak digunakan lagi.');
 
-        DB::table('units')->where('entity_id', $entity)->where('id', $id)->delete();
+        try {
+            DB::table('units')->where('entity_id', $entity)->where('id', $id)->delete();
+        } catch (\Throwable $e) {
+            return response()->json(['message' => 'Satuan tidak dapat dihapus karena sudah digunakan dalam histori transaksi. Nonaktifkan satuan tersebut.'], 422);
+        }
 
         return response()->json(['message' => 'Satuan berhasil dihapus.']);
     }
