@@ -155,8 +155,10 @@
     const units = @json($units);
     const oldUnitIds = @json(old('conversion_unit_id', []));
     const oldFactors = @json(old('conversion_factor', []));
+    const oldDefaultPurchase = @json(old('conversion_default_purchase', []));
+    const oldDefaultSale = @json(old('conversion_default_sale', []));
 
-    function addRow(unitId = '', factor = '') {
+    function addRow(unitId = '', factor = '', defaultPurchase = false, defaultSale = false) {
         const row = document.createElement('div');
         row.className = 'row g-2 align-items-end mb-2 conversion-row';
         row.innerHTML = `
@@ -182,7 +184,7 @@
     addConversion.addEventListener('click', () => addRow());
 
     oldUnitIds.forEach((unitId, index) => {
-        addRow(unitId, oldFactors[index] ?? '');
+        addRow(unitId, oldFactors[index] ?? '', !!oldDefaultPurchase[index], !!oldDefaultSale[index]);
     });
 
     document.querySelectorAll('input[name="manage_stock"]').forEach(input => {
