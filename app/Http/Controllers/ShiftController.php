@@ -95,8 +95,22 @@ class ShiftController extends Controller
         $entity = $this->entityId();
         abort_if($this->openShift($entity), 422, 'Shift masih terbuka.');
 
+        $user = DB::table('users')
+            ->where('id', auth()->id())
+            ->where('entity_id', $entity)
+            ->first();
+        abort_unless($user && $user->default_business_unit_id, 422, 'Default Business Unit user belum ditentukan.');
+
+        $mapped = DB::table('user_business_units')
+            ->where('user_id', $user->id)
+            ->where('business_unit_id', $user->default_business_unit_id)
+            ->exists();
+        abort_unless($mapped, 422, 'Default Business Unit belum dipetakan ke user.');
+
+        // IMPORTANT: shift BU is the transaction context for all POS sales in this shift.
         DB::table('cash_shifts')->insert([
             'entity_id' => $entity,
+            'business_unit_id' => $user->default_business_unit_id,
             'user_id' => auth()->id(),
             'opened_at' => now(),
             'opening_cash' => $data['opening_cash'],
@@ -123,6 +137,7 @@ class ShiftController extends Controller
         DB::table('shift_cash_movements')->insert([
             'cash_shift_id' => $shift->id,
             'entity_id' => $entity,
+            'business_unit_id' => $shift->business_unit_id,
             'user_id' => auth()->id(),
             'movement_type' => $data['movement_type'],
             'amount' => $data['amount'],
