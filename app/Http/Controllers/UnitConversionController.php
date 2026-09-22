@@ -205,6 +205,7 @@ class UnitConversionController extends Controller
         return $this->save($request, $id);
     }
 
+    public function destroy(int $id)
     {
         $conversion = DB::table('product_unit_conversions as uc')
             ->join('products as p','p.id','=','uc.product_id')
