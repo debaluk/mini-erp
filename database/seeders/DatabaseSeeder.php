@@ -168,14 +168,14 @@ class DatabaseSeeder extends Seeder
                 'code' => 'SEMEN-001',
                 'name' => 'Semen',
                 'category' => 'BAHAN',
-                'unit' => 'SAK',
+                'unit' => 'KG',
                 'item_type' => 'barang',
                 'type' => 'raw_material',
                 'sku' => 'SEMEN-001',
                 'barcode' => '899000000001',
-                'cost_price' => 65000,
-                'selling_price' => 70000,
-                'minimum_stock' => 10,
+                'cost_price' => 1300,
+                'selling_price' => 1400,
+                'minimum_stock' => 500,
                 'manage_stock' => true,
                 'bus' => ['RET', 'PROD'],
             ],
@@ -266,6 +266,21 @@ class DatabaseSeeder extends Seeder
                 ]);
             }
         }
+
+        // Item-specific transaction UOM: 1 SAK semen = 50 KG Base Unit.
+        DB::table('product_unit_conversions')->updateOrInsert(
+            [
+                'product_id' => $productIds['SEMEN-001'],
+                'unit_id' => $unitIds['SAK'],
+            ],
+            [
+                'conversion_factor' => 50,
+                'is_default_purchase' => true,
+                'is_default_sale' => true,
+                'is_active' => true,
+                'updated_at' => $now,
+            ]
+        );
 
         // ================================================================
         // CUSTOMER / SUPPLIER
@@ -511,10 +526,10 @@ class DatabaseSeeder extends Seeder
         // berdasarkan transaksi/movement, bukan nilai hardcoded produk.
         // ================================================================
         $initialStocks = [
-            ['bu'=>'RET',  'product'=>'SEMEN-001',   'warehouse'=>'RET',  'qty'=>100, 'cost'=>65000],
+            ['bu'=>'RET',  'product'=>'SEMEN-001',   'warehouse'=>'RET',  'qty'=>100, 'cost'=>1300],
             ['bu'=>'RET',  'product'=>'PASIR-001',   'warehouse'=>'RET',  'qty'=>50,  'cost'=>250000],
             ['bu'=>'RET',  'product'=>'BATAKO-001', 'warehouse'=>'RET',  'qty'=>200, 'cost'=>2500],
-            ['bu'=>'PROD', 'product'=>'SEMEN-001',   'warehouse'=>'PROD', 'qty'=>100, 'cost'=>65000],
+            ['bu'=>'PROD', 'product'=>'SEMEN-001',   'warehouse'=>'PROD', 'qty'=>100, 'cost'=>1300],
             ['bu'=>'PROD', 'product'=>'PASIR-001',   'warehouse'=>'PROD', 'qty'=>50,  'cost'=>250000],
         ];
 
@@ -582,7 +597,7 @@ class DatabaseSeeder extends Seeder
             [
                 'bom_id' => $bomId,
                 'product_id' => $productIds['SEMEN-001'],
-                'qty' => 1,
+                'qty' => 50,
                 'created_at' => $now,
                 'updated_at' => $now,
             ],
