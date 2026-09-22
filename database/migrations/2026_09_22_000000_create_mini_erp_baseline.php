@@ -310,7 +310,7 @@ return new class extends Migration
             $t->id();
             $t->foreignId('purchase_id')->constrained('purchases')->cascadeOnDelete();
             $t->foreignId('product_id')->constrained('products')->restrictOnDelete();
-            $t->decimal('qty', 18, 3);
+            $t->decimal('qty', 18, 6);
             $t->decimal('unit_cost', 18, 4);
             $t->decimal('discount', 18, 2)->default(0);
             $t->decimal('total', 18, 2);
@@ -412,7 +412,7 @@ return new class extends Migration
             $t->id();
             $t->foreignId('sale_id')->constrained('sales')->cascadeOnDelete();
             $t->foreignId('product_id')->constrained('products')->restrictOnDelete();
-            $t->decimal('qty', 18, 3);
+            $t->decimal('qty', 18, 6);
             $t->decimal('unit_price', 18, 4);
             $t->decimal('discount', 18, 2)->default(0);
             $t->decimal('total', 18, 2);
@@ -459,7 +459,7 @@ return new class extends Migration
             $t->foreignId('sales_return_id')->constrained('sales_returns')->cascadeOnDelete();
             $t->foreignId('sale_item_id')->constrained('sale_items')->restrictOnDelete();
             $t->foreignId('product_id')->constrained('products')->restrictOnDelete();
-            $t->decimal('qty', 18, 3);
+            $t->decimal('qty', 18, 6);
             $t->decimal('unit_price', 18, 4);
             $t->decimal('return_value', 18, 2);
             $t->decimal('hpp_unit', 18, 4)->default(0);
@@ -478,7 +478,7 @@ return new class extends Migration
             $t->foreignId('product_id')->constrained('products')->restrictOnDelete();
             $t->string('code');
             $t->string('name');
-            $t->decimal('output_qty', 18, 3)->default(1);
+            $t->decimal('output_qty', 18, 6)->default(1);
             $t->boolean('is_active')->default(true);
             $t->timestamps();
             $t->unique(['business_unit_id', 'code']);
@@ -501,10 +501,10 @@ return new class extends Migration
             $t->foreignId('user_id')->constrained('users')->restrictOnDelete();
             $t->string('production_no');
             $t->dateTime('production_date');
-            $t->decimal('qty', 18, 3);
+            $t->decimal('qty', 18, 6);
             $t->decimal('total_cost', 18, 2)->default(0);
-            $t->decimal('good_output_qty', 18, 3)->default(0);
-            $t->decimal('reject_qty', 18, 3)->default(0);
+            $t->decimal('good_output_qty', 18, 6)->default(0);
+            $t->decimal('reject_qty', 18, 6)->default(0);
             $t->string('status')->default('posted');
             $t->timestamps();
             $t->unique(['entity_id', 'production_no']);
@@ -515,7 +515,7 @@ return new class extends Migration
             $t->foreignId('production_id')->constrained('productions')->cascadeOnDelete();
             $t->foreignId('product_id')->constrained('products')->restrictOnDelete();
             $t->foreignId('warehouse_id')->constrained('warehouses')->restrictOnDelete();
-            $t->decimal('qty', 18, 3);
+            $t->decimal('qty', 18, 6);
             $t->decimal('unit_cost', 18, 4);
             $t->decimal('total_cost', 18, 2);
             $t->string('source')->default('stock');
@@ -540,7 +540,7 @@ return new class extends Migration
             $t->foreignId('production_id')->constrained('productions')->cascadeOnDelete();
             $t->foreignId('product_id')->constrained('products')->restrictOnDelete();
             $t->foreignId('warehouse_id')->constrained('warehouses')->restrictOnDelete();
-            $t->decimal('qty', 18, 3);
+            $t->decimal('qty', 18, 6);
             $t->decimal('unit_cost', 18, 4);
             $t->decimal('total_cost', 18, 2);
             $t->string('output_type')->default('good');
@@ -551,7 +551,7 @@ return new class extends Migration
             $t->id();
             $t->foreignId('production_id')->constrained('productions')->cascadeOnDelete();
             $t->foreignId('product_id')->nullable()->constrained('products')->nullOnDelete();
-            $t->decimal('qty', 18, 3);
+            $t->decimal('qty', 18, 6);
             $t->string('reject_type')->default('scrap');
             $t->string('description')->nullable();
             $t->decimal('recoverable_value', 18, 2)->default(0);
