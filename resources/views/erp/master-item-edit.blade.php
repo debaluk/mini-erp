@@ -96,15 +96,15 @@
 <script>
 (function(){
     const conversionRows=document.getElementById('conversion-rows'), addButton=document.getElementById('add-conversion');
-    const units=@json($units), existing=@json($conversions), oldIds=@json(old('conversion_unit_id', [])), oldFactors=@json(old('conversion_factor', []));
-    function addRow(unitId='',factor=''){
+    const units=@json($units), existing=@json($conversions), oldIds=@json(old('conversion_unit_id', [])), oldFactors=@json(old('conversion_factor', [])), oldDefaultPurchase=@json(old('conversion_default_purchase', [])), oldDefaultSale=@json(old('conversion_default_sale', []));
+    function addRow(unitId='',factor='',defaultPurchase=false,defaultSale=false){
         const row=document.createElement('div'); row.className='row g-2 align-items-end mb-2';
-        row.innerHTML=`<div class="col-md-5"><label class="form-label">Satuan Alternatif</label><select name="conversion_unit_id[]" class="form-select"><option value="">Pilih satuan</option>${units.map(u=>`<option value="${u.id}" ${String(u.id)===String(unitId)?'selected':''}>${u.name}</option>`).join('')}</select></div><div class="col-md-5"><label class="form-label">Faktor</label><input type="text" inputmode="decimal" name="conversion_factor[]" class="form-control" value="${String(factor).replace(/(\\.\\d*?[1-9])0+$|\\.0+$/,"$1")}"}></div><div class="col-md-2"><button type="button" class="btn btn-outline-danger w-100 remove">Hapus</button></div>`;
+        row.innerHTML=`<div class="col-md-5"><label class="form-label">Satuan Alternatif</label><select name="conversion_unit_id[]" class="form-select"><option value="">Pilih satuan</option>${units.map(u=>`<option value="${u.id}" ${String(u.id)===String(unitId)?'selected':''}>${u.name}</option>`).join('')}</select></div><div class="col-md-3"><label class="form-label">Faktor</label><input type="text" inputmode="decimal" name="conversion_factor[]" class="form-control" value="${String(factor).replace(/(\\.\\d*?[1-9])0+$|\\.0+$/,"$1")}"></div><div class="col-md-2"><div class="form-check"><input class="form-check-input" type="checkbox" name="conversion_default_purchase[]" value="1" ${defaultPurchase?'checked':''}><label class="form-check-label small">Default Beli</label></div><div class="form-check"><input class="form-check-input" type="checkbox" name="conversion_default_sale[]" value="1" ${defaultSale?'checked':''}><label class="form-check-label small">Default Jual</label></div></div><div class="col-md-2"><button type="button" class="btn btn-outline-danger w-100 remove">Hapus</button></div>`;
         conversionRows.appendChild(row); row.querySelector('.remove').addEventListener('click',()=>row.remove());
     }
     addButton.addEventListener('click',()=>addRow());
-    if(oldIds.length) oldIds.forEach((id,i)=>addRow(id,oldFactors[i]??''));
-    else existing.forEach(x=>addRow(x.unit_id,x.conversion_factor));
+    if(oldIds.length) oldIds.forEach((id,i)=>addRow(id,oldFactors[i]??'',Boolean(oldDefaultPurchase[i]),Boolean(oldDefaultSale[i])));
+    else existing.forEach(x=>addRow(x.unit_id,x.conversion_factor,Boolean(Number(x.is_default_purchase)),Boolean(Number(x.is_default_sale))));
     document.querySelectorAll('input[name="manage_stock"]').forEach(input=>input.addEventListener('change',function(){const el=document.getElementById('minimum_stock');el.disabled=this.value==='0';if(this.value==='0')el.value='0';}));
 })();
 </script>
