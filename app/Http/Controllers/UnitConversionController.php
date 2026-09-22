@@ -205,16 +205,23 @@ class UnitConversionController extends Controller
         return $this->save($request, $id);
     }
 
-    public function destroy(int $id)
     {
-        $deleted = DB::table('product_unit_conversions as uc')
-            ->where('uc.id', $id)
-            ->whereExists(function ($query) {
-                $query->select(DB::raw(1))
-                    ->from('products as p')
-                    ->whereColumn('p.id', 'uc.product_id')
-                    ->where('p.entity_id', $this->entityId());
-            })
+        $conversion = DB::table('product_unit_conversions as uc')
+            ->join('products as p','p.id','=','uc.product_id')
+            ->where('uc.id',$id)
+            ->where('p.entity_id',$this->entityId())
+            ->first(['uc.product_id','uc.unit_id']);
+
+        abort_unless($conversion,404);
+
+        $used = DB::table('purchase_items')->where('product_id',$conversion->product_id)->where('transaction_unit_id',$conversion->unit_id)->exists()
+            || DB::table('sale_items')->where('product_id',$conversion->product_id)->where('transaction_unit_id',$conversion->unit_id)->exists()
+            || DB::table('sales_return_items')->where('product_id',$conversion->product_id)->where('transaction_unit_id',$conversion->unit_id)->exists();
+
+        abort_if($used,422,'Konversi sudah dipakai transaksi dan tidak dapat dihapus. Nonaktifkan konversi tersebut.');
+
+        $deleted = DB::table('product_unit_conversions')
+            ->where('id', $id)
             ->delete();
 
         abort_unless($deleted, 404);
