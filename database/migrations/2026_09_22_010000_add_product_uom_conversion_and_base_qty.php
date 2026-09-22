@@ -29,7 +29,11 @@ return new class extends Migration
         // product-specific conversion master. Legacy product_units is kept
         // temporarily for backward compatibility and data verification.
         if (Schema::hasTable('product_units')) {
-            $legacyRows = DB::table('product_units')->get();
+            $legacyRows = DB::table('product_units as pu')
+                ->join('products as p', 'p.id', '=', 'pu.product_id')
+                ->whereColumn('pu.unit_id', '<>', 'p.base_unit_id')
+                ->select('pu.*')
+                ->get();
             foreach ($legacyRows as $row) {
                 DB::table('product_unit_conversions')->updateOrInsert(
                     ['product_id' => $row->product_id, 'unit_id' => $row->unit_id],
