@@ -177,6 +177,50 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="conversionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <div>
+                    <h5 class="modal-title mb-0">Setup Konversi Satuan Transaksi</h5>
+                    <div class="small text-secondary" id="conversion-item-info">-</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-3">
+                <div id="conversion-form-alert"></div>
+                <input type="hidden" id="conversion-product-id">
+                <div class="border rounded p-2 mb-2 bg-light">
+                    <div class="row g-2 small">
+                        <div class="col-md-6"><span class="text-secondary">Base Unit:</span> <strong id="conversion-base-unit">-</strong></div>
+                        <div class="col-md-6 text-md-end"><span class="text-secondary">Item:</span> <strong id="conversion-product-name">-</strong></div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered align-middle mb-2">
+                        <thead>
+                            <tr>
+                                <th>Satuan Transaksi</th>
+                                <th style="width: 150px;">Faktor</th>
+                                <th class="text-center" style="width: 90px;">Beli</th>
+                                <th class="text-center" style="width: 90px;">Jual</th>
+                                <th class="text-center" style="width: 80px;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="conversion-modal-rows"></tbody>
+                    </table>
+                </div>
+                <button type="button" class="btn btn-outline-primary btn-sm" id="conversion-add-row">+ Tambah Satuan</button>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                <button type="button" class="btn btn-primary btn-sm" id="conversion-save">Simpan</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')
@@ -207,8 +251,156 @@
             { data: 'minimum_stock', className: 'text-end', render: d => formatNumber(d) },
             { data: 'manage_stock', className: 'text-center', render: d => d ? 'Ya' : 'Tidak' },
             { data: 'is_active', className: 'text-center', render: d => d ? '<span class="badge text-bg-success">Aktif</span>' : '<span class="badge text-bg-secondary">Nonaktif</span>' },
-            { data: 'id', className: 'text-end', orderable: false, searchable: false, render: id => '<div class="d-inline-flex gap-1"><button type="button" class="btn btn-outline-primary btn-sm btn-edit-item" data-id="' + id + '">Edit</button><a href="{{ url('/master/konversi-satuan') }}?product_id=' + id + '" class="btn btn-outline-secondary btn-sm">Konversi</a><button type="button" class="btn btn-outline-danger btn-sm btn-delete-item" data-id="' + id + '">Hapus</button></div>' }
+            { data: 'id', className: 'text-end', orderable: false, searchable: false, render: id => '<div class="d-inline-flex gap-1"><button type="button" class="btn btn-outline-primary btn-sm btn-edit-item" data-id="' + id + '">Edit</button><a href="{{ url('/master/konversi-satuan') }}?product_id=' + id + '" class="btn btn-outline-secondary btn-sm btn-conversion-item" data-id="' + id + '">Konversi</a><button type="button" class="btn btn-outline-danger btn-sm btn-delete-item" data-id="' + id + '">Hapus</button></div>' }
         ]
+    });
+
+
+    const conversionModalEl = document.getElementById('conversionModal');
+    const conversionModal = new bootstrap.Modal(conversionModalEl);
+    const conversionModalRows = document.getElementById('conversion-modal-rows');
+    const conversionUnits = @json($units);
+    let conversionProductId = null;
+
+    function conversionCsrfHeaders() {
+        return {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}',
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        };
+    }
+
+    function conversionEscape(value) {
+        return String(value ?? '').replace(/[&<>"']/g, function (char) {
+            return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char];
+        });
+    }
+
+    function conversionUnitOptions(selected) {
+        return '<option value="">Pilih satuan</option>' + conversionUnits.map(u =>
+            '<option value="' + u.id + '"' + (String(u.id) === String(selected) ? ' selected' : '') + '>' +
+            conversionEscape(u.name) + '</option>'
+        ).join('');
+    }
+
+    function addConversionModalRow(row = {}) {
+        const tr = document.createElement('tr');
+        tr.dataset.id = row.id || '';
+        tr.innerHTML =
+            '<td><select class="form-select form-select-sm conversion-unit">' + conversionUnitOptions(row.unit_id || '') + '</select></td>' +
+            '<td><input type="number" min="0.000001" step="0.000001" class="form-control form-control-sm conversion-factor" value="' + conversionEscape(row.conversion_factor ?? '') + '"></td>' +
+            '<td class="text-center"><input type="checkbox" class="form-check-input conversion-default-purchase"' + (Number(row.is_default_purchase) === 1 ? ' checked' : '') + '></td>' +
+            '<td class="text-center"><input type="checkbox" class="form-check-input conversion-default-sale"' + (Number(row.is_default_sale) === 1 ? ' checked' : '') + '></td>' +
+            '<td class="text-center"><button type="button" class="btn btn-outline-danger btn-sm conversion-remove">Hapus</button></td>';
+        conversionModalRows.appendChild(tr);
+        tr.querySelector('.conversion-remove').addEventListener('click', () => tr.remove());
+    }
+
+    async function loadConversionModal(productId) {
+        conversionProductId = Number(productId);
+        document.getElementById('conversion-product-id').value = conversionProductId;
+        document.getElementById('conversion-form-alert').innerHTML = '';
+        conversionModalRows.innerHTML = '<tr><td colspan="5" class="text-center text-secondary py-3">Memuat data...</td></tr>';
+
+        const itemResponse = await fetch('{{ url('/master/produk') }}/' + conversionProductId + '/edit', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+        });
+        if (!itemResponse.ok) {
+            document.getElementById('conversion-form-alert').innerHTML = '<div class="alert alert-danger py-2 small">Data item tidak dapat dimuat.</div>';
+            return;
+        }
+        const itemPayload = await itemResponse.json();
+        const item = itemPayload.item || {};
+        document.getElementById('conversion-product-name').textContent = (item.code ? item.code + ' - ' : '') + (item.name || '-');
+        const baseUnit = conversionUnits.find(u => Number(u.id) === Number(item.base_unit_id));
+        document.getElementById('conversion-base-unit').textContent = baseUnit ? baseUnit.name : '-';
+
+        const response = await fetch('{{ route('master.unit-conversions') }}?product_id=' + conversionProductId + '&draw=1&start=0&length=100', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+        });
+        const payload = await response.json();
+        if (!response.ok) {
+            document.getElementById('conversion-form-alert').innerHTML = '<div class="alert alert-danger py-2 small">Data konversi tidak dapat dimuat.</div>';
+            return;
+        }
+
+        conversionModalRows.innerHTML = '';
+        (payload.data || []).forEach(row => addConversionModalRow(row));
+        if (!(payload.data || []).length) {
+            conversionModalRows.innerHTML = '<tr><td colspan="5" class="text-center text-secondary py-3">Belum ada konversi satuan.</td></tr>';
+        }
+    }
+
+    async function openConversionModal(productId) {
+        conversionModal.show();
+        await loadConversionModal(productId);
+    }
+
+    document.getElementById('conversion-add-row').addEventListener('click', () => {
+        if (conversionModalRows.querySelector('td[colspan]')) conversionModalRows.innerHTML = '';
+        addConversionModalRow();
+    });
+
+    document.getElementById('conversion-save').addEventListener('click', async () => {
+        const saveButton = document.getElementById('conversion-save');
+        const rowsToSave = Array.from(conversionModalRows.querySelectorAll('tr')).filter(row => row.querySelector('.conversion-unit'));
+        const seenUnits = new Set();
+        const payloadRows = [];
+
+        for (const row of rowsToSave) {
+            const unitId = Number(row.querySelector('.conversion-unit').value);
+            const factor = Number(row.querySelector('.conversion-factor').value);
+            if (!unitId) {
+                document.getElementById('conversion-form-alert').innerHTML = '<div class="alert alert-danger py-2 small">Satuan transaksi wajib dipilih.</div>';
+                return;
+            }
+            if (!Number.isFinite(factor) || factor <= 0) {
+                document.getElementById('conversion-form-alert').innerHTML = '<div class="alert alert-danger py-2 small">Faktor konversi harus lebih besar dari 0.</div>';
+                return;
+            }
+            if (seenUnits.has(unitId)) {
+                document.getElementById('conversion-form-alert').innerHTML = '<div class="alert alert-danger py-2 small">Satuan transaksi tidak boleh duplikat.</div>';
+                return;
+            }
+            seenUnits.add(unitId);
+            payloadRows.push({
+                id: Number(row.dataset.id || 0),
+                product_id: conversionProductId,
+                unit_id: unitId,
+                conversion_factor: factor,
+                is_default_purchase: row.querySelector('.conversion-default-purchase').checked ? 1 : 0,
+                is_default_sale: row.querySelector('.conversion-default-sale').checked ? 1 : 0
+            });
+        }
+
+        saveButton.disabled = true;
+        document.getElementById('conversion-form-alert').innerHTML = '';
+
+        try {
+            for (const row of payloadRows) {
+                const url = row.id
+                    ? '{{ url('/master/unit-conversions') }}/' + row.id
+                    : '{{ route('master.unit-conversions.store') }}';
+                const method = row.id ? 'PUT' : 'POST';
+                const response = await fetch(url, {
+                    method,
+                    headers: { ...conversionCsrfHeaders(), 'Content-Type': 'application/json' },
+                    body: JSON.stringify(row)
+                });
+                const result = await response.json();
+                if (!response.ok) {
+                    const errors = result.errors ? Object.values(result.errors).flat().join('<br>') : (result.message || 'Konversi tidak dapat disimpan.');
+                    document.getElementById('conversion-form-alert').innerHTML = '<div class="alert alert-danger py-2 small">' + errors + '</div>';
+                    saveButton.disabled = false;
+                    return;
+                }
+            }
+            await loadConversionModal(conversionProductId);
+        } catch (error) {
+            document.getElementById('conversion-form-alert').innerHTML = '<div class="alert alert-danger py-2 small">Konversi tidak dapat disimpan.</div>';
+        } finally {
+            saveButton.disabled = false;
+        }
     });
 
     function formatNumber(value) {
@@ -280,6 +472,14 @@
     }
 
     document.getElementById('item-unit-filter').addEventListener('change', () => dt.ajax.reload());
+
+
+    document.getElementById('items-table').addEventListener('click', e => {
+        const link = e.target.closest('.btn-conversion-item');
+        if (!link) return;
+        e.preventDefault();
+        openConversionModal(link.dataset.id);
+    });
 
     document.getElementById('items-table').addEventListener('click', async (event) => {
         const button = event.target.closest('.btn-delete-item');
