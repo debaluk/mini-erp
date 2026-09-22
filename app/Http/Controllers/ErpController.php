@@ -1273,6 +1273,44 @@ class ErpController extends Controller
         return back()->with('success', 'Produksi berhasil diposting dan stok diperbarui.');
     }
 
+    private function resolveProductUnit(int $productId, ?int $unitId, int $entity): array
+    {
+        $product = DB::table('products')
+            ->where('entity_id', $entity)
+            ->where('id', $productId)
+            ->first(['id', 'base_unit_id']);
+
+        abort_unless($product, 422, 'Produk tidak valid.');
+
+        $unitId = $unitId ?: (int) $product->base_unit_id;
+        abort_unless($unitId > 0, 422, 'Satuan dasar item belum ditentukan.');
+
+        if ($unitId === (int) $product->base_unit_id) {
+            return ['unit_id' => $unitId, 'factor' => 1.0];
+        }
+
+        $conversion = DB::table('product_unit_conversions')
+            ->join('units', 'units.id', '=', 'product_unit_conversions.unit_id')
+            ->where('product_unit_conversions.product_id', $productId)
+            ->where('product_unit_conversions.unit_id', $unitId)
+            ->where('product_unit_conversions.is_active', 1)
+            ->where('units.entity_id', $entity)
+            ->first(['product_unit_conversions.unit_id', 'product_unit_conversions.conversion_factor']);
+
+        abort_unless($conversion && (float) $conversion->conversion_factor > 0, 422, 'Konversi satuan item tidak ditemukan atau tidak aktif.');
+
+        return [
+            'unit_id' => (int) $conversion->unit_id,
+            'factor' => (float) $conversion->conversion_factor,
+        ];
+    }
+
+    private function transactionUnitPriceToBase(float $transactionPrice, float $factor): float
+    {
+        abort_if($factor <= 0, 422, 'Faktor konversi tidak valid.');
+        return $transactionPrice / $factor;
+    }
+
     public function deliveryStore(Request $request){$data=$request->validate(['vehicle_id'=>'nullable|integer','driver_id'=>'nullable|integer','destination'=>'required|string','distance_km'=>'nullable|numeric|min:0']); DB::table('deliveries')->insert(['entity_id'=>$this->entityId(),'vehicle_id'=>$data['vehicle_id']??null,'driver_id'=>$data['driver_id']??null,'delivery_no'=>'DO-'.now()->format('YmdHis').'-'.Str::upper(Str::random(3)),'delivery_date'=>now(),'destination'=>$data['destination'],'distance_km'=>$data['distance_km']??0,'status'=>'planned','created_at'=>now(),'updated_at'=>now()]); return back()->with('success','Pengiriman berhasil dibuat.');}
     public function journalStore(Request $request){$data=$request->validate(['description'=>'required|string','debit_account'=>'required|integer','credit_account'=>'required|integer','amount'=>'required|numeric|min:0.01']); DB::transaction(function()use($data){$j=DB::table('journals')->insertGetId(['entity_id'=>$this->entityId(),'journal_no'=>'JRN-'.now()->format('YmdHis').'-'.Str::upper(Str::random(3)),'journal_date'=>now()->toDateString(),'description'=>$data['description'],'status'=>'posted','created_at'=>now(),'updated_at'=>now()]); DB::table('journal_entries')->insert([['journal_id'=>$j,'account_id'=>$data['debit_account'],'debit'=>$data['amount'],'credit'=>0,'created_at'=>now(),'updated_at'=>now()],['journal_id'=>$j,'account_id'=>$data['credit_account'],'debit'=>0,'credit'=>$data['amount'],'created_at'=>now(),'updated_at'=>now()]]);}); return back()->with('success','Jurnal berhasil diposting.');}
 }
