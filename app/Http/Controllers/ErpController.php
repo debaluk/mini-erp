@@ -613,6 +613,12 @@ class ErpController extends Controller
 
         if ($type === 'warehouses') {
             $businessUnitId = (int) ($data['business_unit_id'] ?? 0);
+            $code = trim((string) ($data['code'] ?? ''));
+            abort_if(
+                DB::table('warehouses')->where('entity_id', $entity)->where('code', $code)->exists(),
+                422,
+                'Kode gudang sudah digunakan.'
+            );
             abort_unless(
                 DB::table('business_units')
                     ->where('id', $businessUnitId)
@@ -639,7 +645,17 @@ class ErpController extends Controller
         $data['created_at']=now();
         $data['updated_at']=now();
         if ($type==='products') { $data['unit_id']=$data['unit_id']??null; $data['category_id']=$data['category_id']??null; }
-        DB::table($config['table'])->insert($data);
+        try {
+            DB::table($config['table'])->insert($data);
+        } catch (\Throwable $e) {
+            report($e);
+            $message = $type === 'warehouses'
+                ? 'Gudang gagal disimpan. Periksa Kode, Unit Bisnis, dan data wajib lainnya.'
+                : 'Data gagal disimpan.';
+            return $request->expectsJson()
+                ? response()->json(['message' => $message], 422)
+                : back()->withErrors(['save' => $message])->withInput();
+        }
         return $request->expectsJson()
             ? response()->json(['message'=>$config['title'].' berhasil disimpan.'])
             : back()->with('success',$config['title'].' berhasil disimpan.');
@@ -660,6 +676,16 @@ class ErpController extends Controller
 
         if ($type === 'warehouses') {
             $businessUnitId = (int) ($data['business_unit_id'] ?? 0);
+            $code = trim((string) ($data['code'] ?? ''));
+            abort_if(
+                DB::table('warehouses')
+                    ->where('entity_id', $this->entityId())
+                    ->where('code', $code)
+                    ->where('id', '<>', $id)
+                    ->exists(),
+                422,
+                'Kode gudang sudah digunakan.'
+            );
             abort_unless(
                 DB::table('business_units')
                     ->where('id', $businessUnitId)
@@ -679,7 +705,22 @@ class ErpController extends Controller
             if ($type === 'customers') $data['credit_limit'] = 0;
         }
         $data['updated_at']=now();
-        DB::table($config['table'])->where('entity_id',$this->entityId())->where('id',$id)->update($data);
+        try {
+            $updated = DB::table($config['table'])
+                ->where('entity_id',$this->entityId())
+                ->where('id',$id)
+                ->update($data);
+            abort_unless($updated, 404, 'Data tidak ditemukan.');
+        } catch (\Throwable $e) {
+            if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface) throw $e;
+            report($e);
+            $message = $type === 'warehouses'
+                ? 'Gudang gagal diperbarui. Periksa Kode, Unit Bisnis, dan data wajib lainnya.'
+                : 'Data gagal diperbarui.';
+            return $request->expectsJson()
+                ? response()->json(['message' => $message], 422)
+                : back()->withErrors(['update' => $message])->withInput();
+        }
         return $request->expectsJson()
             ? response()->json(['message'=>$config['title'].' berhasil diperbarui.'])
             : back()->with('success',$config['title'].' berhasil diperbarui.');
