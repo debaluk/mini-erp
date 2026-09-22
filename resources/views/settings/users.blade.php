@@ -164,19 +164,28 @@ function setModules(modules){
     document.querySelectorAll('.module-check').forEach(el=>el.checked=modules.includes(el.value));
 }
 function setBusinessUnits(rows, fallbackDefault){
-    const ids = rows.map(r => String(r.business_unit_id));
+    const ids = rows.map(r => String(r.business_unit_id ?? r.id));
     document.querySelectorAll('.bu-check').forEach(el => el.checked=ids.includes(el.value));
-    const select = document.getElementById('uDefaultBU');
-    const defaultId = fallbackDefault ? String(fallbackDefault) : (ids[0] || '');
-    select.value = defaultId;
+    syncDefaultBusinessUnit(fallbackDefault || ids[0] || '');
 }
 function selectedBusinessUnits(){
     return Array.from(document.querySelectorAll('.bu-check:checked')).map(el => el.value);
 }
-document.getElementById('uDefaultBU').addEventListener('focus', function(){
+function syncDefaultBusinessUnit(preferred){
+    const select = document.getElementById('uDefaultBU');
     const selected = new Set(selectedBusinessUnits());
-    Array.from(this.options).forEach(o => o.disabled = selected.size > 0 && !selected.has(o.value));
-});
+    Array.from(select.options).forEach(o => {
+        o.disabled = !selected.has(o.value);
+    });
+    if (preferred && selected.has(String(preferred))) {
+        select.value = String(preferred);
+    } else if (selected.size) {
+        select.value = Array.from(selected)[0];
+    } else {
+        select.value = '';
+    }
+}
+document.querySelectorAll('.bu-check').forEach(el => el.addEventListener('change', () => syncDefaultBusinessUnit()));
 function newUser(){
     const f=document.getElementById('userForm');
     f.action='{{ route('pengaturan.user.store') }}';
@@ -190,7 +199,7 @@ function newUser(){
     document.getElementById('uPassword').required=true;
     document.getElementById('uPasswordConfirmation').required=true;
     setModules(defaultModules('admin'));
-    setBusinessUnits([], '{{ $businessUnits->first()?->id }}');
+    setBusinessUnits(@json($businessUnits), '{{ $businessUnits->first()?->id }}');
 }
 function editUser(u){
     const f=document.getElementById('userForm');
