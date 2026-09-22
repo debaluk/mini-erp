@@ -275,6 +275,15 @@ class ErpController extends Controller
             'Satuan dasar tidak valid.'
         );
 
+        $conversionUnitIds = array_values(array_unique(array_filter(array_map('intval', $data['conversion_unit_id'] ?? []))));
+        if ($conversionUnitIds) {
+            abort_unless(
+                DB::table('units')->where('entity_id',$entity)->where('is_active',1)->whereIn('id',$conversionUnitIds)->count() === count($conversionUnitIds),
+                422,
+                'Ada satuan konversi yang tidak valid.'
+            );
+        }
+
         $barcode = trim((string) ($data['barcode'] ?? ''));
         if ($barcode !== '') {
             abort_if(
@@ -431,6 +440,10 @@ class ErpController extends Controller
         $unitIds = array_values(array_unique(array_map('intval', $data['business_unit_ids'])));
         abort_unless(DB::table('business_units')->where('entity_id',$entity)->where('is_active',1)->whereIn('id',$unitIds)->count() === count($unitIds),422,'Unit tidak valid.');
         abort_unless(DB::table('units')->where('entity_id',$entity)->where('is_active',1)->where('id',$data['base_unit_id'])->exists(),422,'Satuan dasar tidak valid.');
+        $conversionUnitIds = array_values(array_unique(array_filter(array_map('intval', $data['conversion_unit_id'] ?? []))));
+        if ($conversionUnitIds) {
+            abort_unless(DB::table('units')->where('entity_id',$entity)->where('is_active',1)->whereIn('id',$conversionUnitIds)->count() === count($conversionUnitIds),422,'Ada satuan konversi yang tidak valid.');
+        }
         $barcode = trim((string)($data['barcode'] ?? '')) ?: null;
         if ($barcode !== null) abort_if(DB::table('products')->where('entity_id',$entity)->where('barcode',$barcode)->where('id','<>',$id)->exists(),422,'Barcode sudah digunakan oleh item lain.');
         $minimumStock = (float)($data['minimum_stock'] ?? 0);
