@@ -36,7 +36,7 @@
                 <div class="modal-body py-3">
                     <div class="row g-3">
                         @foreach($config['fields'] as $key => $field)
-                            <div class="{{ $type === 'warehouses' ? 'col-12' : (in_array($type, ['customers','suppliers'], true) ? 'col-md-6' : 'col-md-4') }}">
+                            <div class="{{ $type === 'warehouses' ? 'col-md-6' : (in_array($type, ['customers','suppliers'], true) ? 'col-md-6' : 'col-md-4') }}">
                                 <label class="form-label mb-1">{{ $field['label'] }}</label>
                                 @if($field['type'] === 'textarea')
                                     <textarea name="{{ $key }}" class="form-control @if($field['required'] ?? false) required-field @endif" rows="2" @if($field['required'] ?? false) data-required="1" @endif></textarea>
@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
             @foreach($config['columns'] as $column)
                 { data: @json($column), defaultContent: '', render: (data) => {
                     if (@json($type) === 'customers' && @json($column) === 'customer_type') return ({umum:'Umum',proyek:'Proyek',perusahaan:'Perusahaan'}[data] || data || '');
-                    if ((@json($type) === 'customers' || @json($type) === 'suppliers') && @json($column) === 'is_active') return Number(data) === 1 ? '<span class="badge text-bg-success">Aktif</span>' : '<span class="badge text-bg-secondary">Nonaktif</span>';
+                    if ((@json($type) === 'customers' || @json($type) === 'suppliers' || @json($type) === 'warehouses') && @json($column) === 'is_active') return Number(data) === 1 ? '<span class="badge text-bg-success">Aktif</span>' : '<span class="badge text-bg-secondary">Nonaktif</span>';
                     return data ?? '';
                 } },
             @endforeach
@@ -184,7 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const empty = !String(input.value ?? '').trim();
             input.classList.toggle('is-invalid', empty);
             if (empty) {
-                const label = input.closest('.col-md-4')?.querySelector('.form-label')?.textContent?.trim() || input.name;
+                const label = input.closest('[class*="col-"]')?.querySelector('.form-label')?.textContent?.trim() || input.name;
                 missing.push(label);
             }
         });
