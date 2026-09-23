@@ -11,12 +11,9 @@
         .navbar .dropdown-menu { min-width: 230px; }
         .navbar .dropdown-menu .dropdown-header { font-weight: 700; color: var(--bs-primary); }
         .navbar .dropdown-menu .dropdown-submenu { position: relative; }
-        .navbar .dropdown-menu .dropdown-submenu > .dropdown-menu { top: 0; left: 100%; margin-top: -.35rem; display: none; }
+        .navbar .dropdown-menu .dropdown-submenu > .dropdown-menu { position: static; margin: 0; border: 0; box-shadow: none; display: none; }
         .navbar .dropdown-menu .dropdown-submenu.show > .dropdown-menu { display: block; }
         .navbar .dropdown-menu .dropdown-submenu > .dropdown-toggle::after { margin-left: auto; }
-        @media (max-width: 1199.98px) {
-            .navbar .dropdown-menu .dropdown-submenu > .dropdown-menu { position: static; margin: 0; border: 0; box-shadow: none; }
-        }
         main { min-height: calc(100vh - 56px); }
         main .form-label { font-size: .8rem; margin-bottom: .2rem; font-weight: 600; }
         main .form-control, main .form-select { min-height: 32px; height: 32px; padding: .2rem .5rem; font-size: .82rem; line-height: 1.2; }
@@ -57,11 +54,7 @@
     ['route' => 'erp.bom', 'label' => 'BOM'],
     ['route' => 'akuntansi.akun', 'label' => 'COA/Akun'],
 ] as $menu)
-    <li>
-        <a class="dropdown-item" href="{{ route($menu['route']) }}">
-            {{ $menu['label'] }}
-        </a>
-    </li>
+    <li><a class="dropdown-item" href="{{ route($menu['route']) }}">{{ $menu['label'] }}</a></li>
 @endforeach
                 </ul></li>
                 @endif
@@ -82,7 +75,7 @@
                     <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">INVENTORI &amp; OPERASIONAL</a>
                     <ul class="dropdown-menu">
                         <li class="dropdown-submenu">
-                            <a class="dropdown-item dropdown-toggle" href="#">1. PENJUALAN</a>
+                            <a class="dropdown-item dropdown-toggle" href="#">PENJUALAN</a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ route('pos.pos') }}" onclick="window.open(this.href, 'POSKasir', 'width=1400,height=900,resizable=yes,scrollbars=yes'); return false;">POS Kasir (Tunai/Retail)</a></li>
                                 <li><a class="dropdown-item" href="{{ route('inventori.penjualan') }}">Penjualan Tempo/Invoice</a></li>
@@ -90,7 +83,7 @@
                             </ul>
                         </li>
                         <li class="dropdown-submenu">
-                            <a class="dropdown-item dropdown-toggle" href="#">2. PEMBELIAN</a>
+                            <a class="dropdown-item dropdown-toggle" href="#">PEMBELIAN</a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ route('inventori.pembelian-po') }}">Purchase Order (PO)</a></li>
                                 <li><a class="dropdown-item" href="{{ route('inventori.penerimaan') }}">Penerimaan Barang</a></li>
@@ -99,7 +92,7 @@
                             </ul>
                         </li>
                         <li class="dropdown-submenu">
-                            <a class="dropdown-item dropdown-toggle" href="#">3. PRODUKSI (BUASO)</a>
+                            <a class="dropdown-item dropdown-toggle" href="#">PRODUKSI (BUASO)</a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ route('produksi.work-order') }}">Work Order (SPK)</a></li>
                                 <li><a class="dropdown-item" href="{{ route('produksi.pemakaian-bahan') }}">Pemakaian Bahan Baku</a></li>
@@ -107,7 +100,7 @@
                             </ul>
                         </li>
                         <li class="dropdown-submenu">
-                            <a class="dropdown-item dropdown-toggle" href="#">4. PERSEDIAAN</a>
+                            <a class="dropdown-item dropdown-toggle" href="#">PERSEDIAAN</a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ route('inventory.initial-setup') }}">Setup Stok Awal</a></li>
                                 <li><a class="dropdown-item" href="{{ route('erp.movements') }}">Mutasi Barang</a></li>
@@ -116,7 +109,7 @@
                             </ul>
                         </li>
                         <li class="dropdown-submenu">
-                            <a class="dropdown-item dropdown-toggle" href="#">5. LAPORAN OPERASIONAL</a>
+                            <a class="dropdown-item dropdown-toggle" href="#">LAPORAN OPERASIONAL</a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ route('laporan.penjualan') }}">Laporan Penjualan</a></li>
                                 <li><a class="dropdown-item" href="{{ route('laporan.pembelian') }}">Laporan Pembelian</a></li>
@@ -136,7 +129,7 @@
                     <ul class="dropdown-menu">
                         @if(auth()->user()->hasModuleAccess('akuntansi'))
                         <li class="dropdown-submenu">
-                            <a class="dropdown-item dropdown-toggle" href="#">1. KAS &amp; BANK</a>
+                            <a class="dropdown-item dropdown-toggle" href="#">KAS &amp; BANK</a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ route('akuntansi.kas-bank') }}">Kas / Bank Masuk</a></li>
                                 <li><a class="dropdown-item" href="{{ route('akuntansi.kas-bank') }}">Kas / Bank Keluar</a></li>
@@ -144,7 +137,7 @@
                             </ul>
                         </li>
                         <li class="dropdown-submenu">
-                            <a class="dropdown-item dropdown-toggle" href="#">2. AKUNTANSI</a>
+                            <a class="dropdown-item dropdown-toggle" href="#">AKUNTANSI</a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ route('akuntansi.jurnal') }}">Jurnal Umum</a></li>
                                 <li><a class="dropdown-item" href="{{ route('akuntansi.buku-besar') }}">Buku Besar</a></li>
@@ -154,7 +147,7 @@
                         @endif
                         @if(auth()->user()->hasModuleAccess('laporan'))
                         <li class="dropdown-submenu">
-                            <a class="dropdown-item dropdown-toggle" href="#">3. LAPORAN KEUANGAN</a>
+                            <a class="dropdown-item dropdown-toggle" href="#">LAPORAN KEUANGAN</a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ route('akuntansi.laba-rugi') }}">Laporan Laba Rugi</a></li>
                                 <li><a class="dropdown-item" href="{{ route('akuntansi.neraca-saldo') }}">Laporan Neraca Saldo</a></li>
@@ -185,29 +178,18 @@
 <div class="modal fade" id="erpMessageModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-sm modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header py-2">
-                <h5 class="modal-title" id="erpMessageTitle">Informasi</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="erpMessageBody"></div>
-            <div class="modal-footer py-2">
-                <button type="button" class="btn btn-primary btn-sm" data-bs-dismiss="modal">OK</button>
-            </div>
-        </div>
+            <div class="modal-header py-2"><h5 class="modal-title" id="erpMessageTitle">Informasi</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body" id="erpMessageBody"></div>
+        <div class="modal-footer py-2"><button type="button" class="btn btn-primary btn-sm" data-bs-dismiss="modal">OK</button></div>
     </div>
+</div>
 </div>
 <div class="modal fade" id="erpConfirmModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-sm modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header py-2">
-                <h5 class="modal-title" id="erpConfirmTitle">Konfirmasi</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
+            <div class="modal-header py-2"><h5 class="modal-title" id="erpConfirmTitle">Konfirmasi</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
             <div class="modal-body" id="erpConfirmBody">Apakah Anda yakin?</div>
-            <div class="modal-footer py-2">
-                <button type="button" class="btn btn-light btn-sm" id="erpConfirmNo">Batal</button>
-                <button type="button" class="btn btn-danger btn-sm" id="erpConfirmYes">Ya, Lanjutkan</button>
-            </div>
+            <div class="modal-footer py-2"><button type="button" class="btn btn-light btn-sm" id="erpConfirmNo">Batal</button><button type="button" class="btn btn-danger btn-sm" id="erpConfirmYes">Ya, Lanjutkan</button></div>
         </div>
     </div>
 </div>
@@ -225,7 +207,6 @@
         processing: 'Memproses...', search: 'Cari:', lengthMenu: 'Tampilkan _MENU_ data', info: 'Menampilkan _START_ sampai _END_ dari _TOTAL_ data', infoEmpty: 'Menampilkan 0 sampai 0 dari _TOTAL_ data', infoFiltered: '(disaring dari _MAX_ total data)', loadingRecords: 'Memuat...', zeroRecords: 'Data tidak ditemukan', emptyTable: 'Belum ada data', paginate: { first: '<<', previous: '<', next: '>', last: '>>' }
     };
 </script>
-
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const messageEl = document.getElementById('erpMessageModal');
@@ -250,11 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (Array.isArray(message)) {
             const ul = document.createElement('ul');
             ul.className = 'mb-0 ps-3';
-            message.forEach(item => {
-                const li = document.createElement('li');
-                li.textContent = item;
-                ul.appendChild(li);
-            });
+            message.forEach(item => { const li = document.createElement('li'); li.textContent = item; ul.appendChild(li); });
             messageBody.appendChild(ul);
         } else {
             messageBody.textContent = String(message ?? '');
@@ -287,11 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     window.erpFetchJson = async (url, options = {}) => {
-        const headers = {
-            'X-Requested-With': 'XMLHttpRequest',
-            'Accept': 'application/json',
-            ...(options.headers || {})
-        };
+        const headers = {'X-Requested-With':'XMLHttpRequest','Accept':'application/json',...(options.headers || {})};
         const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
         if (csrf && !headers['X-CSRF-TOKEN']) headers['X-CSRF-TOKEN'] = csrf;
         const response = await fetch(url, {...options, headers});
@@ -307,25 +280,25 @@ document.addEventListener('DOMContentLoaded', () => {
         return data;
     };
 });
-    document.querySelectorAll('.dropdown-submenu > .dropdown-toggle').forEach(toggle => {
-        toggle.addEventListener('click', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            const parent = this.parentElement;
-            document.querySelectorAll('.dropdown-submenu.show').forEach(el => {
-                if (el !== parent) el.classList.remove('show');
-            });
-            parent.classList.toggle('show');
-        });
-    });
 
-    document.querySelectorAll('.dropdown').forEach(dropdown => {
-        dropdown.addEventListener('hide.bs.dropdown', () => {
-            dropdown.querySelectorAll('.dropdown-submenu.show').forEach(el => el.classList.remove('show'));
+document.querySelectorAll('.dropdown-submenu > .dropdown-toggle').forEach(toggle => {
+    toggle.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const parent = this.parentElement;
+        document.querySelectorAll('.dropdown-submenu.show').forEach(el => {
+            if (el !== parent) el.classList.remove('show');
         });
+        parent.classList.toggle('show');
     });
+});
+
+document.querySelectorAll('.dropdown').forEach(dropdown => {
+    dropdown.addEventListener('hide.bs.dropdown', () => {
+        dropdown.querySelectorAll('.dropdown-submenu.show').forEach(el => el.classList.remove('show'));
+    });
+});
 </script>
-
 @stack('scripts')
 </body>
 </html>
