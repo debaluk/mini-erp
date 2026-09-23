@@ -3,10 +3,10 @@
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
-        <h3 class="mb-1">Harga Jual</h3>
-        <div class="text-secondary">Harga jual item Retail</div>
+        <h3 class="mb-1">Initial Setup</h3>
+        <div class="text-secondary">Setup awal item barang</div>
     </div>
-    <button type="button" class="btn btn-primary" id="btn-setup-awal" data-bs-toggle="modal" data-bs-target="#setupAwalModal">+ Setup Awal</button>
+    <button type="button" class="btn btn-outline-success" id="btn-export-excel">Export Initial Setup</button>
 </div>
 
 <div id="price-alert"></div>
@@ -15,10 +15,9 @@
     <div class="card-body border-bottom py-2">
         <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
             <div>
-                <div class="fw-semibold">Daftar Harga Jual</div>
-                <div class="small text-secondary">Item yang sudah Setup Awal dapat diedit selama belum ada transaksi.</div>
+                <div class="fw-semibold">Daftar Initial Setup</div>
+                <div class="small text-secondary">Semua item Barang ditampilkan. Setiap item hanya dapat memiliki satu Initial Setup.</div>
             </div>
-            <button type="button" class="btn btn-outline-success btn-sm" id="btn-export-excel">Export Excel</button>
         </div>
     </div>
     <div class="table-responsive">
@@ -57,9 +56,18 @@
 </td>
 <td class="text-center">
 @if($row->setup_date)
-<button type="button" class="btn btn-outline-primary btn-sm btn-edit" data-id="{{ $row->id }}" data-name="{{ $row->name }}" data-price="{{ (float) $row->selling_price }}" data-hpp="{{ (float) $row->initial_purchase_price }}" data-stock="{{ (float) $row->initial_stock }}" data-up="{{ (float) $row->markup_percent }}" data-date="{{ $row->setup_date }}">Edit</button>
+<button type="button" class="btn btn-outline-primary btn-sm btn-edit"
+    data-id="{{ $row->id }}"
+    data-name="{{ $row->name }}"
+    data-price="{{ (float) $row->selling_price }}"
+    data-hpp="{{ (float) $row->initial_purchase_price }}"
+    data-stock="{{ (float) $row->initial_stock }}"
+    data-up="{{ (float) $row->markup_percent }}"
+    data-date="{{ $row->setup_date }}">Edit</button>
 @else
-<span class="text-secondary">-</span>
+<button type="button" class="btn btn-primary btn-sm btn-setup"
+    data-id="{{ $row->id }}"
+    data-name="{{ $row->name }}">Setup</button>
 @endif
 </td>
                 </tr>
@@ -213,7 +221,7 @@
 
         const ws = XLSX.utils.aoa_to_sheet([
             ['{{ $entityName }}'],
-            ['Data Setup Harga Jual'],
+            ['Data Setup Awal Stok & Harga Jual'],
             ['Tgl Cetak : ' + printDate],
             [],
             ['Kode','Item','Satuan','HPP Awal','UP (%)','Harga Jual','Stok Awal','Tgl Setup'],
@@ -249,7 +257,7 @@
 
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Harga Jual');
-        XLSX.writeFile(wb, 'harga-jual-' + new Date().toISOString().slice(0,10) + '.xlsx');
+        XLSX.writeFile(wb, 'initial-setup-' + new Date().toISOString().slice(0,10) + '.xlsx');
     });
 
     function esc(v) {
@@ -324,25 +332,70 @@
     markup.addEventListener('blur',()=>markup.value=fmtNum(markup.value));
     selling.addEventListener('blur',()=>selling.value=fmtMoney(selling.value));
 
-    document.getElementById('btn-setup-awal').addEventListener('click', () => {
-        editMode=false; modalTitle.textContent='Setup Awal'; setupPurchase.readOnly=false; initialStock.readOnly=false;
+    function openSetup(product) {
+        modalTitle.textContent = 'Setup Initial';
+        setupPurchase.readOnly = false;
+        initialStock.readOnly = false;
         form.reset();
         form.querySelector('[name="setup_date"]').value = '{{ now()->toDateString() }}';
-        productId.value = '';
+        productId.value = product.id;
+        search.value = product.name;
         document.getElementById('setup-product-unit').textContent = '';
         document.getElementById('setup-form-alert').innerHTML = '';
+        popup.style.display = 'none';
         modal.show();
-        setTimeout(() => search.focus(), 250);
-    });
+        setTimeout(() => purchase.focus(), 250);
+    }
 
     document.querySelector('#selling-price-table tbody').addEventListener('click', e => {
-        const edit=e.target.closest('.btn-edit');
-        if(edit){ editMode=true; modalTitle.textContent='Edit Setup Awal'; form.reset(); search.value=edit.dataset.name; productId.value=edit.dataset.id; setupPurchase.value=fmtMoney(edit.dataset.hpp); setupPurchase.readOnly=false; initialStock.value=fmtNum(edit.dataset.stock); initialStock.readOnly=false; markup.value=fmtNum(edit.dataset.up||'0'); selling.value=fmtMoney(edit.dataset.price); form.querySelector('[name="setup_date"]').value=edit.dataset.date||'{{ now()->toDateString() }}'; document.getElementById('setup-form-alert').innerHTML='<div class="alert alert-info py-2 small">Bisa diedit selama item belum memiliki transaksi Pembelian atau Penjualan.</div>'; popup.style.display='none'; modal.show(); return; }
+        const btn = e.target.closest('.btn-setup');
 
-        const btn = e.target.closest('.btn-detail');
-        if (!btn) return;
-        ['code','name','unit','hpp','up','price','stock','date'].forEach(k => document.getElementById('d-'+k).textContent = btn.dataset[k] || '-');
-        detailModal.show();
+        if (btn) {
+            editMode = false;
+            modalTitle.textContent = 'Setup Initial';
+            form.reset();
+
+            form.querySelector('[name="setup_date"]').value = '{{ now()->toDateString() }}';
+            productId.value = btn.dataset.id;
+            search.value = btn.dataset.name;
+
+            setupPurchase.readOnly = false;
+            initialStock.readOnly = false;
+
+            document.getElementById('setup-form-alert').innerHTML = '';
+            popup.style.display = 'none';
+            modal.show();
+
+            setTimeout(() => purchase.focus(), 250);
+            return;
+        }
+
+        const edit = e.target.closest('.btn-edit');
+        if (!edit) return;
+
+        editMode = true;
+        modalTitle.textContent = 'Edit Initial Setup';
+        form.reset();
+
+        productId.value = edit.dataset.id;
+        search.value = edit.dataset.name;
+
+        setupPurchase.value = fmtMoney(edit.dataset.hpp);
+        initialStock.value = fmtNum(edit.dataset.stock);
+        markup.value = fmtNum(edit.dataset.up || '0');
+        selling.value = fmtMoney(edit.dataset.price);
+
+        setupPurchase.readOnly = false;
+        initialStock.readOnly = false;
+
+        form.querySelector('[name="setup_date"]').value =
+            edit.dataset.date || '{{ now()->toDateString() }}';
+
+        document.getElementById('setup-form-alert').innerHTML =
+            '<div class="alert alert-info py-2 small">Mengedit Initial Setup item yang sudah ada.</div>';
+
+        popup.style.display = 'none';
+        modal.show();
     });
 
     form.addEventListener('submit', async e => {
@@ -353,9 +406,12 @@
         }
         const save = document.getElementById('setup-save');
         save.disabled = true;
-        const url=editMode ? '{{ url('/master/harga-jual') }}/'+productId.value+'/edit' : '{{ route('master.harga-jual.setup-awal') }}';
+        const url = editMode
+            ? '{{ url('/inventory/initial-setup') }}/' + productId.value
+            : '{{ route('inventory.initial-setup') }}';
+
         const response = await fetch(url, {
-            method: editMode ? 'POST' : 'POST',
+            method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
                 'X-Requested-With': 'XMLHttpRequest',

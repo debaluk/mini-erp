@@ -187,7 +187,7 @@ class SellingPriceController extends Controller
         $setup = DB::table('item_initial_setups')->where('entity_id',$entity)->where('product_id',$product)->first();
         abort_unless($setup, 404, 'Setup awal item belum ada.');
         $hasTransaction = DB::table('sale_items')->where('product_id',$product)->exists() || DB::table('purchase_items')->where('product_id',$product)->exists();
-        abort_if($hasTransaction, 422, 'Harga jual tidak dapat diedit karena item sudah memiliki transaksi Pembelian atau Penjualan.');
+        abort_if($hasTransaction, 422, 'Data tidak dapat diedit karena item sudah memiliki transaksi Pembelian atau Penjualan.');
         DB::transaction(function () use ($entity,$product,$data,$setup): void {
             DB::table('item_initial_setups')->where('entity_id',$entity)->where('product_id',$product)->update(['setup_date'=>$data['setup_date'],'purchase_price'=>$data['purchase_price'],'initial_stock'=>$data['initial_stock'],'markup_percent'=>$data['markup_percent'],'selling_price'=>$data['selling_price'],'updated_at'=>now()]);
             $stock=DB::table('warehouses_stocks')->where('entity_id',$entity)->where('warehouse_id',$setup->warehouse_id)->where('product_id',$product)->first();
