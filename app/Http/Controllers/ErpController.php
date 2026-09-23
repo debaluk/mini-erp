@@ -55,6 +55,18 @@ class ErpController extends Controller
                     'is_active'=>['label'=>'Status','type'=>'select','options'=>['1'=>'Aktif','0'=>'Nonaktif']]
                 ]
             ],
+            'workers'=>[
+                'title'=>'Pekerja','table'=>'workers',
+                'columns'=>['code','name','phone','address','is_active'],
+                'column_labels'=>['code'=>'Kode Pekerja','name'=>'Nama Pekerja','phone'=>'No. Telepon','address'=>'Alamat','is_active'=>'Status'],
+                'fields'=>[
+                    'code'=>['label'=>'Kode Pekerja','type'=>'text','readonly'=>true],
+                    'name'=>['label'=>'Nama Pekerja','type'=>'text','required'=>true],
+                    'phone'=>['label'=>'No. Telepon','type'=>'text'],
+                    'address'=>['label'=>'Alamat','type'=>'textarea'],
+                    'is_active'=>['label'=>'Status','type'=>'select','options'=>['1'=>'Aktif','0'=>'Nonaktif']]
+                ]
+            ],
             'warehouses'=>['title'=>'Gudang','table'=>'warehouses','columns'=>['code','name','business_unit_name','address','is_active'],'column_labels'=>['code'=>'Kode','name'=>'Nama Gudang','business_unit_name'=>'Unit Bisnis','address'=>'Alamat','is_active'=>'Status'],'fields'=>['code'=>['label'=>'Kode','type'=>'text','required'=>true],'name'=>['label'=>'Nama Gudang','type'=>'text','required'=>true],'business_unit_id'=>['label'=>'Unit Bisnis','type'=>'select','required'=>true,'options'=>[]],'address'=>['label'=>'Alamat','type'=>'textarea'],'is_active'=>['label'=>'Status','type'=>'select','options'=>['1'=>'Aktif','0'=>'Nonaktif']]]],
             'units'=>['title'=>'Satuan','table'=>'units','columns'=>['code','name'],'fields'=>['code'=>['label'=>'Kode','type'=>'text','required'=>true],'name'=>['label'=>'Nama Satuan','type'=>'text','required'=>true]]],
             'tariffs'=>['title'=>'Tarif','table'=>'tariffs','columns'=>['code','name','tariff_type','base_price','price_per_km','price_per_hour','minimum_charge'],'fields'=>['code'=>['label'=>'Kode','type'=>'text','required'=>true],'name'=>['label'=>'Nama Tarif','type'=>'text','required'=>true],'tariff_type'=>['label'=>'Jenis','type'=>'text','required'=>true],'base_price'=>['label'=>'Harga Dasar','type'=>'number','step'=>'0.01'],'price_per_km'=>['label'=>'Harga/KM','type'=>'number','step'=>'0.01'],'price_per_hour'=>['label'=>'Harga/Jam','type'=>'number','step'=>'0.01'],'minimum_charge'=>['label'=>'Minimum Charge','type'=>'number','step'=>'0.01']]],
@@ -667,6 +679,13 @@ class ErpController extends Controller
             $data['is_active'] = array_key_exists('is_active', $data) ? (int) $data['is_active'] : 1;
             if ($type === 'customers') $data['credit_limit'] = 0;
         }
+        if ($type === 'workers') {
+            $prefix = 'PRK';
+            $lastNumber = DB::table('workers')->where('entity_id', $entity)->where('code', 'like', $prefix.'-%')->get(['code'])
+                ->map(fn ($row) => preg_match('/^'.preg_quote($prefix, '/').'-(\\d+)$/', $row->code, $m) ? (int) $m[1] : 0)->max() ?? 0;
+            $data['code'] = $prefix.'-'.str_pad((string) ($lastNumber + 1), 5, '0', STR_PAD_LEFT);
+            $data['is_active'] = array_key_exists('is_active', $data) ? (int) $data['is_active'] : 1;
+        }
         $data['entity_id']=$entity;
         if (Schema::hasColumn($config['table'], 'is_active') && !array_key_exists('is_active', $data)) $data['is_active']=1;
         $data['created_at']=now();
@@ -782,6 +801,30 @@ class ErpController extends Controller
                             422,
                             'Gudang tidak dapat dihapus karena sudah digunakan oleh data/transaksi lain.'
                         );
+                    }
+                }
+            }
+            if ($type === 'workers') {
+                $worker = DB::table('workers')
+                    ->where('entity_id', $entity)
+                    ->where('id', $id)
+                    ->first();
+
+                abort_unless($worker, 404, 'Pekerja tidak ditemukan.');
+
+                $references = DB::select(
+                    "SELECT TABLE_NAME, COLUMN_NAME
+                     FROM information_schema.KEY_COLUMN_USAGE
+                     WHERE REFERENCED_TABLE_SCHEMA = DATABASE()
+                       AND REFERENCED_TABLE_NAME = 'workers'
+                       AND REFERENCED_COLUMN_NAME = 'id'"
+                );
+
+                foreach ($references as $reference) {
+                    $table = $reference->TABLE_NAME;
+                    $column = $reference->COLUMN_NAME;
+                    if (DB::table($table)->where($column, $id)->exists()) {
+                        abort(422, 'Pekerja tidak dapat dihapus karena sudah digunakan oleh data/transaksi lain.');
                     }
                 }
             }
