@@ -149,66 +149,7 @@ class ModuleController extends Controller
             $data['report'] = $this->report($module, $entity);
         }
         if ($module === 'pos') {
-            $businessUnitId = (int) DB::table('business_units')
-                ->where('entity_id', $entity)
-                ->where('code', 'RET')
-                ->where('is_active', 1)
-                ->value('id');
-            $data['businessUnit'] = DB::table('business_units')
-                ->where('entity_id', $entity)
-                ->where('id', $businessUnitId)
-                ->where('is_active', 1)
-                ->first(['id', 'code', 'name']);
-
-            $data['posWarehouse'] = DB::table('warehouse_business_units as wbu')
-                ->join('warehouses as w', 'w.id', '=', 'wbu.warehouse_id')
-                ->where('wbu.entity_id', $entity)
-                ->where('wbu.business_unit_id', $businessUnitId)
-                ->where('w.is_active', 1)
-                ->first(['w.id', 'w.code', 'w.name']);
-
-            if ($data['businessUnit'] && $data['posWarehouse']) {
-                $data['products'] = DB::table('products as p')
-                    ->join('product_business_units as pbu', function ($join) use ($businessUnitId) {
-                        $join->on('pbu.product_id', '=', 'p.id')
-                            ->where('pbu.business_unit_id', $businessUnitId);
-                    })
-                    ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
-                    ->leftJoin('product_prices as pp', function ($join) use ($businessUnitId) {
-                        $join->on('pp.product_id', '=', 'p.id')
-                            ->on('pp.unit_id', '=', 'p.base_unit_id')
-                            ->where('pp.business_unit_id', $businessUnitId)
-                            ->where('pp.price_type', 'retail');
-                    })
-                    ->leftJoin('warehouses_stocks as ws', function ($join) use ($data) {
-                        $join->on('ws.product_id', '=', 'p.id')
-                            ->where('ws.warehouse_id', $data['posWarehouse']->id)
-                            ->where('ws.entity_id', $entity);
-                    })
-                    ->where('p.entity_id', $entity)
-                    ->where('p.is_active', 1)
-                    ->where('p.item_type', 'barang')
-                    ->whereNotNull('pp.selling_price')
-                    ->orderBy('p.name')
-                    ->select(
-                        'p.id',
-                        'p.code',
-                        'p.sku',
-                        'p.barcode',
-                        'p.name',
-                        'p.base_unit_id as selling_unit_id',
-                        'u.code as selling_unit_code',
-                        'u.name as selling_unit_name',
-                        'pp.selling_price',
-                        DB::raw('COALESCE(ws.qty, 0) as stock_qty')
-                    )
-                    ->distinct()
-                    ->get();
-            } else {
-                $data['products'] = collect();
-            }
-
-            $data['openShift'] = null;
+            $data['openShift'] = DB::table('cash_shifts')->where('entity_id',$entity)->where('user_id',auth()->id())->where('status','open')->latest('id')->first();
             $data['posCart'] = request()->session()->get('pos_cart', []);
             $data['posSubtotal'] = 0;
             foreach ($data['posCart'] as $item) {
