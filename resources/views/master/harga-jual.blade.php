@@ -36,13 +36,12 @@
                         <th>Kode</th>
                         <th>Item</th>
                         <th>Satuan</th>
-                        <th class="text-end">Retail</th>
-                        <th class="text-end">Grosir</th>
+                        <th class="text-end">Harga Jual</th>
                         <th class="text-center">Aksi</th>
                     </tr>
                 </thead>
                 <tbody id="priceTableBody">
-                    <tr><td colspan="7" class="text-center text-muted py-4">Memuat data...</td></tr>
+                    <tr><td colspan="6" class="text-center text-muted py-4">Memuat data...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -59,18 +58,11 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Setup Harga Jual</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-modal" aria-label="Tutup"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3"><label class="form-label">Barang</label><input class="form-control" id="priceProductLabel" disabled></div>
-                    <div class="row g-2">
-                        <div class="col-md-7"><label class="form-label">Satuan</label><input class="form-control" id="priceUnitLabel" disabled></div>
-                        <div class="col-md-5"><label class="form-label">Jenis Harga</label>
-                            <select name="price_type" id="priceType" class="form-select" required>
-                                <option value="retail">Retail</option><option value="grosir">Grosir</option>
-                            </select>
-                        </div>
-                    </div>
+                    <div class="mt-3"><label class="form-label">Satuan</label><input class="form-control" id="priceUnitLabel" disabled></div>
                     <div class="mt-3"><label class="form-label">Tanggal Update</label><input type="date" name="change_date" id="priceChangeDate" class="form-control" required></div>
                     <div class="mt-3"><label class="form-label">Harga Lama</label><input type="text" id="oldPriceDisplay" class="form-control" disabled></div>
                     <div class="mt-3"><label class="form-label">Harga Baru</label><input type="number" name="selling_price" id="newPrice" class="form-control" min="0.01" step="0.01" required></div>
@@ -99,7 +91,7 @@
                 <div id="historyLoading" class="text-center text-muted py-3 d-none">Memuat history...</div>
                 <div class="table-responsive">
                     <table class="table table-sm table-bordered align-middle mb-0">
-                        <thead><tr><th>Tanggal</th><th>Jenis</th><th class="text-end">Harga Lama</th><th class="text-end">Harga Baru</th><th class="text-end">% Selisih</th><th>Diubah Oleh</th></tr></thead>
+                        <thead><tr><th>Tanggal</th><th class="text-end">Harga Lama</th><th class="text-end">Harga Baru</th><th class="text-end">% Selisih</th><th>Diubah Oleh</th></tr></thead>
                         <tbody id="historyBody"></tbody>
                     </table>
                 </div>
@@ -111,15 +103,16 @@
 
 <script>
 (() => {
-    const setupModal = new bootstrap.Modal(document.getElementById('priceSetupModal'));
-    const historyModal = new bootstrap.Modal(document.getElementById('priceHistoryModal'));
+    const showModal = element => { element.classList.add("show"); element.style.display = "block"; element.removeAttribute("aria-hidden"); document.body.classList.add("modal-open"); };
+    const hideModal = element => { element.classList.remove("show"); element.style.display = "none"; element.setAttribute("aria-hidden", "true"); document.body.classList.remove("modal-open"); };
+    const setupModal = document.getElementById('priceSetupModal');
+    const historyModal = document.getElementById('priceHistoryModal');
     const filterForm = document.getElementById('priceFilterForm');
     const businessUnitFilter = document.getElementById('businessUnitFilter');
     const search = document.getElementById('priceSearch');
     const tbody = document.getElementById('priceTableBody');
     const alertBox = document.getElementById('priceAlert');
     const form = document.getElementById('priceSetupForm');
-    const type = document.getElementById('priceType');
     const newPrice = document.getElementById('newPrice');
     const oldDisplay = document.getElementById('oldPriceDisplay');
     const percent = document.getElementById('changePercent');
@@ -166,7 +159,7 @@
             const result = await response.json();
             renderPrices(result.data || []);
         } catch (error) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">' + escapeHtml(error.message) + '</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">' + escapeHtml(error.message) + '</td></tr>';
         }
     };
 
@@ -177,20 +170,12 @@
         }
 
         tbody.innerHTML = rows.map(row => {
-            const retail = row.retail_price_id
-                ? '<span class="fw-semibold">' + formatRupiah(row.retail_price) + '</span>'
-                : '<span class="text-muted">Belum Setup</span>';
-            const grosir = row.grosir_price_id
-                ? '<span class="fw-semibold">' + formatRupiah(row.grosir_price) + '</span>'
-                : '<span class="text-muted">Belum Setup</span>';
-
             return '<tr>' +
                 '<td>' + escapeHtml(row.business_unit_name) + '</td>' +
                 '<td class="fw-semibold">' + escapeHtml(row.product_code) + '</td>' +
                 '<td>' + escapeHtml(row.product_name) + '</td>' +
                 '<td>' + escapeHtml(row.unit_name) + '</td>' +
-                '<td class="text-end">' + retail + '</td>' +
-                '<td class="text-end">' + grosir + '</td>' +
+                '<td class="text-end">' + (row.price_id ? '<span class="fw-semibold">' + formatRupiah(row.selling_price) + '</span>' : '<span class="text-muted">Belum Setup</span>') + '</td>' +
                 '<td class="text-center text-nowrap">' +
                     '<button type="button" class="btn btn-sm btn-outline-primary btn-setup-price" data-row="' + encodeURIComponent(JSON.stringify(row)) + '">Setup / Edit</button> ' +
                     '<button type="button" class="btn btn-sm btn-outline-secondary btn-history" data-row="' + encodeURIComponent(JSON.stringify(row)) + '">History</button>' +
@@ -208,8 +193,8 @@
 
     const refreshOldPrice = () => {
         if (!current) return;
-        const exists = type.value === 'retail' ? !!current.retail_price_id : !!current.grosir_price_id;
-        const old = type.value === 'retail' ? current.retail_price : current.grosir_price;
+        const exists = !!current.price_id;
+        const old = current.selling_price;
 
         oldDisplay.value = exists ? formatRupiah(old) : '-';
         newPrice.value = exists ? old : '';
@@ -229,16 +214,13 @@
         document.getElementById('priceProductLabel').value = row.product_code + ' - ' + row.product_name;
         document.getElementById('priceUnitLabel').value = row.unit_name;
         document.getElementById('priceChangeDate').value = today;
-        type.value = row.retail_price_id ? 'retail' : 'grosir';
         refreshOldPrice();
-        setupModal.show();
+        showModal(setupModal);
     };
-
-    type.addEventListener('change', refreshOldPrice);
 
     newPrice.addEventListener('input', () => {
         if (!current) return;
-        const old = type.value === 'retail' ? Number(current.retail_price) : Number(current.grosir_price);
+        const old = Number(current.selling_price);
         const n = Number(newPrice.value);
         percent.value = old && n ? (((n - old) / old) * 100).toFixed(2).replace('.', ',') + '%' : '-';
     });
@@ -247,11 +229,8 @@
         event.preventDefault();
         saveButton.disabled = true;
 
-        const isEdit = type.value === 'retail'
-            ? !!current.retail_price_id
-            : !!current.grosir_price_id;
-
-        const priceId = type.value === 'retail' ? current.retail_price_id : current.grosir_price_id;
+        const isEdit = !!current.price_id;
+        const priceId = current.price_id;
         const url = isEdit
             ? '{{ url('/master/harga-jual') }}/' + priceId
             : '{{ route('master.harga-jual.store') }}';
@@ -272,7 +251,7 @@
             if (!response.ok) throw new Error(await apiError(response));
 
             const result = await response.json();
-            setupModal.hide();
+            hideModal(setupModal);
             showAlert(result.message || 'Harga jual berhasil disimpan.');
             await loadPrices();
         } catch (error) {
@@ -292,7 +271,7 @@
         body.innerHTML = '';
         empty.classList.add('d-none');
         loading.classList.remove('d-none');
-        historyModal.show();
+        showModal(historyModal);
 
         const params = new URLSearchParams({
             business_unit_id: row.business_unit_id,
@@ -320,7 +299,6 @@
                     : Number(row.change_percent).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
 
                 return '<tr><td>' + new Date(row.change_date).toLocaleDateString('id-ID') +
-                    '</td><td>' + (row.price_type === 'retail' ? 'Retail' : 'Grosir') +
                     '</td><td class="text-end">' + oldPrice +
                     '</td><td class="text-end">' + formatRupiah(row.new_price) +
                     '</td><td class="text-end">' + pct +
@@ -340,6 +318,10 @@
     });
 
     businessUnitFilter.addEventListener('change', loadPrices);
+
+    document.querySelectorAll('.btn-close-modal').forEach(button => button.addEventListener('click', () => {
+        hideModal(button.closest('.modal'));
+    }));
 
     document.getElementById('priceReset').addEventListener('click', () => {
         businessUnitFilter.value = '';
