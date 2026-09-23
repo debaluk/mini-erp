@@ -261,7 +261,7 @@ class ProductPriceController extends Controller
                         ->orWhere('p.name', 'like', "%{$search}%");
                 });
             })
-            ->select('bu.name as business_unit_name', 'p.code as product_code', 'p.name as product_name', 'u.name as unit_name', 'pp.selling_price, DB::raw(\'(SELECT MAX(h.change_date) FROM product_price_histories h WHERE h.product_price_id = pp.id) as updated_price_date\')')
+            ->select(\n                'bu.name as business_unit_name',\n                'p.code as product_code',\n                'p.name as product_name',\n                'u.name as unit_name',\n                'pp.selling_price',\n                DB::raw('(SELECT MAX(h.change_date) FROM product_price_histories h WHERE h.product_price_id = pp.id) as updated_price_date')\n            )
             ->orderBy('bu.name')->orderBy('p.name')->orderBy('u.name')
             ->get();
 
@@ -275,7 +275,7 @@ class ProductPriceController extends Controller
             fputcsv($out, ['Daftar Harga Jual'], ';');
             fputcsv($out, ['Tgl Cetak : ' . now()->format('d/m/Y')], ';');
             fputcsv($out, [], ';');
-            fputcsv($out, ['Unit Bisnis', 'Kode', 'Item', 'Satuan', 'Harga Jual'], ';');
+            fputcsv($out, ['Unit Bisnis', 'Kode', 'Item', 'Satuan', 'Harga Jual', 'Tgl Update'], ';');
             foreach ($rows as $row) {
                 fputcsv($out, [
                     $row->business_unit_name,
@@ -283,6 +283,7 @@ class ProductPriceController extends Controller
                     $row->product_name,
                     $row->unit_name,
                     $row->selling_price === null ? 'Belum Setup' : $row->selling_price,
+                    $row->updated_price_date ? \Carbon\Carbon::parse($row->updated_price_date)->format('d/m/Y') : '-',
                 ], ';');
             }
             fclose($out);
