@@ -54,11 +54,6 @@ class Sale extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function shift(): BelongsTo
-    {
-        return $this->belongsTo(CashShift::class, 'shift_id');
-    }
-
     public function items(): HasMany
     {
         return $this->hasMany(SaleItem::class);
