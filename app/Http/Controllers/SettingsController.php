@@ -406,6 +406,7 @@ class SettingsController extends Controller
 
         $warehouseIds = DB::table('warehouses')
             ->where('entity_id', $entityId)
+            ->where('is_active', 1)
             ->pluck('id')
             ->map(fn ($id) => (int) $id)
             ->all();
