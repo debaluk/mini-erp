@@ -10,6 +10,13 @@
     <style>
         .navbar .dropdown-menu { min-width: 230px; }
         .navbar .dropdown-menu .dropdown-header { font-weight: 700; color: var(--bs-primary); }
+        .navbar .dropdown-menu .dropdown-submenu { position: relative; }
+        .navbar .dropdown-menu .dropdown-submenu > .dropdown-menu { top: 0; left: 100%; margin-top: -.35rem; display: none; }
+        .navbar .dropdown-menu .dropdown-submenu.show > .dropdown-menu { display: block; }
+        .navbar .dropdown-menu .dropdown-submenu > .dropdown-toggle::after { margin-left: auto; }
+        @media (max-width: 1199.98px) {
+            .navbar .dropdown-menu .dropdown-submenu > .dropdown-menu { position: static; margin: 0; border: 0; box-shadow: none; }
+        }
         main { min-height: calc(100vh - 56px); }
         main .form-label { font-size: .8rem; margin-bottom: .2rem; font-weight: 600; }
         main .form-control, main .form-select { min-height: 32px; height: 32px; padding: .2rem .5rem; font-size: .82rem; line-height: 1.2; }
@@ -58,52 +65,106 @@
 @endforeach
                 </ul></li>
                 @endif
-                @if(auth()->user()->hasModuleAccess('pos_retail'))
-                <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">POS RETAIL</a><ul class="dropdown-menu">
-                    <li><a class="dropdown-item fw-semibold" href="{{ route('pos.pos') }}" onclick="window.open(this.href, 'POSKasir', 'width=1400,height=900,resizable=yes,scrollbars=yes'); return false;">POS</a></li><li><a class="dropdown-item" href="{{ route('pos.penjualan') }}">Penjualan</a></li><li><a class="dropdown-item" href="{{ route('pos.pembayaran') }}">Pembayaran</a></li><li><a class="dropdown-item" href="{{ route('pos.retur') }}">Retur</a></li><li><a class="dropdown-item" href="{{ route('pos.shift') }}">Kasir / Shift</a></li>
-                </ul></li>
-                @endif
+                {{-- POS RETAIL: intentionally hidden from the top menu; routes/features remain intact. --}}
+                <li class="nav-item dropdown d-none">
+                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">POS RETAIL</a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{{ route('pos.pos') }}">POS</a></li>
+                        <li><a class="dropdown-item" href="{{ route('pos.penjualan') }}">Penjualan</a></li>
+                        <li><a class="dropdown-item" href="{{ route('pos.pembayaran') }}">Pembayaran</a></li>
+                        <li><a class="dropdown-item" href="{{ route('pos.retur') }}">Retur</a></li>
+                        <li><a class="dropdown-item" href="{{ route('pos.shift') }}">Kasir / Shift</a></li>
+                    </ul>
+                </li>
+
                 @if(auth()->user()->hasAnyModuleAccess(['produksi','inventori']))
-                <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">INVENTORI &amp; OPERASIONAL</a><ul class="dropdown-menu">
-                    <li><h6 class="dropdown-header">PENJUALAN</h6></li>
-                    <li><a class="dropdown-item" href="{{ route('pos.pos') }}" onclick="window.open(this.href, 'POSKasir', 'width=1400,height=900,resizable=yes,scrollbars=yes'); return false;">POS Kasir (Tunai/Retail)</a></li>
-                    <li><a class="dropdown-item" href="{{ route('inventori.penjualan') }}">Penjualan Tempo/Invoice</a></li>
-                    <li><a class="dropdown-item" href="{{ route('pos.retur') }}">Retur Penjualan</a></li>
-
-                    <li><hr class="dropdown-divider"></li><li><h6 class="dropdown-header">PEMBELIAN</h6></li>
-                    <li><a class="dropdown-item" href="{{ route('inventori.pembelian-po') }}">Purchase Order (PO)</a></li>
-                    <li><a class="dropdown-item" href="{{ route('inventori.penerimaan') }}">Penerimaan Barang</a></li>
-                    <li><a class="dropdown-item" href="{{ route('inventori.pembelian') }}">Faktur Pembelian</a></li>
-                    <li><a class="dropdown-item" href="{{ route('inventori.retur-pembelian') }}">Retur Pembelian</a></li>
-
-                    <li><hr class="dropdown-divider"></li><li><h6 class="dropdown-header">PRODUKSI (BUASO)</h6></li>
-                    <li><a class="dropdown-item" href="{{ route('produksi.work-order') }}">Work Order (SPK)</a></li>
-                    <li><a class="dropdown-item" href="{{ route('produksi.pemakaian-bahan') }}">Pemakaian Bahan Baku</a></li>
-                    <li><a class="dropdown-item" href="{{ route('produksi.hasil-produksi') }}">Hasil Barang Jadi &amp; Scrap</a></li>
-
-                    <li><hr class="dropdown-divider"></li><li><h6 class="dropdown-header">PERSEDIAAN</h6></li>
-                    <li><a class="dropdown-item" href="{{ route('inventory.initial-setup') }}">Setup Stok Awal</a></li>
-                    <li><a class="dropdown-item" href="{{ route('erp.movements') }}">Mutasi Barang</a></li>
-                    <li><a class="dropdown-item" href="{{ route('inventori.adjustment') }}">Penyesuaian Stok</a></li>
-                    <li><a class="dropdown-item" href="{{ route('inventori.stock-opname') }}">Stok Opname</a></li>
-
-                    <li><hr class="dropdown-divider"></li><li><h6 class="dropdown-header">MONITORING &amp; KONTROL</h6></li>
-                    <li><a class="dropdown-item" href="{{ route('inventori.stok') }}">Kartu Stok &amp; Tracking HPP</a></li>
-                    <li><a class="dropdown-item" href="{{ route('inventori.margin-control') }}">Analisa Margin &amp; Kontrol Harga</a></li>
-                </ul></li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">INVENTORI &amp; OPERASIONAL</a>
+                    <ul class="dropdown-menu">
+                        <li class="dropdown-submenu">
+                            <a class="dropdown-item dropdown-toggle" href="#">1. PENJUALAN</a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ route('pos.pos') }}" onclick="window.open(this.href, 'POSKasir', 'width=1400,height=900,resizable=yes,scrollbars=yes'); return false;">POS Kasir (Tunai/Retail)</a></li>
+                                <li><a class="dropdown-item" href="{{ route('inventori.penjualan') }}">Penjualan Tempo/Invoice</a></li>
+                                <li><a class="dropdown-item" href="{{ route('pos.retur') }}">Retur Penjualan</a></li>
+                            </ul>
+                        </li>
+                        <li class="dropdown-submenu">
+                            <a class="dropdown-item dropdown-toggle" href="#">2. PEMBELIAN</a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ route('inventori.pembelian-po') }}">Purchase Order (PO)</a></li>
+                                <li><a class="dropdown-item" href="{{ route('inventori.penerimaan') }}">Penerimaan Barang</a></li>
+                                <li><a class="dropdown-item" href="{{ route('inventori.pembelian') }}">Faktur Pembelian</a></li>
+                                <li><a class="dropdown-item" href="{{ route('inventori.retur-pembelian') }}">Retur Pembelian</a></li>
+                            </ul>
+                        </li>
+                        <li class="dropdown-submenu">
+                            <a class="dropdown-item dropdown-toggle" href="#">3. PRODUKSI (BUASO)</a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ route('produksi.work-order') }}">Work Order (SPK)</a></li>
+                                <li><a class="dropdown-item" href="{{ route('produksi.pemakaian-bahan') }}">Pemakaian Bahan Baku</a></li>
+                                <li><a class="dropdown-item" href="{{ route('produksi.hasil-produksi') }}">Hasil Barang Jadi &amp; Scrap</a></li>
+                            </ul>
+                        </li>
+                        <li class="dropdown-submenu">
+                            <a class="dropdown-item dropdown-toggle" href="#">4. PERSEDIAAN</a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ route('inventory.initial-setup') }}">Setup Stok Awal</a></li>
+                                <li><a class="dropdown-item" href="{{ route('erp.movements') }}">Mutasi Barang</a></li>
+                                <li><a class="dropdown-item" href="{{ route('inventori.adjustment') }}">Penyesuaian Stok</a></li>
+                                <li><a class="dropdown-item" href="{{ route('inventori.stock-opname') }}">Stok Opname</a></li>
+                            </ul>
+                        </li>
+                        <li class="dropdown-submenu">
+                            <a class="dropdown-item dropdown-toggle" href="#">5. LAPORAN OPERASIONAL</a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ route('laporan.penjualan') }}">Laporan Penjualan</a></li>
+                                <li><a class="dropdown-item" href="{{ route('laporan.pembelian') }}">Laporan Pembelian</a></li>
+                                <li><a class="dropdown-item" href="{{ route('laporan.persediaan') }}">Laporan Persediaan</a></li>
+                                <li><a class="dropdown-item" href="{{ route('laporan.produksi') }}">Laporan Produksi</a></li>
+                                <li><a class="dropdown-item" href="{{ route('inventori.stok') }}">Kartu Stok &amp; Tracking HPP</a></li>
+                                <li><a class="dropdown-item" href="{{ route('inventori.margin-control') }}">Analisa Margin &amp; Kontrol Harga</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </li>
                 @endif
-                @if(auth()->user()->hasModuleAccess('laporan'))
-                <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">LAPORAN</a><ul class="dropdown-menu">
-                    @if(auth()->user()->hasModuleAccess('laporan'))<li><a class="dropdown-item" href="{{ route('laporan.penjualan') }}">Penjualan</a></li>@endif
-                    @if(auth()->user()->hasModuleAccess('laporan'))<li><a class="dropdown-item" href="{{ route('laporan.pembelian') }}">Pembelian</a></li><li><a class="dropdown-item" href="{{ route('laporan.persediaan') }}">Persediaan</a></li><li><a class="dropdown-item" href="{{ route('laporan.produksi') }}">Produksi</a></li><li><a class="dropdown-item" href="{{ route('laporan.armada-jasa') }}">Armada &amp; Jasa</a></li><li><a class="dropdown-item" href="{{ route('laporan.hutang') }}">Hutang</a></li>@endif
-                    @if(auth()->user()->hasModuleAccess('laporan'))<li><a class="dropdown-item" href="{{ route('laporan.piutang') }}">Piutang</a></li><li><a class="dropdown-item" href="{{ route('laporan.keuangan') }}">Keuangan</a></li>@endif
-                </ul></li>
-                @endif
+
                 @if(auth()->user()->hasModuleAccess('akuntansi'))
-                <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">AKUNTANSI</a><ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="{{ route('akuntansi.akun') }}">Akun</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.jurnal') }}">Jurnal</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.buku-besar') }}">Buku Besar</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.kas-bank') }}">Kas &amp; Bank</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.laba-rugi') }}">Laba Rugi</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.neraca-saldo') }}">Neraca Saldo</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.neraca') }}">Neraca</a></li><li><a class="dropdown-item" href="{{ route('akuntansi.arus-kas') }}">Arus Kas</a></li>
-                </ul></li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">KEUANGAN &amp; AKUNTANSI</a>
+                    <ul class="dropdown-menu">
+                        <li class="dropdown-submenu">
+                            <a class="dropdown-item dropdown-toggle" href="#">1. KAS &amp; BANK</a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ route('akuntansi.kas-bank') }}">Kas / Bank Masuk</a></li>
+                                <li><a class="dropdown-item" href="{{ route('akuntansi.kas-bank') }}">Kas / Bank Keluar</a></li>
+                                <li><a class="dropdown-item" href="{{ route('akuntansi.kas-bank') }}">Transfer / Mutasi</a></li>
+                            </ul>
+                        </li>
+                        <li class="dropdown-submenu">
+                            <a class="dropdown-item dropdown-toggle" href="#">2. AKUNTANSI</a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ route('akuntansi.jurnal') }}">Jurnal Umum</a></li>
+                                <li><a class="dropdown-item" href="{{ route('akuntansi.buku-besar') }}">Buku Besar</a></li>
+                                <li><a class="dropdown-item" href="{{ route('akuntansi.closing-periode') }}">Closing Periode</a></li>
+                            </ul>
+                        </li>
+                        <li class="dropdown-submenu">
+                            <a class="dropdown-item dropdown-toggle" href="#">3. LAPORAN KEUANGAN</a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ route('akuntansi.laba-rugi') }}">Laporan Laba Rugi</a></li>
+                                <li><a class="dropdown-item" href="{{ route('akuntansi.neraca-saldo') }}">Laporan Neraca Saldo</a></li>
+                                <li><a class="dropdown-item" href="{{ route('akuntansi.neraca') }}">Laporan Neraca</a></li>
+                                <li><a class="dropdown-item" href="{{ route('akuntansi.arus-kas') }}">Laporan Arus Kas</a></li>
+                                <li><a class="dropdown-item" href="{{ route('laporan.piutang') }}">Laporan Aging Piutang</a></li>
+                                <li><a class="dropdown-item" href="{{ route('laporan.hutang') }}">Laporan Aging Hutang</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </li>
                 @endif
+
                 @if(in_array(auth()->user()->role, ['superadmin','owner','admin']))
                 <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">PENGATURAN</a><ul class="dropdown-menu">
                     @if(in_array(auth()->user()->role, ['owner']))<li><a class="dropdown-item" href="{{ route('pengaturan.user') }}">User</a></li>@endif
@@ -242,6 +303,23 @@ document.addEventListener('DOMContentLoaded', () => {
         return data;
     };
 });
+    document.querySelectorAll('.dropdown-submenu > .dropdown-toggle').forEach(toggle => {
+        toggle.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const parent = this.parentElement;
+            document.querySelectorAll('.dropdown-submenu.show').forEach(el => {
+                if (el !== parent) el.classList.remove('show');
+            });
+            parent.classList.toggle('show');
+        });
+    });
+
+    document.querySelectorAll('.dropdown').forEach(dropdown => {
+        dropdown.addEventListener('hide.bs.dropdown', () => {
+            dropdown.querySelectorAll('.dropdown-submenu.show').forEach(el => el.classList.remove('show'));
+        });
+    });
 </script>
 
 @stack('scripts')
