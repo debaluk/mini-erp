@@ -264,6 +264,23 @@ Route::middleware('auth')->group(function () {
     Route::get('/pengaturan/konfigurasi/mapping-account', [BusinessUnitAccountMappingController::class, 'index'])->middleware('access:konfigurasi')->name('pengaturan.account-mapping');
     Route::post('/pengaturan/konfigurasi/mapping-account', [BusinessUnitAccountMappingController::class, 'save'])->middleware('role:owner,admin')->name('pengaturan.account-mapping.save');
 
+    // Placeholder pages for the locked Inventori & Operasional menu structure.
+    Route::get('/inventori/pembelian/po', fn () => view('inventori.pembelian-po'))
+        ->middleware('access:inventori')
+        ->name('inventori.pembelian-po');
+
+    Route::get('/inventori/pembelian/retur', fn () => view('inventori.retur-pembelian'))
+        ->middleware('access:inventori')
+        ->name('inventori.retur-pembelian');
+
+    Route::get('/produksi/work-order', fn () => view('produksi.work-order'))
+        ->middleware('access:produksi')
+        ->name('produksi.work-order');
+
+    Route::get('/inventori/monitoring/margin-harga', fn () => view('inventori.margin-control'))
+        ->middleware('access:inventori')
+        ->name('inventori.margin-control');
+
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
 
