@@ -88,20 +88,7 @@
                                         <option value="">Pilih</option>
                                         <option value="perpetual" @selected(old('hpp_method', $editUnit->hpp_method ?? '') === 'perpetual')>Perpetual</option>
                                         <option value="periodic" @selected(old('hpp_method', $editUnit->hpp_method ?? '') === 'periodic')>Periodik</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="row align-items-center">
-                                <label class="col-sm-4 col-form-label">Akun HPP</label>
-                                <div class="col-sm-8">
-                                    <select name="hpp_account_id" class="form-select">
-                                        <option value="">Pilih Akun HPP</option>
-                                        @foreach($accounts as $account)
-                                            <option value="{{ $account->id }}" @selected((string) old('hpp_account_id', $editUnit->hpp_account_id ?? '') === (string) $account->id)>{{ $account->code }} — {{ $account->name }}</option>
-                                        @endforeach
+                                        <option value="direct_cost" @selected(old('hpp_method', $editUnit->hpp_method ?? '') === 'direct_cost')>Direct Cost</option>
                                     </select>
                                 </div>
                             </div>
@@ -140,7 +127,6 @@
                                 <th>Nama Unit</th>
                                 <th>Tipe Usaha</th>
                                 <th>Metode HPP</th>
-                                <th>Akun HPP</th>
                                 <th>Status</th>
                                 <th style="width: 150px">Aksi</th>
                             </tr>
@@ -150,11 +136,13 @@
                                 <tr>
                                     <td>{{ $unit->code }}</td>
                                     <td>{{ $unit->name }}</td>
-                                    <td>{{ ['retail' => 'Retail', 'production' => 'Produksi', 'service' => 'Jasa'][$unit->business_type] }}</td>
-                                    <td>{{ $unit->hpp_method === 'perpetual' ? 'Perpetual' : 'Periodik' }}</td>
+                                    <td>{{ ['retail' => 'Retail', 'production' => 'Produksi', 'service' => 'Jasa'][$unit->business_type] ?? $unit->business_type }}</td>
                                     <td>
-                                        @php($hppAccount = $accounts->firstWhere('id', $unit->hpp_account_id))
-                                        {{ $hppAccount ? $hppAccount->code . ' — ' . $hppAccount->name : '-' }}
+                                        {{ [
+                                            'perpetual' => 'Perpetual',
+                                            'periodic' => 'Periodik',
+                                            'direct_cost' => 'Direct Cost',
+                                        ][$unit->hpp_method] ?? $unit->hpp_method }}
                                     </td>
                                     <td>
                                         <span class="badge {{ $unit->is_active ? 'text-bg-success' : 'text-bg-secondary' }}">
@@ -172,7 +160,7 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="7" class="text-center text-secondary py-4">Belum ada unit bisnis.</td></tr>
+                                <tr><td colspan="6" class="text-center text-secondary py-4">Belum ada unit bisnis.</td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -207,6 +195,9 @@
                         </div>
                     </div>
                 </div>
+                <div class="alert alert-light border mt-3 mb-0 py-2 small">
+                    <strong>Direct Cost:</strong> digunakan untuk unit jasa dan tidak menggunakan persediaan/HPP barang.
+                </div>
             </div>
         </div>
     </div>
@@ -239,7 +230,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const name = form.querySelector('[name="name"]');
     const type = form.querySelector('[name="business_type"]');
     const method = form.querySelector('[name="hpp_method"]');
-    const account = form.querySelector('[name="hpp_account_id"]');
     const active = form.querySelector('[name="is_active"][type="checkbox"]');
     const submit = form.querySelector('button[type="submit"]');
     if (!submit) return;
@@ -265,7 +255,6 @@ document.addEventListener('DOMContentLoaded', function () {
         name.value = '';
         type.value = '';
         method.value = '';
-        account.value = '';
         active.checked = true;
         submit.textContent = 'Simpan';
         cancel.classList.add('d-none');
@@ -285,7 +274,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 name.value = data.name || '';
                 type.value = data.business_type || '';
                 method.value = data.hpp_method || '';
-                account.value = data.hpp_account_id ? String(data.hpp_account_id) : '';
                 active.checked = !!data.is_active;
                 form.action = "{{ url('/pengaturan/konfigurasi/unit-bisnis') }}/" + data.id;
                 methodInput.value = 'PUT';
