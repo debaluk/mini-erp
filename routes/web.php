@@ -143,6 +143,7 @@ Route::middleware('auth')->group(function () {
         'konversi-satuan' => 'unit-conversions',
     ];
     Route::get('/master/harga-jual', [ProductPriceController::class, 'index'])->middleware('role:owner,admin')->name('master.menu.harga-jual');
+    Route::get('/master/harga-jual/export', [ProductPriceController::class, 'export'])->middleware('role:owner,admin')->name('master.harga-jual.export');
     Route::post('/master/harga-jual', [ProductPriceController::class, 'store'])->middleware('role:owner,admin')->name('master.harga-jual.store');
     Route::get('/master/harga-jual/history', [ProductPriceController::class, 'history'])->middleware('role:owner,admin')->name('master.harga-jual.history');
     Route::put('/master/harga-jual/{id}', [ProductPriceController::class, 'update'])->middleware('role:owner,admin')->name('master.harga-jual.update');
