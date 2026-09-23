@@ -15,13 +15,13 @@ class SettingsController extends Controller
     {
         return [
             'master_data' => 'Master Data',
-            'pos_retail' => 'POS Retail',
-            'produksi' => 'Produksi',
+            'pos_retail' => 'POS Kasir (Tunai/Retail)',
+            'produksi' => 'Produksi (BUASO)',
             'armada_jasa' => 'Armada & Jasa',
             'inventori' => 'Inventori',
             'akuntansi' => 'Akuntansi',
             'laporan' => 'Laporan',
-            'konfigurasi' => 'Konfigurasi',
+            'konfigurasi' => 'Pengaturan',
         ];
     }
 
