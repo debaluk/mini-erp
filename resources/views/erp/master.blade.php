@@ -128,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
             @foreach($config['columns'] as $column)
                 { data: @json($column), defaultContent: '', render: (data) => {
                     if (@json($type) === 'customers' && @json($column) === 'customer_type') return ({umum:'Umum',proyek:'Proyek',perusahaan:'Perusahaan'}[data] || data || '');
-                    if ((@json($type) === 'customers' || @json($type) === 'suppliers' || @json($type) === 'warehouses') && @json($column) === 'is_active') return Number(data) === 1 ? '<span class="badge text-bg-success">Aktif</span>' : '<span class="badge text-bg-secondary">Nonaktif</span>';
+                    if ((@json($type) === 'customers' || @json($type) === 'suppliers' || @json($type) === 'workers' || @json($type) === 'warehouses') && @json($column) === 'is_active') return Number(data) === 1 ? '<span class="badge text-bg-success">Aktif</span>' : '<span class="badge text-bg-secondary">Nonaktif</span>';
                     return data ?? '';
                 } },
             @endforeach
