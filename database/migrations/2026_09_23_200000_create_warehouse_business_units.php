@@ -50,10 +50,7 @@ return new class extends Migration
     {
         Schema::dropIfExists('warehouse_business_units');
 
-        Schema::table('warehouses', function (Blueprint $table) {
-            $table->foreignId('business_unit_id')
-                ->nullable(false)
-                ->change();
-        });
+        // Legacy column remains nullable because Master Gudang is independent from BU.
+
     }
 };
