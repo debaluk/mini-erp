@@ -191,6 +191,10 @@ class PosController extends Controller
             ]);
 
             foreach ($cart as $item) {
+                $stockIndex = array_search($item['product_id'], array_column($stockRows, 'product_id'), true);
+                $stockRow = $stockIndex === false ? null : $stockRows[$stockIndex];
+                $hppUnit = (float) ($stockRow['avg_cost'] ?? 0);
+
                 DB::table('sale_items')->insert([
                     'sale_id' => $sale,
                     'product_id' => $item['product_id'],
@@ -199,15 +203,11 @@ class PosController extends Controller
                     'conversion_factor' => 1,
                     'base_qty' => $item['qty'],
                     'unit_price' => $item['price'],
-                    'base_unit_cost' => $stockRows[array_search($item['product_id'], array_column($stockRows, 'product_id'))]['avg_cost'] ?? 0,
+                    'base_unit_cost' => $hppUnit,
                     'discount' => 0,
                     'total' => (float) $item['price'] * (float) $item['qty'],
-                    'hpp_unit' => $stockRows[array_search($item['product_id'], array_column($stockRows, 'product_id'))]['avg_cost'] ?? 0,
-                    'hpp_total' => round(
-                        ((float) $item['qty']) *
-                        ($stockRows[array_search($item['product_id'], array_column($stockRows, 'product_id'))]['avg_cost'] ?? 0),
-                        2
-                    ),
+                    'hpp_unit' => $hppUnit,
+                    'hpp_total' => round((float) $item['qty'] * $hppUnit, 2),
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
