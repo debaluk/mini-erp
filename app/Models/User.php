@@ -32,14 +32,15 @@ class User extends Authenticatable
         }
 
         $groups = [
-            'master_operasional' => ['master_operasional', 'master_data', 'pos_retail', 'produksi', 'armada_jasa', 'inventori'],
+            'master' => ['master', 'master_data'],
+            'inventori_operasional' => ['inventori_operasional', 'pos_retail', 'produksi', 'armada_jasa', 'inventori'],
             'keuangan_akuntansi' => ['keuangan_akuntansi', 'akuntansi', 'laporan'],
             'seting' => ['seting', 'konfigurasi'],
-            'master_data' => ['master_data', 'master_operasional'],
-            'pos_retail' => ['pos_retail', 'master_operasional'],
-            'produksi' => ['produksi', 'master_operasional'],
-            'armada_jasa' => ['armada_jasa', 'master_operasional'],
-            'inventori' => ['inventori', 'master_operasional'],
+            'master_data' => ['master_data', 'master'],
+            'pos_retail' => ['pos_retail', 'inventori_operasional'],
+            'produksi' => ['produksi', 'inventori_operasional'],
+            'armada_jasa' => ['armada_jasa', 'inventori_operasional'],
+            'inventori' => ['inventori', 'inventori_operasional'],
             'akuntansi' => ['akuntansi', 'keuangan_akuntansi'],
             'laporan' => ['laporan', 'keuangan_akuntansi'],
             'konfigurasi' => ['konfigurasi', 'seting'],
