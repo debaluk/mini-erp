@@ -210,7 +210,7 @@ class PosController extends Controller
                 ->where('code', 'CUST-UMUM')
                 ->value('id');
 
-            $businessUnitId = (int) ($shift->business_unit_id ?? 1);
+            $businessUnitId = $businessUnitId;
             $sale = DB::table('sales')->insertGetId([
                 'entity_id' => $entity,
                 'business_unit_id' => $businessUnitId,
