@@ -49,7 +49,7 @@
 </div>
 
 <div class="modal fade" id="priceSetupModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <form id="priceSetupForm">
             @csrf
             <input type="hidden" name="business_unit_id" id="priceBusinessUnitId">
@@ -197,7 +197,7 @@
         const old = current.selling_price;
 
         oldDisplay.value = exists ? formatRupiah(old) : '-';
-        newPrice.value = exists ? old : '';
+        newPrice.value = exists ? Number(old).toString() : '';
 
         const calculate = () => {
             const n = Number(newPrice.value), o = Number(old);
