@@ -26,13 +26,6 @@
         <div class="col-md-4">
             <input type="text" name="search" class="form-control" placeholder="Cari kode / nama item..." value="{{ request('search') }}">
         </div>
-        <div class="col-md-2">
-            <select name="price_type" class="form-select">
-                <option value="">Semua Tipe</option>
-                <option value="retail" @selected(request('price_type') === 'retail')>Retail</option>
-                <option value="grosir" @selected(request('price_type') === 'grosir')>Grosir</option>
-            </select>
-        </div>
         <div class="col-md-2 d-flex gap-2">
             <button class="btn btn-secondary">Filter</button>
             <a href="{{ route('master.menu.harga-jual') }}" class="btn btn-light">Reset</a>
