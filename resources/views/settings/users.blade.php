@@ -96,19 +96,15 @@
 
                         <div class="col-12">
                             <label class="form-label mb-2">Hak Akses Modul</label>
-                            <div class="border rounded p-3">
-                                <div class="row g-2">
-                                    @foreach($moduleCatalog as $code=>$label)
-                                    <div class="col-md-6 col-lg-4">
-                                        <div class="form-check border rounded px-3 py-2 h-100">
-                                            <input class="form-check-input module-check" type="checkbox" name="modules[]" value="{{ $code }}" id="module_{{ $code }}">
-                                            <label class="form-check-label w-100" for="module_{{ $code }}">{{ $label }}</label>
-                                        </div>
+                            <div class="d-flex flex-wrap gap-3">
+                                @foreach($moduleCatalog as $code=>$label)
+                                    <div class="form-check">
+                                        <input class="form-check-input module-check" type="checkbox" name="modules[]" value="{{ $code }}" id="module_{{ $code }}">
+                                        <label class="form-check-label" for="module_{{ $code }}">{{ $label }}</label>
                                     </div>
-                                    @endforeach
-                                </div>
+                                @endforeach
                             </div>
-                            <div class="form-text">Pilih satu atau beberapa modul. Dashboard otomatis tersedia.</div>
+                            <div class="form-text">Pilih modul yang dapat diakses user.</div>
                         </div>
 
                         <div class="col-12">
