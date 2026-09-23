@@ -134,7 +134,7 @@ class ProductPriceController extends Controller
                 'product_id' => $data['product_id'],
                 'business_unit_id' => $data['business_unit_id'],
                 'unit_id' => $data['unit_id'],
-                'price_type' => $data['price_type'],
+                'price_type' => 'retail',
                 'change_date' => $data['change_date'],
                 'old_price' => null,
                 'new_price' => $data['selling_price'],
@@ -212,6 +212,80 @@ class ProductPriceController extends Controller
         }
 
         return back()->with('success', 'Harga jual berhasil diperbarui.');
+    }
+
+    public function export(Request $request)
+    {
+        $entity = (int) auth()->user()->entity_id;
+        $businessUnitId = $request->filled('business_unit_id') ? (int) $request->business_unit_id : null;
+        $search = trim((string) $request->query('search', ''));
+
+        $productUnits = DB::table('products as p')
+            ->where('p.entity_id', $entity)
+            ->where('p.is_active', 1)
+            ->select('p.id as product_id', 'p.base_unit_id as unit_id')
+            ->union(
+                DB::table('product_unit_conversions as puc')
+                    ->join('products as pc', 'pc.id', '=', 'puc.product_id')
+                    ->where('pc.entity_id', $entity)
+                    ->where('pc.is_active', 1)
+                    ->where('puc.is_active', 1)
+                    ->select('puc.product_id', 'puc.unit_id')
+            );
+
+        $rows = DB::query()
+            ->fromSub(
+                DB::query()->fromSub($productUnits, 'pu_source')->select('product_id', 'unit_id')->distinct(),
+                'pu'
+            )
+            ->join('products as p', 'p.id', '=', 'pu.product_id')
+            ->join('units as u', 'u.id', '=', 'pu.unit_id')
+            ->join('product_business_units as pbu', 'pbu.product_id', '=', 'p.id')
+            ->join('business_units as bu', 'bu.id', '=', 'pbu.business_unit_id')
+            ->leftJoin('product_prices as pp', function ($join) {
+                $join->on('pp.product_id', '=', 'p.id')
+                    ->on('pp.unit_id', '=', 'pu.unit_id')
+                    ->on('pp.business_unit_id', '=', 'pbu.business_unit_id')
+                    ->where('pp.price_type', '=', 'retail');
+            })
+            ->where('p.entity_id', $entity)
+            ->where('p.is_active', 1)
+            ->where('bu.entity_id', $entity)
+            ->where('bu.is_active', 1)
+            ->where('u.entity_id', $entity)
+            ->when($businessUnitId, fn ($q) => $q->where('pbu.business_unit_id', $businessUnitId))
+            ->when($search !== '', function ($q) use ($search) {
+                $q->where(function ($sub) use ($search) {
+                    $sub->where('p.code', 'like', "%{$search}%")
+                        ->orWhere('p.name', 'like', "%{$search}%");
+                });
+            })
+            ->select('bu.name as business_unit_name', 'p.code as product_code', 'p.name as product_name', 'u.name as unit_name', 'pp.selling_price')
+            ->orderBy('bu.name')->orderBy('p.name')->orderBy('u.name')
+            ->get();
+
+        $entityName = DB::table('entities')->where('id', $entity)->value('name') ?? 'Entity';
+        $filename = 'harga-jual-' . now()->format('Y-m-d') . '.csv';
+
+        return response()->streamDownload(function () use ($rows, $entityName) {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\\xEF\\xBB\\xBF");
+            fputcsv($out, [$entityName], ';');
+            fputcsv($out, ['Daftar Harga Jual'], ';');
+            fputcsv($out, ['Tgl Cetak : ' . now()->format('d/m/Y')], ';');
+            fputcsv($out, [], ';');
+            fputcsv($out, ['Unit Bisnis', 'Kode', 'Item', 'Satuan', 'Harga Jual'], ';');
+            foreach ($rows as $row) {
+                fputcsv($out, [
+                    $row->business_unit_name,
+                    $row->product_code,
+                    $row->product_name,
+                    $row->unit_name,
+                    $row->selling_price === null ? 'Belum Setup' : $row->selling_price,
+                ], ';');
+            }
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     public function history(Request $request)
