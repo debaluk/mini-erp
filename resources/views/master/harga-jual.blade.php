@@ -41,12 +41,13 @@
                         <th>Item</th>
                         <th>Satuan</th>
                         <th class="text-end">Harga Jual</th>
+                        <th class="text-center">Tgl Update</th>
                         <th class="text-center">Aksi</th>
                         <th class="text-center">Status</th>
                     </tr>
                 </thead>
                 <tbody id="priceTableBody">
-                    <tr><td colspan="7" class="text-center text-muted py-4">Memuat data...</td></tr>
+                    <tr><td colspan="8" class="text-center text-muted py-4">Memuat data...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -181,6 +182,7 @@
                 '<td>' + escapeHtml(row.product_name) + '</td>' +
                 '<td>' + escapeHtml(row.unit_name) + '</td>' +
                 '<td class="text-end">' + (row.price_id ? '<span class="fw-semibold">' + formatRupiah(row.selling_price) + '</span>' : '<span class="text-muted">Belum Setup</span>') + '</td>' +
+                '<td class="text-center">' + (row.updated_price_date ? new Date(row.updated_price_date).toLocaleDateString('id-ID') : '-') + '</td>' +
                 '<td class="text-center text-nowrap">' +
                     '<button type="button" class="btn btn-sm btn-outline-primary btn-setup-price" data-row="' + encodeURIComponent(JSON.stringify(row)) + '">Setup / Edit</button> ' +
                     '<button type="button" class="btn btn-sm btn-outline-secondary btn-history" data-row="' + encodeURIComponent(JSON.stringify(row)) + '">History</button>' +
