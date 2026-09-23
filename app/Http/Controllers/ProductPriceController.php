@@ -229,6 +229,17 @@ class ProductPriceController extends Controller
         $businessUnitId = $request->filled('business_unit_id') ? (int) $request->business_unit_id : null;
         $search = trim((string) $request->query('search', ''));
 
+        $businessUnitName = 'Semua Unit Bisnis';
+        if ($businessUnitId) {
+            $businessUnitName = DB::table('business_units')
+                ->where('id', $businessUnitId)
+                ->where('entity_id', $entity)
+                ->where('is_active', 1)
+                ->value('name');
+
+            abort_unless($businessUnitName, 422, 'Unit bisnis tidak valid.');
+        }
+
         $productUnits = DB::table('products as p')
             ->where('p.entity_id', $entity)
             ->where('p.is_active', 1)
@@ -277,32 +288,18 @@ class ProductPriceController extends Controller
                 'pp.selling_price',
                 DB::raw('(SELECT MAX(h.change_date) FROM product_price_histories h WHERE h.product_price_id = pp.id) as updated_price_date')
             )
-            ->orderBy('bu.name')->orderBy('p.name')->orderBy('u.name')
+            ->orderBy('bu.name')
+            ->orderBy('p.name')
+            ->orderBy('u.name')
             ->get();
 
         $entityName = DB::table('entities')->where('id', $entity)->value('name') ?? 'Entity';
-        $filename = 'harga-jual-' . now()->format('Y-m-d') . '.csv';
 
-        return response()->streamDownload(function () use ($rows, $entityName) {
-            $out = fopen('php://output', 'w');
-            fwrite($out, "\\xEF\\xBB\\xBF");
-            fputcsv($out, [$entityName], ';');
-            fputcsv($out, ['Daftar Harga Jual'], ';');
-            fputcsv($out, ['Tgl Cetak : ' . now()->format('d/m/Y')], ';');
-            fputcsv($out, [], ';');
-            fputcsv($out, ['Unit Bisnis', 'Kode', 'Item', 'Satuan', 'Harga Jual', 'Tgl Update'], ';');
-            foreach ($rows as $row) {
-                fputcsv($out, [
-                    $row->business_unit_name,
-                    $row->product_code,
-                    $row->product_name,
-                    $row->unit_name,
-                    $row->selling_price === null ? 'Belum Setup' : $row->selling_price,
-                    $row->updated_price_date ? \Carbon\Carbon::parse($row->updated_price_date)->format('d/m/Y') : '-',
-                ], ';');
-            }
-            fclose($out);
-        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+        return response()->json([
+            'entity_name' => $entityName,
+            'business_unit_name' => $businessUnitName,
+            'rows' => $rows,
+        ]);
     }
 
     public function history(Request $request)
