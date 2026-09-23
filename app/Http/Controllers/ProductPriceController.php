@@ -43,17 +43,11 @@ class ProductPriceController extends Controller
             ->join('units as u', 'u.id', '=', 'pu.unit_id')
             ->join('product_business_units as pbu', 'pbu.product_id', '=', 'p.id')
             ->join('business_units as bu', 'bu.id', '=', 'pbu.business_unit_id')
-            ->leftJoin('product_prices as retail', function ($join) {
-                $join->on('retail.product_id', '=', 'p.id')
-                    ->on('retail.unit_id', '=', 'pu.unit_id')
-                    ->on('retail.business_unit_id', '=', 'pbu.business_unit_id')
-                    ->where('retail.price_type', '=', 'retail');
-            })
-            ->leftJoin('product_prices as grosir', function ($join) {
-                $join->on('grosir.product_id', '=', 'p.id')
-                    ->on('grosir.unit_id', '=', 'pu.unit_id')
-                    ->on('grosir.business_unit_id', '=', 'pbu.business_unit_id')
-                    ->where('grosir.price_type', '=', 'grosir');
+            ->leftJoin('product_prices as pp', function ($join) {
+                $join->on('pp.product_id', '=', 'p.id')
+                    ->on('pp.unit_id', '=', 'pu.unit_id')
+                    ->on('pp.business_unit_id', '=', 'pbu.business_unit_id')
+                    ->where('pp.price_type', '=', 'retail');
             })
             ->where('p.entity_id', $entity)
             ->where('p.is_active', 1)
@@ -80,10 +74,8 @@ class ProductPriceController extends Controller
                 'pu.unit_id',
                 'u.code as unit_code',
                 'u.name as unit_name',
-                'retail.id as retail_price_id',
-                'retail.selling_price as retail_price',
-                'grosir.id as grosir_price_id',
-                'grosir.selling_price as grosir_price'
+                'pp.id as price_id',
+                'pp.selling_price as selling_price'
             )
             ->orderBy('bu.name')
             ->orderBy('p.name')
@@ -108,7 +100,6 @@ class ProductPriceController extends Controller
             'business_unit_id' => ['required', 'integer'],
             'product_id' => ['required', 'integer'],
             'unit_id' => ['required', 'integer'],
-            'price_type' => ['required', 'in:retail,grosir'],
             'change_date' => ['required', 'date'],
             'selling_price' => ['required', 'numeric', 'gt:0'],
         ]);
@@ -120,7 +111,7 @@ class ProductPriceController extends Controller
                 ->where('product_id', $data['product_id'])
                 ->where('business_unit_id', $data['business_unit_id'])
                 ->where('unit_id', $data['unit_id'])
-                ->where('price_type', $data['price_type'])
+                ->where('price_type', 'retail')
                 ->lockForUpdate()
                 ->first();
 
@@ -130,7 +121,7 @@ class ProductPriceController extends Controller
                 'product_id' => $data['product_id'],
                 'business_unit_id' => $data['business_unit_id'],
                 'unit_id' => $data['unit_id'],
-                'price_type' => $data['price_type'],
+                'price_type' => 'retail',
                 'selling_price' => $data['selling_price'],
                 'created_at' => now(),
                 'updated_at' => now(),
