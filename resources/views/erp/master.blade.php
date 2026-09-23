@@ -91,7 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('masterForm');
     const title = document.getElementById('masterModalTitle');
     const submitButton = document.getElementById('masterSubmit');
-    const baseUrl = @json(url('/master/'.$type));
+    const baseUrl = @json($type === 'workers' ? url('/master/pekerja') : url('/master/'.$type));
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content || @json(csrf_token());
 
     let editId = null;
