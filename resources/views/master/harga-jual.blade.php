@@ -51,6 +51,13 @@
                 </tbody>
             </table>
         </div>
+        <div class="card-footer d-flex justify-content-between align-items-center">
+            <small class="text-secondary" id="pricePaginationInfo"></small>
+            <div class="btn-group btn-group-sm" role="group" aria-label="Pagination">
+                <button type="button" class="btn btn-outline-secondary" id="pricePrev">Sebelumnya</button>
+                <button type="button" class="btn btn-outline-secondary" id="priceNext">Berikutnya</button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -125,6 +132,8 @@
     const saveButton = document.getElementById('priceSaveButton');
     const today = new Date().toISOString().slice(0, 10);
     let current = null;
+    let currentPage = 1;
+    let lastPage = 1;
 
     const formatRupiah = value => {
         if (value === null || value === undefined || value === '') return '-';
@@ -150,12 +159,14 @@
         return message;
     };
 
-    const loadPrices = async () => {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Memuat data...</td></tr>';
+    const loadPrices = async (page = 1) => {
+        currentPage = page;
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Memuat data...</td></tr>';
 
         const params = new URLSearchParams();
         if (businessUnitFilter.value) params.set('business_unit_id', businessUnitFilter.value);
         if (search.value.trim()) params.set('search', search.value.trim());
+        params.set('page', String(page));
 
         try {
             const response = await fetch('{{ route('master.menu.harga-jual') }}?' + params.toString(), {
@@ -163,15 +174,33 @@
             });
             if (!response.ok) throw new Error(await apiError(response));
             const result = await response.json();
+            const pagination = result.pagination || {};
+            currentPage = pagination.current_page || 1;
+            lastPage = pagination.last_page || 1;
+            updatePagination(pagination);
             renderPrices(result.data || []);
         } catch (error) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">' + escapeHtml(error.message) + '</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-4">' + escapeHtml(error.message) + '</td></tr>';
         }
+    };
+
+    const updatePagination = pagination => {
+        const info = document.getElementById('pricePaginationInfo');
+        const prev = document.getElementById('pricePrev');
+        const next = document.getElementById('priceNext');
+        const total = pagination.total || 0;
+        const page = pagination.current_page || 1;
+        const perPage = pagination.per_page || 25;
+        const from = total ? ((page - 1) * perPage) + 1 : 0;
+        const to = Math.min(page * perPage, total);
+        info.textContent = total ? 'Menampilkan ' + from + '–' + to + ' dari ' + total + ' data' : 'Tidak ada data';
+        prev.disabled = page <= 1;
+        next.disabled = page >= (pagination.last_page || 1);
     };
 
     const renderPrices = rows => {
         if (!rows.length) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Tidak ada item yang sesuai dengan filter.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Tidak ada item yang sesuai dengan filter.</td></tr>';
             return;
         }
 
@@ -322,10 +351,10 @@
 
     filterForm.addEventListener('submit', event => {
         event.preventDefault();
-        loadPrices();
+        loadPrices(1);
     });
 
-    businessUnitFilter.addEventListener('change', loadPrices);
+    businessUnitFilter.addEventListener('change', () => loadPrices(1));
 
     document.querySelectorAll('.btn-close-modal').forEach(button => button.addEventListener('click', () => {
         hideModal(button.closest('.modal'));
@@ -341,10 +370,10 @@
     document.getElementById('priceReset').addEventListener('click', () => {
         businessUnitFilter.value = '';
         search.value = '';
-        loadPrices();
+        loadPrices(1);
     });
 
-    loadPrices();
+    loadPrices(1);
 })();
 </script>
 @endsection
