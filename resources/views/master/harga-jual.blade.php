@@ -51,12 +51,11 @@
                 </tbody>
             </table>
         </div>
-        <div class="card-footer d-flex justify-content-between align-items-center">
-            <small class="text-secondary" id="pricePaginationInfo"></small>
-            <div class="btn-group btn-group-sm" role="group" aria-label="Pagination">
-                <button type="button" class="btn btn-outline-secondary" id="pricePrev">Sebelumnya</button>
-                <button type="button" class="btn btn-outline-secondary" id="priceNext">Berikutnya</button>
-            </div>
+        <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="small text-secondary" id="pricePaginationInfo"></div>
+            <nav aria-label="Pagination Harga Jual">
+                <ul class="pagination pagination-sm mb-0" id="pricePagination"></ul>
+            </nav>
         </div>
     </div>
 </div>
@@ -114,6 +113,7 @@
     </div>
 </div>
 
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script>
 (() => {
     const showModal = element => { element.classList.add("show"); element.style.display = "block"; element.removeAttribute("aria-hidden"); document.body.classList.add("modal-open"); };
@@ -186,16 +186,44 @@
 
     const updatePagination = pagination => {
         const info = document.getElementById('pricePaginationInfo');
-        const prev = document.getElementById('pricePrev');
-        const next = document.getElementById('priceNext');
+        const pager = document.getElementById('pricePagination');
         const total = pagination.total || 0;
         const page = pagination.current_page || 1;
         const perPage = pagination.per_page || 25;
+        const pages = pagination.last_page || 1;
         const from = total ? ((page - 1) * perPage) + 1 : 0;
         const to = Math.min(page * perPage, total);
-        info.textContent = total ? 'Menampilkan ' + from + '–' + to + ' dari ' + total + ' data' : 'Tidak ada data';
-        prev.disabled = page <= 1;
-        next.disabled = page >= (pagination.last_page || 1);
+
+        info.textContent = total
+            ? 'Menampilkan ' + from + '–' + to + ' dari ' + total + ' item'
+            : 'Tidak ada data';
+
+        if (pages <= 1) {
+            pager.innerHTML = '';
+            return;
+        }
+
+        const start = Math.max(1, page - 2);
+        const end = Math.min(pages, page + 2);
+        let html = '<li class="page-item ' + (page <= 1 ? 'disabled' : '') + '">' +
+            '<a class="page-link" href="#" data-page="' + Math.max(1, page - 1) + '">‹</a></li>';
+
+        for (let p = start; p <= end; p++) {
+            html += '<li class="page-item ' + (p === page ? 'active' : '') + '">' +
+                '<a class="page-link" href="#" data-page="' + p + '">' + p + '</a></li>';
+        }
+
+        html += '<li class="page-item ' + (page >= pages ? 'disabled' : '') + '">' +
+            '<a class="page-link" href="#" data-page="' + Math.min(pages, page + 1) + '">›</a></li>';
+
+        pager.innerHTML = html;
+        pager.querySelectorAll('a[data-page]').forEach(link => {
+            link.addEventListener('click', event => {
+                event.preventDefault();
+                const target = Number(link.dataset.page);
+                if (target !== page && target >= 1 && target <= pages) loadPrices(target);
+            });
+        });
     };
 
     const renderPrices = rows => {
@@ -360,11 +388,77 @@
         hideModal(button.closest('.modal'));
     }));
 
-    document.getElementById('priceExport').addEventListener('click', () => {
+    document.getElementById('priceExport').addEventListener('click', async () => {
+        if (typeof XLSX === 'undefined') {
+            showAlert('Library Excel belum termuat. Silakan refresh halaman lalu coba lagi.', 'danger');
+            return;
+        }
+
+        const button = document.getElementById('priceExport');
+        button.disabled = true;
+
         const params = new URLSearchParams();
         if (businessUnitFilter.value) params.set('business_unit_id', businessUnitFilter.value);
         if (search.value.trim()) params.set('search', search.value.trim());
-        window.location.href = '{{ route('master.harga-jual.export') }}?' + params.toString();
+
+        try {
+            const response = await fetch('{{ route('master.harga-jual.export') }}?' + params.toString(), {
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            const payload = await response.json();
+            if (!response.ok) throw new Error(payload.message || 'Export gagal.');
+
+            const todayText = new Intl.DateTimeFormat('id-ID', {
+                day: '2-digit', month: '2-digit', year: 'numeric'
+            }).format(new Date());
+
+            const rows = payload.rows || [];
+            const data = rows.map(row => [
+                String(row.business_unit_name || ''),
+                String(row.product_code || ''),
+                String(row.product_name || ''),
+                String(row.unit_name || ''),
+                row.selling_price === null ? 'Belum Setup' : Number(row.selling_price),
+                row.updated_price_date ? new Date(row.updated_price_date).toLocaleDateString('id-ID') : '-'
+            ]);
+
+            const ws = XLSX.utils.aoa_to_sheet([
+                [payload.entity_name || 'NAMA ENTITAS'],
+                ['DAFTAR HARGA JUAL'],
+                ['Unit Bisnis : ' + (payload.business_unit_name || 'Semua Unit Bisnis')],
+                ['Tgl Export : ' + todayText],
+                [],
+                ['Unit Bisnis', 'Kode', 'Item', 'Satuan', 'Harga Jual', 'Tgl Update'],
+                ...data
+            ]);
+
+            ws['!merges'] = [
+                {s:{r:0,c:0},e:{r:0,c:5}},
+                {s:{r:1,c:0},e:{r:1,c:5}},
+                {s:{r:2,c:0},e:{r:2,c:5}},
+                {s:{r:3,c:0},e:{r:3,c:5}}
+            ];
+            ws['!cols'] = [
+                {wch: 20}, {wch: 18}, {wch: 34},
+                {wch: 14}, {wch: 20}, {wch: 16}
+            ];
+
+            data.forEach((row, index) => {
+                const excelRow = index + 7;
+                if (typeof row[4] === 'number') ws['E' + excelRow].z = '#,##0.##';
+            });
+
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, ws, 'Harga Jual');
+            XLSX.writeFile(
+                workbook,
+                'daftar-harga-jual-' + new Date().toISOString().slice(0, 10) + '.xlsx'
+            );
+        } catch (error) {
+            showAlert(error.message || 'Export gagal.', 'danger');
+        } finally {
+            button.disabled = false;
+        }
     });
 
     document.getElementById('priceReset').addEventListener('click', () => {
