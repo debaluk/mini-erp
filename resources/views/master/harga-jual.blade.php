@@ -69,7 +69,7 @@
                     <div class="mt-3"><label class="form-label">% Selisih</label><input type="text" id="changePercent" class="form-control" value="-" disabled></div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-secondary btn-close-modal">Batal</button>
                     <button class="btn btn-primary" id="priceSaveButton">Simpan</button>
                 </div>
             </div>
@@ -85,7 +85,7 @@
                     <h5 class="modal-title mb-1">History Harga Jual</h5>
                     <div class="small text-secondary" id="historySubtitle"></div>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close btn-close-modal" aria-label="Tutup"></button>
             </div>
             <div class="modal-body">
                 <div id="historyLoading" class="text-center text-muted py-3 d-none">Memuat history...</div>
@@ -145,7 +145,7 @@
     };
 
     const loadPrices = async () => {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Memuat data...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Memuat data...</td></tr>';
 
         const params = new URLSearchParams();
         if (businessUnitFilter.value) params.set('business_unit_id', businessUnitFilter.value);
@@ -165,7 +165,7 @@
 
     const renderPrices = rows => {
         if (!rows.length) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Tidak ada item yang sesuai dengan filter.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Tidak ada item yang sesuai dengan filter.</td></tr>';
             return;
         }
 
