@@ -266,6 +266,20 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
 
-Route::get('/master/pekerja', function () {
-    return view('master.pekerja');
-})->name('master.menu.pekerja');
+Route::middleware('auth')->group(function () {
+    Route::get('/master/pekerja', function (Request $request) {
+        return app(ErpController::class)->master($request, 'workers');
+    })->middleware('role:owner,admin')->name('master.menu.pekerja');
+
+    Route::post('/master/pekerja', function (Request $request) {
+        return app(ErpController::class)->masterStore($request, 'workers');
+    })->middleware('role:owner,admin')->name('master.pekerja.store');
+
+    Route::put('/master/pekerja/{id}', function (Request $request, int $id) {
+        return app(ErpController::class)->masterUpdate($request, 'workers', $id);
+    })->middleware('role:owner,admin')->name('master.pekerja.update');
+
+    Route::delete('/master/pekerja/{id}', function (Request $request, int $id) {
+        return app(ErpController::class)->masterDelete($request, 'workers', $id);
+    })->middleware('role:owner,admin')->name('master.pekerja.delete');
+});
