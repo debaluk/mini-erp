@@ -14,7 +14,6 @@ class Customer extends Model
         'code',
         'name',
         'phone',
-        'email',
         'address',
         'credit_limit',
         'is_active',
