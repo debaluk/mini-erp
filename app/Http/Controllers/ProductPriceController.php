@@ -75,7 +75,8 @@ class ProductPriceController extends Controller
                 'u.code as unit_code',
                 'u.name as unit_name',
                 'pp.id as price_id',
-                'pp.selling_price as selling_price'
+                'pp.selling_price as selling_price',
+                DB::raw('(SELECT MAX(h.change_date) FROM product_price_histories h WHERE h.product_price_id = pp.id) as updated_price_date'
             )
             ->orderBy('bu.name')
             ->orderBy('p.name')
@@ -260,7 +261,7 @@ class ProductPriceController extends Controller
                         ->orWhere('p.name', 'like', "%{$search}%");
                 });
             })
-            ->select('bu.name as business_unit_name', 'p.code as product_code', 'p.name as product_name', 'u.name as unit_name', 'pp.selling_price')
+            ->select('bu.name as business_unit_name', 'p.code as product_code', 'p.name as product_name', 'u.name as unit_name', 'pp.selling_price, DB::raw(\'(SELECT MAX(h.change_date) FROM product_price_histories h WHERE h.product_price_id = pp.id) as updated_price_date\')')
             ->orderBy('bu.name')->orderBy('p.name')->orderBy('u.name')
             ->get();
 
