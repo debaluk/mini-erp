@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\BusinessUnit;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class BusinessUnitController extends Controller
@@ -15,16 +14,6 @@ class BusinessUnitController extends Controller
         abort_unless($entityId, 403);
 
         return $entityId;
-    }
-
-    private function accounts(int $entityId)
-    {
-        return DB::table('chart_of_accounts')
-            ->where('entity_id', $entityId)
-            ->where('is_active', true)
-            ->whereIn('type', ['cogs', 'expense'])
-            ->orderBy('code')
-            ->get();
     }
 
     public function index(Request $request)
@@ -39,9 +28,7 @@ class BusinessUnitController extends Controller
             ? BusinessUnit::where('entity_id', $entityId)->findOrFail((int) $request->input('edit'))
             : null;
 
-        $accounts = $this->accounts($entityId);
-
-        return view('settings.business-units', compact('units', 'editUnit', 'accounts'));
+        return view('settings.business-units', compact('units', 'editUnit'));
     }
 
     public function edit(Request $request, int $id)
@@ -54,7 +41,6 @@ class BusinessUnitController extends Controller
             'name' => $unit->name,
             'business_type' => $unit->business_type,
             'hpp_method' => $unit->hpp_method,
-            'hpp_account_id' => $unit->hpp_account_id,
             'is_active' => (bool) $unit->is_active,
         ]);
     }
@@ -70,11 +56,7 @@ class BusinessUnitController extends Controller
             ],
             'name' => ['required', 'string', 'max:150'],
             'business_type' => ['required', Rule::in(['retail', 'production', 'service'])],
-            'hpp_method' => ['required', Rule::in(['perpetual', 'periodic'])],
-            'hpp_account_id' => [
-                'nullable', 'integer',
-                Rule::exists('chart_of_accounts', 'id')->where(fn ($q) => $q->where('entity_id', $entityId)),
-            ],
+            'hpp_method' => ['required', Rule::in(['perpetual', 'periodic', 'direct_cost'])],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
@@ -84,7 +66,6 @@ class BusinessUnitController extends Controller
             'name' => trim($data['name']),
             'business_type' => $data['business_type'],
             'hpp_method' => $data['hpp_method'],
-            'hpp_account_id' => $data['hpp_account_id'] ?? null,
             'is_active' => $request->boolean('is_active', true),
         ]);
 
@@ -106,11 +87,7 @@ class BusinessUnitController extends Controller
             ],
             'name' => ['required', 'string', 'max:150'],
             'business_type' => ['required', Rule::in(['retail', 'production', 'service'])],
-            'hpp_method' => ['required', Rule::in(['perpetual', 'periodic'])],
-            'hpp_account_id' => [
-                'nullable', 'integer',
-                Rule::exists('chart_of_accounts', 'id')->where(fn ($q) => $q->where('entity_id', $entityId)),
-            ],
+            'hpp_method' => ['required', Rule::in(['perpetual', 'periodic', 'direct_cost'])],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
@@ -119,7 +96,6 @@ class BusinessUnitController extends Controller
             'name' => trim($data['name']),
             'business_type' => $data['business_type'],
             'hpp_method' => $data['hpp_method'],
-            'hpp_account_id' => $data['hpp_account_id'] ?? null,
             'is_active' => $request->boolean('is_active', true),
         ]);
 
