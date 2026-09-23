@@ -18,58 +18,63 @@ class ProductPriceController extends Controller
             ->orderBy('name')
             ->get(['id', 'code', 'name']);
 
-        $prices = collect();
+        $query = DB::table('product_business_units as pbu')
+            ->join('products as p', 'p.id', '=', 'pbu.product_id')
+            ->join('product_units as pu', 'pu.product_id', '=', 'p.id')
+            ->join('units as u', 'u.id', '=', 'pu.unit_id')
+            ->join('business_units as bu', 'bu.id', '=', 'pbu.business_unit_id')
+            ->leftJoin('product_prices as retail', function ($join) {
+                $join->on('retail.product_id', '=', 'p.id')
+                    ->on('retail.unit_id', '=', 'pu.unit_id')
+                    ->on('retail.business_unit_id', '=', 'pbu.business_unit_id')
+                    ->where('retail.price_type', 'retail');
+            })
+            ->leftJoin('product_prices as grosir', function ($join) {
+                $join->on('grosir.product_id', '=', 'p.id')
+                    ->on('grosir.unit_id', '=', 'pu.unit_id')
+                    ->on('grosir.business_unit_id', '=', 'pbu.business_unit_id')
+                    ->where('grosir.price_type', 'grosir');
+            })
+            ->where('p.entity_id', $entity)
+            ->where('p.is_active', 1)
+            ->when($businessUnitId, function ($q) use ($businessUnitId) {
+                $q->where('pbu.business_unit_id', $businessUnitId);
+            })
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $search = trim($request->search);
+                $q->where(function ($sub) use ($search) {
+                    $sub->where('p.code', 'like', "%{$search}%")
+                        ->orWhere('p.name', 'like', "%{$search}%");
+                });
+            })
+            ->select(
+                'p.id as product_id',
+                'p.code as product_code',
+                'p.name as product_name',
+                'pbu.business_unit_id',
+                'bu.code as business_unit_code',
+                'bu.name as business_unit_name',
+                'pu.unit_id',
+                'u.code as unit_code',
+                'u.name as unit_name',
+                'retail.id as retail_price_id',
+                'retail.selling_price as retail_price',
+                'grosir.id as grosir_price_id',
+                'grosir.selling_price as grosir_price'
+            )
+            ->orderBy('bu.name')
+            ->orderBy('p.name')
+            ->orderBy('u.name');
 
-        if ($businessUnitId) {
-            $query = DB::table('product_business_units as pbu')
-                ->join('products as p', 'p.id', '=', 'pbu.product_id')
-                ->join('product_units as pu', 'pu.product_id', '=', 'p.id')
-                ->join('units as u', 'u.id', '=', 'pu.unit_id')
-                ->leftJoin('product_prices as retail', function ($join) use ($businessUnitId) {
-                    $join->on('retail.product_id', '=', 'p.id')
-                        ->on('retail.unit_id', '=', 'pu.unit_id')
-                        ->where('retail.business_unit_id', $businessUnitId)
-                        ->where('retail.price_type', 'retail');
-                })
-                ->leftJoin('product_prices as grosir', function ($join) use ($businessUnitId) {
-                    $join->on('grosir.product_id', '=', 'p.id')
-                        ->on('grosir.unit_id', '=', 'pu.unit_id')
-                        ->where('grosir.business_unit_id', $businessUnitId)
-                        ->where('grosir.price_type', 'grosir');
-                })
-                ->where('p.entity_id', $entity)
-                ->where('p.is_active', 1)
-                ->where('pbu.business_unit_id', $businessUnitId)
-                ->when($request->filled('search'), function ($q) use ($request) {
-                    $search = trim($request->search);
-                    $q->where(function ($sub) use ($search) {
-                        $sub->where('p.code', 'like', "%{$search}%")
-                            ->orWhere('p.name', 'like', "%{$search}%");
-                    });
-                })
-                ->select(
-                    'p.id as product_id',
-                    'p.code as product_code',
-                    'p.name as product_name',
-                    'pu.unit_id',
-                    'u.code as unit_code',
-                    'u.name as unit_name',
-                    'retail.id as retail_price_id',
-                    'retail.selling_price as retail_price',
-                    'grosir.id as grosir_price_id',
-                    'grosir.selling_price as grosir_price'
-                );
+        $prices = $query->get();
 
-             $prices = $query
-                ->orderBy('p.name')
-                ->orderBy('u.name')
-                ->get();
+        if ($request->expectsJson()) {
+            return response()->json([
+                'data' => $prices,
+            ]);
         }
 
-        return view('master.harga-jual', compact(
-            'prices',
-            'businessUnits'
-        ));
+        return view('master.harga-jual', compact('prices', 'businessUnits'));
     }
 
     public function store(Request $request)
@@ -85,9 +90,9 @@ class ProductPriceController extends Controller
             'selling_price' => ['required', 'numeric', 'gt:0'],
         ]);
 
-        $context = $this->validateContext($entity, $data);
+        $this->validateContext($entity, $data);
 
-        DB::transaction(function () use ($entity, $data, $context): void {
+        DB::transaction(function () use ($data): void {
             $price = DB::table('product_prices')
                 ->where('product_id', $data['product_id'])
                 ->where('business_unit_id', $data['business_unit_id'])
@@ -125,6 +130,10 @@ class ProductPriceController extends Controller
                 'updated_at' => now(),
             ]);
         });
+
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'Harga jual berhasil disimpan.']);
+        }
 
         return back()->with('success', 'Harga jual berhasil disimpan.');
     }
@@ -184,6 +193,10 @@ class ProductPriceController extends Controller
             ]);
         });
 
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'Harga jual berhasil diperbarui.']);
+        }
+
         return back()->with('success', 'Harga jual berhasil diperbarui.');
     }
 
@@ -193,9 +206,8 @@ class ProductPriceController extends Controller
         $product = (int) $request->query('product');
         $unit = (int) $request->query('unit');
         $businessUnitId = (int) $request->query('business_unit_id');
-        abort_unless($product && $unit && $businessUnitId, 422, 'Parameter history tidak valid.');
 
-        abort_unless(in_array($priceType, ['retail', 'grosir'], true), 422, 'Jenis harga tidak valid.');
+        abort_unless($product && $unit && $businessUnitId, 422, 'Parameter history tidak valid.');
 
         $histories = DB::table('product_price_histories as h')
             ->leftJoin('users as usr', 'usr.id', '=', 'h.changed_by')
@@ -206,11 +218,11 @@ class ProductPriceController extends Controller
             ->where('h.product_id', $product)
             ->where('h.unit_id', $unit)
             ->where('h.business_unit_id', $businessUnitId)
-            ->where('h.price_type', $priceType)
             ->orderByDesc('h.change_date')
             ->orderByDesc('h.id')
             ->get([
                 'h.id',
+                'h.price_type',
                 'h.change_date',
                 'h.old_price',
                 'h.new_price',
@@ -225,7 +237,7 @@ class ProductPriceController extends Controller
         return response()->json($histories);
     }
 
-    private function validateContext(int $entity, array $data): object
+    private function validateContext(int $entity, array $data): void
     {
         $context = DB::table('product_business_units as pbu')
             ->join('products as p', 'p.id', '=', 'pbu.product_id')
@@ -242,11 +254,9 @@ class ProductPriceController extends Controller
             ->where('bu.entity_id', $entity)
             ->where('bu.is_active', 1)
             ->where('u.entity_id', $entity)
-            ->select('p.id', 'p.name')
+            ->select('p.id')
             ->first();
 
         abort_unless($context, 422, 'Item, unit bisnis, atau satuan tidak valid.');
-
-        return $context;
     }
 }
