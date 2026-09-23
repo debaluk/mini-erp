@@ -13,6 +13,11 @@
         </button>
     </li>
     <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#mapping-gudang" type="button" role="tab">
+            Mapping Gudang ↔ Unit Bisnis
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
         <button class="nav-link" data-bs-toggle="tab" data-bs-target="#nota-invoice" type="button" role="tab">
             Setup Nota/Invoice
         </button>
@@ -86,6 +91,52 @@
                 <button type="submit" class="btn btn-primary">Simpan Mapping</button>
             </form>
         @endif
+    </div>
+
+    <div class="tab-pane fade" id="mapping-gudang" role="tabpanel">
+        <form method="POST" action="{{ route('pengaturan.warehouse-mapping.save') }}">
+            @csrf
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <div class="fw-semibold">Mapping Gudang ↔ Unit Bisnis</div>
+                    <div class="text-secondary small">Satu Unit Bisnis hanya boleh memiliki satu Gudang aktif.</div>
+                </div>
+                <div class="card-body">
+                    @if($warehouseList->isEmpty())
+                        <div class="alert alert-light border mb-0">Belum ada Gudang.</div>
+                    @else
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead><tr><th>Gudang</th><th>Unit Bisnis</th></tr></thead>
+                                <tbody>
+                                @foreach($warehouseList as $warehouse)
+                                    <tr>
+                                        <td>
+                                            <div class="fw-semibold">{{ $warehouse->code }}</div>
+                                            <div class="text-secondary small">{{ $warehouse->name }}</div>
+                                        </td>
+                                        <td>
+                                            <select name="warehouse_business_units[{{ $warehouse->id }}]" class="form-select">
+                                                <option value="">— Tidak dipetakan —</option>
+                                                @foreach($units as $unit)
+                                                    <option value="{{ $unit->id }}" @selected((int) ($warehouseMappings->get($warehouse->id)?->business_unit_id ?? 0) === (int) $unit->id)>
+                                                        {{ $unit->code }} — {{ $unit->name }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
+                <div class="card-footer bg-white">
+                    <button type="submit" class="btn btn-primary">Simpan Mapping Gudang</button>
+                </div>
+            </div>
+        </form>
     </div>
 
     <div class="tab-pane fade" id="nota-invoice" role="tabpanel">
