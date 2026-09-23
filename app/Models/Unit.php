@@ -13,7 +13,6 @@ class Unit extends Model
         'entity_id',
         'code',
         'name',
-        'description',
         'is_active',
     ];
 
