@@ -54,17 +54,7 @@
                     <option value="">Pilih</option>
                     <option value="perpetual" @selected(old('hpp_method', $editUnit->hpp_method ?? '') === 'perpetual')>Perpetual</option>
                     <option value="periodic" @selected(old('hpp_method', $editUnit->hpp_method ?? '') === 'periodic')>Periodik</option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <label class="form-label">Akun HPP</label>
-                <select name="hpp_account_id" class="form-select">
-                    <option value="">Pilih Akun HPP</option>
-                    @foreach($accounts as $account)
-                        <option value="{{ $account->id }}" @selected((string) old('hpp_account_id', $editUnit->hpp_account_id ?? '') === (string) $account->id)>
-                            {{ $account->code }} — {{ $account->name }}
-                        </option>
-                    @endforeach
+                    <option value="direct_cost" @selected(old('hpp_method', $editUnit->hpp_method ?? '') === 'direct_cost')>Direct Cost</option>
                 </select>
             </div>
             <div class="col-md-1">
@@ -97,7 +87,6 @@
                         <th>Nama Unit</th>
                         <th style="width: 15%">Tipe Usaha</th>
                         <th style="width: 15%">Metode HPP</th>
-                        <th>Akun HPP</th>
                         <th style="width: 10%">Status</th>
                         <th style="width: 170px">Aksi</th>
                     </tr>
@@ -108,10 +97,12 @@
                             <td>{{ $unit->code }}</td>
                             <td>{{ $unit->name }}</td>
                             <td>{{ ['retail' => 'Retail', 'production' => 'Produksi', 'service' => 'Jasa'][$unit->business_type] }}</td>
-                            <td>{{ $unit->hpp_method === 'perpetual' ? 'Perpetual' : 'Periodik' }}</td>
                             <td>
-                                @php($hppAccount = $accounts->firstWhere('id', $unit->hpp_account_id))
-                                {{ $hppAccount ? $hppAccount->code . ' — ' . $hppAccount->name : '-' }}
+                                {{ [
+                                    'perpetual' => 'Perpetual',
+                                    'periodic' => 'Periodik',
+                                    'direct_cost' => 'Direct Cost',
+                                ][$unit->hpp_method] ?? $unit->hpp_method }}
                             </td>
                             <td>
                                 <span class="badge {{ $unit->is_active ? 'text-bg-success' : 'text-bg-secondary' }}">
@@ -128,14 +119,13 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="7" class="text-center text-secondary py-4">Belum ada unit bisnis.</td></tr>
+                        <tr><td colspan="6" class="text-center text-secondary py-4">Belum ada unit bisnis.</td></tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
     </div>
 </div>
-
 
 <div class="card shadow-sm mb-3">
     <div class="card-header fw-semibold">Edukasi Metode HPP</div>
@@ -171,6 +161,5 @@
         </div>
     </div>
 </div>
-
 
 @endsection
