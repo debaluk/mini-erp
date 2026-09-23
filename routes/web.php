@@ -263,6 +263,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/pengaturan/konfigurasi/unit-bisnis/{id}', [BusinessUnitController::class, 'destroy'])->middleware('role:owner,admin')->name('pengaturan.unit-bisnis.destroy');
     Route::get('/pengaturan/konfigurasi/mapping-account', [BusinessUnitAccountMappingController::class, 'index'])->middleware('access:konfigurasi')->name('pengaturan.account-mapping');
     Route::post('/pengaturan/konfigurasi/mapping-account', [BusinessUnitAccountMappingController::class, 'save'])->middleware('role:owner,admin')->name('pengaturan.account-mapping.save');
+    Route::post('/pengaturan/konfigurasi/mapping-warehouse', [SettingsController::class, 'warehouseMappingSave'])->middleware('role:owner,admin')->name('pengaturan.warehouse-mapping.save');
 
     // Placeholder pages for the locked Inventori & Operasional menu structure.
     Route::get('/inventori/pembelian/po', fn () => view('inventori.pembelian-po'))
