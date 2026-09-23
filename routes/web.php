@@ -144,8 +144,8 @@ Route::middleware('auth')->group(function () {
     ];
     Route::get('/master/harga-jual', [ProductPriceController::class, 'index'])->middleware('role:owner,admin')->name('master.menu.harga-jual');
     Route::post('/master/harga-jual', [ProductPriceController::class, 'store'])->middleware('role:owner,admin')->name('master.harga-jual.store');
+    Route::get('/master/harga-jual/history', [ProductPriceController::class, 'history'])->middleware('role:owner,admin')->name('master.harga-jual.history');
     Route::put('/master/harga-jual/{id}', [ProductPriceController::class, 'update'])->middleware('role:owner,admin')->name('master.harga-jual.update');
-    Route::delete('/master/harga-jual/{id}', [ProductPriceController::class, 'destroy'])->middleware('role:owner,admin')->name('master.harga-jual.destroy');
 
     Route::get('/inventory/initial-setup', [SellingPriceController::class, 'index'])->middleware('role:owner,admin')->name('inventory.initial-setup');
     Route::post('/inventory/initial-setup', [SellingPriceController::class, 'storeInitial'])->middleware('role:owner,admin')->name('inventory.initial-setup.store');
