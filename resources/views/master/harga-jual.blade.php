@@ -28,6 +28,10 @@
     </form>
 
     <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span class="fw-semibold">Daftar Harga Jual</span>
+            <button type="button" id="priceExport" class="btn btn-sm btn-outline-success">Export</button>
+        </div>
         <div class="table-responsive">
             <table class="table table-bordered table-hover mb-0 align-middle">
                 <thead>
@@ -38,10 +42,11 @@
                         <th>Satuan</th>
                         <th class="text-end">Harga Jual</th>
                         <th class="text-center">Aksi</th>
+                        <th class="text-center">Status</th>
                     </tr>
                 </thead>
                 <tbody id="priceTableBody">
-                    <tr><td colspan="6" class="text-center text-muted py-4">Memuat data...</td></tr>
+                    <tr><td colspan="7" class="text-center text-muted py-4">Memuat data...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -49,7 +54,7 @@
 </div>
 
 <div class="modal fade" id="priceSetupModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
         <form id="priceSetupForm">
             @csrf
             <input type="hidden" name="business_unit_id" id="priceBusinessUnitId">
@@ -180,6 +185,7 @@
                     '<button type="button" class="btn btn-sm btn-outline-primary btn-setup-price" data-row="' + encodeURIComponent(JSON.stringify(row)) + '">Setup / Edit</button> ' +
                     '<button type="button" class="btn btn-sm btn-outline-secondary btn-history" data-row="' + encodeURIComponent(JSON.stringify(row)) + '">History</button>' +
                 '</td>' +
+                '<td class="text-center">' + (row.price_id ? '<span class="badge bg-success">Sudah Setup</span>' : '<span class="badge bg-secondary">Belum Setup</span>') + '</td>' +
             '</tr>';
         }).join('');
 
@@ -322,6 +328,13 @@
     document.querySelectorAll('.btn-close-modal').forEach(button => button.addEventListener('click', () => {
         hideModal(button.closest('.modal'));
     }));
+
+    document.getElementById('priceExport').addEventListener('click', () => {
+        const params = new URLSearchParams();
+        if (businessUnitFilter.value) params.set('business_unit_id', businessUnitFilter.value);
+        if (search.value.trim()) params.set('search', search.value.trim());
+        window.location.href = '{{ route('master.harga-jual.export') }}?' + params.toString();
+    });
 
     document.getElementById('priceReset').addEventListener('click', () => {
         businessUnitFilter.value = '';
