@@ -149,7 +149,11 @@ class ModuleController extends Controller
             $data['report'] = $this->report($module, $entity);
         }
         if ($module === 'pos') {
-            $businessUnitId = (int) (auth()->user()->default_business_unit_id ?? 0);
+            $businessUnitId = (int) DB::table('business_units')
+                ->where('entity_id', $entity)
+                ->where('code', 'RET')
+                ->where('is_active', 1)
+                ->value('id');
             $data['businessUnit'] = DB::table('business_units')
                 ->where('entity_id', $entity)
                 ->where('id', $businessUnitId)
