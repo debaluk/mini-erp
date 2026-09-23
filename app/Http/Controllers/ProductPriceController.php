@@ -60,13 +60,7 @@ class ProductPriceController extends Controller
                     'grosir.selling_price as grosir_price'
                 );
 
-            if ($request->filled('price_type') && $request->price_type === 'retail') {
-                $query->whereNotNull('retail.id');
-            } elseif ($request->filled('price_type') && $request->price_type === 'grosir') {
-                $query->whereNotNull('grosir.id');
-            }
-
-            $prices = $query
+             $prices = $query
                 ->orderBy('p.name')
                 ->orderBy('u.name')
                 ->get();
