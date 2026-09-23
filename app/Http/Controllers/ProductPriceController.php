@@ -264,12 +264,8 @@ class ProductPriceController extends Controller
     {
         $context = DB::table('product_business_units as pbu')
             ->join('products as p', 'p.id', '=', 'pbu.product_id')
-            ->join('product_units as pu', function ($join) use ($data) {
-                $join->on('pu.product_id', '=', 'pbu.product_id')
-                    ->where('pu.unit_id', $data['unit_id']);
-            })
-            ->join('units as u', 'u.id', '=', 'pu.unit_id')
             ->join('business_units as bu', 'bu.id', '=', 'pbu.business_unit_id')
+            ->join('units as u', 'u.id', '=', DB::raw((int) $data['unit_id']))
             ->where('p.id', $data['product_id'])
             ->where('p.entity_id', $entity)
             ->where('p.is_active', 1)
@@ -277,6 +273,16 @@ class ProductPriceController extends Controller
             ->where('bu.entity_id', $entity)
             ->where('bu.is_active', 1)
             ->where('u.entity_id', $entity)
+            ->where(function ($q) use ($data) {
+                $q->where('p.base_unit_id', $data['unit_id'])
+                    ->orWhereExists(function ($sub) use ($data) {
+                        $sub->select(DB::raw(1))
+                            ->from('product_unit_conversions as puc')
+                            ->whereColumn('puc.product_id', 'p.id')
+                            ->where('puc.unit_id', $data['unit_id'])
+                            ->where('puc.is_active', 1);
+                    });
+            })
             ->select('p.id')
             ->first();
 
