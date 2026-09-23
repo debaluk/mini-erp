@@ -76,7 +76,7 @@ class ProductPriceController extends Controller
                 'u.name as unit_name',
                 'pp.id as price_id',
                 'pp.selling_price as selling_price',
-                DB::raw('(SELECT MAX(h.change_date) FROM product_price_histories h WHERE h.product_price_id = pp.id) as updated_price_date'
+                DB::raw('(SELECT MAX(h.change_date) FROM product_price_histories h WHERE h.product_price_id = pp.id) as updated_price_date')
             )
             ->orderBy('bu.name')
             ->orderBy('p.name')
