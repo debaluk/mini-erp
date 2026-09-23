@@ -85,8 +85,19 @@ class ProductPriceController extends Controller
         $prices = $query->get();
 
         if ($request->expectsJson()) {
+            $perPage = 25;
+            $page = max((int) $request->query('page', 1), 1);
+            $total = $prices->count();
+            $data = $prices->forPage($page, $perPage)->values();
+
             return response()->json([
-                'data' => $prices,
+                'data' => $data,
+                'pagination' => [
+                    'current_page' => $page,
+                    'per_page' => $perPage,
+                    'total' => $total,
+                    'last_page' => max((int) ceil($total / $perPage), 1),
+                ],
             ]);
         }
 
