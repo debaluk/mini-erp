@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BusinessUnit;
+use App\Models\BusinessUnitAccountMapping;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -31,6 +33,7 @@ class SettingsController extends Controller
             default => [],
         };
     }
+
     private function entityId(Request $request): ?int
     {
         if ($request->user()?->role === 'superadmin') {
@@ -329,15 +332,53 @@ class SettingsController extends Controller
         $entityId = $request->user()->entity_id;
         abort_unless($entityId, 403);
 
-        $units = DB::table('business_units')
-            ->where('entity_id', $entityId)
+        $units = BusinessUnit::where('entity_id', $entityId)
             ->orderBy('code')
             ->get();
 
-        $editUnit = $request->filled('edit')
-            ? DB::table('business_units')->where('entity_id', $entityId)->where('id', $request->integer('edit'))->first()
-            : null;
+        $accounts = DB::table('chart_of_accounts')
+            ->where('entity_id', $entityId)
+            ->where('is_active', true)
+            ->where('is_postable', true)
+            ->orderBy('code')
+            ->get();
 
-        return view('settings.configuration', compact('units', 'editUnit'));
+        $mappings = BusinessUnitAccountMapping::where('entity_id', $entityId)
+            ->get()
+            ->groupBy('business_unit_id')
+            ->map(fn ($rows) => $rows->keyBy('mapping_key'));
+
+        $mappingLabels = [
+            'cash' => 'Kas',
+            'bank' => 'Bank',
+            'receivable' => 'Piutang',
+            'payable' => 'Hutang',
+            'inventory' => 'Persediaan',
+            'sales_merchandise' => 'Penjualan Barang Dagangan',
+            'sales_finished_goods' => 'Penjualan Hasil Produksi',
+            'sales_service' => 'Pendapatan Jasa',
+            'cogs_merchandise' => 'HPP Barang Dagangan',
+            'cogs_finished_goods' => 'HPP Hasil Produksi',
+            'direct_material' => 'Bahan Baku Langsung',
+            'direct_labor' => 'Tenaga Kerja Langsung',
+            'direct_overhead' => 'Overhead Langsung',
+        ];
+
+        $mappingKeys = $units->mapWithKeys(fn ($unit) => [
+            $unit->id => match ($unit->business_type) {
+                'retail' => ['cash','bank','receivable','payable','inventory','sales_merchandise','cogs_merchandise'],
+                'production' => ['cash','bank','receivable','payable','inventory','sales_finished_goods','cogs_finished_goods','direct_material','direct_labor','direct_overhead'],
+                'service' => ['cash','bank','receivable','payable','sales_service','direct_material','direct_labor','direct_overhead'],
+                default => [],
+            },
+        ]);
+
+        return view('settings.configuration', compact(
+            'units',
+            'accounts',
+            'mappings',
+            'mappingLabels',
+            'mappingKeys'
+        ));
     }
 }
