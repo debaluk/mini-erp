@@ -40,17 +40,52 @@
 
 <div class="tab-content">
     <div class="tab-pane fade show active" id="mapping-coa" role="tabpanel">
-        <div class="card shadow-sm">
-            <div class="card-header fw-semibold">Mapping COA Unit Bisnis</div>
-            <div class="card-body">
-                <p class="text-secondary mb-3">
-                    Atur akun COA berdasarkan kebutuhan transaksi masing-masing Unit Bisnis.
-                </p>
-                <a href="{{ route('pengaturan.account-mapping') }}" class="btn btn-primary">
-                    Buka Mapping COA
-                </a>
-            </div>
-        </div>
+        @if($units->isEmpty())
+            <div class="alert alert-light border">Belum ada Unit Bisnis.</div>
+        @else
+            <form method="POST" action="{{ route('pengaturan.account-mapping.save') }}">
+                @csrf
+
+                @foreach($units as $unit)
+                    @php
+                        $unitMappings = $mappings->get($unit->id, collect());
+                        $keys = $mappingKeys->get($unit->id, []);
+                        $type = ['retail' => 'Retail', 'production' => 'Produksi', 'service' => 'Jasa'][$unit->business_type] ?? $unit->business_type;
+                    @endphp
+
+                    <div class="card shadow-sm mb-3">
+                        <div class="card-header">
+                            <div class="fw-semibold">{{ $unit->code }} — {{ $unit->name }}</div>
+                            <div class="text-secondary small">{{ $type }}</div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                @foreach($keys as $key)
+                                    @php
+                                        $current = $unitMappings->get($key)?->account_id;
+                                        $label = $mappingLabels[$key] ?? $key;
+                                    @endphp
+                                    <div class="col-md-6">
+                                        <label class="form-label mb-1">{{ $label }}</label>
+                                        <select name="accounts[{{ $unit->id }}][{{ $key }}]" class="form-select" required>
+                                            <option value="">Pilih akun</option>
+                                            @foreach($accounts as $account)
+                                                <option value="{{ $account->id }}" @selected((string) $current === (string) $account->id)>
+                                                    {{ $account->code }} — {{ $account->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        <div class="form-text">{{ $key }}</div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+
+                <button type="submit" class="btn btn-primary">Simpan Mapping</button>
+            </form>
+        @endif
     </div>
 
     <div class="tab-pane fade" id="nota-invoice" role="tabpanel">
