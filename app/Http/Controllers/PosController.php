@@ -24,64 +24,28 @@ class PosController extends Controller
     {
         $data = $request->validate(['product_id'=>'required|integer','qty'=>'required|numeric|gt:0']);
         $entity = $this->entityId();
-        $businessUnitId = (int) DB::table('business_units')
-            ->where('entity_id', $entity)
-            ->where('code', 'RET')
-            ->where('is_active', 1)
-            ->value('id');
-        abort_unless($businessUnitId > 0, 422, 'Unit Bisnis Retail belum tersedia.');
-
-        $businessUnit = DB::table('business_units')
-            ->where('entity_id', $entity)
-            ->where('id', $businessUnitId)
-            ->where('is_active', 1)
-            ->first();
-        abort_unless($businessUnit, 422, 'Unit Bisnis POS tidak valid.');
-
-        $warehouse = DB::table('warehouse_business_units as wbu')
-            ->join('warehouses as w', 'w.id', '=', 'wbu.warehouse_id')
-            ->where('wbu.entity_id', $entity)
-            ->where('wbu.business_unit_id', $businessUnitId)
-            ->where('w.is_active', 1)
-            ->first(['w.id', 'w.code', 'w.name']);
-        abort_unless($warehouse, 422, 'Gudang POS untuk Unit Bisnis ini belum dipetakan.');
-
         $product = DB::table('products as p')
-            ->join('product_business_units as pu', function ($join) use ($businessUnitId) {
-                $join->on('pu.product_id', '=', 'p.id')
-                    ->where('pu.business_unit_id', $businessUnitId);
-            })
-            ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
-            ->leftJoin('product_prices as pp', function ($join) use ($businessUnitId) {
-                $join->on('pp.product_id', '=', 'p.id')
-                    ->on('pp.unit_id', '=', 'p.base_unit_id')
-                    ->where('pp.business_unit_id', $businessUnitId)
-                    ->where('pp.price_type', 'retail');
+            ->join('product_business_units as pu', 'pu.product_id', '=', 'p.id')
+            ->join('business_units as bu', function ($join) use ($entity) {
+                $join->on('bu.id', '=', 'pu.business_unit_id')
+                    ->where('bu.entity_id', $entity)
+                    ->where('bu.code', 'RET')
+                    ->where('bu.is_active', 1);
             })
             ->where('p.entity_id', $entity)
             ->where('p.is_active', 1)
+            ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
+            ->select('p.*', 'p.base_unit_id as selling_unit_id', 'u.code as selling_unit_code', 'u.name as selling_unit_name')
             ->where('p.id', $data['product_id'])
-            ->select(
-                'p.*',
-                'p.base_unit_id as selling_unit_id',
-                'u.code as selling_unit_code',
-                'u.name as selling_unit_name',
-                'pp.selling_price as master_selling_price'
-            )
             ->first();
 
-        abort_unless($product, 404, 'Produk tidak ditemukan untuk Unit Bisnis POS.');
-        abort_unless($product->master_selling_price !== null, 422, 'Harga jual item belum ditetapkan.');
+        abort_unless($product, 404, 'Produk tidak ditemukan.');
 
         $cart = $this->cart($request);
         $id = (string) $product->id;
 
         if (isset($cart[$id])) {
             $cart[$id]['qty'] += (float) $data['qty'];
-            $cart[$id]['business_unit_id'] = $businessUnitId;
-            $cart[$id]['warehouse_id'] = (int) $warehouse->id;
-            $cart[$id]['warehouse_code'] = $warehouse->code;
-            $cart[$id]['warehouse_name'] = $warehouse->name;
         } else {
             $cart[$id] = [
                 'product_id' => (int) $product->id,
@@ -90,12 +54,8 @@ class PosController extends Controller
                 'name' => $product->name,
                 'selling_unit_code' => $product->selling_unit_code,
                 'selling_unit_name' => $product->selling_unit_name,
-                'price' => (float) $product->master_selling_price,
+                'price' => (float) $product->selling_price,
                 'qty' => (float) $data['qty'],
-                'business_unit_id' => $businessUnitId,
-                'warehouse_id' => (int) $warehouse->id,
-                'warehouse_code' => $warehouse->code,
-                'warehouse_name' => $warehouse->name,
             ];
         }
 
@@ -107,11 +67,12 @@ class PosController extends Controller
 
     public function updateItem(Request $request, string $id)
     {
-        $data = $request->validate(['qty'=>'required|numeric|gt:0']);
+        $data = $request->validate(['qty'=>'required|numeric|gt:0','price'=>'required|numeric|min:0']);
         $cart = $this->cart($request);
         abort_unless(isset($cart[$id]), 404, 'Item transaksi tidak ditemukan.');
 
         $cart[$id]['qty'] = (float) $data['qty'];
+        $cart[$id]['price'] = (float) $data['price'];
         $request->session()->put('pos_cart', $cart);
 
         if ($request->expectsJson()) return response()->json(['ok'=>true,'cart'=>$cart]);
@@ -149,23 +110,14 @@ class PosController extends Controller
         $cart = $this->cart($request);
         abort_if(empty($cart), 422, 'Belum ada barang dalam transaksi.');
 
-        $businessUnitId = (int) (auth()->user()->default_business_unit_id ?? 0);
-        abort_unless($businessUnitId > 0, 422, 'Unit Bisnis default belum ditentukan.');
-
-        $businessUnit = DB::table('business_units')
+        $shift = DB::table('cash_shifts')
             ->where('entity_id', $entity)
-            ->where('id', $businessUnitId)
-            ->where('is_active', 1)
+            ->where('user_id', auth()->id())
+            ->where('status', 'open')
+            ->latest('id')
             ->first();
-        abort_unless($businessUnit, 422, 'Unit Bisnis POS tidak valid.');
 
-        $warehouse = DB::table('warehouse_business_units as wbu')
-            ->join('warehouses as w', 'w.id', '=', 'wbu.warehouse_id')
-            ->where('wbu.entity_id', $entity)
-            ->where('wbu.business_unit_id', $businessUnitId)
-            ->where('w.is_active', 1)
-            ->first(['w.id', 'w.code', 'w.name']);
-        abort_unless($warehouse, 422, 'Gudang POS untuk Unit Bisnis ini belum dipetakan.');
+        abort_unless($shift, 422, 'Buka shift kasir terlebih dahulu.');
 
         $subtotal = 0;
         foreach ($cart as $item) {
@@ -185,14 +137,14 @@ class PosController extends Controller
 
         $invoiceNo = 'POS-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4));
 
-        DB::transaction(function () use ($cart, $entity, $businessUnitId, $warehouse, $subtotal, $discount, $total, $paidAmount, $changeAmount, $data, $invoiceNo) {
+        DB::transaction(function () use ($cart, $entity, $shift, $subtotal, $discount, $total, $paidAmount, $changeAmount, $data, $invoiceNo) {
             $stockRows = [];
 
             foreach ($cart as $item) {
                 $stock = DB::table('warehouses_stocks')
                     ->where('entity_id', $entity)
                     ->where('product_id', $item['product_id'])
-                    ->where('warehouse_id', $warehouse->id)
+                    ->orderBy('id')
                     ->lockForUpdate()
                     ->first();
 
@@ -214,13 +166,13 @@ class PosController extends Controller
                 ->where('code', 'CUST-UMUM')
                 ->value('id');
 
-            $businessUnitId = $businessUnitId;
+            $businessUnitId = (int) ($shift->business_unit_id ?? 1);
             $sale = DB::table('sales')->insertGetId([
                 'entity_id' => $entity,
                 'business_unit_id' => $businessUnitId,
                 'customer_id' => $customerId,
                 'user_id' => auth()->id(),
-                'shift_id' => null,
+                'shift_id' => $shift->id,
                 'invoice_no' => $invoiceNo,
                 'sale_date' => now(),
                 'subtotal' => $subtotal,
@@ -305,15 +257,7 @@ class PosController extends Controller
                     'phone' => $entityRow?->phone ?? '',
                 ],
                 'cashier' => auth()->user()->name,
-                'shift_id' => null,
-                'business_unit' => [
-                    'code' => $businessUnit->code,
-                    'name' => $businessUnit->name,
-                ],
-                'warehouse' => [
-                    'code' => $warehouse->code,
-                    'name' => $warehouse->name,
-                ],
+                'shift_id' => $shift->id,
                 'customer' => $customerName,
                 'subtotal' => $subtotal,
                 'discount' => $discount,
