@@ -14,24 +14,19 @@ class SettingsController extends Controller
     private function moduleCatalog(): array
     {
         return [
-            'master_data' => 'Master Data',
-            'pos_retail' => 'POS Kasir (Tunai/Retail)',
-            'produksi' => 'Produksi (BUASO)',
-            'armada_jasa' => 'Armada & Jasa',
-            'inventori' => 'Inventori',
-            'akuntansi' => 'Akuntansi',
-            'laporan' => 'Laporan',
-            'konfigurasi' => 'Pengaturan',
+            'master_operasional' => 'Master & Operasional',
+            'keuangan_akuntansi' => 'Keuangan & Akunting',
+            'seting' => 'Seting',
         ];
     }
 
     private function defaultModulesForRole(string $role): array
     {
         return match ($role) {
-            'admin' => ['master_data', 'konfigurasi'],
-            'kasir' => ['pos_retail'],
-            'inventori' => ['produksi', 'armada_jasa', 'inventori'],
-            'akuntansi' => ['akuntansi', 'laporan'],
+            'admin' => ['master_operasional', 'seting'],
+            'kasir' => ['master_operasional'],
+            'inventori' => ['master_operasional'],
+            'akuntansi' => ['keuangan_akuntansi'],
             default => [],
         };
     }
