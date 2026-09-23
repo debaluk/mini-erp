@@ -156,10 +156,10 @@
 <script>
 function defaultModules(role){
     const map={
-        admin:['master_data','konfigurasi'],
-        kasir:['pos_retail'],
-        inventori:['produksi','armada_jasa','inventori'],
-        akuntansi:['akuntansi','laporan']
+        admin:['master','seting'],
+        kasir:['inventori_operasional'],
+        inventori:['inventori_operasional'],
+        akuntansi:['keuangan_akuntansi']
     };
     return map[role]||[];
 }
