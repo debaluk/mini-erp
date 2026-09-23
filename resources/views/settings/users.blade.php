@@ -18,7 +18,7 @@
         <table class="table table-hover align-middle mb-0">
             <thead class="table-light">
                 <tr>
-                    <th>Nama</th><th>Email</th><th>Role</th><th>Hak Akses</th><th>Status</th><th class="text-end">Aksi</th>
+                    <th>Nama</th><th>Email</th><th>Role</th><th>Business Unit</th><th>Hak Akses</th><th>Status</th><th class="text-end">Aksi</th>
                 </tr>
             </thead>
             <tbody>
@@ -28,6 +28,16 @@
                     <td>{{ $u->email }}</td>
                     <td><span class="badge text-bg-secondary">{{ ucfirst($u->role) }}</span></td>
                     <td>
+                        @forelse(($userBusinessUnits[$u->id] ?? []) as $businessUnitId)
+                            @php($businessUnit = $businessUnits->firstWhere('id', $businessUnitId))
+                            @if($businessUnit)
+                                <span class="badge text-bg-light border me-1 mb-1">{{ $businessUnit->code }} — {{ $businessUnit->name }}</span>
+                            @endif
+                        @empty
+                            <span class="text-secondary">—</span>
+                        @endforelse
+                    </td>
+                    <td>
                         @forelse(($userModules[$u->id] ?? []) as $m)
                             <span class="badge text-bg-light border me-1 mb-1">{{ $moduleCatalog[$m] ?? $m }}</span>
                         @empty
@@ -36,7 +46,7 @@
                     </td>
                     <td><span class="badge {{ $u->is_active ? 'text-bg-success':'text-bg-secondary' }}">{{ $u->is_active ? 'Aktif':'Nonaktif' }}</span></td>
                     <td class="text-end text-nowrap">
-                        <button class="btn btn-outline-primary btn-sm" title="Edit User" data-bs-toggle="modal" data-bs-target="#userModal" onclick='editUser(@json(array_merge((array) $u, ["modules" => ($userModules[$u->id] ?? [])])))'>✎</button>
+                        <button class="btn btn-outline-primary btn-sm" title="Edit User" data-bs-toggle="modal" data-bs-target="#userModal" onclick='editUser(@json(array_merge((array) $u, ["modules" => ($userModules[$u->id] ?? []), "business_units" => ($userBusinessUnits[$u->id] ?? [])])))'>✎</button>
                         <form method="POST" action="{{ route('pengaturan.user.toggle',$u->id) }}" class="d-inline">
                             @csrf @method('PATCH')
                             <button class="btn btn-outline-secondary btn-sm" title="Aktif/Nonaktif">↔</button>
@@ -44,7 +54,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="6" class="text-center text-secondary py-4">Belum ada user.</td></tr>
+                <tr><td colspan="7" class="text-center text-secondary py-4">Belum ada user.</td></tr>
             @endforelse
             </tbody>
         </table>
@@ -102,6 +112,33 @@
                         </div>
 
                         <div class="col-12">
+                            <label class="form-label mb-2">Hak Akses Business Unit</label>
+                            <div class="row g-2">
+                                @foreach($businessUnits as $bu)
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input business-unit-check" type="checkbox" name="business_units[]" value="{{ $bu->id }}" id="business_unit_{{ $bu->id }}">
+                                        <label class="form-check-label" for="business_unit_{{ $bu->id }}">
+                                            {{ $bu->code }} — {{ $bu->name }}
+                                        </label>
+                                    </div>
+                                </div>
+                                @endforeach
+                            </div>
+                            <div class="form-text">User hanya dapat bertransaksi pada Business Unit yang diberikan.</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Business Unit Default</label>
+                            <select name="default_business_unit" id="uDefaultBusinessUnit" class="form-select" required>
+                                @foreach($businessUnits as $bu)
+                                    <option value="{{ $bu->id }}">{{ $bu->code }} — {{ $bu->name }}</option>
+                                @endforeach
+                            </select>
+                            <div class="form-text">Business Unit utama user saat masuk ke konteks transaksi.</div>
+                        </div>
+
+                        <div class="col-md-6">
                             <label class="form-label">Password <span id="passwordHint" class="text-secondary">(minimal 8 karakter)</span></label>
                             <input type="password" name="password" id="uPassword" class="form-control" minlength="8">
                             <input type="password" name="password_confirmation" id="uPasswordConfirmation" class="form-control mt-2" minlength="8" placeholder="Ulangi password">
@@ -131,8 +168,17 @@ function defaultModules(role){
     return map[role]||[];
 }
 function setModules(modules){
+    modules = modules.map(String);
     document.querySelectorAll('.module-check').forEach(el=>el.checked=modules.includes(el.value));
 }
+function setBusinessUnits(units){
+    units = units.map(String);
+    document.querySelectorAll('.business-unit-check').forEach(el=>el.checked=units.includes(el.value));
+}
+function setDefaultBusinessUnit(id){
+    document.getElementById('uDefaultBusinessUnit').value = id ? String(id) : '';
+}
+
 function newUser(){
     const f=document.getElementById('userForm');
     f.action='{{ route('pengaturan.user.store') }}';
@@ -146,6 +192,8 @@ function newUser(){
     document.getElementById('uPassword').required=true;
     document.getElementById('uPasswordConfirmation').required=true;
     setModules(defaultModules('admin'));
+    setBusinessUnits(@json($businessUnits->pluck('id')->values()));
+    setDefaultBusinessUnit(@json($businessUnits->first()?->id));
 }
 function editUser(u){
     const f=document.getElementById('userForm');
@@ -159,11 +207,24 @@ function editUser(u){
     document.getElementById('uEmail').value=u.email;
     document.getElementById('uRole').value=u.role;
     setModules(u.modules || []);
+    setBusinessUnits(u.business_units || []);
+    setDefaultBusinessUnit(u.default_business_unit_id);
     document.getElementById('uPassword').value='';
     document.getElementById('uPasswordConfirmation').value='';
     document.getElementById('uPassword').required=false;
     document.getElementById('uPasswordConfirmation').required=false;
 }
+document.querySelectorAll('.business-unit-check').forEach(el => {
+    el.addEventListener('change', function () {
+        if (this.checked && !document.getElementById('uDefaultBusinessUnit').value) {
+            setDefaultBusinessUnit(this.value);
+        }
+        if (!this.checked && document.getElementById('uDefaultBusinessUnit').value === this.value) {
+            const next = document.querySelector('.business-unit-check:checked');
+            setDefaultBusinessUnit(next ? next.value : '');
+        }
+    });
+});
 document.getElementById('uRole').addEventListener('change',function(){
     setModules(defaultModules(this.value));
 });
