@@ -130,10 +130,11 @@
                 </li>
                 @endif
 
-                @if(auth()->user()->hasModuleAccess('akuntansi'))
+                @if(auth()->user()->hasAnyModuleAccess(['laporan','akuntansi']))
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">KEUANGAN &amp; AKUNTANSI</a>
                     <ul class="dropdown-menu">
+                        @if(auth()->user()->hasModuleAccess('akuntansi'))
                         <li class="dropdown-submenu">
                             <a class="dropdown-item dropdown-toggle" href="#">1. KAS &amp; BANK</a>
                             <ul class="dropdown-menu">
@@ -150,6 +151,8 @@
                                 <li><a class="dropdown-item" href="{{ route('akuntansi.closing-periode') }}">Closing Periode</a></li>
                             </ul>
                         </li>
+                        @endif
+                        @if(auth()->user()->hasModuleAccess('laporan'))
                         <li class="dropdown-submenu">
                             <a class="dropdown-item dropdown-toggle" href="#">3. LAPORAN KEUANGAN</a>
                             <ul class="dropdown-menu">
@@ -161,6 +164,7 @@
                                 <li><a class="dropdown-item" href="{{ route('laporan.hutang') }}">Laporan Aging Hutang</a></li>
                             </ul>
                         </li>
+                        @endif
                     </ul>
                 </li>
                 @endif
