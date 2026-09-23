@@ -334,17 +334,10 @@ class SettingsController extends Controller
             ->orderBy('code')
             ->get();
 
-        $accounts = DB::table('chart_of_accounts')
-            ->where('entity_id', $entityId)
-            ->where('is_active', true)
-            ->whereIn('type', ['cogs', 'expense'])
-            ->orderBy('code')
-            ->get();
-
         $editUnit = $request->filled('edit')
             ? DB::table('business_units')->where('entity_id', $entityId)->where('id', $request->integer('edit'))->first()
             : null;
 
-        return view('settings.configuration', compact('units', 'accounts', 'editUnit'));
+        return view('settings.configuration', compact('units', 'editUnit'));
     }
 }
