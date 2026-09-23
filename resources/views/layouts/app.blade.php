@@ -40,7 +40,7 @@
         <div class="collapse navbar-collapse" id="topMenu">
             <ul class="navbar-nav me-auto mb-2 mb-xl-0">
                 <li class="nav-item"><a class="nav-link" href="{{ route('dashboard') }}">Dashboard</a></li>
-                @if(auth()->user()->hasModuleAccess('master_data'))
+                @if(auth()->user()->hasModuleAccess('master_operasional'))
                 <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">MASTER DATA</a><ul class="dropdown-menu">
                     @foreach([
     ['route' => 'pengaturan.unit-bisnis', 'label' => 'Data Unit Bisnis'],
@@ -70,7 +70,7 @@
                     </ul>
                 </li>
 
-                @if(auth()->user()->hasAnyModuleAccess(['produksi','inventori']))
+                @if(auth()->user()->hasModuleAccess('master_operasional'))
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">INVENTORI &amp; OPERASIONAL</a>
                     <ul class="dropdown-menu">
@@ -123,11 +123,11 @@
                 </li>
                 @endif
 
-                @if(auth()->user()->hasAnyModuleAccess(['laporan','akuntansi']))
+                @if(auth()->user()->hasModuleAccess('keuangan_akuntansi'))
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">KEUANGAN &amp; AKUNTANSI</a>
                     <ul class="dropdown-menu">
-                        @if(auth()->user()->hasModuleAccess('akuntansi'))
+                        @if(auth()->user()->hasModuleAccess('keuangan_akuntansi'))
                         <li class="dropdown-submenu">
                             <a class="dropdown-item dropdown-toggle" href="#">KAS &amp; BANK</a>
                             <ul class="dropdown-menu">
@@ -145,7 +145,7 @@
                             </ul>
                         </li>
                         @endif
-                        @if(auth()->user()->hasModuleAccess('laporan'))
+                        @if(auth()->user()->hasModuleAccess('keuangan_akuntansi'))
                         <li class="dropdown-submenu">
                             <a class="dropdown-item dropdown-toggle" href="#">LAPORAN KEUANGAN</a>
                             <ul class="dropdown-menu">
