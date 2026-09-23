@@ -82,24 +82,21 @@ class ProductPriceController extends Controller
             ->orderBy('p.name')
             ->orderBy('u.name');
 
-        $prices = $query->get();
-
         if ($request->expectsJson()) {
             $perPage = 25;
-            $page = max((int) $request->query('page', 1), 1);
-            $total = $prices->count();
-            $data = $prices->forPage($page, $perPage)->values();
-
+            $paginator = $query->paginate($perPage);
             return response()->json([
-                'data' => $data,
+                'data' => $paginator->items(),
                 'pagination' => [
-                    'current_page' => $page,
-                    'per_page' => $perPage,
-                    'total' => $total,
-                    'last_page' => max((int) ceil($total / $perPage), 1),
+                    'current_page' => $paginator->currentPage(),
+                    'per_page' => $paginator->perPage(),
+                    'total' => $paginator->total(),
+                    'last_page' => max($paginator->lastPage(), 1),
                 ],
             ]);
         }
+
+        $prices = $query->get();
 
         return view('master.harga-jual', compact('prices', 'businessUnits'));
     }
