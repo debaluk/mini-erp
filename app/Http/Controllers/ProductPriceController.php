@@ -193,11 +193,13 @@ class ProductPriceController extends Controller
         return back()->with('success', 'Harga jual berhasil diperbarui.');
     }
 
-    public function history(Request $request, int $product, int $unit)
+    public function history(Request $request)
     {
         $entity = (int) auth()->user()->entity_id;
+        $product = (int) $request->query('product');
+        $unit = (int) $request->query('unit');
         $businessUnitId = (int) $request->query('business_unit_id');
-        $priceType = $request->query('price_type');
+        abort_unless($product && $unit && $businessUnitId, 422, 'Parameter history tidak valid.');
 
         abort_unless(in_array($priceType, ['retail', 'grosir'], true), 422, 'Jenis harga tidak valid.');
 
