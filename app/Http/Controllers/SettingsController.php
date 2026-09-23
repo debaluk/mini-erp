@@ -14,7 +14,8 @@ class SettingsController extends Controller
     private function moduleCatalog(): array
     {
         return [
-            'master_operasional' => 'Master & Operasional',
+            'master' => 'Master',
+            'inventori_operasional' => 'Inventori & Operasional',
             'keuangan_akuntansi' => 'Keuangan & Akunting',
             'seting' => 'Seting',
         ];
@@ -23,9 +24,9 @@ class SettingsController extends Controller
     private function defaultModulesForRole(string $role): array
     {
         return match ($role) {
-            'admin' => ['master_operasional', 'seting'],
-            'kasir' => ['master_operasional'],
-            'inventori' => ['master_operasional'],
+            'admin' => ['master', 'seting'],
+            'kasir' => ['inventori_operasional'],
+            'inventori' => ['inventori_operasional'],
             'akuntansi' => ['keuangan_akuntansi'],
             default => [],
         };
