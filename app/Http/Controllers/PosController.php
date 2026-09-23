@@ -52,6 +52,7 @@ class PosController extends Controller
                 'code' => $product->sku,
                 'barcode' => $product->barcode,
                 'name' => $product->name,
+                'selling_unit_id' => (int) $product->selling_unit_id,
                 'selling_unit_code' => $product->selling_unit_code,
                 'selling_unit_name' => $product->selling_unit_name,
                 'price' => (float) $product->selling_price,
@@ -141,11 +142,17 @@ class PosController extends Controller
             $stockRows = [];
 
             foreach ($cart as $item) {
-                $stock = DB::table('warehouses_stocks')
-                    ->where('entity_id', $entity)
-                    ->where('product_id', $item['product_id'])
-                    ->orderBy('id')
+                $businessUnitId = (int) ($shift->business_unit_id ?? 0);
+
+                $stock = DB::table('warehouses_stocks as ws')
+                    ->join('warehouses as w', 'w.id', '=', 'ws.warehouse_id')
+                    ->where('ws.entity_id', $entity)
+                    ->where('ws.product_id', $item['product_id'])
+                    ->where('w.business_unit_id', $businessUnitId)
+                    ->where('w.is_active', 1)
+                    ->orderBy('ws.id')
                     ->lockForUpdate()
+                    ->select('ws.*')
                     ->first();
 
                 $qty = (float) $item['qty'];
@@ -195,6 +202,12 @@ class PosController extends Controller
                     'base_unit_cost' => $stockRows[array_search($item['product_id'], array_column($stockRows, 'product_id'))]['avg_cost'] ?? 0,
                     'discount' => 0,
                     'total' => (float) $item['price'] * (float) $item['qty'],
+                    'hpp_unit' => $stockRows[array_search($item['product_id'], array_column($stockRows, 'product_id'))]['avg_cost'] ?? 0,
+                    'hpp_total' => round(
+                        ((float) $item['qty']) *
+                        ($stockRows[array_search($item['product_id'], array_column($stockRows, 'product_id'))]['avg_cost'] ?? 0),
+                        2
+                    ),
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
