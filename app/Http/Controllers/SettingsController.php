@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class SettingsController extends Controller
 {
@@ -159,7 +160,11 @@ class SettingsController extends Controller
             ],
         ]);
 
-        abort_unless(in_array((int) $data['default_business_unit'], array_map('intval', $data['business_units']), true), 422);
+        if (!in_array((int) $data['default_business_unit'], array_map('intval', $data['business_units']), true)) {
+            throw ValidationException::withMessages([
+                'default_business_unit' => 'Business Unit default harus termasuk dalam Business Unit yang dipilih.',
+            ]);
+        }
 
         $userId = DB::table('users')->insertGetId([
             'name' => $data['name'],
