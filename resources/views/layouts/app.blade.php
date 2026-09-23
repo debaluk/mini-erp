@@ -40,7 +40,7 @@
         <div class="collapse navbar-collapse" id="topMenu">
             <ul class="navbar-nav me-auto mb-2 mb-xl-0">
                 <li class="nav-item"><a class="nav-link" href="{{ route('dashboard') }}">Dashboard</a></li>
-                @if(auth()->user()->hasModuleAccess('master_operasional'))
+                @if(auth()->user()->hasModuleAccess('master'))
                 <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">MASTER DATA</a><ul class="dropdown-menu">
                     @foreach([
     ['route' => 'pengaturan.unit-bisnis', 'label' => 'Data Unit Bisnis'],
@@ -70,7 +70,7 @@
                     </ul>
                 </li>
 
-                @if(auth()->user()->hasModuleAccess('master_operasional'))
+                @if(auth()->user()->hasModuleAccess('inventori_operasional'))
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">INVENTORI &amp; OPERASIONAL</a>
                     <ul class="dropdown-menu">
@@ -162,7 +162,7 @@
                 </li>
                 @endif
 
-                @if(in_array(auth()->user()->role, ['superadmin','owner','admin']))
+                @if(auth()->user()->hasModuleAccess('seting'))
                 <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">PENGATURAN</a><ul class="dropdown-menu">
                     @if(in_array(auth()->user()->role, ['owner']))<li><a class="dropdown-item" href="{{ route('pengaturan.user') }}">User</a></li>@endif
                     @if(in_array(auth()->user()->role, ['superadmin','owner']))<li><a class="dropdown-item" href="{{ route('pengaturan.entitas') }}">Entitas</a></li>@endif
