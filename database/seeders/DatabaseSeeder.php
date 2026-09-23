@@ -334,6 +334,17 @@ class DatabaseSeeder extends Seeder
                 ->where('entity_id', $entityId)
                 ->where('code', $warehouse['code'])
                 ->value('id');
+
+            DB::table('warehouse_business_units')->updateOrInsert(
+                [
+                    'warehouse_id' => $warehouseIds[$warehouse['bu']],
+                    'business_unit_id' => $buIds[$warehouse['bu']],
+                ],
+                [
+                    'entity_id' => $entityId,
+                    'updated_at' => $now,
+                ]
+            );
         }
 
         // ================================================================
