@@ -364,6 +364,16 @@ class SettingsController extends Controller
             'direct_overhead' => 'Overhead Langsung',
         ];
 
+        $warehouseList = DB::table('warehouses')
+            ->where('entity_id', $entityId)
+            ->orderBy('code')
+            ->get(['id', 'code', 'name', 'type', 'address', 'is_active']);
+
+        $warehouseMappings = DB::table('warehouse_business_units')
+            ->where('entity_id', $entityId)
+            ->get()
+            ->keyBy('warehouse_id');
+
         $mappingKeys = $units->mapWithKeys(fn ($unit) => [
             $unit->id => match ($unit->business_type) {
                 'retail' => ['cash','bank','receivable','payable','inventory','sales_merchandise','cogs_merchandise'],
@@ -378,7 +388,70 @@ class SettingsController extends Controller
             'accounts',
             'mappings',
             'mappingLabels',
-            'mappingKeys'
+            'mappingKeys',
+            'warehouseList',
+            'warehouseMappings'
         ));
+    }
+
+    public function warehouseMappingSave(Request $request)
+    {
+        $entityId = $request->user()->entity_id;
+        abort_unless($entityId, 403);
+
+        $data = $request->validate([
+            'warehouse_business_units' => ['nullable', 'array'],
+            'warehouse_business_units.*' => ['nullable', 'integer'],
+        ]);
+
+        $warehouseIds = DB::table('warehouses')
+            ->where('entity_id', $entityId)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $businessUnitIds = DB::table('business_units')
+            ->where('entity_id', $entityId)
+            ->where('is_active', 1)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $submitted = collect($data['warehouse_business_units'] ?? [])
+            ->mapWithKeys(fn ($businessUnitId, $warehouseId) => [(int) $warehouseId => (int) $businessUnitId])
+            ->filter(fn ($businessUnitId, $warehouseId) =>
+                $businessUnitId > 0 && in_array($warehouseId, $warehouseIds, true)
+            );
+
+        abort_if($submitted->values()->diff($businessUnitIds)->isNotEmpty(), 422, 'Unit Bisnis tidak valid.');
+        abort_if($submitted->countBy()->filter(fn ($count) => $count > 1)->isNotEmpty(), 422, 'Satu Unit Bisnis hanya boleh memiliki satu Gudang.');
+
+        DB::transaction(function () use ($entityId, $warehouseIds, $submitted): void {
+            DB::table('warehouse_business_units')->where('entity_id', $entityId)->delete();
+
+            foreach ($submitted as $warehouseId => $businessUnitId) {
+                DB::table('warehouse_business_units')->insert([
+                    'entity_id' => $entityId,
+                    'warehouse_id' => $warehouseId,
+                    'business_unit_id' => $businessUnitId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                // Compatibility sementara modul operasional masih membaca kolom legacy.
+                DB::table('warehouses')
+                    ->where('entity_id', $entityId)
+                    ->where('id', $warehouseId)
+                    ->update(['business_unit_id' => $businessUnitId, 'updated_at' => now()]);
+            }
+
+            DB::table('warehouses')
+                ->where('entity_id', $entityId)
+                ->whereIn('id', $warehouseIds)
+                ->whereNotIn('id', $submitted->keys()->all())
+                ->update(['business_unit_id' => null, 'updated_at' => now()]);
+        });
+
+        return back()->with('success', 'Mapping Gudang ke Unit Bisnis berhasil disimpan.');
     }
 }
