@@ -18,25 +18,48 @@ class ProductPriceController extends Controller
             ->orderBy('name')
             ->get(['id', 'code', 'name']);
 
-        $query = DB::table('product_business_units as pbu')
-            ->join('products as p', 'p.id', '=', 'pbu.product_id')
-            ->join('product_units as pu', 'pu.product_id', '=', 'p.id')
+        $productUnits = DB::table('products as p')
+            ->where('p.entity_id', $entity)
+            ->where('p.is_active', 1)
+            ->select('p.id as product_id', 'p.base_unit_id as unit_id')
+            ->union(
+                DB::table('product_unit_conversions as puc')
+                    ->join('products as pc', 'pc.id', '=', 'puc.product_id')
+                    ->where('pc.entity_id', $entity)
+                    ->where('pc.is_active', 1)
+                    ->where('puc.is_active', 1)
+                    ->select('puc.product_id', 'puc.unit_id')
+            );
+
+        $query = DB::query()
+            ->fromSub(
+                DB::query()
+                    ->fromSub($productUnits, 'pu_source')
+                    ->select('product_id', 'unit_id')
+                    ->distinct(),
+                'pu'
+            )
+            ->join('products as p', 'p.id', '=', 'pu.product_id')
             ->join('units as u', 'u.id', '=', 'pu.unit_id')
+            ->join('product_business_units as pbu', 'pbu.product_id', '=', 'p.id')
             ->join('business_units as bu', 'bu.id', '=', 'pbu.business_unit_id')
             ->leftJoin('product_prices as retail', function ($join) {
                 $join->on('retail.product_id', '=', 'p.id')
                     ->on('retail.unit_id', '=', 'pu.unit_id')
                     ->on('retail.business_unit_id', '=', 'pbu.business_unit_id')
-                    ->where('retail.price_type', 'retail');
+                    ->where('retail.price_type', '=', 'retail');
             })
             ->leftJoin('product_prices as grosir', function ($join) {
                 $join->on('grosir.product_id', '=', 'p.id')
                     ->on('grosir.unit_id', '=', 'pu.unit_id')
                     ->on('grosir.business_unit_id', '=', 'pbu.business_unit_id')
-                    ->where('grosir.price_type', 'grosir');
+                    ->where('grosir.price_type', '=', 'grosir');
             })
             ->where('p.entity_id', $entity)
             ->where('p.is_active', 1)
+            ->where('bu.entity_id', $entity)
+            ->where('bu.is_active', 1)
+            ->where('u.entity_id', $entity)
             ->when($businessUnitId, function ($q) use ($businessUnitId) {
                 $q->where('pbu.business_unit_id', $businessUnitId);
             })
