@@ -265,10 +265,14 @@ Route::middleware('auth')->group(function () {
     Route::post('/pengaturan/konfigurasi/mapping-account', [BusinessUnitAccountMappingController::class, 'save'])->middleware('role:owner,admin')->name('pengaturan.account-mapping.save');
     Route::post('/pengaturan/konfigurasi/mapping-warehouse', [SettingsController::class, 'warehouseMappingSave'])->middleware('role:owner,admin')->name('pengaturan.warehouse-mapping.save');
 
-    // Placeholder pages for the locked Inventori & Operasional menu structure.
-    Route::get('/inventori/pembelian/po', fn () => view('inventori.pembelian-po'))
+    // Purchase Order UI. Transaction persistence is intentionally not wired yet.
+    Route::get('/inventori/pembelian/po', [PurchaseOrderController::class, 'index'])
         ->middleware('access:inventori')
         ->name('inventori.pembelian-po');
+
+    Route::get('/inventori/pembelian/po/create', [PurchaseOrderController::class, 'create'])
+        ->middleware('access:inventori')
+        ->name('inventori.pembelian-po.create');
 
     Route::get('/inventori/pembelian/retur', fn () => view('inventori.retur-pembelian'))
         ->middleware('access:inventori')
