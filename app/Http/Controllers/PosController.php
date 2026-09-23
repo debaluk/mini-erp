@@ -24,8 +24,12 @@ class PosController extends Controller
     {
         $data = $request->validate(['product_id'=>'required|integer','qty'=>'required|numeric|gt:0']);
         $entity = $this->entityId();
-        $businessUnitId = (int) (auth()->user()->default_business_unit_id ?? 0);
-        abort_unless($businessUnitId > 0, 422, 'Unit Bisnis default belum ditentukan.');
+        $businessUnitId = (int) DB::table('business_units')
+            ->where('entity_id', $entity)
+            ->where('code', 'RET')
+            ->where('is_active', 1)
+            ->value('id');
+        abort_unless($businessUnitId > 0, 422, 'Unit Bisnis Retail belum tersedia.');
 
         $businessUnit = DB::table('business_units')
             ->where('entity_id', $entity)
