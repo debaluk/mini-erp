@@ -27,30 +27,17 @@ class User extends Authenticatable
 
     public function hasModuleAccess(string $module): bool
     {
-        if (in_array($this->role, ['superadmin', 'owner'], true)) {
-            return true;
+        if ($this->role === 'owner') {
+            return in_array($module, ['master', 'inventori', 'keuangan', 'pengaturan'], true);
         }
 
-        $groups = [
-            'master' => ['master', 'master_data'],
-            'inventori_operasional' => ['inventori_operasional', 'pos_retail', 'produksi', 'armada_jasa', 'inventori'],
-            'keuangan_akuntansi' => ['keuangan_akuntansi', 'akuntansi', 'laporan'],
-            'seting' => ['seting', 'konfigurasi'],
-            'master_data' => ['master_data', 'master'],
-            'pos_retail' => ['pos_retail', 'inventori_operasional'],
-            'produksi' => ['produksi', 'inventori_operasional'],
-            'armada_jasa' => ['armada_jasa', 'inventori_operasional'],
-            'inventori' => ['inventori', 'inventori_operasional'],
-            'akuntansi' => ['akuntansi', 'keuangan_akuntansi'],
-            'laporan' => ['laporan', 'keuangan_akuntansi'],
-            'konfigurasi' => ['konfigurasi', 'seting'],
-        ];
-
-        $allowed = $groups[$module] ?? [$module];
+        if (!in_array($module, ['master', 'inventori', 'keuangan', 'pengaturan'], true)) {
+            return false;
+        }
 
         return DB::table('user_module_permissions')
             ->where('user_id', $this->id)
-            ->whereIn('module', $allowed)
+            ->where('module', $module)
             ->exists();
     }
 
