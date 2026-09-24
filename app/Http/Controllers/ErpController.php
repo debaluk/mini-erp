@@ -611,7 +611,7 @@ class ErpController extends Controller
         }
 
         $rows = DB::table($config['table'])->where('entity_id',$entity)->latest('id')->paginate(15)->withQueryString();
-        return view('erp.master', compact('config','rows','type'));
+        return view('master.shared.index', compact('config','rows','type'));
     }
 
     public function masterStore(Request $request, string $type)
