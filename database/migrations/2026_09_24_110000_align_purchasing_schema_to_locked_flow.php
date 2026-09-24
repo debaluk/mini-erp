@@ -309,7 +309,7 @@ return new class extends Migration
             $t->string('status')->default('posted');
             $t->timestamps();
 
-            $t->unique(['supplier_advance_id', 'purchase_id']);
+            $t->unique(['supplier_advance_id', 'purchase_id'], 'supplier_adv_alloc_unique');
             $t->index(['purchase_id', 'status']);
         });
 
