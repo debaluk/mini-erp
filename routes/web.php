@@ -103,8 +103,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/erp/movement', [ModuleController::class, 'movementStore'])->middleware('access:inventori')->name('erp.movement.store');
     Route::post('/erp/opname', [ModuleController::class, 'opnameStore'])->middleware('access:inventori')->name('erp.opname.store');
 
-    Route::get('/erp/bom', [BomController::class, 'show'])->middleware('access:inventori')->name('erp.bom');
-    Route::post('/erp/bom', [BomController::class, 'store'])->middleware('access:inventori')->name('erp.bom.store');
+    Route::get('/erp/bom', [BomController::class, 'show'])->middleware('access:master')->name('erp.bom');
+    Route::post('/erp/bom', [BomController::class, 'store'])->middleware('access:master')->name('erp.bom.store');
 
     $productionModules = ['production','production-results','material-usage','production-cost'];
     foreach ($productionModules as $module) {
@@ -137,9 +137,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/master/harga-jual/history', [ProductPriceController::class, 'history'])->middleware('access:master')->name('master.harga-jual.history');
     Route::put('/master/harga-jual/{id}', [ProductPriceController::class, 'update'])->middleware('access:master')->name('master.harga-jual.update');
 
-    Route::get('/inventori/initial-setup', [SellingPriceController::class, 'index'])->middleware('access:master')->name('inventori.initial-setup');
-    Route::post('/inventori/initial-setup', [SellingPriceController::class, 'storeInitial'])->middleware('access:master')->name('inventori.initial-setup.store');
-    Route::put('/inventori/initial-setup/{product}', [SellingPriceController::class, 'update'])->middleware('access:master')->name('inventori.initial-setup.update');
+    Route::get('/inventori/initial-setup', [SellingPriceController::class, 'index'])->middleware('access:inventori')->name('inventori.initial-setup');
+    Route::post('/inventori/initial-setup', [SellingPriceController::class, 'storeInitial'])->middleware('access:inventori')->name('inventori.initial-setup.store');
+    Route::put('/inventori/initial-setup/{product}', [SellingPriceController::class, 'update'])->middleware('access:inventori')->name('inventori.initial-setup.update');
 
     foreach ($masterMenuPaths as $path => $type) {
         if ($type === 'unit-conversions') {
@@ -218,11 +218,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/akuntansi/arus-kas', fn () => app(ModuleController::class)->show('cash-flow'))->middleware('access:keuangan')->name('akuntansi.arus-kas');
     Route::get('/akuntansi/arus-kas/export-excel', [ModuleController::class, 'exportCashFlowExcel'])->middleware('access:keuangan')->name('akuntansi.arus-kas.export-excel');
 
-    Route::get('/laporan/penjualan', fn () => app(ModuleController::class)->show('sales'))->middleware('access:keuangan')->name('laporan.penjualan');
-    Route::get('/laporan/pembelian', [PurchaseReportController::class, 'index'])->middleware('access:keuangan')->name('laporan.pembelian');
-    Route::get('/laporan/pembelian/export', [PurchaseReportController::class, 'export'])->middleware('access:keuangan')->name('laporan.pembelian.export');
-    Route::get('/laporan/persediaan', fn () => app(ModuleController::class)->show('stock'))->middleware('access:keuangan')->name('laporan.persediaan');
-    Route::get('/laporan/produksi', fn () => app(ModuleController::class)->show('production'))->middleware('access:keuangan')->name('laporan.produksi');
+    Route::get('/laporan/penjualan', fn () => app(ModuleController::class)->show('sales'))->middleware('access:inventori')->name('laporan.penjualan');
+    Route::get('/laporan/pembelian', [PurchaseReportController::class, 'index'])->middleware('access:inventori')->name('laporan.pembelian');
+    Route::get('/laporan/pembelian/export', [PurchaseReportController::class, 'export'])->middleware('access:inventori')->name('laporan.pembelian.export');
+    Route::get('/laporan/persediaan', fn () => app(ModuleController::class)->show('stock'))->middleware('access:inventori')->name('laporan.persediaan');
+    Route::get('/laporan/produksi', fn () => app(ModuleController::class)->show('production'))->middleware('access:inventori')->name('laporan.produksi');
     Route::get('/laporan/piutang', fn () => app(ModuleController::class)->show('receivables'))->middleware('access:keuangan')->name('laporan.piutang');
     Route::get('/laporan/hutang', fn () => app(ModuleController::class)->show('payables'))->middleware('access:keuangan')->name('laporan.hutang');
     Route::get('/laporan/keuangan', fn () => app(ModuleController::class)->show('profit-loss'))->middleware('access:keuangan')->name('laporan.keuangan');
