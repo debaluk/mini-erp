@@ -61,14 +61,13 @@ class ModuleController extends Controller
             'accounts' => DB::table('chart_of_accounts')->where('entity_id', $entity)->where('is_active', 1)->orderBy('code')->get(),
             'rows' => collect(),
             'posCart' => session('pos_cart', []),
-            'openShift' => DB::table('cash_shifts')->where('entity_id', $entity)->where('user_id', auth()->id())->where('status', 'open')->latest('id')->first(),
         ];
     }
 
     public function show(string $module)
     {
         $titles = [
-            'pos'=>'POS Retail', 'sales'=>'Transaksi Penjualan', 'payments'=>'Pembayaran', 'shifts'=>'Shift Kasir',
+            'pos'=>'POS Retail', 'sales'=>'Transaksi Penjualan', 'payments'=>'Pembayaran',
             'purchases'=>'Pembelian', 'receipts'=>'Penerimaan Barang', 'payables'=>'Hutang',
             'stock'=>'Stok', 'movements'=>'Mutasi Stok', 'opname'=>'Stock Opname',
             'bom'=>'Formula / BOM', 'production'=>'Produksi Batako', 'production-results'=>'Hasil Produksi',
@@ -92,7 +91,6 @@ class ModuleController extends Controller
                 ])
                 ->select(
                     's.id', 's.invoice_no', 's.sale_date', 's.subtotal', 's.discount', 's.total', 's.status',
-                    's.shift_id',
                     DB::raw("COALESCE(c.name, 'Umum') as customer_name"),
                     DB::raw("COALESCE(u.name, '-') as cashier_name"),
                     DB::raw("(SELECT GROUP_CONCAT(DISTINCT p.method ORDER BY p.id SEPARATOR ', ') FROM payments p WHERE p.sale_id = s.id) as payment_methods"),
@@ -103,7 +101,6 @@ class ModuleController extends Controller
                 ->paginate(15)
                 ->withQueryString(),
             'payments' => DB::table('payments')->where('entity_id',$entity)->latest('id')->paginate(15)->withQueryString(),
-            'shifts' => DB::table('cash_shifts')->where('entity_id',$entity)->latest('id')->paginate(15)->withQueryString(),
             'purchases' => DB::table('purchases')->where('entity_id',$entity)->latest('id')->paginate(15)->withQueryString(),
             'receipts' => DB::table('purchases')->where('entity_id',$entity)->where('status','received')->latest('id')->paginate(15)->withQueryString(),
             'payables' => DB::table('purchases')->where('entity_id',$entity)->latest('id')->paginate(15)->withQueryString(),
@@ -149,7 +146,6 @@ class ModuleController extends Controller
             $data['report'] = $this->report($module, $entity);
         }
         if ($module === 'pos') {
-            $data['openShift'] = DB::table('cash_shifts')->where('entity_id',$entity)->where('user_id',auth()->id())->where('status','open')->latest('id')->first();
             $data['posCart'] = request()->session()->get('pos_cart', []);
             $data['posSubtotal'] = 0;
             foreach ($data['posCart'] as $item) {
@@ -158,9 +154,6 @@ class ModuleController extends Controller
             $data['posTotal'] = $data['posSubtotal'];
         }
 
-        if ($module === 'shifts') {
-            $data['openShift'] = DB::table('cash_shifts')->where('entity_id',$entity)->where('user_id',auth()->id())->where('status','open')->latest('id')->first();
-        }
         return $module === 'pos' ? view('erp.pos-page', $data) : view('erp.module', $data);
     }
 
@@ -652,7 +645,7 @@ class ModuleController extends Controller
             ->where('s.entity_id', $entity)
             ->where('s.id', $id)
             ->select(
-                's.id', 's.invoice_no', 's.sale_date', 's.subtotal', 's.discount', 's.total', 's.status', 's.shift_id',
+                's.id', 's.invoice_no', 's.sale_date', 's.subtotal', 's.discount', 's.total', 's.status',
                 DB::raw("COALESCE(c.name, 'Umum') as customer_name"),
                 DB::raw("COALESCE(u.name, '-') as cashier_name"),
                 DB::raw("(SELECT GROUP_CONCAT(DISTINCT p.method ORDER BY p.id SEPARATOR ', ') FROM payments p WHERE p.sale_id = s.id) as payment_methods"),
@@ -691,7 +684,6 @@ class ModuleController extends Controller
             ->whereBetween('s.sale_date', [$start . ' 00:00:00', $end . ' 23:59:59'])
             ->select(
                 's.invoice_no', 's.sale_date', 's.subtotal', 's.discount', 's.total', 's.status',
-                's.shift_id',
                 DB::raw("COALESCE(c.name, 'Umum') as customer_name"),
                 DB::raw("COALESCE(u.name, '-') as cashier_name"),
                 DB::raw("(SELECT GROUP_CONCAT(DISTINCT p.method ORDER BY p.id SEPARATOR ', ') FROM payments p WHERE p.sale_id = s.id) as payment_methods"),
@@ -720,7 +712,7 @@ class ModuleController extends Controller
         $html .= '<div>Periode: ' . e(date('d-m-Y', strtotime($start))) . ' s/d ' . e(date('d-m-Y', strtotime($end))) . '</div>';
         $html .= '<br><table><thead><tr>';
 
-        foreach (['No. Invoice','Tanggal','Customer','Kasir','Shift','Pembayaran','Subtotal','Diskon','Total','Dibayar','Kembalian','Status'] as $heading) {
+        foreach (['No. Invoice','Tanggal','Customer','Kasir','Pembayaran','Subtotal','Diskon','Total','Dibayar','Kembalian','Status'] as $heading) {
             $html .= '<th>' . e($heading) . '</th>';
         }
         $html .= '</tr></thead><tbody>';
@@ -732,7 +724,6 @@ class ModuleController extends Controller
                 $row->sale_date,
                 $row->customer_name,
                 $row->cashier_name,
-                $row->shift_id,
                 $row->payment_methods ?: '-',
                 $row->subtotal,
                 $row->discount,
@@ -741,7 +732,7 @@ class ModuleController extends Controller
                 $row->change_amount,
                 $row->status
             ] as $index => $value) {
-                if (in_array($index, [6, 7, 8, 9, 10], true)) {
+                if (in_array($index, [5, 6, 7, 8, 9], true)) {
                     // Nilai angka harus tetap angka mentah agar Excel dapat langsung SUM().
                     // Cast ke float juga mencegah string angka yang membawa format/desimal ganda.
                     $numericValue = (float) $value;
@@ -755,7 +746,7 @@ class ModuleController extends Controller
         }
 
         $html .= '</tbody><tfoot>';
-        $html .= '<tr><th colspan="8" style="text-align:right">TOTAL PENJUALAN</th><th x:num="' . e((string) $totalPenjualan) . '">' . e((string) $totalPenjualan) . '</th><th colspan="3"></th></tr>';
+        $html .= '<tr><th colspan="7" style="text-align:right">TOTAL PENJUALAN</th><th x:num="' . e((string) $totalPenjualan) . '">' . e((string) $totalPenjualan) . '</th><th colspan="3"></th></tr>';
         $html .= '</tfoot></table></body></html>';
 
         return response($html, 200, [
@@ -796,9 +787,13 @@ class ModuleController extends Controller
             1 => 's.sale_date',
             2 => 'c.name',
             3 => 'u.name',
-            4 => 's.shift_id',
-            5 => 's.total',
-            6 => 's.status',
+            4 => 's.total',
+            5 => 's.subtotal',
+            6 => 's.discount',
+            7 => 's.total',
+            8 => 's.total',
+            9 => 's.total',
+            10 => 's.status',
         ];
         $orderColumn = (int) $request->input('order.0.column', 1);
         $orderDir = strtolower((string) $request->input('order.0.dir', 'desc')) === 'asc' ? 'asc' : 'desc';
@@ -811,7 +806,7 @@ class ModuleController extends Controller
 
         $rows = $query
             ->select(
-                's.id', 's.invoice_no', 's.sale_date', 's.subtotal', 's.discount', 's.total', 's.status', 's.shift_id',
+                's.id', 's.invoice_no', 's.sale_date', 's.subtotal', 's.discount', 's.total', 's.status',
                 DB::raw("COALESCE(c.name, 'Umum') as customer_name"),
                 DB::raw("COALESCE(u.name, '-') as cashier_name"),
                 DB::raw("(SELECT GROUP_CONCAT(DISTINCT p.method ORDER BY p.id SEPARATOR ', ') FROM payments p WHERE p.sale_id = s.id) as payment_methods"),
@@ -829,33 +824,6 @@ class ModuleController extends Controller
             'recordsFiltered' => $recordsFiltered,
             'data' => $rows,
         ]);
-    }
-
-    public function posStore(Request $request)
-    {
-        $data = $request->validate(['product_id'=>'required|integer','qty'=>'required|numeric|min:0.001','payment_method'=>'required|in:Tunai,Transfer,QRIS']);
-        $entity=$this->entityId();
-        $product=DB::table('products')->where('entity_id',$entity)->find($data['product_id']); abort_unless($product,404);
-        $total=(float)$product->selling_price*(float)$data['qty'];
-        $shift=DB::table('cash_shifts')->where('entity_id',$entity)->where('user_id',auth()->id())->where('status','open')->latest('id')->first();
-        DB::transaction(function() use($data,$entity,$product,$total,$shift){
-            $no='POS-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4));
-            $sale=DB::table('sales')->insertGetId(['entity_id'=>$entity,'user_id'=>auth()->id(),'shift_id'=>$shift?->id,'invoice_no'=>$no,'sale_date'=>now(),'subtotal'=>$total,'total'=>$total,'status'=>'posted','created_at'=>now(),'updated_at'=>now()]);
-            DB::table('sale_items')->insert(['sale_id'=>$sale,'product_id'=>$product->id,'qty'=>$data['qty'],'unit_price'=>$product->selling_price,'total'=>$total,'created_at'=>now(),'updated_at'=>now()]);
-            DB::table('payments')->insert(['entity_id'=>$entity,'sale_id'=>$sale,'user_id'=>auth()->id(),'payment_date'=>now(),'method'=>$data['payment_method'],'amount'=>$total,'created_at'=>now(),'updated_at'=>now()]);
-        });
-        return back()->with('success','Transaksi POS berhasil disimpan.');
-    }
-
-    public function shiftStore(Request $request)
-    {
-        $data=$request->validate(['action'=>'required|in:open,close','opening_cash'=>'nullable|numeric|min:0','closing_cash'=>'nullable|numeric|min:0']);
-        $entity=$this->entityId();
-        $open=DB::table('cash_shifts')->where('entity_id',$entity)->where('user_id',auth()->id())->where('status','open')->latest('id')->first();
-        if($data['action']==='open'){ abort_if($open,422,'Shift masih terbuka.'); DB::table('cash_shifts')->insert(['entity_id'=>$entity,'user_id'=>auth()->id(),'opened_at'=>now(),'opening_cash'=>$data['opening_cash']??0,'status'=>'open','created_at'=>now(),'updated_at'=>now()]); return back()->with('success','Shift kasir dibuka.'); }
-        abort_unless($open,422,'Tidak ada shift terbuka.');
-        DB::table('cash_shifts')->where('id',$open->id)->update(['closed_at'=>now(),'closing_cash'=>$data['closing_cash']??0,'status'=>'closed','updated_at'=>now()]);
-        return back()->with('success','Shift kasir ditutup.');
     }
 
     public function movementStore(Request $request)

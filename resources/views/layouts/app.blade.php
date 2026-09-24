@@ -58,17 +58,6 @@
 @endforeach
                 </ul></li>
                 @endif
-                {{-- POS RETAIL: intentionally hidden from the top menu; routes/features remain intact. --}}
-                <li class="nav-item dropdown d-none">
-                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">POS RETAIL</a>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="{{ route('pos.pos') }}">POS</a></li>
-                        <li><a class="dropdown-item" href="{{ route('pos.penjualan') }}">Penjualan</a></li>
-                        <li><a class="dropdown-item" href="{{ route('pos.pembayaran') }}">Pembayaran</a></li>
-                        <li><a class="dropdown-item" href="{{ route('pos.retur') }}">Retur</a></li>
-                        <li><a class="dropdown-item" href="{{ route('pos.shift') }}">Kasir / Shift</a></li>
-                    </ul>
-                </li>
 
                 @if(auth()->user()->hasModuleAccess('inventori_operasional'))
                 <li class="nav-item dropdown">

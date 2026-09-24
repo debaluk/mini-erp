@@ -8,6 +8,34 @@ use Illuminate\Support\Str;
 
 class PosController extends Controller
 {
+    public function index()
+    {
+        $entity = $this->entityId();
+        $products = DB::table('products as p')
+            ->join('product_business_units as pu', 'pu.product_id', '=', 'p.id')
+            ->join('business_units as bu', function ($join) use ($entity) {
+                $join->on('bu.id', '=', 'pu.business_unit_id')
+                    ->where('bu.entity_id', $entity)
+                    ->where('bu.code', 'RET')
+                    ->where('bu.is_active', 1);
+            })
+            ->where('p.entity_id', $entity)
+            ->where('p.is_active', 1)
+            ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
+            ->leftJoin(DB::raw("(SELECT ws.entity_id, ws.product_id, SUM(ws.qty) AS stock_qty FROM warehouses_stocks ws JOIN warehouses w ON w.id = ws.warehouse_id JOIN business_units bu ON bu.id = w.business_unit_id WHERE bu.code = 'RET' AND bu.is_active = 1 GROUP BY ws.entity_id, ws.product_id) AS ws"), function ($join) {
+                $join->on('ws.product_id', '=', 'p.id')->on('ws.entity_id', '=', 'p.entity_id');
+            })
+            ->orderBy('p.name')
+            ->select('p.*', 'p.base_unit_id as selling_unit_id', 'u.code as selling_unit_code', 'u.name as selling_unit_name', DB::raw('COALESCE(ws.stock_qty, 0) as stock_qty'))
+            ->get();
+
+        $posCart = $this->cart(request());
+        $posSubtotal = collect($posCart)->sum(fn ($item) => (float) ($item['price'] ?? 0) * (float) ($item['qty'] ?? 0));
+        $posTotal = $posSubtotal;
+
+        return view('erp.pos', compact('products', 'posCart', 'posSubtotal', 'posTotal'));
+    }
+
     private function entityId(): int
     {
         $entity = DB::table('entities')->first();
@@ -52,6 +80,7 @@ class PosController extends Controller
                 'code' => $product->sku,
                 'barcode' => $product->barcode,
                 'name' => $product->name,
+                'selling_unit_id' => (int) $product->selling_unit_id,
                 'selling_unit_code' => $product->selling_unit_code,
                 'selling_unit_name' => $product->selling_unit_name,
                 'price' => (float) $product->selling_price,
@@ -110,15 +139,6 @@ class PosController extends Controller
         $cart = $this->cart($request);
         abort_if(empty($cart), 422, 'Belum ada barang dalam transaksi.');
 
-        $shift = DB::table('cash_shifts')
-            ->where('entity_id', $entity)
-            ->where('user_id', auth()->id())
-            ->where('status', 'open')
-            ->latest('id')
-            ->first();
-
-        abort_unless($shift, 422, 'Buka shift kasir terlebih dahulu.');
-
         $subtotal = 0;
         foreach ($cart as $item) {
             $subtotal += (float) $item['price'] * (float) $item['qty'];
@@ -137,15 +157,21 @@ class PosController extends Controller
 
         $invoiceNo = 'POS-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4));
 
-        DB::transaction(function () use ($cart, $entity, $shift, $subtotal, $discount, $total, $paidAmount, $changeAmount, $data, $invoiceNo) {
+        $businessUnitId = (int) DB::table('business_units')->where('entity_id', $entity)->where('code', 'RET')->where('is_active', 1)->value('id');
+        abort_unless($businessUnitId, 422, 'Business Unit RET belum tersedia.');
+
+        DB::transaction(function () use ($cart, $entity, $businessUnitId, $subtotal, $discount, $total, $paidAmount, $changeAmount, $data, $invoiceNo) {
             $stockRows = [];
 
             foreach ($cart as $item) {
-                $stock = DB::table('warehouses_stocks')
-                    ->where('entity_id', $entity)
-                    ->where('product_id', $item['product_id'])
-                    ->orderBy('id')
+                $stock = DB::table('warehouses_stocks as ws')
+                    ->join('warehouses as w', 'w.id', '=', 'ws.warehouse_id')
+                    ->where('ws.entity_id', $entity)
+                    ->where('ws.product_id', $item['product_id'])
+                    ->where('w.business_unit_id', $businessUnitId)
+                    ->orderBy('ws.id')
                     ->lockForUpdate()
+                    ->select('ws.*')
                     ->first();
 
                 $qty = (float) $item['qty'];
@@ -155,7 +181,6 @@ class PosController extends Controller
                     'stock_id' => $stock->id,
                     'warehouse_id' => $stock->warehouse_id,
                     'product_id' => $item['product_id'],
-                    'unit_id' => $item['selling_unit_id'],
                     'qty' => $qty,
                     'avg_cost' => (float) $stock->avg_cost,
                 ];
@@ -166,13 +191,11 @@ class PosController extends Controller
                 ->where('code', 'CUST-UMUM')
                 ->value('id');
 
-            $businessUnitId = (int) ($shift->business_unit_id ?? 1);
             $sale = DB::table('sales')->insertGetId([
                 'entity_id' => $entity,
                 'business_unit_id' => $businessUnitId,
                 'customer_id' => $customerId,
                 'user_id' => auth()->id(),
-                'shift_id' => $shift->id,
                 'invoice_no' => $invoiceNo,
                 'sale_date' => now(),
                 'subtotal' => $subtotal,
@@ -187,14 +210,12 @@ class PosController extends Controller
                 DB::table('sale_items')->insert([
                     'sale_id' => $sale,
                     'product_id' => $item['product_id'],
-                    'unit_id' => $item['selling_unit_id'],
                     'qty' => $item['qty'],
-                    'conversion_factor' => 1,
-                    'base_qty' => $item['qty'],
                     'unit_price' => $item['price'],
-                    'base_unit_cost' => $stockRows[array_search($item['product_id'], array_column($stockRows, 'product_id'))]['avg_cost'] ?? 0,
                     'discount' => 0,
                     'total' => (float) $item['price'] * (float) $item['qty'],
+                    'hpp_unit' => $stockRows[array_search($item['product_id'], array_column($stockRows, 'product_id'))]['avg_cost'] ?? 0,
+                    'hpp_total' => ((float) $stockRows[array_search($item['product_id'], array_column($stockRows, 'product_id'))]['avg_cost'] ?? 0) * (float) $item['qty'],
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
@@ -222,9 +243,6 @@ class PosController extends Controller
                     'business_unit_id' => $businessUnitId,
                     'warehouse_id' => $row['warehouse_id'],
                     'product_id' => $row['product_id'],
-                    'unit_id' => $row['unit_id'],
-                    'transaction_qty' => $row['qty'],
-                    'conversion_factor' => 1,
                     'movement_type' => 'sale_out',
                     'qty' => -$row['qty'],
                     'unit_cost' => $row['avg_cost'],
@@ -257,7 +275,6 @@ class PosController extends Controller
                     'phone' => $entityRow?->phone ?? '',
                 ],
                 'cashier' => auth()->user()->name,
-                'shift_id' => $shift->id,
                 'customer' => $customerName,
                 'subtotal' => $subtotal,
                 'discount' => $discount,
