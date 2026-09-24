@@ -258,7 +258,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/pengaturan/konfigurasi/mapping-account', [BusinessUnitAccountMappingController::class, 'save'])->middleware('role:owner,admin')->name('pengaturan.account-mapping.save');
     Route::post('/pengaturan/konfigurasi/mapping-warehouse', [SettingsController::class, 'warehouseMappingSave'])->middleware('role:owner,admin')->name('pengaturan.warehouse-mapping.save');
 
-    // Purchase Order UI. Transaction persistence is intentionally not wired yet.
+    
     Route::get('/inventori/pembelian/po', [PurchaseOrderController::class, 'index'])
         ->middleware('access:inventori')
         ->name('inventori.pembelian-po');

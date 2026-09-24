@@ -33,7 +33,7 @@ class PosController extends Controller
         $posSubtotal = collect($posCart)->sum(fn ($item) => (float) ($item['price'] ?? 0) * (float) ($item['qty'] ?? 0));
         $posTotal = $posSubtotal;
 
-        return view('erp.pos', compact('products', 'posCart', 'posSubtotal', 'posTotal'));
+        return view('erp.pos-page', compact('products', 'posCart', 'posSubtotal', 'posTotal'));
     }
 
     private function entityId(): int
