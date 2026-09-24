@@ -723,7 +723,8 @@ class ModuleController extends Controller
                 $row->invoice_no,
                 $row->sale_date,
                 $row->customer_name,
-                $row->cashier_name,                $row->payment_methods ?: '-',
+                $row->cashier_name,
+                $row->payment_methods ?: '-',
                 $row->subtotal,
                 $row->discount,
                 $row->total,
@@ -731,7 +732,7 @@ class ModuleController extends Controller
                 $row->change_amount,
                 $row->status
             ] as $index => $value) {
-                if (in_array($index, [6, 7, 8, 9, 10], true)) {
+                if (in_array($index, [5, 6, 7, 8, 9], true)) {
                     // Nilai angka harus tetap angka mentah agar Excel dapat langsung SUM().
                     // Cast ke float juga mencegah string angka yang membawa format/desimal ganda.
                     $numericValue = (float) $value;
@@ -745,7 +746,7 @@ class ModuleController extends Controller
         }
 
         $html .= '</tbody><tfoot>';
-        $html .= '<tr><th colspan="8" style="text-align:right">TOTAL PENJUALAN</th><th x:num="' . e((string) $totalPenjualan) . '">' . e((string) $totalPenjualan) . '</th><th colspan="3"></th></tr>';
+        $html .= '<tr><th colspan="7" style="text-align:right">TOTAL PENJUALAN</th><th x:num="' . e((string) $totalPenjualan) . '">' . e((string) $totalPenjualan) . '</th><th colspan="3"></th></tr>';
         $html .= '</tfoot></table></body></html>';
 
         return response($html, 200, [
@@ -786,9 +787,13 @@ class ModuleController extends Controller
             1 => 's.sale_date',
             2 => 'c.name',
             3 => 'u.name',
-            4 =>
-            5 => 's.total',
-            6 => 's.status',
+            4 => 's.total',
+            5 => 's.subtotal',
+            6 => 's.discount',
+            7 => 's.total',
+            8 => 's.total',
+            9 => 's.total',
+            10 => 's.status',
         ];
         $orderColumn = (int) $request->input('order.0.column', 1);
         $orderDir = strtolower((string) $request->input('order.0.dir', 'desc')) === 'asc' ? 'asc' : 'desc';
