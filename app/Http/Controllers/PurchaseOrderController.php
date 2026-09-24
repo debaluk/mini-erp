@@ -28,7 +28,7 @@ class PurchaseOrderController extends Controller
             ->orderBy('name')
             ->get(['id', 'code', 'name']);
 
-        return view('inventori.pembelian-po.index', compact('suppliers', 'units'));
+        return view('inventori.pembelian.po.index', compact('suppliers', 'units'));
     }
 
     public function create()
@@ -54,6 +54,6 @@ class PurchaseOrderController extends Controller
             ->orderBy('p.name')
             ->get(['p.id', 'p.code', 'p.sku', 'p.name', 'p.cost_price', 'u.code as unit_code']);
 
-        return view('inventori.pembelian-po.create', compact('suppliers', 'units', 'products'));
+        return view('inventori.pembelian.po.create', compact('suppliers', 'units', 'products'));
     }
 }
