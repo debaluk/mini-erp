@@ -179,7 +179,7 @@ class ModuleController extends Controller
             return view($accountingViews[$module], $data);
         }
 
-        return view('erp.module', $data);
+        abort(404);
     }
 
     public function paymentsData(Request $request)
