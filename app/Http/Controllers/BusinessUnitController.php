@@ -28,7 +28,7 @@ class BusinessUnitController extends Controller
             ? BusinessUnit::where('entity_id', $entityId)->findOrFail((int) $request->input('edit'))
             : null;
 
-        return view('settings.business-units', compact('units', 'editUnit'));
+        return view('master.unit-bisnis.index', compact('units', 'editUnit'));
     }
 
     public function edit(Request $request, int $id)

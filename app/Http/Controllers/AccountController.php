@@ -28,7 +28,7 @@ class AccountController extends Controller
         $accounts=DB::table('chart_of_accounts')->where('entity_id',$entity)->where('is_active',true)->orderBy('code')->get();
         $nextCodes=[];
         foreach($accounts as $account) if((int)$account->level<3) $nextCodes[$account->id]=$this->nextCode($entity,$account);
-        return view('master.account.index',compact('accounts','nextCodes'));
+        return view('master.coa.index',compact('accounts','nextCodes'));
     }
 
     public function exportExcel()
@@ -73,7 +73,7 @@ class AccountController extends Controller
             ]);
 
         return redirect()
-            ->route('akuntansi.akun')
+            ->route('master.akun')
             ->with('success','Akun berhasil diperbarui.');
     }
 

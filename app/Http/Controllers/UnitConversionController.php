@@ -106,7 +106,7 @@ class UnitConversionController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('erp.unit-conversions', compact('rows', 'products', 'units'));
+        return view('master.satuan.conversion', compact('rows', 'products', 'units'));
     }
 
     private function save(Request $request, ?int $id = null)

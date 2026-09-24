@@ -143,7 +143,7 @@ class ErpController extends Controller
             ]);
         }
 
-        return view('master.item.index', compact('items', 'units', 'businessUnits'));
+        return view('master.item-barang.index', compact('items', 'units', 'businessUnits'));
     }
 
     public function itemCreate()
@@ -160,7 +160,7 @@ class ErpController extends Controller
             ->orderBy('id')
             ->get();
 
-        return view('master.item.create', compact('units', 'businessUnits'));
+        return view('master.item-barang.create', compact('units', 'businessUnits'));
     }
 
     public function itemInlineUomStore(Request $request)
@@ -383,7 +383,7 @@ class ErpController extends Controller
             ]);
         }
 
-        return view('master.item.edit', compact('item', 'units', 'businessUnits', 'selectedBusinessUnits', 'conversions'));
+        return view('master.item-barang.edit', compact('item', 'units', 'businessUnits', 'selectedBusinessUnits', 'conversions'));
     }
 
     public function itemUpdate(Request $request, int $id)
@@ -472,7 +472,7 @@ class ErpController extends Controller
             ]);
         }
 
-        return view('master.unit.index');
+        return view('master.satuan.index');
     }
 
     public function unitStore(Request $request)
@@ -611,7 +611,7 @@ class ErpController extends Controller
         }
 
         $rows = DB::table($config['table'])->where('entity_id',$entity)->latest('id')->paginate(15)->withQueryString();
-        return view(match ($type) { 'customers' => 'master.customer.index', 'suppliers' => 'master.supplier.index', 'workers' => 'master.worker.index', 'warehouses' => 'master.warehouse.index', default => abort(404), }, compact('config','rows','type'));
+        return view(match ($type) { 'customers' => 'master.pelanggan.index', 'suppliers' => 'master.supplier.index', 'workers' => 'master.pekerja.index', 'warehouses' => 'master.gudang.index', default => abort(404), }, compact('config','rows','type'));
     }
 
     public function masterStore(Request $request, string $type)

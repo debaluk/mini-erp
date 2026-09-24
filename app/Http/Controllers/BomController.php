@@ -27,7 +27,7 @@ class BomController extends Controller
     {
         $entity = $this->entityId();
 
-        return view('erp.bom', [
+        return view('master.bom.index', [
             'title' => 'Formula / BOM',
             'products' => DB::table('products')
                 ->where('entity_id', $entity)
