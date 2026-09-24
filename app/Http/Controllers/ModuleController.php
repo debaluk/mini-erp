@@ -146,7 +146,7 @@ class ModuleController extends Controller
             $data['report'] = $this->report($module, $entity);
         }
         $inventoryViews = [
-            'sales' => 'inventori.laporan.penjualan',
+            'sales' => 'inventori.penjualan.pos.index',
             'purchases' => 'inventori.pembelian.faktur.index',
             'receipts' => 'inventori.pembelian.penerimaan.index',
             'stock' => 'inventori.laporan.persediaan',
@@ -166,6 +166,7 @@ class ModuleController extends Controller
             'journals' => 'keuangan.akuntansi.jurnal-umum.index',
             'ledger' => 'keuangan.akuntansi.buku-besar.index',
             'cashbank' => 'keuangan.kas-bank.masuk.index',
+            'closing' => 'keuangan.akuntansi.closing.index',
             'profit-loss' => 'keuangan.laporan.laba-rugi',
             'trial-balance' => 'keuangan.laporan.neraca-saldo',
             'balance-sheet' => 'keuangan.laporan.neraca',
