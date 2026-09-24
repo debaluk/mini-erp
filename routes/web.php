@@ -192,11 +192,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/produksi/hasil-produksi', fn () => app(ModuleController::class)->show('production-results'))->middleware('access:inventori')->name('produksi.hasil-produksi');
     Route::get('/produksi/reject', fn () => app(ModuleController::class)->show('production-results'))->middleware('access:inventori')->name('produksi.reject');
     Route::get('/produksi/hpp', [HppController::class, 'index'])->middleware('access:inventori')->name('produksi.hpp');
-    Route::get('/akuntansi/akun', [AccountController::class, 'index'])->middleware('access:master')->name('akuntansi.akun');
-    Route::post('/akuntansi/akun', [AccountController::class, 'store'])->middleware('access:master')->name('akuntansi.akun.store');
-    Route::put('/akuntansi/akun/{id}', [AccountController::class, 'update'])->middleware('access:master')->name('akuntansi.akun.update');
-    Route::delete('/akuntansi/akun/{id}', [AccountController::class, 'destroy'])->middleware('access:master')->name('akuntansi.akun.delete');
-    Route::get('/akuntansi/akun/export-excel', [AccountController::class, 'exportExcel'])->middleware('access:master')->name('akuntansi.akun.export-excel');
+    Route::get('/master/akun', [AccountController::class, 'index'])->middleware('access:master')->name('master.akun');
+    Route::post('/master/akun', [AccountController::class, 'store'])->middleware('access:master')->name('master.akun.store');
+    Route::put('/master/akun/{id}', [AccountController::class, 'update'])->middleware('access:master')->name('master.akun.update');
+    Route::delete('/master/akun/{id}', [AccountController::class, 'destroy'])->middleware('access:master')->name('master.akun.delete');
+    Route::get('/master/akun/export-excel', [AccountController::class, 'exportExcel'])->middleware('access:master')->name('master.akun.export-excel');
     Route::get('/akuntansi/jurnal', fn () => app(ModuleController::class)->show('journals'))->middleware('access:keuangan')->name('akuntansi.jurnal');
     Route::get('/akuntansi/buku-besar', fn () => app(ModuleController::class)->show('ledger'))->middleware('access:keuangan')->name('akuntansi.buku-besar');
     Route::get('/akuntansi/kas-bank', fn () => app(ModuleController::class)->show('cashbank'))->middleware('access:keuangan')->name('akuntansi.kas-bank');
