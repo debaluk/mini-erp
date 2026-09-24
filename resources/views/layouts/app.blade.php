@@ -118,9 +118,9 @@
                         <li class="dropdown-submenu">
                             <a class="dropdown-item dropdown-toggle" href="#">KAS &amp; BANK</a>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{{ route('akuntansi.kas-bank') }}">Kas / Bank Masuk</a></li>
-                                <li><a class="dropdown-item" href="{{ route('akuntansi.kas-bank') }}">Kas / Bank Keluar</a></li>
-                                <li><a class="dropdown-item" href="{{ route('akuntansi.kas-bank') }}">Transfer / Mutasi</a></li>
+                                <li><a class="dropdown-item" href="{{ route('akuntansi.kas-bank.masuk') }}">Kas / Bank Masuk</a></li>
+                                <li><a class="dropdown-item" href="{{ route('akuntansi.kas-bank.keluar') }}">Kas / Bank Keluar</a></li>
+                                <li><a class="dropdown-item" href="{{ route('akuntansi.kas-bank.transfer') }}">Transfer / Mutasi</a></li>
                             </ul>
                         </li>
                         <li class="dropdown-submenu">
@@ -131,7 +131,6 @@
                                 <li><a class="dropdown-item" href="{{ route('akuntansi.closing-periode') }}">Closing Periode</a></li>
                             </ul>
                         </li>
-                        @endif
                         <li class="dropdown-submenu">
                             <a class="dropdown-item dropdown-toggle" href="#">LAPORAN KEUANGAN</a>
                             <ul class="dropdown-menu">
@@ -143,7 +142,6 @@
                                 <li><a class="dropdown-item" href="{{ route('laporan.hutang') }}">Laporan Aging Hutang</a></li>
                             </ul>
                         </li>
-                        @endif
                     </ul>
                 </li>
                 @endif
