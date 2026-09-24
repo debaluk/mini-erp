@@ -17,29 +17,26 @@ class SettingsController extends Controller
     {
         return [
             'master' => 'Master',
-            'inventori_operasional' => 'Inventori & Operasional',
-            'keuangan_akuntansi' => 'Keuangan & Akunting',
-            'seting' => 'Seting',
+            'inventori' => 'Inventori',
+            'keuangan' => 'Keuangan',
+            'pengaturan' => 'Pengaturan',
         ];
     }
 
     private function defaultModulesForRole(string $role): array
     {
         return match ($role) {
-            'admin' => ['master', 'seting'],
-            'kasir' => ['inventori_operasional'],
-            'inventori' => ['inventori_operasional'],
-            'akuntansi' => ['keuangan_akuntansi'],
+            'owner' => ['master', 'inventori', 'keuangan', 'pengaturan'],
+            'admin' => ['master', 'pengaturan'],
+            'kasir' => ['inventori'],
+            'inventori' => ['inventori'],
+            'akuntansi' => ['keuangan'],
             default => [],
         };
     }
 
     private function entityId(Request $request): ?int
     {
-        if ($request->user()?->role === 'superadmin') {
-            return $request->integer('entity_id') ?: DB::table('entities')->value('id');
-        }
-
         return $request->user()?->entity_id;
     }
 
@@ -48,13 +45,8 @@ class SettingsController extends Controller
         $entityId = $this->entityId($request);
         abort_unless($entityId, 404);
 
-        if ($request->user()->role === 'superadmin') {
-            $entities = DB::table('entities')->orderBy('name')->get();
-            $entity = DB::table('entities')->where('id', $entityId)->first();
-        } else {
-            $entities = collect();
-            $entity = DB::table('entities')->where('id', $entityId)->first();
-        }
+        $entities = collect();
+        $entity = DB::table('entities')->where('id', $entityId)->first();
 
         return view('settings.entity', compact('entity', 'entities'));
     }
@@ -132,7 +124,7 @@ class SettingsController extends Controller
 
     public function userStore(Request $request)
     {
-        abort_unless($request->user()->role === 'owner' && $request->user()->entity_id, 403);
+        abort_unless($request->user()->hasModuleAccess('pengaturan') && $request->user()->entity_id, 403);
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -197,7 +189,7 @@ class SettingsController extends Controller
 
     public function userUpdate(Request $request, int $id)
     {
-        abort_unless($request->user()->role === 'owner' && $request->user()->entity_id, 403);
+        abort_unless($request->user()->hasModuleAccess('pengaturan') && $request->user()->entity_id, 403);
 
         $user = DB::table('users')
             ->where('id', $id)
@@ -268,7 +260,7 @@ class SettingsController extends Controller
 
     public function userToggle(Request $request, int $id)
     {
-        abort_unless($request->user()->role === 'owner' && $request->user()->entity_id, 403);
+        abort_unless($request->user()->hasModuleAccess('pengaturan') && $request->user()->entity_id, 403);
 
         $user = DB::table('users')
             ->where('id', $id)
@@ -287,42 +279,22 @@ class SettingsController extends Controller
     public function roles(Request $request)
     {
         $roles = [
-            ['code' => 'superadmin', 'name' => 'Superadmin', 'scope' => 'Level sistem', 'description' => 'Pemilik/pengelola sistem. Mengelola seluruh entitas dan hak akses Owner.'],
-            ['code' => 'owner', 'name' => 'Owner', 'scope' => 'Entitas', 'description' => 'Pemilik entitas. Mengelola bisnis entitas dan user operasional.'],
-            ['code' => 'admin', 'name' => 'Admin', 'scope' => 'Entitas', 'description' => 'Administrasi, master data, user dan konfigurasi sesuai hak akses yang diberikan.'],
-            ['code' => 'kasir', 'name' => 'Kasir', 'scope' => 'Entitas', 'description' => 'Operasional POS Retail, pembayaran dan shift kasir.'],
-            ['code' => 'inventori', 'name' => 'Inventori', 'scope' => 'Entitas', 'description' => 'Pembelian, gudang, stok, produksi dan armada.'],
-            ['code' => 'akuntansi', 'name' => 'Akuntansi', 'scope' => 'Entitas', 'description' => 'Akuntansi, HPP dan laporan keuangan.'],
+            ['code' => 'owner', 'name' => 'Owner', 'scope' => 'Entitas', 'description' => 'Pemilik entitas. Hak akses selalu penuh dan role tidak dapat dikurangi.'],
+            ['code' => 'admin', 'name' => 'Admin', 'scope' => 'Entitas', 'description' => 'Administrasi, master data dan pengaturan sesuai hak akses user.'],
+            ['code' => 'kasir', 'name' => 'Kasir', 'scope' => 'Entitas', 'description' => 'Operasional penjualan retail/POS melalui akses Inventori.'],
+            ['code' => 'inventori', 'name' => 'Inventori', 'scope' => 'Entitas', 'description' => 'Pembelian, gudang, stok dan produksi melalui akses Inventori.'],
+            ['code' => 'akuntansi', 'name' => 'Akuntansi', 'scope' => 'Entitas', 'description' => 'Akuntansi dan laporan keuangan melalui akses Keuangan.'],
         ];
 
-        $permissions = [
-            'Dashboard',
-            'Master Data',
-            'POS Retail',
-            'Produksi',
-            'Armada & Jasa',
-            'Inventori',
-            'Akuntansi',
-            'Laporan',
-            'Pengaturan User',
-            'Pengaturan Entitas',
-            'Role & Hak Akses',
-            'Konfigurasi',
-        ];
+        $permissions = ['Master', 'Inventori', 'Keuangan', 'Pengaturan'];
 
         $matrix = [
-            'superadmin' => array_fill_keys($permissions, true),
-            'owner' => array_fill_keys($permissions, true),
-            'admin' => array_fill_keys($permissions, false),
-            'kasir' => array_fill_keys($permissions, false),
-            'inventori' => array_fill_keys($permissions, false),
-            'akuntansi' => array_fill_keys($permissions, false),
+            'owner' => ['Master' => true, 'Inventori' => true, 'Keuangan' => true, 'Pengaturan' => true],
+            'admin' => ['Master' => true, 'Inventori' => false, 'Keuangan' => false, 'Pengaturan' => true],
+            'kasir' => ['Master' => false, 'Inventori' => true, 'Keuangan' => false, 'Pengaturan' => false],
+            'inventori' => ['Master' => false, 'Inventori' => true, 'Keuangan' => false, 'Pengaturan' => false],
+            'akuntansi' => ['Master' => false, 'Inventori' => false, 'Keuangan' => true, 'Pengaturan' => false],
         ];
-
-        foreach (['Dashboard','Master Data','Pengaturan User','Konfigurasi'] as $p) $matrix['admin'][$p] = true;
-        foreach (['Dashboard','POS Retail'] as $p) $matrix['kasir'][$p] = true;
-        foreach (['Dashboard','Produksi','Armada & Jasa','Inventori'] as $p) $matrix['inventori'][$p] = true;
-        foreach (['Dashboard','Akuntansi','Laporan'] as $p) $matrix['akuntansi'][$p] = true;
 
         return view('settings.roles', compact('roles', 'permissions', 'matrix'));
     }
