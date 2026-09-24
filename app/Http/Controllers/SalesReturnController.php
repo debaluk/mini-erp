@@ -41,7 +41,7 @@ class SalesReturnController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('erp.retur', compact('warehouses'));
+        return view('inventori.penjualan.retur.index', compact('warehouses'));
     }
 
     public function data(Request $request)
