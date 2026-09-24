@@ -121,6 +121,7 @@ return new class extends Migration
         // Existing purchases table becomes the invoice/payable document.
         // ================================================================
         Schema::table('purchases', function (Blueprint $t) {
+            $t->string('status')->default('draft')->change();
             $t->string('document_type')->default('invoice')->after('user_id');
             $t->string('source_type')->default('po')->after('document_type');
             $t->boolean('goods_received')->default(false)->after('source_type');
@@ -405,6 +406,7 @@ return new class extends Migration
         Schema::table('purchases', function (Blueprint $t) {
             $t->dropUnique('purchases_supplier_invoice_unique');
             $t->dropUnique('purchases_tax_invoice_unique');
+            $t->string('status')->default('received')->change();
             $t->dropIndex(['entity_id', 'supplier_id', 'posting_status']);
             $t->dropIndex(['entity_id', 'tax_invoice_status', 'tax_invoice_date']);
             $t->dropForeign(['posted_by']);
