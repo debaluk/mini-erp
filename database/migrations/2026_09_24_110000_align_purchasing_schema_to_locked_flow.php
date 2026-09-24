@@ -381,7 +381,7 @@ return new class extends Migration
             $t->foreignId('created_by')->constrained('users')->restrictOnDelete();
             $t->timestamps();
 
-            $t->index(['entity_id', 'business_unit_id', 'correction_date']);
+            $t->index(['entity_id', 'business_unit_id', 'correction_date'], 'purchase_correction_entity_bu_date_idx');
             $t->index(['purchase_id', 'purchase_item_id']);
         });
 
