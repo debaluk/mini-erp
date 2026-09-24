@@ -32,7 +32,7 @@ class StockController extends Controller
         }
 
         $rows=$query->paginate(20)->withQueryString();
-        return view('erp.stock.index',compact('rows','warehouses'));
+        return view('inventori.persediaan.index',compact('rows','warehouses'));
     }
 
     public function export(Request $request)
@@ -83,6 +83,6 @@ class StockController extends Controller
             $saldo += $in-$out;
             return (object)['date'=>$m->occurred_at,'reference'=>$m->reference_type && $m->reference_id ? strtoupper(str_replace('_',' ',$m->reference_type)).' #'.$m->reference_id : '-', 'movement_type'=>$m->movement_type,'in'=>$in,'out'=>$out,'balance'=>$saldo,'unit_cost'=>$m->unit_cost];
         });
-        return view('erp.stock.detail',compact('stock','history'));
+        return view('inventori.persediaan.kartu-stok',compact('stock','history'));
     }
 }
