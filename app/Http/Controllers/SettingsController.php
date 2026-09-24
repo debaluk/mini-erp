@@ -131,7 +131,7 @@ class SettingsController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'role' => ['required', Rule::in(['admin', 'kasir', 'inventori', 'akuntansi'])],
-            'modules' => ['required', 'array', 'min:1'],
+            'modules' => ['nullable', 'array'],
             'modules.*' => ['string', Rule::in(array_keys($this->moduleCatalog()))],
             'business_units' => ['required', 'array', 'min:1'],
             'business_units.*' => [
@@ -157,6 +157,8 @@ class SettingsController extends Controller
             ]);
         }
 
+        $modules = array_values(array_unique($data['modules'] ?? $this->defaultModulesForRole($data['role'])));
+
         $userId = DB::table('users')->insertGetId([
             'name' => $data['name'],
             'email' => $data['email'],
@@ -174,7 +176,7 @@ class SettingsController extends Controller
             'module' => $module,
             'created_at' => now(),
             'updated_at' => now(),
-        ], array_values(array_unique($data['modules']))));
+        ], $modules));
 
         DB::table('user_business_units')->insert(array_map(fn ($businessUnitId) => [
             'user_id' => $userId,
@@ -201,7 +203,7 @@ class SettingsController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($id)],
             'role' => ['required', Rule::in(['admin', 'kasir', 'inventori', 'akuntansi'])],
-            'modules' => ['required', 'array', 'min:1'],
+            'modules' => ['nullable', 'array'],
             'modules.*' => ['string', Rule::in(array_keys($this->moduleCatalog()))],
             'business_units' => ['required', 'array', 'min:1'],
             'business_units.*' => [
@@ -239,6 +241,8 @@ class SettingsController extends Controller
         DB::table('users')->where('id', $id)->update($payload);
 
         DB::table('user_module_permissions')->where('user_id', $id)->delete();
+        $modules = array_values(array_unique($data['modules'] ?? $this->defaultModulesForRole($data['role'])));
+
         DB::table('user_module_permissions')->insert(array_map(fn ($module) => [
             'user_id' => $id,
             'module' => $module,
