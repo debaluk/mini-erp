@@ -334,7 +334,7 @@ return new class extends Migration
             $t->string('status')->default('draft');
             $t->timestamps();
 
-            $t->index(['entity_id', 'business_unit_id', 'cost_date']);
+            $t->index(['entity_id', 'business_unit_id', 'cost_date'], 'purchase_add_cost_entity_bu_date_idx');
             $t->index(['purchase_id', 'receipt_id']);
         });
 
