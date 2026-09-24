@@ -244,7 +244,7 @@ Route::middleware('auth')->group(function () {
         ->middleware('access:inventori')
         ->name('inventori.pembelian-po.create');
 
-    Route::get('/inventori/pembelian/retur', fn () => view('inventori.retur-pembelian'))
+    Route::get('/inventori/pembelian/retur', fn () => view('inventori.pembelian.retur.index'))
         ->middleware('access:inventori')
         ->name('inventori.retur-pembelian');
 
@@ -252,7 +252,7 @@ Route::middleware('auth')->group(function () {
         ->middleware('access:inventori')
         ->name('produksi.work-order');
 
-    Route::get('/inventori/monitoring/margin-harga', fn () => view('inventori.margin-control'))
+    Route::get('/inventori/monitoring/margin-harga', fn () => view('inventori.laporan.analisa-margin'))
         ->middleware('access:inventori')
         ->name('inventori.margin-control');
 
