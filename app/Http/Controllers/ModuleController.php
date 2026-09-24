@@ -162,6 +162,22 @@ class ModuleController extends Controller
             return view($inventoryViews[$module], $data);
         }
 
+        $accountingViews = [
+            'journals' => 'keuangan.akuntansi.jurnal-umum.index',
+            'ledger' => 'keuangan.akuntansi.buku-besar.index',
+            'cashbank' => 'keuangan.kas-bank.masuk.index',
+            'profit-loss' => 'keuangan.laporan.laba-rugi',
+            'trial-balance' => 'keuangan.laporan.neraca-saldo',
+            'balance-sheet' => 'keuangan.laporan.neraca',
+            'cash-flow' => 'keuangan.laporan.arus-kas',
+            'receivables' => 'keuangan.laporan.aging-piutang',
+            'payables' => 'keuangan.laporan.aging-hutang',
+        ];
+
+        if (isset($accountingViews[$module])) {
+            return view($accountingViews[$module], $data);
+        }
+
         return view('erp.module', $data);
     }
 
