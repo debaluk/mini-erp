@@ -187,8 +187,14 @@ return new class extends Migration
             $t->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $t->timestamps();
 
-            $t->index(['receipt_item_id', 'purchase_item_id']);
-            $t->index(['purchase_item_id', 'receipt_item_id']);
+            $t->index(
+                ['receipt_item_id', 'purchase_item_id'],
+                'receipt_inv_alloc_item_idx'
+            );
+            $t->index(
+                ['purchase_item_id', 'receipt_item_id'],
+                'receipt_inv_alloc_purchase_item_idx'
+            );
             $t->unique(['receipt_item_id', 'purchase_item_id'], 'receipt_invoice_alloc_unique');
         });
 
@@ -344,8 +350,14 @@ return new class extends Migration
             $t->decimal('amount', 18, 2);
             $t->timestamps();
 
-            $t->index(['purchase_additional_cost_id', 'receipt_item_id']);
-            $t->index(['purchase_additional_cost_id', 'purchase_item_id']);
+            $t->index(
+                ['purchase_additional_cost_id', 'receipt_item_id'],
+                'purchase_add_cost_receipt_idx'
+            );
+            $t->index(
+                ['purchase_additional_cost_id', 'purchase_item_id'],
+                'purchase_add_cost_item_idx'
+            );
         });
 
         // ================================================================
