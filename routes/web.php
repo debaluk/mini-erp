@@ -200,6 +200,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/akuntansi/jurnal', fn () => app(ModuleController::class)->show('journals'))->middleware('access:keuangan')->name('akuntansi.jurnal');
     Route::get('/akuntansi/buku-besar', fn () => app(ModuleController::class)->show('ledger'))->middleware('access:keuangan')->name('akuntansi.buku-besar');
     Route::get('/akuntansi/kas-bank', fn () => app(ModuleController::class)->show('cashbank'))->middleware('access:keuangan')->name('akuntansi.kas-bank');
+    Route::get('/akuntansi/kas-bank/masuk', fn () => view('keuangan.kas-bank.masuk.index'))->middleware('access:keuangan')->name('akuntansi.kas-bank.masuk');
+    Route::get('/akuntansi/kas-bank/keluar', fn () => view('keuangan.kas-bank.keluar.index'))->middleware('access:keuangan')->name('akuntansi.kas-bank.keluar');
+    Route::get('/akuntansi/kas-bank/transfer', fn () => view('keuangan.kas-bank.transfer.index'))->middleware('access:keuangan')->name('akuntansi.kas-bank.transfer');
     Route::get('/akuntansi/laba-rugi', fn () => app(ModuleController::class)->show('profit-loss'))->middleware('access:keuangan')->name('akuntansi.laba-rugi');
     Route::get('/akuntansi/laba-rugi/export-excel', [ModuleController::class, 'exportProfitLossExcel'])->middleware('access:keuangan')->name('akuntansi.laba-rugi.export-excel');
     Route::get('/akuntansi/neraca-saldo', fn () => app(ModuleController::class)->show('trial-balance'))->middleware('access:keuangan')->name('akuntansi.neraca-saldo');
