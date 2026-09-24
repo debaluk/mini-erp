@@ -29,7 +29,7 @@ class ReceiptController extends Controller
             ->where('entity_id', $entity)->where('is_active', 1)
             ->orderBy('name')->get(['id','code','name']);
 
-        return view('erp.receipts.index', compact('rows','suppliers','warehouses','startDate','endDate'));
+        return view('inventori.pembelian.penerimaan.index', compact('rows','suppliers','warehouses','startDate','endDate'));
     }
 
     public function create()
@@ -50,7 +50,7 @@ class ReceiptController extends Controller
             ->orderBy('p.name')
             ->get(['p.id','p.code','p.sku','p.name','u.code as unit_code','u.name as unit_name']);
 
-        return view('erp.receipts.create', compact('suppliers','warehouses','products'));
+        return view('inventori.pembelian.penerimaan.create', compact('suppliers','warehouses','products'));
     }
 
     public function edit(int $id)
