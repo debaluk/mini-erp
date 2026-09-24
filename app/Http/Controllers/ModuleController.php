@@ -147,6 +147,7 @@ class ModuleController extends Controller
         }
         $inventoryViews = [
             'sales' => 'inventori.penjualan.pos.index',
+            'payments' => 'inventori.penjualan.pos.index',
             'purchases' => 'inventori.pembelian.faktur.index',
             'receipts' => 'inventori.pembelian.penerimaan.index',
             'stock' => 'inventori.laporan.persediaan',
@@ -155,7 +156,7 @@ class ModuleController extends Controller
             'production' => 'inventori.produksi.work-order.index',
             'production-results' => 'inventori.produksi.hasil-scrap.index',
             'material-usage' => 'inventori.produksi.bahan-baku.index',
-            'production-cost' => 'inventori.produksi.hasil-scrap.index',
+            'production-cost' => 'inventori.laporan.hpp',
         ];
 
         if (isset($inventoryViews[$module])) {
