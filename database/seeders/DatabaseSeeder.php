@@ -392,71 +392,193 @@ class DatabaseSeeder extends Seeder
 
         // ================================================================
         // CHART OF ACCOUNTS
+        // COA STANDARD ERP
+        // Level 1 = kelompok utama
+        // Level 2 = kelompok akun
+        // Level 3 = akun posting
         // ================================================================
         $accounts = [
-            ['code'=>'100',     'name'=>'Asset',                         'type'=>'asset',     'level'=>1, 'parent'=>null,   'postable'=>false, 'cash'=>false, 'normal'=>'debit'],
-            ['code'=>'10001',   'name'=>'Kas',                           'type'=>'asset',     'level'=>2, 'parent'=>'100', 'postable'=>false, 'cash'=>true,  'normal'=>'debit'],
-            ['code'=>'1000101', 'name'=>'Kas Kecil',                     'type'=>'asset',     'level'=>3, 'parent'=>'10001','postable'=>true,  'cash'=>true,  'normal'=>'debit'],
-            ['code'=>'1000102', 'name'=>'Kas Besar',                     'type'=>'asset',     'level'=>3, 'parent'=>'10001','postable'=>true,  'cash'=>true,  'normal'=>'debit'],
-            ['code'=>'10002',   'name'=>'Bank',                          'type'=>'asset',     'level'=>2, 'parent'=>'100', 'postable'=>false, 'cash'=>true,  'normal'=>'debit'],
-            ['code'=>'1000201', 'name'=>'Bank BCA',                      'type'=>'asset',     'level'=>3, 'parent'=>'10002','postable'=>true,  'cash'=>true,  'normal'=>'debit'],
-            ['code'=>'10003',   'name'=>'Piutang',                       'type'=>'asset',     'level'=>2, 'parent'=>'100', 'postable'=>false, 'cash'=>false, 'normal'=>'debit'],
-            ['code'=>'1000301', 'name'=>'Piutang Usaha',                 'type'=>'asset',     'level'=>3, 'parent'=>'10003','postable'=>true, 'cash'=>false, 'normal'=>'debit'],
-            ['code'=>'1000302', 'name'=>'Piutang Pengurus',              'type'=>'asset',     'level'=>3, 'parent'=>'10003','postable'=>true, 'cash'=>false, 'normal'=>'debit'],
-            ['code'=>'200',     'name'=>'Hutang',                        'type'=>'liability','level'=>1, 'parent'=>null,   'postable'=>false, 'cash'=>false, 'normal'=>'credit'],
-            ['code'=>'20001',   'name'=>'Hutang Usaha',                  'type'=>'liability','level'=>2, 'parent'=>'200', 'postable'=>true,  'cash'=>false, 'normal'=>'credit'],
-            ['code'=>'20002',   'name'=>'Hutang Pengurus',               'type'=>'liability','level'=>2, 'parent'=>'200', 'postable'=>true,  'cash'=>false, 'normal'=>'credit'],
-            ['code'=>'300',     'name'=>'Modal',                         'type'=>'equity',   'level'=>1, 'parent'=>null,   'postable'=>false, 'cash'=>false, 'normal'=>'credit'],
-            ['code'=>'30001',   'name'=>'Modal Disetor',                 'type'=>'equity',   'level'=>2, 'parent'=>'300', 'postable'=>true,  'cash'=>false, 'normal'=>'credit'],
-            ['code'=>'400',     'name'=>'Pendapatan',                    'type'=>'revenue',  'level'=>1, 'parent'=>null,   'postable'=>false, 'cash'=>false, 'normal'=>'credit'],
-            ['code'=>'40001',   'name'=>'Pendapatan Usaha',              'type'=>'revenue',  'level'=>2, 'parent'=>'400', 'postable'=>false, 'cash'=>false, 'normal'=>'credit'],
-            ['code'=>'4000101', 'name'=>'Penjualan Barang Dagangan',     'type'=>'revenue',  'level'=>3, 'parent'=>'40001','postable'=>true,  'cash'=>false, 'normal'=>'credit'],
-            ['code'=>'4000102', 'name'=>'Penjualan Hasil Produksi',      'type'=>'revenue',  'level'=>3, 'parent'=>'40001','postable'=>true,  'cash'=>false, 'normal'=>'credit'],
-            ['code'=>'4000103', 'name'=>'Pendapatan Jasa Armada',        'type'=>'revenue',  'level'=>3, 'parent'=>'40001','postable'=>true,  'cash'=>false, 'normal'=>'credit'],
-            ['code'=>'4000104', 'name'=>'Pendapatan Usaha Lainnya',      'type'=>'revenue',  'level'=>3, 'parent'=>'40001','postable'=>true,  'cash'=>false, 'normal'=>'credit'],
-            ['code'=>'500',     'name'=>'HPP',                           'type'=>'cogs',     'level'=>1, 'parent'=>null,   'postable'=>false, 'cash'=>false, 'normal'=>'debit'],
-            ['code'=>'50001',   'name'=>'Harga Pokok Pendapatan',        'type'=>'cogs',     'level'=>2, 'parent'=>'500', 'postable'=>false, 'cash'=>false, 'normal'=>'debit'],
-            ['code'=>'5000101', 'name'=>'HPP Barang Dagangan',           'type'=>'cogs',     'level'=>3, 'parent'=>'50001','postable'=>true,  'cash'=>false, 'normal'=>'debit'],
-            ['code'=>'5000102', 'name'=>'HPP Hasil Produksi',            'type'=>'cogs',     'level'=>3, 'parent'=>'50001','postable'=>true,  'cash'=>false, 'normal'=>'debit'],
-            ['code'=>'50002',   'name'=>'Beban Langsung Pendapatan',     'type'=>'cogs',     'level'=>2, 'parent'=>'500', 'postable'=>false, 'cash'=>false, 'normal'=>'debit'],
-            ['code'=>'5000201', 'name'=>'Beban Langsung Tenaga Kerja',   'type'=>'cogs',     'level'=>3, 'parent'=>'50002','postable'=>true,  'cash'=>false, 'normal'=>'debit'],
-            ['code'=>'5000202', 'name'=>'Beban Langsung Lainya (Overhead)','type'=>'cogs',   'level'=>3, 'parent'=>'50002','postable'=>true,  'cash'=>false, 'normal'=>'debit'],
-            ['code'=>'5000203', 'name'=>'Bahan Baku Langsung',           'type'=>'cogs',     'level'=>3, 'parent'=>'50002','postable'=>true,  'cash'=>false, 'normal'=>'debit'],
-            ['code'=>'600',     'name'=>'Biaya',                         'type'=>'expense',  'level'=>1, 'parent'=>null,   'postable'=>false, 'cash'=>false, 'normal'=>'debit'],
-            ['code'=>'60001',   'name'=>'Beban Operasional',             'type'=>'expense',  'level'=>2, 'parent'=>'600', 'postable'=>false, 'cash'=>false, 'normal'=>'debit'],
-            ['code'=>'6000101', 'name'=>'Beban Gaji',                    'type'=>'expense',  'level'=>3, 'parent'=>'60001','postable'=>true, 'cash'=>false, 'normal'=>'debit'],
-            ['code'=>'6000102', 'name'=>'Beban Listrik',                 'type'=>'expense',  'level'=>3, 'parent'=>'60001','postable'=>true, 'cash'=>false, 'normal'=>'debit'],
+            // 100 - ASET
+            ['code'=>'100','name'=>'Aset','type'=>'asset','level'=>1,'parent'=>null,'postable'=>false,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'10001','name'=>'Kas','type'=>'asset','level'=>2,'parent'=>'100','postable'=>false,'cash'=>true,'normal'=>'debit'],
+            ['code'=>'1000101','name'=>'Kas Kecil','type'=>'asset','level'=>3,'parent'=>'10001','postable'=>true,'cash'=>true,'normal'=>'debit'],
+            ['code'=>'1000102','name'=>'Kas Besar','type'=>'asset','level'=>3,'parent'=>'10001','postable'=>true,'cash'=>true,'normal'=>'debit'],
+            ['code'=>'10002','name'=>'Bank','type'=>'asset','level'=>2,'parent'=>'100','postable'=>false,'cash'=>true,'normal'=>'debit'],
+            ['code'=>'1000201','name'=>'Bank BCA','type'=>'asset','level'=>3,'parent'=>'10002','postable'=>true,'cash'=>true,'normal'=>'debit'],
+            ['code'=>'1000202','name'=>'Bank Mandiri','type'=>'asset','level'=>3,'parent'=>'10002','postable'=>true,'cash'=>true,'normal'=>'debit'],
+            ['code'=>'1000203','name'=>'Bank BRI','type'=>'asset','level'=>3,'parent'=>'10002','postable'=>true,'cash'=>true,'normal'=>'debit'],
+            ['code'=>'1000204','name'=>'Bank Lainnya','type'=>'asset','level'=>3,'parent'=>'10002','postable'=>true,'cash'=>true,'normal'=>'debit'],
+            ['code'=>'10003','name'=>'Piutang','type'=>'asset','level'=>2,'parent'=>'100','postable'=>false,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'1000301','name'=>'Piutang Usaha','type'=>'asset','level'=>3,'parent'=>'10003','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'1000302','name'=>'Piutang Pengurus','type'=>'asset','level'=>3,'parent'=>'10003','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'1000303','name'=>'Piutang Lainnya','type'=>'asset','level'=>3,'parent'=>'10003','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'10004','name'=>'Persediaan','type'=>'asset','level'=>2,'parent'=>'100','postable'=>false,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'1000401','name'=>'Persediaan Barang Dagangan','type'=>'asset','level'=>3,'parent'=>'10004','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'1000402','name'=>'Persediaan Bahan Baku','type'=>'asset','level'=>3,'parent'=>'10004','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'1000403','name'=>'Persediaan Barang Dalam Proses','type'=>'asset','level'=>3,'parent'=>'10004','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'1000404','name'=>'Persediaan Barang Jadi','type'=>'asset','level'=>3,'parent'=>'10004','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'1000405','name'=>'Persediaan Suku Cadang','type'=>'asset','level'=>3,'parent'=>'10004','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'10005','name'=>'Pajak Dibayar Dimuka','type'=>'asset','level'=>2,'parent'=>'100','postable'=>false,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'1000501','name'=>'PPh 21 Dibayar Dimuka','type'=>'asset','level'=>3,'parent'=>'10005','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'1000502','name'=>'PPh 22 Dibayar Dimuka','type'=>'asset','level'=>3,'parent'=>'10005','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'1000503','name'=>'PPh 23 Dibayar Dimuka','type'=>'asset','level'=>3,'parent'=>'10005','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'1000504','name'=>'PPh 25 Dibayar Dimuka','type'=>'asset','level'=>3,'parent'=>'10005','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'1000505','name'=>'PPN Masukan','type'=>'asset','level'=>3,'parent'=>'10005','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'10006','name'=>'Uang Muka','type'=>'asset','level'=>2,'parent'=>'100','postable'=>false,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'1000601','name'=>'Uang Muka Pembelian','type'=>'asset','level'=>3,'parent'=>'10006','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'1000602','name'=>'Uang Muka Operasional','type'=>'asset','level'=>3,'parent'=>'10006','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'1000603','name'=>'Uang Muka Karyawan','type'=>'asset','level'=>3,'parent'=>'10006','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'10007','name'=>'Biaya Dibayar Dimuka','type'=>'asset','level'=>2,'parent'=>'100','postable'=>false,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'1000701','name'=>'Sewa Dibayar Dimuka','type'=>'asset','level'=>3,'parent'=>'10007','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'1000702','name'=>'Asuransi Dibayar Dimuka','type'=>'asset','level'=>3,'parent'=>'10007','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'10008','name'=>'Aset Tetap','type'=>'asset','level'=>2,'parent'=>'100','postable'=>false,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'1000801','name'=>'Tanah','type'=>'asset','level'=>3,'parent'=>'10008','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'1000802','name'=>'Bangunan','type'=>'asset','level'=>3,'parent'=>'10008','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'1000803','name'=>'Mesin dan Peralatan','type'=>'asset','level'=>3,'parent'=>'10008','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'1000804','name'=>'Kendaraan','type'=>'asset','level'=>3,'parent'=>'10008','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'1000805','name'=>'Inventaris Kantor','type'=>'asset','level'=>3,'parent'=>'10008','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'1000806','name'=>'Peralatan Produksi','type'=>'asset','level'=>3,'parent'=>'10008','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'10009','name'=>'Akumulasi Penyusutan','type'=>'asset','level'=>2,'parent'=>'100','postable'=>false,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'1000901','name'=>'Akumulasi Penyusutan Bangunan','type'=>'asset','level'=>3,'parent'=>'10009','postable'=>true,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'1000902','name'=>'Akumulasi Penyusutan Mesin dan Peralatan','type'=>'asset','level'=>3,'parent'=>'10009','postable'=>true,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'1000903','name'=>'Akumulasi Penyusutan Kendaraan','type'=>'asset','level'=>3,'parent'=>'10009','postable'=>true,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'1000904','name'=>'Akumulasi Penyusutan Inventaris Kantor','type'=>'asset','level'=>3,'parent'=>'10009','postable'=>true,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'1000905','name'=>'Akumulasi Penyusutan Peralatan Produksi','type'=>'asset','level'=>3,'parent'=>'10009','postable'=>true,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'10010','name'=>'Aset Lain-lain','type'=>'asset','level'=>2,'parent'=>'100','postable'=>false,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'1001001','name'=>'Aset Dalam Penyelesaian','type'=>'asset','level'=>3,'parent'=>'10010','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'1001002','name'=>'Deposito / Jaminan','type'=>'asset','level'=>3,'parent'=>'10010','postable'=>true,'cash'=>false,'normal'=>'debit'],
+
+            // 200 - KEWAJIBAN
+            ['code'=>'200','name'=>'Hutang','type'=>'liability','level'=>1,'parent'=>null,'postable'=>false,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'20001','name'=>'Hutang Usaha','type'=>'liability','level'=>2,'parent'=>'200','postable'=>true,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'20002','name'=>'Hutang Pengurus','type'=>'liability','level'=>2,'parent'=>'200','postable'=>true,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'20003','name'=>'Hutang Lainnya','type'=>'liability','level'=>2,'parent'=>'200','postable'=>true,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'20004','name'=>'Uang Muka Pelanggan','type'=>'liability','level'=>2,'parent'=>'200','postable'=>true,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'20005','name'=>'Hutang Gaji','type'=>'liability','level'=>2,'parent'=>'200','postable'=>true,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'20006','name'=>'Hutang Biaya','type'=>'liability','level'=>2,'parent'=>'200','postable'=>true,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'20007','name'=>'Hutang Pajak','type'=>'liability','level'=>2,'parent'=>'200','postable'=>false,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'2000701','name'=>'Hutang PPh 21','type'=>'liability','level'=>3,'parent'=>'20007','postable'=>true,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'2000702','name'=>'Hutang PPh 22','type'=>'liability','level'=>3,'parent'=>'20007','postable'=>true,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'2000703','name'=>'Hutang PPh 23','type'=>'liability','level'=>3,'parent'=>'20007','postable'=>true,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'2000704','name'=>'Hutang PPh 25','type'=>'liability','level'=>3,'parent'=>'20007','postable'=>true,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'2000705','name'=>'Hutang PPh 29','type'=>'liability','level'=>3,'parent'=>'20007','postable'=>true,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'2000706','name'=>'Hutang PPN Keluaran','type'=>'liability','level'=>3,'parent'=>'20007','postable'=>true,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'20008','name'=>'Pendapatan Diterima Dimuka','type'=>'liability','level'=>2,'parent'=>'200','postable'=>true,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'20009','name'=>'Kewajiban Jangka Panjang','type'=>'liability','level'=>2,'parent'=>'200','postable'=>false,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'2000901','name'=>'Hutang Bank','type'=>'liability','level'=>3,'parent'=>'20009','postable'=>true,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'2000902','name'=>'Hutang Leasing Kendaraan','type'=>'liability','level'=>3,'parent'=>'20009','postable'=>true,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'2000903','name'=>'Hutang Jangka Panjang Lainnya','type'=>'liability','level'=>3,'parent'=>'20009','postable'=>true,'cash'=>false,'normal'=>'credit'],
+
+            // 300 - MODAL
+            ['code'=>'300','name'=>'Modal','type'=>'equity','level'=>1,'parent'=>null,'postable'=>false,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'30001','name'=>'Modal Disetor','type'=>'equity','level'=>2,'parent'=>'300','postable'=>true,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'30002','name'=>'Tambahan Modal','type'=>'equity','level'=>2,'parent'=>'300','postable'=>true,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'30003','name'=>'Prive','type'=>'equity','level'=>2,'parent'=>'300','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'30004','name'=>'Saldo Laba','type'=>'equity','level'=>2,'parent'=>'300','postable'=>true,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'30005','name'=>'Laba Tahun Berjalan','type'=>'equity','level'=>2,'parent'=>'300','postable'=>true,'cash'=>false,'normal'=>'credit'],
+
+            // 400 - PENDAPATAN
+            ['code'=>'400','name'=>'Pendapatan','type'=>'revenue','level'=>1,'parent'=>null,'postable'=>false,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'40001','name'=>'Pendapatan Usaha','type'=>'revenue','level'=>2,'parent'=>'400','postable'=>false,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'4000101','name'=>'Penjualan Barang Dagangan','type'=>'revenue','level'=>3,'parent'=>'40001','postable'=>true,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'4000102','name'=>'Penjualan Hasil Produksi','type'=>'revenue','level'=>3,'parent'=>'40001','postable'=>true,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'4000103','name'=>'Pendapatan Jasa Armada','type'=>'revenue','level'=>3,'parent'=>'40001','postable'=>true,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'4000104','name'=>'Pendapatan Usaha Lainnya','type'=>'revenue','level'=>3,'parent'=>'40001','postable'=>true,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'40002','name'=>'Pendapatan Non Usaha','type'=>'revenue','level'=>2,'parent'=>'400','postable'=>false,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'4000201','name'=>'Pendapatan Bunga','type'=>'revenue','level'=>3,'parent'=>'40002','postable'=>true,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'4000202','name'=>'Pendapatan Lain-lain','type'=>'revenue','level'=>3,'parent'=>'40002','postable'=>true,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'40003','name'=>'Retur Penjualan','type'=>'revenue','level'=>2,'parent'=>'400','postable'=>false,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'4000301','name'=>'Retur Penjualan Barang','type'=>'revenue','level'=>3,'parent'=>'40003','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'4000302','name'=>'Retur Penjualan Produk','type'=>'revenue','level'=>3,'parent'=>'40003','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'4000303','name'=>'Potongan Penjualan','type'=>'revenue','level'=>3,'parent'=>'40003','postable'=>true,'cash'=>false,'normal'=>'debit'],
+
+            // 500 - HPP / BUASO
+            ['code'=>'500','name'=>'HPP','type'=>'cogs','level'=>1,'parent'=>null,'postable'=>false,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'50001','name'=>'Harga Pokok Pendapatan','type'=>'cogs','level'=>2,'parent'=>'500','postable'=>false,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'5000101','name'=>'HPP Barang Dagangan','type'=>'cogs','level'=>3,'parent'=>'50001','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'5000102','name'=>'HPP Hasil Produksi','type'=>'cogs','level'=>3,'parent'=>'50001','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'5000103','name'=>'HPP Jasa Armada','type'=>'cogs','level'=>3,'parent'=>'50001','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'50002','name'=>'Beban Langsung Pendapatan','type'=>'cogs','level'=>2,'parent'=>'500','postable'=>false,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'5000201','name'=>'Beban Langsung Tenaga Kerja','type'=>'cogs','level'=>3,'parent'=>'50002','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'5000202','name'=>'Beban Langsung Lainnya (Overhead)','type'=>'cogs','level'=>3,'parent'=>'50002','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'5000203','name'=>'Bahan Baku Langsung','type'=>'cogs','level'=>3,'parent'=>'50002','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'5000204','name'=>'Alat Langsung','type'=>'cogs','level'=>3,'parent'=>'50002','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'5000205','name'=>'Sewa Langsung','type'=>'cogs','level'=>3,'parent'=>'50002','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'50003','name'=>'Selisih / Penyesuaian HPP','type'=>'cogs','level'=>2,'parent'=>'500','postable'=>false,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'5000301','name'=>'Selisih HPP','type'=>'cogs','level'=>3,'parent'=>'50003','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'5000302','name'=>'Penyesuaian HPP','type'=>'cogs','level'=>3,'parent'=>'50003','postable'=>true,'cash'=>false,'normal'=>'debit'],
+
+            // 600 - BIAYA
+            ['code'=>'600','name'=>'Biaya','type'=>'expense','level'=>1,'parent'=>null,'postable'=>false,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'60001','name'=>'Beban Operasional','type'=>'expense','level'=>2,'parent'=>'600','postable'=>false,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'6000101','name'=>'Beban Gaji','type'=>'expense','level'=>3,'parent'=>'60001','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'6000102','name'=>'Beban Listrik','type'=>'expense','level'=>3,'parent'=>'60001','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'6000103','name'=>'Beban Air','type'=>'expense','level'=>3,'parent'=>'60001','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'6000104','name'=>'Beban Telepon dan Internet','type'=>'expense','level'=>3,'parent'=>'60001','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'6000105','name'=>'Beban ATK','type'=>'expense','level'=>3,'parent'=>'60001','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'6000106','name'=>'Beban Transportasi','type'=>'expense','level'=>3,'parent'=>'60001','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'6000107','name'=>'Beban Perjalanan Dinas','type'=>'expense','level'=>3,'parent'=>'60001','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'6000108','name'=>'Beban Reparasi dan Pemeliharaan','type'=>'expense','level'=>3,'parent'=>'60001','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'6000109','name'=>'Beban Kendaraan','type'=>'expense','level'=>3,'parent'=>'60001','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'6000110','name'=>'Beban Administrasi','type'=>'expense','level'=>3,'parent'=>'60001','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'6000111','name'=>'Beban Bank','type'=>'expense','level'=>3,'parent'=>'60001','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'6000112','name'=>'Beban Asuransi','type'=>'expense','level'=>3,'parent'=>'60001','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'6000113','name'=>'Beban Sewa','type'=>'expense','level'=>3,'parent'=>'60001','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'6000114','name'=>'Beban Penyusutan Bangunan','type'=>'expense','level'=>3,'parent'=>'60001','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'6000115','name'=>'Beban Penyusutan Mesin dan Peralatan','type'=>'expense','level'=>3,'parent'=>'60001','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'6000116','name'=>'Beban Penyusutan Kendaraan','type'=>'expense','level'=>3,'parent'=>'60001','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'6000117','name'=>'Beban Penyusutan Inventaris','type'=>'expense','level'=>3,'parent'=>'60001','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'6000118','name'=>'Beban Penyusutan Peralatan Produksi','type'=>'expense','level'=>3,'parent'=>'60001','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'6000119','name'=>'Beban Pajak dan Retribusi','type'=>'expense','level'=>3,'parent'=>'60001','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'6000120','name'=>'Beban Promosi dan Marketing','type'=>'expense','level'=>3,'parent'=>'60001','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'6000121','name'=>'Beban Lain-lain','type'=>'expense','level'=>3,'parent'=>'60001','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'60002','name'=>'Biaya Keuangan','type'=>'expense','level'=>2,'parent'=>'600','postable'=>false,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'6000201','name'=>'Beban Bunga Bank','type'=>'expense','level'=>3,'parent'=>'60002','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'6000202','name'=>'Beban Bunga Leasing','type'=>'expense','level'=>3,'parent'=>'60002','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'6000203','name'=>'Biaya Administrasi Keuangan','type'=>'expense','level'=>3,'parent'=>'60002','postable'=>true,'cash'=>false,'normal'=>'debit'],
+
+            // 700 - PENDAPATAN / BEBAN LAIN-LAIN
+            ['code'=>'700','name'=>'Pendapatan dan Beban Lain-lain','type'=>'revenue','level'=>1,'parent'=>null,'postable'=>false,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'70001','name'=>'Pendapatan Lain-lain','type'=>'revenue','level'=>2,'parent'=>'700','postable'=>false,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'7000101','name'=>'Laba Penjualan Aset Tetap','type'=>'revenue','level'=>3,'parent'=>'70001','postable'=>true,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'7000102','name'=>'Pendapatan Lain-lain','type'=>'revenue','level'=>3,'parent'=>'70001','postable'=>true,'cash'=>false,'normal'=>'credit'],
+            ['code'=>'70002','name'=>'Beban Lain-lain','type'=>'expense','level'=>2,'parent'=>'700','postable'=>false,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'7000201','name'=>'Rugi Penjualan Aset Tetap','type'=>'expense','level'=>3,'parent'=>'70002','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'7000202','name'=>'Kerugian Lain-lain','type'=>'expense','level'=>3,'parent'=>'70002','postable'=>true,'cash'=>false,'normal'=>'debit'],
         ];
 
         $coaIds = [];
 
         foreach ($accounts as $account) {
             DB::table('chart_of_accounts')->updateOrInsert(
-                ['entity_id' => $entityId, 'code' => $account['code']],
+                ['entity_id'=>$entityId,'code'=>$account['code']],
                 [
-                    'name' => $account['name'],
-                    'level' => $account['level'],
-                    'type' => $account['type'],
-                    'normal_balance' => $account['normal'],
-                    'parent_id' => null,
-                    'is_postable' => $account['postable'],
-                    'is_cash_bank' => $account['cash'],
-                    'is_active' => true,
-                    'updated_at' => $now,
+                    'name'=>$account['name'],
+                    'level'=>$account['level'],
+                    'type'=>$account['type'],
+                    'normal_balance'=>$account['normal'],
+                    'parent_id'=>null,
+                    'is_postable'=>$account['postable'],
+                    'is_cash_bank'=>$account['cash'],
+                    'is_active'=>true,
+                    'updated_at'=>$now,
                 ]
             );
 
             $coaIds[$account['code']] = DB::table('chart_of_accounts')
-                ->where('entity_id', $entityId)
-                ->where('code', $account['code'])
+                ->where('entity_id',$entityId)
+                ->where('code',$account['code'])
                 ->value('id');
         }
 
         foreach ($accounts as $account) {
-            if ($account['parent']) {
+            if ($account['parent'] !== null) {
                 DB::table('chart_of_accounts')
-                    ->where('id', $coaIds[$account['code']])
-                    ->update(['parent_id' => $coaIds[$account['parent']], 'updated_at' => $now]);
+                    ->where('id',$coaIds[$account['code']])
+                    ->update([
+                        'parent_id'=>$coaIds[$account['parent']],
+                        'updated_at'=>$now,
+                    ]);
             }
         }
 
@@ -465,67 +587,53 @@ class DatabaseSeeder extends Seeder
         // Single source of truth untuk engine accounting/HPP.
         // ================================================================
         $mappingAccounts = [
-            'cash' => '1000101',
-            'bank' => '1000201',
-            'receivable' => '1000301',
-            'payable' => '20001',
-            'inventory' => '12000',
-            'sales_merchandise' => '4000101',
-            'sales_finished_goods' => '4000102',
-            'sales_service' => '4000103',
-            'cogs_merchandise' => '5000101',
-            'cogs_finished_goods' => '5000102',
-            'direct_labor' => '5000201',
-            'direct_overhead' => '5000202',
-            'direct_material' => '5000203',
+            'cash'=>'1000101',
+            'bank'=>'1000201',
+            'receivable'=>'1000301',
+            'payable'=>'20001',
+            'inventory'=>'1000401',
+            'sales_merchandise'=>'4000101',
+            'sales_finished_goods'=>'4000102',
+            'sales_service'=>'4000103',
+            'cogs_merchandise'=>'5000101',
+            'cogs_finished_goods'=>'5000102',
+            'cogs_service'=>'5000103',
+            'direct_labor'=>'5000201',
+            'direct_overhead'=>'5000202',
+            'direct_material'=>'5000203',
+            'direct_equipment'=>'5000204',
+            'direct_rent'=>'5000205',
         ];
-
-        // Persediaan belum ada di daftar legacy COA di atas.
-        // Tambahkan akun postable agar mapping inventory valid.
-        DB::table('chart_of_accounts')->updateOrInsert(
-            ['entity_id' => $entityId, 'code' => '12000'],
-            [
-                'name' => 'Persediaan',
-                'level' => 2,
-                'type' => 'asset',
-                'normal_balance' => 'debit',
-                'parent_id' => $coaIds['100'],
-                'is_postable' => true,
-                'is_cash_bank' => false,
-                'is_active' => true,
-                'updated_at' => $now,
-            ]
-        );
-        $coaIds['12000'] = DB::table('chart_of_accounts')
-            ->where('entity_id', $entityId)->where('code', '12000')->value('id');
 
         $buMappings = [
-            'RET' => [
-                'cash', 'bank', 'receivable', 'payable', 'inventory',
-                'sales_merchandise', 'cogs_merchandise',
+            'RET'=>[
+                'cash','bank','receivable','payable','inventory',
+                'sales_merchandise','cogs_merchandise',
             ],
-            'PROD' => [
-                'cash', 'bank', 'receivable', 'payable', 'inventory',
-                'sales_finished_goods', 'cogs_finished_goods',
-                'direct_material', 'direct_labor', 'direct_overhead',
+            'PROD'=>[
+                'cash','bank','receivable','payable','inventory',
+                'sales_finished_goods','cogs_finished_goods',
+                'direct_material','direct_labor','direct_equipment',
+                'direct_rent','direct_overhead',
             ],
-            'JASA' => [
-                'cash', 'bank', 'receivable', 'payable',
-                'sales_service', 'direct_labor', 'direct_overhead', 'direct_material',
+            'JASA'=>[
+                'cash','bank','receivable','payable',
+                'sales_service','cogs_service',
+                'direct_labor','direct_equipment','direct_rent','direct_overhead',
             ],
         ];
 
-        foreach ($buMappings as $buCode => $keys) {
+        foreach ($buMappings as $buCode=>$keys) {
             foreach ($keys as $key) {
                 DB::table('business_unit_account_mappings')->updateOrInsert(
                     [
-                        'business_unit_id' => $buIds[$buCode],
-                        'mapping_key' => $key,
+                        'business_unit_id'=>$buIds[$buCode],
+                        'mapping_key'=>$key,
                     ],
                     [
-                        'entity_id' => $entityId,
-                        'account_id' => $coaIds[$mappingAccounts[$key]],
-                        'updated_at' => $now,
+                        'entity_id'=>$entityId,
+                        'account_id'=>$coaIds[$mappingAccounts[$key]],
+                        'updated_at'=>$now,
                     ]
                 );
             }
