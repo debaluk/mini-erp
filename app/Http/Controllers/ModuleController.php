@@ -74,7 +74,7 @@ class ModuleController extends Controller
             'material-usage'=>'Pemakaian Bahan', 'production-cost'=>'HPP Produksi',
             'fleet'=>'Kendaraan', 'deliveries'=>'Pengiriman', 'operations'=>'Operasional Armada', 'fleet-costs'=>'Biaya Armada',
             'journals'=>'Jurnal', 'ledger'=>'Buku Besar', 'receivables'=>'Piutang', 'cashbank'=>'Kas & Bank',
-            'cogs'=>'HPP', 'profit-loss'=>'Laba Rugi', 'trial-balance'=>'Neraca Saldo', 'balance-sheet'=>'Neraca', 'cash-flow'=>'Arus Kas',
+            'cogs'=>'HPP', 'profit-loss'=>'Laba Rugi', 'trial-balance'=>'Neraca Saldo', 'balance-sheet'=>'Neraca', 'cash-flow'=>'Arus Kas', 'closing'=>'Closing Periode',
         ];
         abort_unless(isset($titles[$module]), 404);
         $data = $this->base($module, $titles[$module]);
