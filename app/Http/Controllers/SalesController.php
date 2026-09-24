@@ -77,7 +77,7 @@ class SalesController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('erp.sales.index', compact('rows', 'units'));
+        return view('inventori.penjualan.tempo.index', compact('rows', 'units'));
     }
 
     public function export(Request $request)
@@ -378,7 +378,7 @@ class SalesController extends Controller
             );
         }
 
-        return view('erp.sales.show', compact('sale', 'items', 'payments', 'previousReceivable'));
+        return view('inventori.penjualan.tempo.show', compact('sale', 'items', 'payments', 'previousReceivable'));
     }
 
     public function print(int $id)
@@ -424,6 +424,6 @@ class SalesController extends Controller
             ->get(['puc.product_id', 'puc.unit_id', 'puc.conversion_factor', 'puc.is_default_sale', 'u.code', 'u.name'])
             ->groupBy('product_id');
 
-        return view('erp.sales.create', compact('units', 'customers', 'products', 'productConversions'));
+        return view('inventori.penjualan.tempo.create', compact('units', 'customers', 'products', 'productConversions'));
     }
 }
