@@ -248,7 +248,7 @@ Route::middleware('auth')->group(function () {
         ->middleware('access:inventori')
         ->name('inventori.retur-pembelian');
 
-    Route::get('/produksi/work-order', fn () => view('produksi.work-order'))
+    Route::get('/produksi/work-order', fn () => view('inventori.produksi.work-order.index'))
         ->middleware('access:inventori')
         ->name('produksi.work-order');
 
