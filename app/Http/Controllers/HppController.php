@@ -153,7 +153,7 @@ class HppController extends Controller
                 });
         }
 
-        return view('erp.hpp.index', [
+        return view('inventori.laporan.hpp', [
             'entity' => $entity,
             'startDate' => $startDate,
             'endDate' => $endDate,
