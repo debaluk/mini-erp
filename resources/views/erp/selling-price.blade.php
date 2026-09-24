@@ -407,8 +407,8 @@
         const save = document.getElementById('setup-save');
         save.disabled = true;
         const url = editMode
-            ? '{{ url('/inventory/initial-setup') }}/' + productId.value
-            : '{{ route('inventory.initial-setup') }}';
+            ? '{{ url('/inventori/initial-setup') }}/' + productId.value
+            : '{{ route('inventori.initial-setup') }}';
 
         const response = await fetch(url, {
             method: 'POST',
