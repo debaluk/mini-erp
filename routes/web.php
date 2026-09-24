@@ -212,11 +212,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/akuntansi/arus-kas', fn () => app(ModuleController::class)->show('cash-flow'))->middleware('access:keuangan')->name('akuntansi.arus-kas');
     Route::get('/akuntansi/arus-kas/export-excel', [ModuleController::class, 'exportCashFlowExcel'])->middleware('access:keuangan')->name('akuntansi.arus-kas.export-excel');
 
-    Route::get('/laporan/penjualan', fn () => app(ModuleController::class)->show('sales'))->middleware('access:inventori')->name('laporan.penjualan');
+    Route::get('/laporan/penjualan', fn () => view('inventori.laporan.penjualan'))->middleware('access:inventori')->name('laporan.penjualan');
     Route::get('/laporan/pembelian', [PurchaseReportController::class, 'index'])->middleware('access:inventori')->name('laporan.pembelian');
     Route::get('/laporan/pembelian/export', [PurchaseReportController::class, 'export'])->middleware('access:inventori')->name('laporan.pembelian.export');
     Route::get('/laporan/persediaan', fn () => app(ModuleController::class)->show('stock'))->middleware('access:inventori')->name('laporan.persediaan');
-    Route::get('/laporan/produksi', fn () => app(ModuleController::class)->show('production'))->middleware('access:inventori')->name('laporan.produksi');
+    Route::get('/laporan/produksi', fn () => view('inventori.laporan.produksi'))->middleware('access:inventori')->name('laporan.produksi');
     Route::get('/laporan/piutang', fn () => app(ModuleController::class)->show('receivables'))->middleware('access:keuangan')->name('laporan.piutang');
     Route::get('/laporan/hutang', fn () => app(ModuleController::class)->show('payables'))->middleware('access:keuangan')->name('laporan.hutang');
     Route::get('/laporan/keuangan', fn () => app(ModuleController::class)->show('profit-loss'))->middleware('access:keuangan')->name('laporan.keuangan');
