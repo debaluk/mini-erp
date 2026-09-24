@@ -22,7 +22,7 @@ class PosController extends Controller
             ->where('p.entity_id', $entity)
             ->where('p.is_active', 1)
             ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
-            ->leftJoin(DB::raw('(SELECT entity_id, product_id, SUM(qty) AS stock_qty FROM warehouses_stocks GROUP BY entity_id, product_id) AS ws'), function ($join) {
+            ->leftJoin(DB::raw("(SELECT ws.entity_id, ws.product_id, SUM(ws.qty) AS stock_qty FROM warehouses_stocks ws JOIN warehouses w ON w.id = ws.warehouse_id JOIN business_units bu ON bu.id = w.business_unit_id WHERE bu.code = 'RET' AND bu.is_active = 1 GROUP BY ws.entity_id, ws.product_id) AS ws"), function ($join) {
                 $join->on('ws.product_id', '=', 'p.id')->on('ws.entity_id', '=', 'p.entity_id');
             })
             ->orderBy('p.name')
