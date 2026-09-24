@@ -425,3 +425,191 @@ Penerimaan unidentified merupakan mekanisme exception dan bukan jalur normal pen
 | Faktur Pembelian | BELUM DIAUDIT |
 | Retur Pembelian | BELUM DIAUDIT |
 | Accounting Pembelian | BELUM DIAUDIT |
+
+---
+
+# Audit & Locked Design
+
+> Audit dilakukan terhadap schema aktual setelah migration baseline dan alignment purchasing. Bagian yang berstatus **locked** tidak diubah tanpa persetujuan eksplisit.
+
+## Final Tahap #1 — Purchasing
+
+### Locked Flow
+
+```
+PO
+ ↓
+Receipt
+ ↓
+Purchase / Invoice
+ ↓
+AP
+ ↓
+Payment
+```
+
+### Purchasing Branches
+
+```
+PO → Cancellation
+
+Receipt / Purchase → Return
+
+Payment → Supplier Advance
+
+Purchase / Receipt → Additional Cost
+
+Purchase → Correction
+```
+
+### Prinsip Purchasing
+
+- **PO** hanya commitment. PO tidak menggerakkan stok, hutang, atau jurnal.
+- **Receipt** adalah penerimaan fisik barang dan gateway stock-in.
+- **Purchase / Invoice** menjadi dasar hutang supplier dan accounting setelah penerimaan.
+- **Payment** digunakan untuk settlement hutang supplier.
+- **Receipt ↔ Purchase Item** menggunakan allocation dan mendukung hubungan many-to-many.
+- Return, supplier advance, additional cost, dan correction memiliki tabel transaksi masing-masing.
+- Struktur tabel purchasing yang sudah diaudit dinyatakan **locked** untuk lanjut ke tahap UI.
+
+### Tabel Purchasing yang Sudah Tersedia
+
+- `purchase_orders`
+- `purchase_order_items`
+- `purchase_order_cancellations`
+- `purchase_order_cancellation_items`
+- `receipts`
+- `receipt_items`
+- `receipt_invoice_allocations`
+- `purchases`
+- `purchase_items`
+- `purchase_returns`
+- `purchase_return_items`
+- `supplier_payments`
+- `supplier_payment_allocations`
+- `supplier_advances`
+- `supplier_advance_allocations`
+- `purchase_additional_costs`
+- `purchase_additional_cost_allocations`
+- `purchase_corrections`
+
+## Inventory — Core Locked, Mutasi Antar Gudang Ditahan
+
+### Core Inventory
+
+Schema yang sudah tersedia:
+
+- `products`
+- `product_business_units`
+- `units`
+- `warehouses`
+- `warehouse_business_units`
+- `warehouses_stocks`
+- `stock_movements`
+- `stock_opnames`
+- `stock_opname_items`
+
+### Stock Gateway
+
+Penerimaan purchasing mengikuti:
+
+```
+Receipt
+ ↓
+Receipt Item
+ ↓
+Stock Movement
+ ↓
+Warehouse Stock
+```
+
+Receipt tetap merupakan gateway penerimaan barang dari purchasing.
+
+### Mutasi Antar Gudang
+
+**Belum dikunci dan belum dibuat.**
+
+Konsep yang sedang dipertimbangkan:
+
+```
+Gudang A
+   ↓ OUT
+Mutasi Antar Gudang
+   ↓ IN
+Gudang B
+```
+
+Mutasi antar gudang **belum dianggap sebagai Receipt purchasing**, karena bukan pembelian dan bukan penerimaan dari supplier.
+
+Tabel `stock_transfers` dan `stock_transfer_items` **belum dibuat dan tidak boleh dibuat sebelum konsep mutasi antar gudang difinalkan**.
+
+## Audit Status Tahap #1
+
+| Area | Status |
+|---|---|
+| Purchasing flow | 🔒 LOCKED |
+| Purchasing schema | 🔒 LOCKED |
+| Receipt sebagai stock-in purchasing gateway | 🔒 LOCKED |
+| Inventory core schema | 🔒 LOCKED |
+| Mutasi antar gudang | ⏸️ OPEN / belum final |
+| UI Purchasing | ▶️ Siap dilanjutkan |
+| UI Inventory | ⏸️ Menunggu keputusan mutasi antar gudang |
+
+## Catatan Audit
+
+**Schema siap tidak otomatis berarti engine transaksi sudah tervalidasi.**
+
+Tahap berikutnya adalah audit flow dan kesiapan tabel untuk **Produksi**, kemudian dilanjutkan audit engine/controller sebelum implementasi UI.
+
+---
+
+# Locked Business Rules
+
+## Entity & Business Unit
+
+- `Entity` = entitas legal/perusahaan.
+- `Business Unit` = konteks operasional/sumber transaksi.
+- Business Unit default:
+  - `RET` = Retail
+  - `PROD` = Produksi
+  - `JASA` = Jasa
+- Satu user dapat memiliki mapping ke beberapa Business Unit.
+- Neraca bersifat consolidated pada entity.
+- Laba rugi dapat dipilih berdasarkan Business Unit.
+
+## Item & Unit
+
+Jenis item:
+
+- Barang
+- Jasa
+- Aset
+
+**Unit/UOM** adalah satuan pengukuran item dan berbeda dari Business Unit.
+
+## HPP
+
+- Retail menggunakan Moving Average / Perpetual.
+- Production HPP menggunakan total actual cost BUASO terhadap target produksi.
+- BUASO:
+  - **B** = Bahan / Material Usage
+  - **U** = Upah
+  - **A** = Alat
+  - **S** = Sewa
+  - **O** = Overhead
+- BUASO adalah bagian dari engine HPP dan **tidak boleh disamakan dengan COA mapping**.
+- COA mapping merupakan source of truth untuk pemetaan akun accounting.
+- Reject/damage produksi menggunakan account:
+  - `6000402` = Beban Kerusakan Persediaan & Stock Opname
+
+## Production Actual Result
+
+Schema produksi sudah memiliki dukungan untuk target, good output, dan reject, tetapi workflow UI actual result **belum dibuat**.
+
+Prinsip yang dikunci:
+
+- Target produksi dan hasil actual harus dapat dibedakan.
+- HPP produksi menggunakan target quantity sebagai denominator sesuai engine yang telah dikunci.
+- Good output dan reject harus dapat dicatat sebagai hasil actual.
+- Nilai reject tidak boleh dibebankan dua kali.
+
