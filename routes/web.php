@@ -259,7 +259,7 @@ Route::middleware('auth')->group(function () {
         ->middleware('access:inventori')
         ->name('inventori.margin-control');
 
-    Route::get('/akuntansi/closing-periode', fn () => view('akuntansi.closing-periode'))
+    Route::get('/akuntansi/closing-periode', fn () => app(ModuleController::class)->show('closing'))
         ->middleware('access:keuangan')
         ->name('akuntansi.closing-periode');
 
