@@ -21,7 +21,6 @@ use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\BusinessUnitController;
 use App\Http\Controllers\BusinessUnitAccountMappingController;
 use App\Http\Controllers\UnitConversionController;
-use App\Http\Controllers\ShiftController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -73,7 +72,7 @@ Route::middleware('auth')->group(function () {
         }
     }
 
-    $kasirModules = ['pos','sales','payments','shifts'];
+    $kasirModules = ['sales','payments'];
     foreach ($kasirModules as $module) {
         Route::get('/erp/'.$module, function () use ($module) {
             return app(ModuleController::class)->show($module);
@@ -84,7 +83,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/erp/pos/item/{id}/remove', [PosController::class, 'removeItem'])->middleware('access:pos_retail')->name('erp.pos.remove');
     Route::post('/erp/pos/clear', [PosController::class, 'clear'])->middleware('access:pos_retail')->name('erp.pos.clear');
     Route::post('/erp/pos', [PosController::class, 'store'])->middleware('access:pos_retail')->name('erp.pos.store');
-    Route::post('/erp/shift', [ModuleController::class, 'shiftStore'])->middleware('access:pos_retail')->name('erp.shift.store');
 
     $pembelianModules = ['purchases','receipts'];
     foreach ($pembelianModules as $module) {
@@ -168,7 +166,7 @@ Route::middleware('auth')->group(function () {
         }
     }
 
-    Route::get('/pos/pos', fn () => app(ModuleController::class)->show('pos'))->middleware('access:pos_retail')->name('pos.pos');
+    Route::get('/pos/pos', [PosController::class, 'index'])->middleware('access:pos_retail')->name('pos.pos');
     Route::get('/pos/penjualan', fn () => app(ModuleController::class)->show('sales'))->middleware('access:pos_retail')->name('pos.penjualan');
     Route::get('/inventori/penjualan', [SalesController::class, 'index'])->middleware('access:inventori')->name('inventori.penjualan');
     Route::get('/inventori/penjualan/create', [SalesController::class, 'create'])->middleware('access:inventori')->name('inventori.penjualan.create');
@@ -189,16 +187,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/pos/retur/lookup', [SalesReturnController::class, 'saleLookup'])->middleware('access:pos_retail')->name('pos.retur.lookup');
     Route::post('/pos/retur', [SalesReturnController::class, 'store'])->middleware('access:pos_retail')->name('pos.retur.store');
 
-    Route::get('/pos/shift', [ShiftController::class, 'index'])->middleware('access:pos_retail')->name('pos.shift');
-    Route::post('/pos/shift/open', [ShiftController::class, 'open'])->middleware('access:pos_retail')->name('pos.shift.open');
-    Route::post('/pos/shift/movement', [ShiftController::class, 'movement'])->middleware('access:pos_retail')->name('pos.shift.movement');
-    Route::post('/pos/shift/close', [ShiftController::class, 'close'])->middleware('access:pos_retail')->name('pos.shift.close');
-    Route::get('/pos/shift/{id}/detail', [ShiftController::class, 'detail'])->middleware('access:pos_retail')->name('pos.shift.detail');
 
-    Route::get('/pos', fn () => app(ModuleController::class)->show('pos'))->middleware('access:pos_retail')->name('pos');
+    Route::get('/pos', [PosController::class, 'index'])->middleware('access:pos_retail')->name('pos');
     Route::get('/penjualan', fn () => app(ModuleController::class)->show('sales'))->middleware('access:pos_retail')->name('penjualan');
     Route::get('/pembayaran', fn () => app(ModuleController::class)->show('payments'))->middleware('access:pos_retail')->name('pembayaran');
-    Route::get('/shift', fn () => redirect()->route('pos.shift'))->middleware('access:pos_retail')->name('shift');
 
     Route::get('/inventori/pembelian', [PurchaseController::class, 'index'])->middleware('access:inventori')->name('inventori.pembelian');
     Route::get('/inventori/pembelian/create', [PurchaseController::class, 'create'])->middleware('access:inventori')->name('inventori.pembelian.create');
