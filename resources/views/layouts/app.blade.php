@@ -51,7 +51,7 @@
     ['route' => 'master.menu.customer', 'label' => 'Pelanggan'],
     ['route' => 'master.menu.supplier', 'label' => 'Supplier'],
     ['route' => 'master.menu.pekerja', 'label' => 'Pekerja'],
-    ['route' => 'erp.bom', 'label' => 'BOM'],
+    ['route' => 'master.bom', 'label' => 'BOM'],
     ['route' => 'master.akun', 'label' => 'COA/Akun'],
 ] as $menu)
     <li><a class="dropdown-item" href="{{ route($menu['route']) }}">{{ $menu['label'] }}</a></li>
