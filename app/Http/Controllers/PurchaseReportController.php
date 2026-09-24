@@ -46,7 +46,7 @@ class PurchaseReportController extends Controller
         $units = DB::table('business_units')->where('entity_id', $entity)->where('is_active', 1)->orderBy('name')->get(['id','name']);
         $entityName = DB::table('entities')->where('id', $entity)->value('name') ?? 'MINI ERP';
 
-        return view('erp.reports.purchases', compact('rows', 'suppliers', 'units', 'entityName'));
+        return view('inventori.laporan.pembelian', compact('rows', 'suppliers', 'units', 'entityName'));
     }
 
     public function export(Request $request)
