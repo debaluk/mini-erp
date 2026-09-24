@@ -101,6 +101,12 @@ class SettingsController extends Controller
             ->groupBy('user_id')
             ->map(fn ($rows) => $rows->pluck('module')->values()->all());
 
+        foreach ($users as $user) {
+            if ($user->role === 'owner') {
+                $userModules[$user->id] = ['master', 'inventori', 'keuangan', 'pengaturan'];
+            }
+        }
+
         $businessUnits = DB::table('business_units')
             ->where('entity_id', $entityId)
             ->where('is_active', true)
