@@ -128,7 +128,8 @@ return new class extends Migration
             $t->dateTime('posted_at')->nullable()->after('posting_status');
             $t->foreignId('posted_by')->nullable()->after('posted_at')
                 ->constrained('users')->nullOnDelete();
-            $t->string('tax_condition')->default('non_ppn')->after('supplier_invoice_date');
+            $t->string('supplier_tax_status')->default('non_pkp')->after('supplier_invoice_date');
+            $t->string('tax_condition')->default('non_ppn')->after('supplier_tax_status');
             $t->string('tax_invoice_no')->nullable()->after('tax_condition');
             $t->date('tax_invoice_date')->nullable()->after('tax_invoice_no');
             $t->string('tax_invoice_status')->default('belum_ada')->after('tax_invoice_date');
@@ -157,8 +158,6 @@ return new class extends Migration
             $t->decimal('taxable_amount', 18, 2)->default(0)->after('line_discount');
             $t->decimal('tax_rate', 9, 4)->default(0)->after('taxable_amount');
             $t->decimal('tax_amount', 18, 2)->default(0)->after('tax_rate');
-            $t->decimal('base_qty', 18, 6)->default(0)->change();
-            $t->decimal('base_unit_cost', 18, 4)->default(0)->change();
             $t->index(['purchase_id', 'product_id']);
         });
 
@@ -179,6 +178,7 @@ return new class extends Migration
 
             $t->index(['receipt_item_id', 'purchase_item_id']);
             $t->index(['purchase_item_id', 'receipt_item_id']);
+            $t->unique(['receipt_item_id', 'purchase_item_id'], 'receipt_invoice_alloc_unique');
         });
 
         // ================================================================
@@ -407,13 +407,11 @@ return new class extends Migration
             $t->dropUnique('purchases_tax_invoice_unique');
             $t->dropIndex(['entity_id', 'supplier_id', 'posting_status']);
             $t->dropIndex(['entity_id', 'tax_invoice_status', 'tax_invoice_date']);
-            $t->dropForeign(['document_type']);
-            $t->dropForeign(['source_type']);
             $t->dropForeign(['posted_by']);
             $t->dropForeign(['cancelled_by']);
             $t->dropColumn([
                 'document_type', 'source_type', 'goods_received', 'posting_status',
-                'posted_at', 'posted_by', 'tax_condition', 'tax_invoice_no',
+                'posted_at', 'posted_by', 'supplier_tax_status', 'tax_condition', 'tax_invoice_no',
                 'tax_invoice_date', 'tax_invoice_status', 'dpp', 'ppn_rate',
                 'ppn_amount', 'document_discount', 'additional_cost',
                 'rounding_amount', 'posting_memo', 'cancelled_by',
@@ -424,7 +422,6 @@ return new class extends Migration
         Schema::table('receipt_items', function (Blueprint $t) {
             $t->dropForeign(['purchase_order_item_id']);
             $t->dropIndex(['purchase_order_item_id']);
-            $t->dropIndex(['purchase_item_id']);
             $t->dropColumn([
                 'purchase_order_item_id', 'unit_cost', 'base_unit_cost',
                 'valuation_status'
