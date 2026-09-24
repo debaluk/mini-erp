@@ -224,7 +224,6 @@ class SalesController extends Controller
                 'business_unit_id' => $unit->id,
                 'customer_id' => $data['customer_id'] ?? null,
                 'user_id' => auth()->id(),
-                'shift_id' => null,
                 'invoice_no' => $invoiceNo,
                 'sale_date' => now(),
                 'due_date' => $data['payment_method'] === 'Kredit / Bon' ? $data['due_date'] : null,
