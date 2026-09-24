@@ -45,7 +45,7 @@ class PurchaseController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('erp.purchases.index', compact('rows', 'suppliers', 'units'));
+        return view('inventori.pembelian.index', compact('rows', 'suppliers', 'units'));
     }
 
     public function create()
@@ -77,7 +77,7 @@ class PurchaseController extends Controller
             ->get(['puc.product_id','puc.unit_id','puc.conversion_factor','puc.is_default_purchase','u.code','u.name'])
             ->groupBy('product_id');
 
-        return view('erp.purchases.create', compact('suppliers', 'units', 'products', 'productUoms'));
+        return view('inventori.pembelian.create', compact('suppliers', 'units', 'products', 'productUoms'));
     }
 
     public function edit(int $id)
@@ -125,6 +125,6 @@ class PurchaseController extends Controller
             ->get(['puc.product_id','puc.unit_id','puc.conversion_factor','puc.is_default_purchase','u.code','u.name'])
             ->groupBy('product_id');
 
-        return view('erp.purchases.create', compact('purchase', 'suppliers', 'units', 'products', 'items', 'productUoms'));
+        return view('inventori.pembelian.create', compact('purchase', 'suppliers', 'units', 'products', 'items', 'productUoms'));
     }
 }
