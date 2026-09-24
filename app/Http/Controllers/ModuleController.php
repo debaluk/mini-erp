@@ -145,6 +145,23 @@ class ModuleController extends Controller
         if (in_array($module, ['ledger','receivables','cashbank','cogs','trial-balance','profit-loss','balance-sheet','cash-flow'], true)) {
             $data['report'] = $this->report($module, $entity);
         }
+        $inventoryViews = [
+            'sales' => 'inventori.laporan.penjualan',
+            'purchases' => 'inventori.pembelian.faktur.index',
+            'receipts' => 'inventori.pembelian.penerimaan.index',
+            'stock' => 'inventori.laporan.persediaan',
+            'movements' => 'inventori.persediaan.mutasi.index',
+            'opname' => 'inventori.persediaan.opname.index',
+            'production' => 'inventori.produksi.work-order.index',
+            'production-results' => 'inventori.produksi.hasil-scrap.index',
+            'material-usage' => 'inventori.produksi.bahan-baku.index',
+            'production-cost' => 'inventori.produksi.hasil-scrap.index',
+        ];
+
+        if (isset($inventoryViews[$module])) {
+            return view($inventoryViews[$module], $data);
+        }
+
         return view('erp.module', $data);
     }
 
