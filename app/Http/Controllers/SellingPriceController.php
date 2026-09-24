@@ -68,7 +68,7 @@ class SellingPriceController extends Controller
             ->distinct()
             ->get();
 
-        return view('erp.selling-price', compact('rows', 'products', 'entityName'));
+        return view('inventori.persediaan.initial-setup.index', compact('rows', 'products', 'entityName'));
     }
 
     public function storeInitial(Request $request)
