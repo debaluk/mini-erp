@@ -611,7 +611,7 @@ class ErpController extends Controller
         }
 
         $rows = DB::table($config['table'])->where('entity_id',$entity)->latest('id')->paginate(15)->withQueryString();
-        return view('master.shared.index', compact('config','rows','type'));
+        return view(match ($type) { 'customers' => 'master.customer.index', 'suppliers' => 'master.supplier.index', 'workers' => 'master.worker.index', 'warehouses' => 'master.warehouse.index', default => abort(404), }, compact('config','rows','type'));
     }
 
     public function masterStore(Request $request, string $type)

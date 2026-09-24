@@ -21,7 +21,7 @@
                     aria-label="Edit akun"
                     data-bs-toggle="modal"
                     data-bs-target="#account-edit-{{ $account->id }}">✎</button>
-            <form method="POST" action="{{ route('akuntansi.akun.delete', $account->id) }}" class="d-inline"
+            <form method="POST" action="{{ route('master.akun.delete', $account->id) }}" class="d-inline"
                   onsubmit="return confirm('Hapus akun {{ addslashes($account->code) }} — {{ addslashes($account->name) }}?');">
                 @csrf
                 @method('DELETE')
@@ -35,7 +35,7 @@
 
 @if($children->has($account->id))
     @foreach($children->get($account->id) as $child)
-        @include('akuntansi.partials.akun-row', [
+        @include('master.account.akun-row', [
             'account' => $child,
             'children' => $children,
             'nextCodes' => $nextCodes,

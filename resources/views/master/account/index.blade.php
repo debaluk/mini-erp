@@ -6,7 +6,7 @@
         <h3 class="mb-1">Akun</h3>
         <div class="text-secondary">Chart of Accounts / daftar akun keuangan</div>
     </div>
-    <a href="{{ route('akuntansi.akun.export-excel') }}" class="btn btn-success">Export Excel</a>
+    <a href="{{ route('master.akun.export-excel') }}" class="btn btn-success">Export Excel</a>
 </div>
 
 @php
@@ -46,7 +46,7 @@
     <div class="modal fade" id="account-add-{{ $a->id }}" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow">
-                <form method="POST" action="{{ route('akuntansi.akun.store') }}">
+                <form method="POST" action="{{ route('master.akun.store') }}">
                     @csrf
                     <input type="hidden" name="parent_id" value="{{ $a->id }}">
                     <div class="modal-header"><h5 class="modal-title">Tambah Akun</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
@@ -68,7 +68,7 @@
     <div class="modal fade" id="account-edit-{{ $a->id }}" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow">
-                <form method="POST" action="{{ route('akuntansi.akun.update', $a->id) }}">
+                <form method="POST" action="{{ route('master.akun.update', $a->id) }}">
                     @csrf @method('PUT')
                     <div class="modal-header"><h5 class="modal-title">Edit Akun</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                     <div class="modal-body">
