@@ -131,7 +131,7 @@ class ErpController extends Controller
             ]);
         }
 
-        return view('erp.master-item', compact('items', 'units', 'businessUnits'));
+        return view('master.item.index', compact('items', 'units', 'businessUnits'));
     }
 
     public function itemCreate()
@@ -148,7 +148,7 @@ class ErpController extends Controller
             ->orderBy('id')
             ->get();
 
-        return view('erp.master-item-create', compact('units', 'businessUnits'));
+        return view('master.item.create', compact('units', 'businessUnits'));
     }
 
     public function itemInlineUomStore(Request $request)
@@ -377,7 +377,7 @@ class ErpController extends Controller
             ]);
         }
 
-        return view('erp.master-item-edit', compact('item', 'units', 'businessUnits', 'selectedBusinessUnits', 'conversions'));
+        return view('master.item.edit', compact('item', 'units', 'businessUnits', 'selectedBusinessUnits', 'conversions'));
     }
 
     public function itemUpdate(Request $request, int $id)
@@ -466,7 +466,7 @@ class ErpController extends Controller
             ]);
         }
 
-        return view('erp.master-unit');
+        return view('master.unit.index');
     }
 
     public function unitStore(Request $request)
