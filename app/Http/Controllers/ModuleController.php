@@ -67,7 +67,7 @@ class ModuleController extends Controller
     public function show(string $module)
     {
         $titles = [
-            'pos'=>'POS Retail', 'sales'=>'Transaksi Penjualan', 'payments'=>'Pembayaran',
+'sales'=>'Transaksi Penjualan', 'payments'=>'Pembayaran',
             'purchases'=>'Pembelian', 'receipts'=>'Penerimaan Barang', 'payables'=>'Hutang',
             'stock'=>'Stok', 'movements'=>'Mutasi Stok', 'opname'=>'Stock Opname',
             'bom'=>'Formula / BOM', 'production'=>'Produksi Batako', 'production-results'=>'Hasil Produksi',
@@ -145,16 +145,7 @@ class ModuleController extends Controller
         if (in_array($module, ['ledger','receivables','cashbank','cogs','trial-balance','profit-loss','balance-sheet','cash-flow'], true)) {
             $data['report'] = $this->report($module, $entity);
         }
-        if ($module === 'pos') {
-            $data['posCart'] = request()->session()->get('pos_cart', []);
-            $data['posSubtotal'] = 0;
-            foreach ($data['posCart'] as $item) {
-                $data['posSubtotal'] += (float) $item['price'] * (float) $item['qty'];
-            }
-            $data['posTotal'] = $data['posSubtotal'];
-        }
-
-        return $module === 'pos' ? view('erp.pos-page', $data) : view('erp.module', $data);
+        return view('erp.module', $data);
     }
 
     public function paymentsData(Request $request)
