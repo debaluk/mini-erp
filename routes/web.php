@@ -15,7 +15,7 @@ use App\Http\Controllers\ReceiptController;
 use App\Http\Controllers\SalesReturnController;
 use App\Http\Controllers\SalesController;
 use App\Http\Controllers\StockController;
-use App\Http\Controllers\SellingPriceController;
+use App\Http\Controllers\InitialSetupController;
 use App\Http\Controllers\ProductPriceController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\BusinessUnitController;
@@ -92,9 +92,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/master/harga-jual/history', [ProductPriceController::class, 'history'])->middleware('access:master')->name('master.harga-jual.history');
     Route::put('/master/harga-jual/{id}', [ProductPriceController::class, 'update'])->middleware('access:master')->name('master.harga-jual.update');
 
-    Route::get('/inventori/initial-setup', [SellingPriceController::class, 'index'])->middleware('access:inventori')->name('inventori.initial-setup');
-    Route::post('/inventori/initial-setup', [SellingPriceController::class, 'storeInitial'])->middleware('access:inventori')->name('inventori.initial-setup.store');
-    Route::put('/inventori/initial-setup/{product}', [SellingPriceController::class, 'update'])->middleware('access:inventori')->name('inventori.initial-setup.update');
+    Route::get('/inventori/initial-setup', [InitialSetupController::class, 'index'])->middleware('access:inventori')->name('inventori.initial-setup');
+    Route::post('/inventori/initial-setup', [InitialSetupController::class, 'storeInitial'])->middleware('access:inventori')->name('inventori.initial-setup.store');
+    Route::put('/inventori/initial-setup/{product}', [InitialSetupController::class, 'update'])->middleware('access:inventori')->name('inventori.initial-setup.update');
 
     foreach ($masterMenuPaths as $path => $type) {
         if ($type === 'unit-conversions') {
