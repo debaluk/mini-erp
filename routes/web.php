@@ -72,48 +72,10 @@ Route::middleware('auth')->group(function () {
         }
     }
 
-    $kasirModules = ['sales','payments'];
-    foreach ($kasirModules as $module) {
-        Route::get('/erp/'.$module, function () use ($module) {
-            return app(ModuleController::class)->show($module);
-        })->middleware('access:inventori')->name('erp.'.$module);
-    }
-    $pembelianModules = ['purchases','receipts'];
-    foreach ($pembelianModules as $module) {
-        Route::get('/erp/'.$module, function () use ($module) {
-            return app(ModuleController::class)->show($module);
-        })->middleware('access:inventori')->name('erp.'.$module);
-    }
-    Route::get('/erp/payables', function () { return app(ModuleController::class)->show('payables'); })->middleware('access:keuangan')->name('erp.payables');
-    Route::post('/erp/purchase', [ErpController::class, 'purchaseStore'])->middleware('access:inventori')->name('erp.purchase.store');
 
-    $inventoryModules = ['stock','movements','opname'];
-    foreach ($inventoryModules as $module) {
-        Route::get('/erp/'.$module, function () use ($module) {
-            return app(ModuleController::class)->show($module);
-        })->middleware('access:inventori')->name('erp.'.$module);
-    }
-    Route::post('/erp/movement', [ModuleController::class, 'movementStore'])->middleware('access:inventori')->name('erp.movement.store');
-    Route::post('/erp/opname', [ModuleController::class, 'opnameStore'])->middleware('access:inventori')->name('erp.opname.store');
 
-    Route::get('/erp/bom', [BomController::class, 'show'])->middleware('access:master')->name('erp.bom');
-    Route::post('/erp/bom', [BomController::class, 'store'])->middleware('access:master')->name('erp.bom.store');
 
-    $productionModules = ['production','production-results','material-usage','production-cost'];
-    foreach ($productionModules as $module) {
-        Route::get('/erp/'.$module, function () use ($module) {
-            return app(ModuleController::class)->show($module);
-        })->middleware('access:inventori')->name('erp.'.$module);
-    }
-    Route::post('/erp/production', [ProductionController::class, 'store'])->middleware('access:inventori')->name('erp.production.store');
 
-    $accountingModules = ['journals','ledger','receivables','cashbank','cogs','profit-loss','balance-sheet','cash-flow'];
-    foreach ($accountingModules as $module) {
-        Route::get('/erp/'.$module, function () use ($module) {
-            return app(ModuleController::class)->show($module);
-        })->middleware('access:keuangan')->name('erp.'.$module);
-    }
-    Route::post('/erp/journal', [ModuleController::class, 'journalStore'])->middleware('access:keuangan')->name('erp.journal.store');
 
     Route::get('/master/unit', function (Request $request) {
         return app(ErpController::class)->master($request, 'units');
@@ -171,8 +133,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/pos/retur', [SalesReturnController::class, 'store'])->middleware('access:inventori')->name('pos.retur.store');
 
 
-    Route::get('/penjualan', fn () => app(ModuleController::class)->show('sales'))->middleware('access:inventori')->name('penjualan');
-    Route::get('/pembayaran', fn () => app(ModuleController::class)->show('payments'))->middleware('access:inventori')->name('pembayaran');
 
     Route::get('/inventori/pembelian', [PurchaseController::class, 'index'])->middleware('access:inventori')->name('inventori.pembelian');
     Route::get('/inventori/pembelian/create', [PurchaseController::class, 'create'])->middleware('access:inventori')->name('inventori.pembelian.create');
@@ -186,12 +146,18 @@ Route::middleware('auth')->group(function () {
     Route::get('/inventori/transfer', fn () => app(ModuleController::class)->show('movements'))->middleware('access:inventori')->name('inventori.transfer');
     Route::get('/inventori/adjustment', fn () => app(ModuleController::class)->show('movements'))->middleware('access:inventori')->name('inventori.adjustment');
     Route::get('/inventori/stock-opname', fn () => app(ModuleController::class)->show('opname'))->middleware('access:inventori')->name('inventori.stock-opname');
-    Route::get('/produksi/bom', fn () => app(BomController::class)->show())->middleware('access:inventori')->name('produksi.bom');
     Route::get('/produksi', fn () => app(ModuleController::class)->show('production'))->middleware('access:inventori')->name('produksi');
     Route::get('/produksi/pemakaian-bahan', fn () => app(ModuleController::class)->show('material-usage'))->middleware('access:inventori')->name('produksi.pemakaian-bahan');
     Route::get('/produksi/hasil-produksi', fn () => app(ModuleController::class)->show('production-results'))->middleware('access:inventori')->name('produksi.hasil-produksi');
     Route::get('/produksi/reject', fn () => app(ModuleController::class)->show('production-results'))->middleware('access:inventori')->name('produksi.reject');
     Route::get('/produksi/hpp', [HppController::class, 'index'])->middleware('access:inventori')->name('produksi.hpp');
+    Route::get('/master/bom', [BomController::class, 'show'])
+        ->middleware('access:master')
+        ->name('master.bom');
+    Route::post('/master/bom', [BomController::class, 'store'])
+        ->middleware('access:master')
+        ->name('master.bom.store');
+
     Route::get('/master/akun', [AccountController::class, 'index'])->middleware('access:master')->name('master.akun');
     Route::post('/master/akun', [AccountController::class, 'store'])->middleware('access:master')->name('master.akun.store');
     Route::put('/master/akun/{id}', [AccountController::class, 'update'])->middleware('access:master')->name('master.akun.update');
