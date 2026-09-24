@@ -66,7 +66,6 @@
                         <li class="dropdown-submenu">
                             <a class="dropdown-item dropdown-toggle" href="#">PENJUALAN</a>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{{ route('pos.pos') }}" onclick="window.open(this.href, 'POSKasir', 'width=1400,height=900,resizable=yes,scrollbars=yes'); return false;">POS Kasir (Tunai/Retail)</a></li>
                                 <li><a class="dropdown-item" href="{{ route('inventori.penjualan') }}">Penjualan Tempo/Invoice</a></li>
                                 <li><a class="dropdown-item" href="{{ route('pos.retur') }}">Retur Penjualan</a></li>
                             </ul>
