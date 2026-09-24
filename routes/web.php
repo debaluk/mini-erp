@@ -6,7 +6,6 @@ use App\Http\Controllers\AccountController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ErpController;
 use App\Http\Controllers\ModuleController;
-use App\Http\Controllers\PosController;
 use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\PurchaseOrderController;
@@ -79,12 +78,6 @@ Route::middleware('auth')->group(function () {
             return app(ModuleController::class)->show($module);
         })->middleware('access:inventori')->name('erp.'.$module);
     }
-    Route::post('/erp/pos/add', [PosController::class, 'add'])->middleware('access:inventori')->name('erp.pos.add');
-    Route::put('/erp/pos/item/{id}', [PosController::class, 'updateItem'])->middleware('access:inventori')->name('erp.pos.update');
-    Route::post('/erp/pos/item/{id}/remove', [PosController::class, 'removeItem'])->middleware('access:inventori')->name('erp.pos.remove');
-    Route::post('/erp/pos/clear', [PosController::class, 'clear'])->middleware('access:inventori')->name('erp.pos.clear');
-    Route::post('/erp/pos', [PosController::class, 'store'])->middleware('access:inventori')->name('erp.pos.store');
-
     $pembelianModules = ['purchases','receipts'];
     foreach ($pembelianModules as $module) {
         Route::get('/erp/'.$module, function () use ($module) {
@@ -157,7 +150,6 @@ Route::middleware('auth')->group(function () {
         }
     }
 
-    Route::get('/pos/pos', [PosController::class, 'index'])->middleware('access:inventori')->name('pos.pos');
     Route::get('/pos/penjualan', fn () => app(ModuleController::class)->show('sales'))->middleware('access:inventori')->name('pos.penjualan');
     Route::get('/inventori/penjualan', [SalesController::class, 'index'])->middleware('access:inventori')->name('inventori.penjualan');
     Route::get('/inventori/penjualan/create', [SalesController::class, 'create'])->middleware('access:inventori')->name('inventori.penjualan.create');
@@ -179,7 +171,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/pos/retur', [SalesReturnController::class, 'store'])->middleware('access:inventori')->name('pos.retur.store');
 
 
-    Route::get('/pos', [PosController::class, 'index'])->middleware('access:inventori')->name('pos');
     Route::get('/penjualan', fn () => app(ModuleController::class)->show('sales'))->middleware('access:inventori')->name('penjualan');
     Route::get('/pembayaran', fn () => app(ModuleController::class)->show('payments'))->middleware('access:inventori')->name('pembayaran');
 
