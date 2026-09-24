@@ -65,18 +65,25 @@ return new class extends Migration
 
         Schema::create('purchase_order_cancellation_items', function (Blueprint $t) {
             $t->id();
-            $t->foreignId('purchase_order_cancellation_id')
-                ->constrained('purchase_order_cancellations')
-                ->cascadeOnDelete();
-            $t->foreignId('purchase_order_item_id')
-                ->constrained('purchase_order_items')
-                ->restrictOnDelete();
+            $t->foreignId('purchase_order_cancellation_id');
+            $t->foreign(
+                'purchase_order_cancellation_id',
+                'po_cancel_items_cancel_fk'
+            )->references('id')->on('purchase_order_cancellations')->cascadeOnDelete();
+            $t->foreignId('purchase_order_item_id');
+            $t->foreign(
+                'purchase_order_item_id',
+                'po_cancel_items_item_fk'
+            )->references('id')->on('purchase_order_items')->restrictOnDelete();
             $t->decimal('qty', 18, 3);
             $t->decimal('conversion_factor', 18, 6)->default(1);
             $t->decimal('base_qty', 18, 6)->default(0);
             $t->timestamps();
 
-            $t->index(['purchase_order_item_id', 'purchase_order_cancellation_id']);
+            $t->index(
+                ['purchase_order_item_id', 'purchase_order_cancellation_id'],
+                'po_cancel_items_item_cancel_idx'
+            );
         });
 
         // ================================================================
@@ -149,7 +156,10 @@ return new class extends Migration
             $t->unique(['entity_id', 'supplier_id', 'supplier_invoice_no'], 'purchases_supplier_invoice_unique');
             $t->unique(['entity_id', 'tax_invoice_no'], 'purchases_tax_invoice_unique');
             $t->index(['entity_id', 'supplier_id', 'posting_status']);
-            $t->index(['entity_id', 'tax_invoice_status', 'tax_invoice_date']);
+            $t->index(
+                ['entity_id', 'tax_invoice_status', 'tax_invoice_date'],
+                'purchases_tax_status_date_idx'
+            );
         });
 
         Schema::table('purchase_items', function (Blueprint $t) {
@@ -324,9 +334,11 @@ return new class extends Migration
 
         Schema::create('purchase_additional_cost_allocations', function (Blueprint $t) {
             $t->id();
-            $t->foreignId('purchase_additional_cost_id')
-                ->constrained('purchase_additional_costs')
-                ->restrictOnDelete();
+            $t->foreignId('purchase_additional_cost_id');
+            $t->foreign(
+                'purchase_additional_cost_id',
+                'purchase_add_cost_alloc_cost_fk'
+            )->references('id')->on('purchase_additional_costs')->restrictOnDelete();
             $t->foreignId('receipt_item_id')->nullable()->constrained('receipt_items')->restrictOnDelete();
             $t->foreignId('purchase_item_id')->nullable()->constrained('purchase_items')->restrictOnDelete();
             $t->decimal('amount', 18, 2);
