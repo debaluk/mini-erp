@@ -139,7 +139,7 @@ class PosController extends Controller
         $cart = $this->cart($request);
         abort_if(empty($cart), 422, 'Belum ada barang dalam transaksi.');
 
-remove shift block        $subtotal = 0;
+        $subtotal = 0;
         foreach ($cart as $item) {
             $subtotal += (float) $item['price'] * (float) $item['qty'];
         }
