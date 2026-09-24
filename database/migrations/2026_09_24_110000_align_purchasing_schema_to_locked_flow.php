@@ -279,7 +279,7 @@ return new class extends Migration
             $t->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $t->timestamps();
 
-            $t->unique(['supplier_payment_id', 'purchase_id']);
+            $t->unique(['supplier_payment_id', 'purchase_id'], 'supplier_pay_alloc_unique');
             $t->index(['purchase_id', 'status']);
         });
 
