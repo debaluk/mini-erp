@@ -153,7 +153,7 @@
                 <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">PENGATURAN</a><ul class="dropdown-menu">
                     <li><a class="dropdown-item" href="{{ route('pengaturan.user') }}">User</a></li>
                     <li><a class="dropdown-item" href="{{ route('pengaturan.entitas') }}">Entitas</a></li>
-                    @if(in_array(auth()->user()->role, ['superadmin','owner','admin']))<li><a class="dropdown-item" href="{{ route('pengaturan.konfigurasi') }}">Konfigurasi</a></li>@endif
+                    <li><a class="dropdown-item" href="{{ route('pengaturan.konfigurasi') }}">Konfigurasi</a></li>
                 </ul></li>
                 @endif
             </ul>
