@@ -59,7 +59,7 @@
                 </ul></li>
                 @endif
 
-                @if(auth()->user()->hasModuleAccess('inventori_operasional'))
+                @if(auth()->user()->hasModuleAccess('inventori'))
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">INVENTORI &amp; OPERASIONAL</a>
                     <ul class="dropdown-menu">
@@ -91,8 +91,8 @@
                         <li class="dropdown-submenu">
                             <a class="dropdown-item dropdown-toggle" href="#">PERSEDIAAN</a>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{{ route('inventory.initial-setup') }}">Setup Stok Awal</a></li>
-                                <li><a class="dropdown-item" href="{{ route('erp.movements') }}">Mutasi Barang</a></li>
+                                <li><a class="dropdown-item" href="{{ route('inventori.initial-setup') }}">Setup Stok Awal</a></li>
+                                <li><a class="dropdown-item" href="{{ route('inventori.transfer') }}">Mutasi Barang</a></li>
                                 <li><a class="dropdown-item" href="{{ route('inventori.adjustment') }}">Penyesuaian Stok</a></li>
                                 <li><a class="dropdown-item" href="{{ route('inventori.stock-opname') }}">Stok Opname</a></li>
                             </ul>
@@ -112,11 +112,10 @@
                 </li>
                 @endif
 
-                @if(auth()->user()->hasModuleAccess('keuangan_akuntansi'))
+                @if(auth()->user()->hasModuleAccess('keuangan'))
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">KEUANGAN &amp; AKUNTANSI</a>
                     <ul class="dropdown-menu">
-                        @if(auth()->user()->hasModuleAccess('keuangan_akuntansi'))
                         <li class="dropdown-submenu">
                             <a class="dropdown-item dropdown-toggle" href="#">KAS &amp; BANK</a>
                             <ul class="dropdown-menu">
@@ -134,7 +133,6 @@
                             </ul>
                         </li>
                         @endif
-                        @if(auth()->user()->hasModuleAccess('keuangan_akuntansi'))
                         <li class="dropdown-submenu">
                             <a class="dropdown-item dropdown-toggle" href="#">LAPORAN KEUANGAN</a>
                             <ul class="dropdown-menu">
@@ -151,10 +149,10 @@
                 </li>
                 @endif
 
-                @if(auth()->user()->hasModuleAccess('seting'))
+                @if(auth()->user()->hasModuleAccess('pengaturan'))
                 <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">PENGATURAN</a><ul class="dropdown-menu">
-                    @if(in_array(auth()->user()->role, ['owner']))<li><a class="dropdown-item" href="{{ route('pengaturan.user') }}">User</a></li>@endif
-                    @if(in_array(auth()->user()->role, ['superadmin','owner']))<li><a class="dropdown-item" href="{{ route('pengaturan.entitas') }}">Entitas</a></li>@endif
+                    <li><a class="dropdown-item" href="{{ route('pengaturan.user') }}">User</a></li>
+                    <li><a class="dropdown-item" href="{{ route('pengaturan.entitas') }}">Entitas</a></li>
                     @if(in_array(auth()->user()->role, ['superadmin','owner','admin']))<li><a class="dropdown-item" href="{{ route('pengaturan.konfigurasi') }}">Konfigurasi</a></li>@endif
                 </ul></li>
                 @endif
