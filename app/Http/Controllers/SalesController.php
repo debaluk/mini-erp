@@ -80,6 +80,31 @@ class SalesController extends Controller
         return view('inventori.penjualan.tempo.index', compact('rows', 'units'));
     }
 
+    public function report(Request $request)
+    {
+        $entity = $this->entityId();
+        $startDate = $request->filled('start_date') ? $request->input('start_date') : now()->startOfMonth()->toDateString();
+        $endDate = $request->filled('end_date') ? $request->input('end_date') : now()->endOfMonth()->toDateString();
+
+        $rows = DB::table('sales as s')
+            ->leftJoin('customers as c', 'c.id', '=', 's.customer_id')
+            ->leftJoin('business_units as bu', 'bu.id', '=', 's.business_unit_id')
+            ->where('s.entity_id', $entity)
+            ->whereDate('s.sale_date', '>=', $startDate)
+            ->whereDate('s.sale_date', '<=', $endDate)
+            ->when($request->filled('customer'), fn ($q) => $q->where('c.name', 'like', '%'.$request->customer.'%'))
+            ->when($request->filled('unit_id'), fn ($q) => $q->where('s.business_unit_id', $request->unit_id))
+            ->when($request->filled('payment_method'), fn ($q) => $q->whereExists(function ($sub) use ($request) {
+                $sub->select(DB::raw(1))->from('payments as fp')->whereColumn('fp.sale_id', 's.id')->where('fp.method', $request->payment_method);
+            }))
+            ->select('s.*', 'c.name as customer_name', 'bu.name as unit_name', DB::raw("(SELECT GROUP_CONCAT(DISTINCT p.method ORDER BY p.id SEPARATOR ', ') FROM payments p WHERE p.sale_id = s.id) as payment_methods"))
+            ->orderByDesc('s.sale_date')->orderByDesc('s.id')->paginate(10)->withQueryString();
+
+        $units = DB::table('business_units')->where('entity_id', $entity)->where('is_active', 1)->orderBy('name')->get();
+
+        return view('inventori.laporan.penjualan', compact('rows', 'units'));
+    }
+
     public function export(Request $request)
     {
         $entity = $this->entityId();
