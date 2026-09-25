@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\BusinessUnit;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Validation\Rule;
 
 class BusinessUnitController extends Controller
@@ -24,9 +26,17 @@ class BusinessUnitController extends Controller
             ->orderBy('code')
             ->get();
 
-        $editUnit = $request->filled('edit')
-            ? BusinessUnit::where('entity_id', $entityId)->findOrFail((int) $request->input('edit'))
-            : null;
+        $editUnit = null;
+
+        if ($request->filled('edit')) {
+            try {
+                $editId = (int) Crypt::decryptString($request->input('edit'));
+            } catch (DecryptException $e) {
+                abort(404);
+            }
+
+            $editUnit = BusinessUnit::where('entity_id', $entityId)->findOrFail($editId);
+        }
 
         return view('master.unit-bisnis.index', compact('units', 'editUnit'));
     }
