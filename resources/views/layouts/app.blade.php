@@ -40,6 +40,14 @@
         <div class="collapse navbar-collapse" id="topMenu">
             <ul class="navbar-nav me-auto mb-2 mb-xl-0">
                 <li class="nav-item"><a class="nav-link" href="{{ route('dashboard') }}">Dashboard</a></li>
+                @if(auth()->user()->hasModuleAccess('inventori'))
+                <li class="nav-item">
+                    <a class="nav-link fw-semibold" href="{{ route('pos.penjualan') }}" title="Penjualan Tunai">
+                        <span class="me-1">🛒</span> Penjualan Tunai
+                    </a>
+                </li>
+                @endif
+
                 @if(auth()->user()->hasModuleAccess('master'))
                 <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">MASTER DATA</a><ul class="dropdown-menu">
                     @foreach([
@@ -67,7 +75,7 @@
                             <a class="dropdown-item dropdown-toggle" href="#">PENJUALAN</a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ route('inventori.penjualan') }}">Penjualan Tempo/Invoice</a></li>
-                                <li><a class="dropdown-item" href="{{ route('pos.retur') }}">Retur Penjualan</a></li>
+                                <li><a class="dropdown-item" href="{{ route('inventori.pembelian.retur') }}">Retur Penjualan</a></li>
                             </ul>
                         </li>
                         <li class="dropdown-submenu">
