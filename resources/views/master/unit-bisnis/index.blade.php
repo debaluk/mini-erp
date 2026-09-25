@@ -59,7 +59,7 @@
                                 </span>
                             </td>
                             <td>
-                                <a href="{{ route('pengaturan.unit-bisnis', ['edit' => $unit->id]) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                <a href="{{ route('pengaturan.unit-bisnis', ['edit' => Crypt::encryptString((string) $unit->id)]) }}" class="btn btn-sm btn-outline-primary">Edit</a>
                                 <form method="POST" action="{{ route('pengaturan.unit-bisnis.destroy', $unit->id) }}" class="d-inline" onsubmit="return confirm('Hapus unit bisnis ini?')">
                                     @csrf
                                     @method('DELETE')
