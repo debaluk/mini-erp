@@ -81,14 +81,14 @@ Route::middleware('auth')->group(function () {
     Route::post('/inventori/initial-setup', [InitialSetupController::class, 'storeInitial'])->middleware('access:inventori')->name('inventori.initial-setup.store');
     Route::put('/inventori/initial-setup/{product}', [InitialSetupController::class, 'update'])->middleware('access:inventori')->name('inventori.initial-setup.update');
 
-    Route::get('/pos/', fn () => app(PosController::class)->show('sales'))->middleware('access:inventori')->name('pos');
+    Route::get('/pos/', fn () => app(PosController::class)->show('sales'))->middleware('access:pos')->name('pos');
     Route::get('/inventori/penjualan', [SalesController::class, 'index'])->middleware('access:inventori')->name('inventori.penjualan');
     Route::get('/inventori/penjualan/create', [SalesController::class, 'create'])->middleware('access:inventori')->name('inventori.penjualan.create');
     Route::get('/inventori/penjualan/export-data', [SalesController::class, 'export'])->middleware('access:inventori')->name('inventori.penjualan.export-data');
     Route::post('/inventori/penjualan', [SalesController::class, 'store'])->middleware('access:inventori')->name('inventori.penjualan.store');
-    Route::get('/pos/penjualan/data', [PosController::class, 'salesData'])->middleware('access:inventori')->name('pos.penjualan.data');
-    Route::get('/pos/penjualan/export-excel', [PosController::class, 'exportSalesExcel'])->middleware('access:inventori')->name('pos.penjualan.export-excel');
-    Route::get('/pos/penjualan/{id}/detail', [PosController::class, 'salesDetail'])->middleware('access:inventori')->name('pos.penjualan.detail');
+    Route::get('/pos/penjualan/data', [PosController::class, 'salesData'])->middleware('access:pos')->name('pos.penjualan.data');
+    Route::get('/pos/penjualan/export-excel', [PosController::class, 'exportSalesExcel'])->middleware('access:pos')->name('pos.penjualan.export-excel');
+    Route::get('/pos/penjualan/{id}/detail', [PosController::class, 'salesDetail'])->middleware('access:pos')->name('pos.penjualan.detail');
     Route::get('/inventori/penjualan/retur', [SalesReturnController::class, 'index'])->middleware('access:inventori')->name('inventori.penjualan.retur');
     Route::get('/inventori/penjualan/retur/data', [SalesReturnController::class, 'data'])->middleware('access:inventori')->name('inventori.penjualan.retur.data');
     Route::get('/inventori/penjualan/retur/export-excel', [SalesReturnController::class, 'exportExcel'])->middleware('access:inventori')->name('inventori.penjualan.retur.export-excel');
