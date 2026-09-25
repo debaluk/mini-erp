@@ -75,7 +75,7 @@
                             <a class="dropdown-item dropdown-toggle" href="#">PENJUALAN</a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ route('inventori.penjualan') }}">Penjualan Tempo/Invoice</a></li>
-                                <li><a class="dropdown-item" href="{{ route('inventori.pembelian.retur') }}">Retur Penjualan</a></li>
+                                <li><a class="dropdown-item" href="{{ route('pos.retur') }}">Retur Penjualan</a></li>
                             </ul>
                         </li>
                         <li class="dropdown-submenu">
