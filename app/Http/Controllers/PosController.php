@@ -7,6 +7,13 @@ use Illuminate\Support\Facades\DB;
 
 class PosController extends ModuleController
 {
+    private function entityId(): int
+    {
+        $entity = DB::table('entities')->first();
+        abort_unless($entity, 422, 'Entitas belum tersedia.');
+        return (int) $entity->id;
+    }
+
 public function show(string $module)
     {
         $titles = [
