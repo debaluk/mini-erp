@@ -16,6 +16,7 @@ class SettingsController extends Controller
     private function moduleCatalog(): array
     {
         return [
+            'pos' => 'POS',
             'master' => 'Master',
             'inventori' => 'Inventori',
             'keuangan' => 'Keuangan',
@@ -26,9 +27,9 @@ class SettingsController extends Controller
     private function defaultModulesForRole(string $role): array
     {
         return match ($role) {
-            'owner' => ['master', 'inventori', 'keuangan', 'pengaturan'],
+            'owner' => ['pos', 'master', 'inventori', 'keuangan', 'pengaturan'],
             'admin' => ['master', 'pengaturan'],
-            'kasir' => ['inventori'],
+            'kasir' => ['pos'],
             'inventori' => ['inventori'],
             'akuntansi' => ['keuangan'],
             default => [],
@@ -103,7 +104,7 @@ class SettingsController extends Controller
 
         foreach ($users as $user) {
             if ($user->role === 'owner') {
-                $userModules[$user->id] = ['master', 'inventori', 'keuangan', 'pengaturan'];
+                $userModules[$user->id] = ['pos', 'master', 'inventori', 'keuangan', 'pengaturan'];
             }
         }
 
@@ -301,11 +302,11 @@ class SettingsController extends Controller
         $permissions = ['Master', 'Inventori', 'Keuangan', 'Pengaturan'];
 
         $matrix = [
-            'owner' => ['Master' => true, 'Inventori' => true, 'Keuangan' => true, 'Pengaturan' => true],
-            'admin' => ['Master' => true, 'Inventori' => false, 'Keuangan' => false, 'Pengaturan' => true],
-            'kasir' => ['Master' => false, 'Inventori' => true, 'Keuangan' => false, 'Pengaturan' => false],
-            'inventori' => ['Master' => false, 'Inventori' => true, 'Keuangan' => false, 'Pengaturan' => false],
-            'akuntansi' => ['Master' => false, 'Inventori' => false, 'Keuangan' => true, 'Pengaturan' => false],
+            'owner' => ['POS' => true, 'Master' => true, 'Inventori' => true, 'Keuangan' => true, 'Pengaturan' => true],
+            'admin' => ['POS' => false, 'Master' => true, 'Inventori' => false, 'Keuangan' => false, 'Pengaturan' => true],
+            'kasir' => ['POS' => true, 'Master' => false, 'Inventori' => false, 'Keuangan' => false, 'Pengaturan' => false],
+            'inventori' => ['POS' => false, 'Master' => false, 'Inventori' => true, 'Keuangan' => false, 'Pengaturan' => false],
+            'akuntansi' => ['POS' => false, 'Master' => false, 'Inventori' => false, 'Keuangan' => true, 'Pengaturan' => false],
         ];
 
         return view('settings.roles', compact('roles', 'permissions', 'matrix'));
