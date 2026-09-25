@@ -53,7 +53,7 @@
 <div class="modal fade" id="return-modal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">
-            <form method="POST" action="{{ route('pos.retur.store') }}" id="return-form">
+            <form method="POST" action="{{ route('inventori.pembelian.retur.store') }}" id="return-form">
                 @csrf
                 <div class="modal-header">
                     <h5 class="modal-title">Tambah Retur Penjualan</h5>
@@ -164,7 +164,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('return-search').addEventListener('click', function () {
         const invoice = document.getElementById('return-invoice').value.trim();
         if (!invoice) return alert('Nomor struk wajib diisi.');
-        fetch(@json(route('pos.retur.lookup')) + '?invoice_no=' + encodeURIComponent(invoice), { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
+        fetch(@json(route('inventori.pembelian.retur.lookup')) + '?invoice_no=' + encodeURIComponent(invoice), { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
             .then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(new Error(e.message || 'Struk tidak ditemukan.'))))
             .then(payload => {
                 sale = payload.sale;
@@ -204,7 +204,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         fetch(form.action, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
             .then(r => {
-                if (r.ok) return window.location.href = @json(route('pos.retur'));
+                if (r.ok) return window.location.href = @json(route('inventori.pembelian.retur'));
                 return r.json().then(e => Promise.reject(new Error(e.message || 'Retur gagal diproses.')));
             })
             .catch(e => alert(e.message));
@@ -229,7 +229,7 @@ document.addEventListener('DOMContentLoaded', function () {
         pageLength: 15,
         lengthMenu: [[15, 25, 50, 100], [15, 25, 50, 100]],
         ajax: {
-            url: @json(route('pos.retur.data')),
+            url: @json(route('inventori.pembelian.retur.data')),
             data: function (d) {
                 d.start_date = document.getElementById('return-start-date').value;
                 d.end_date = document.getElementById('return-end-date').value;
