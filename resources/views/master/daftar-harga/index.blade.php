@@ -435,4 +435,4 @@
 })();
 </script>
 @endpush
-@endsectionion
+@endsection
