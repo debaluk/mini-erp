@@ -83,8 +83,27 @@ class ProductPriceController extends Controller
             ->orderBy('u.name');
 
         if ($request->expectsJson()) {
-            $perPage = 25;
-            $paginator = $query->paginate($perPage);
+            if ($request->has('draw')) {
+                $total = (clone $query)->getCountForPagination();
+                $start = max(0, (int) $request->input('start', 0));
+                $length = (int) $request->input('length', 15);
+                $length = $length > 0 ? min($length, 100) : 15;
+
+                $rows = (clone $query)
+                    ->offset($start)
+                    ->limit($length)
+                    ->get();
+
+                return response()->json([
+                    'draw' => (int) $request->input('draw'),
+                    'recordsTotal' => $total,
+                    'recordsFiltered' => $total,
+                    'data' => $rows,
+                ]);
+            }
+
+            $paginator = $query->paginate(25);
+
             return response()->json([
                 'data' => $paginator->items(),
                 'pagination' => [
