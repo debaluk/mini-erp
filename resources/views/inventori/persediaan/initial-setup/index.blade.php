@@ -16,7 +16,19 @@
         <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
             <div>
                 <div class="fw-semibold">Daftar Initial Setup</div>
-                <div class="small text-secondary">Semua item Barang ditampilkan. Setiap item hanya dapat memiliki satu Initial Setup.</div>
+                <div class="small text-secondary">Initial Setup dikelola terpisah untuk setiap Business Unit.</div>
+            </div>
+
+            <div style="min-width: 260px;">
+                <label for="business-unit-filter" class="form-label small fw-semibold mb-1">Business Unit</label>
+                <select id="business-unit-filter" class="form-select form-select-sm">
+                    @foreach($businessUnits as $businessUnit)
+                        <option value="{{ $businessUnit->id }}"
+                            @selected((int) $businessUnit->id === (int) $businessUnitId)>
+                            {{ $businessUnit->code }} — {{ $businessUnit->name }}
+                        </option>
+                    @endforeach
+                </select>
             </div>
         </div>
     </div>
@@ -98,6 +110,7 @@
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <form id="setup-awal-form">
+                <input type="hidden" name="business_unit_id" id="setup-business-unit-id" value="{{ $businessUnitId }}">
                 <div class="modal-header py-2">
                     <h5 class="modal-title" id="setup-modal-title">Setup Awal</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -155,6 +168,16 @@
 (function () {
     const products = @json($products);
     const exportRows = @json($rows);
+    const businessUnitFilter = document.getElementById('business-unit-filter');
+    const setupBusinessUnitId = document.getElementById('setup-business-unit-id');
+
+    businessUnitFilter.addEventListener('change', () => {
+        const url = new URL(window.location.href);
+        url.searchParams.set('business_unit_id', businessUnitFilter.value);
+        window.location.href = url.toString();
+    });
+
+    setupBusinessUnitId.value = businessUnitFilter.value;
     const modalEl = document.getElementById('setupAwalModal');
     const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
     const detailModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('detailHargaJualModal'));
@@ -421,6 +444,7 @@
                 const fd = new FormData(form);
                 if (editMode) fd.append('_method', 'PUT');
                 fd.set('product_id', productId.value);
+                fd.set('business_unit_id', businessUnitFilter.value);
                 fd.set('purchase_price', parseMoney(purchase.value));
                 fd.set('initial_stock', parseDecimal(initialStock.value));
                 fd.set('markup_percent', parseDecimal(markup.value));
