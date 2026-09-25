@@ -156,7 +156,7 @@
                 @endif
             </ul>
             <div class="d-flex align-items-center gap-2">
-                @if(auth()->user()->hasModuleAccess('inventori'))
+                @if(auth()->user()->hasModuleAccess('pos'))
                 <a class="btn btn-outline-light btn-sm fw-semibold" href="{{ route('pos') }}" title="Penjualan Tunai">
                     <span class="me-1">🛒</span> Penjualan Tunai
                 </a>
