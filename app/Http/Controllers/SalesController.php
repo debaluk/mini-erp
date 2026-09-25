@@ -40,7 +40,7 @@ class SalesController extends Controller
         return ['unit_id' => $unitId, 'factor' => (float) $conversion->conversion_factor];
     }
 
-    public function index(Request $request, string $view = 'inventori.penjualan.tempo.index')
+    public function index(Request $request)
     {
         $entity = $this->entityId();
         $startDate = $request->filled('start_date') ? $request->input('start_date') : now()->startOfMonth()->toDateString();
@@ -77,7 +77,7 @@ class SalesController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view($view, compact('rows', 'units'));
+        return view('inventori.penjualan.tempo.index', compact('rows', 'units'));
     }
 
     public function export(Request $request)
