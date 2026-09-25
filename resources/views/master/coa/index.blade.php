@@ -32,7 +32,7 @@
             </thead>
             <tbody>
             @forelse($children->get(null, collect()) as $a)
-                @include('master.account.akun-row', ['account'=>$a,'children'=>$children,'nextCodes'=>$nextCodes,'depth'=>0,'typeLabels'=>$typeLabels])
+                @include('master.coa.akun-row', ['account'=>$a,'children'=>$children,'nextCodes'=>$nextCodes,'depth'=>0,'typeLabels'=>$typeLabels])
             @empty
                 <tr><td colspan="5" class="text-center text-secondary py-5">Belum ada akun utama.</td></tr>
             @endforelse
