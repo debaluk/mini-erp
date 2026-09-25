@@ -56,7 +56,7 @@
 </div>
 
 <div class="modal fade" id="priceSetupModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered" style="max-width: 1100px; margin: 1.75rem auto;">
+    <div class="modal-dialog modal-fullscreen-sm-down modal-dialog-centered" style="max-width: 1400px; width: 95%; margin: 1.75rem auto;">
         <form id="priceSetupForm">
             @csrf
             <input type="hidden" name="business_unit_id" id="priceBusinessUnitId">
