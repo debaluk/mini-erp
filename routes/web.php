@@ -155,7 +155,7 @@ Route::middleware('auth')->group(function () {
     // ============================================================
     // LAPORAN
     // ============================================================
-    Route::get('/laporan/penjualan', fn (Request $request) => app(SalesController::class)->index($request, 'inventori.laporan.penjualan'))->middleware('access:inventori')->name('laporan.penjualan');
+    Route::get('/laporan/penjualan', fn () => view('inventori.laporan.penjualan'))->middleware('access:inventori')->name('laporan.penjualan');
     Route::get('/laporan/pembelian', [PurchaseReportController::class, 'index'])->middleware('access:inventori')->name('laporan.pembelian');
     Route::get('/laporan/pembelian/export', [PurchaseReportController::class, 'export'])->middleware('access:inventori')->name('laporan.pembelian.export');
     Route::get('/laporan/persediaan', fn () => app(ModuleController::class)->show('stock'))->middleware('access:inventori')->name('laporan.persediaan');
