@@ -31,6 +31,8 @@ class ProductPriceController extends Controller
                     ->select('puc.product_id', 'puc.unit_id')
             );
 
+        $search = trim((string) $request->input('search.value', $request->input('search', '')));
+
         $query = DB::query()
             ->fromSub(
                 DB::query()
@@ -57,8 +59,7 @@ class ProductPriceController extends Controller
             ->when($businessUnitId, function ($q) use ($businessUnitId) {
                 $q->where('pbu.business_unit_id', $businessUnitId);
             })
-            ->when($request->filled('search'), function ($q) use ($request) {
-                $search = trim($request->search);
+            ->when($search !== '', function ($q) use ($search) {
                 $q->where(function ($sub) use ($search) {
                     $sub->where('p.code', 'like', "%{$search}%")
                         ->orWhere('p.name', 'like', "%{$search}%");
