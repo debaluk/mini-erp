@@ -95,11 +95,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/pos/pembayaran/data', [PosController::class, 'paymentsData'])->middleware('access:inventori')->name('pos.pembayaran.data');
     Route::get('/pos/pembayaran/export-excel', [PosController::class, 'exportPaymentsExcel'])->middleware('access:inventori')->name('pos.pembayaran.export-excel');
     Route::get('/pos/pembayaran/{id}/detail', [PosController::class, 'paymentDetail'])->middleware('access:inventori')->name('pos.pembayaran.detail');
-    Route::get('/inventori/pembelian/retur', [SalesReturnController::class, 'index'])->middleware('access:inventori')->name('inventori.pembelian.retur');
-    Route::get('/inventori/pembelian/retur/data', [SalesReturnController::class, 'data'])->middleware('access:inventori')->name('inventori.pembelian.retur.data');
-    Route::get('/inventori/pembelian/retur/export-excel', [SalesReturnController::class, 'exportExcel'])->middleware('access:inventori')->name('inventori.pembelian.retur.export-excel');
-    Route::get('/inventori/pembelian/retur/lookup', [SalesReturnController::class, 'saleLookup'])->middleware('access:inventori')->name('inventori.pembelian.retur.lookup');
-    Route::post('/inventori/pembelian/retur', [SalesReturnController::class, 'store'])->middleware('access:inventori')->name('inventori.pembelian.retur.store');
+    Route::get('/inventori/pembelian/retur', [SalesReturnController::class, 'index'])->middleware('access:inventori')->name('pos.retur');
+    Route::get('/inventori/pembelian/retur/data', [SalesReturnController::class, 'data'])->middleware('access:inventori')->name('pos.retur.data');
+    Route::get('/inventori/pembelian/retur/export-excel', [SalesReturnController::class, 'exportExcel'])->middleware('access:inventori')->name('pos.retur.export-excel');
+    Route::get('/inventori/pembelian/retur/lookup', [SalesReturnController::class, 'saleLookup'])->middleware('access:inventori')->name('pos.retur.lookup');
+    Route::post('/inventori/pembelian/retur', [SalesReturnController::class, 'store'])->middleware('access:inventori')->name('pos.retur.store');
 
     Route::get('/inventori/pembelian', [PurchaseController::class, 'index'])->middleware('access:inventori')->name('inventori.pembelian');
     Route::get('/inventori/pembelian/create', [PurchaseController::class, 'create'])->middleware('access:inventori')->name('inventori.pembelian.create');
