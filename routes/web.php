@@ -91,10 +91,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/pos/penjualan/data', [PosController::class, 'salesData'])->middleware('access:inventori')->name('pos.penjualan.data');
     Route::get('/pos/penjualan/export-excel', [PosController::class, 'exportSalesExcel'])->middleware('access:inventori')->name('pos.penjualan.export-excel');
     Route::get('/pos/penjualan/{id}/detail', [PosController::class, 'salesDetail'])->middleware('access:inventori')->name('pos.penjualan.detail');
-    Route::get('/pos/pembayaran', fn () => app(PosController::class)->show('payments'))->middleware('access:inventori')->name('pos.pembayaran');
-    Route::get('/pos/pembayaran/data', [PosController::class, 'paymentsData'])->middleware('access:inventori')->name('pos.pembayaran.data');
-    Route::get('/pos/pembayaran/export-excel', [PosController::class, 'exportPaymentsExcel'])->middleware('access:inventori')->name('pos.pembayaran.export-excel');
-    Route::get('/pos/pembayaran/{id}/detail', [PosController::class, 'paymentDetail'])->middleware('access:inventori')->name('pos.pembayaran.detail');
     Route::get('/inventori/pembelian/retur', [SalesReturnController::class, 'index'])->middleware('access:inventori')->name('inventori.pembelian.retur');
     Route::get('/inventori/pembelian/retur/data', [SalesReturnController::class, 'data'])->middleware('access:inventori')->name('inventori.pembelian.retur.data');
     Route::get('/inventori/pembelian/retur/export-excel', [SalesReturnController::class, 'exportExcel'])->middleware('access:inventori')->name('inventori.pembelian.retur.export-excel');
