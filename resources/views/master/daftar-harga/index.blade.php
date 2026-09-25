@@ -127,73 +127,6 @@
     const saveButton = document.getElementById('priceSaveButton');
     const today = new Date().toISOString().slice(0, 10);
     let current = null;
-    const dataTable = new DataTable('#priceDataTable', {
-        processing: true,
-        serverSide: true,
-        ordering: false,
-        pageLength: 15,
-        lengthMenu: [[15, 25, 50, 100], [15, 25, 50, 100]],
-        language: {
-            lengthMenu: 'Tampilkan _MENU_ data per halaman',
-            search: 'Cari:',
-            info: 'Menampilkan _START_ sampai _END_ dari _TOTAL_ data',
-            infoEmpty: 'Tidak ada data',
-            infoFiltered: '(disaring dari _MAX_ data)',
-            zeroRecords: 'Data tidak ditemukan',
-            emptyTable: 'Belum ada data',
-            paginate: { first: '<<', last: '>>', next: '>', previous: '<' },
-            processing: 'Memuat...'
-        },
-        ajax: {
-            url: '{{ route('master.menu.harga-jual') }}',
-            type: 'GET',
-            data: function (d) {
-                d.business_unit_id = businessUnitFilter.value || '';
-            },
-            dataSrc: 'data'
-        },
-        columns: [
-            { data: 'business_unit_name', defaultContent: '' },
-            { data: 'product_code', defaultContent: '', className: 'fw-semibold' },
-            { data: 'product_name', defaultContent: '' },
-            { data: 'unit_name', defaultContent: '' },
-            {
-                data: 'selling_price',
-                className: 'text-end',
-                render: (data, type, row) => row.price_id
-                    ? '<span class="fw-semibold">' + formatRupiah(data) + '</span>'
-                    : '<span class="text-muted">Belum Setup</span>'
-            },
-            {
-                data: 'updated_price_date',
-                className: 'text-center',
-                render: data => data ? new Date(data).toLocaleDateString('id-ID') : '-'
-            },
-            {
-                data: null,
-                orderable: false,
-                searchable: false,
-                className: 'text-center text-nowrap',
-                render: (data, type, row) =>
-                    '<button type="button" class="btn btn-sm btn-outline-primary btn-setup-price">Setup / Edit</button> ' +
-                    '<button type="button" class="btn btn-sm btn-outline-secondary btn-history">History</button>'
-            },
-            {
-                data: 'price_id',
-                orderable: false,
-                searchable: false,
-                className: 'text-center',
-                render: data => data
-                    ? '<span class="badge bg-success">Sudah Setup</span>'
-                    : '<span class="badge bg-secondary">Belum Setup</span>'
-            }
-        ],
-        createdRow: (row, data) => {
-            row.querySelector('.btn-setup-price')?.addEventListener('click', () => openSetup(data));
-            row.querySelector('.btn-history')?.addEventListener('click', () => openHistory(data));
-        }
-    });
-
         const formatRupiah = value => {
         if (value === null || value === undefined || value === '') return '-';
         return 'Rp ' + Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 });
@@ -338,6 +271,74 @@
             loading.classList.add('d-none');
         }
     };
+
+    const dataTable = new DataTable('#priceDataTable', {
+        processing: true,
+        serverSide: true,
+        ordering: false,
+        pageLength: 15,
+        lengthMenu: [[15, 25, 50, 100], [15, 25, 50, 100]],
+        language: {
+            lengthMenu: 'Tampilkan _MENU_ data per halaman',
+            search: 'Cari:',
+            info: 'Menampilkan _START_ sampai _END_ dari _TOTAL_ data',
+            infoEmpty: 'Tidak ada data',
+            infoFiltered: '(disaring dari _MAX_ data)',
+            zeroRecords: 'Data tidak ditemukan',
+            emptyTable: 'Belum ada data',
+            paginate: { first: '<<', last: '>>', next: '>', previous: '<' },
+            processing: 'Memuat...'
+        },
+        ajax: {
+            url: '{{ route('master.menu.harga-jual') }}',
+            type: 'GET',
+            data: function (d) {
+                d.business_unit_id = businessUnitFilter.value || '';
+            },
+            dataSrc: 'data'
+        },
+        columns: [
+            { data: 'business_unit_name', defaultContent: '' },
+            { data: 'product_code', defaultContent: '', className: 'fw-semibold' },
+            { data: 'product_name', defaultContent: '' },
+            { data: 'unit_name', defaultContent: '' },
+            {
+                data: 'selling_price',
+                className: 'text-end',
+                render: (data, type, row) => row.price_id
+                    ? '<span class="fw-semibold">' + formatRupiah(data) + '</span>'
+                    : '<span class="text-muted">Belum Setup</span>'
+            },
+            {
+                data: 'updated_price_date',
+                className: 'text-center',
+                render: data => data ? new Date(data).toLocaleDateString('id-ID') : '-'
+            },
+            {
+                data: null,
+                orderable: false,
+                searchable: false,
+                className: 'text-center text-nowrap',
+                render: (data, type, row) =>
+                    '<button type="button" class="btn btn-sm btn-outline-primary btn-setup-price">Setup / Edit</button> ' +
+                    '<button type="button" class="btn btn-sm btn-outline-secondary btn-history">History</button>'
+            },
+            {
+                data: 'price_id',
+                orderable: false,
+                searchable: false,
+                className: 'text-center',
+                render: data => data
+                    ? '<span class="badge bg-success">Sudah Setup</span>'
+                    : '<span class="badge bg-secondary">Belum Setup</span>'
+            }
+        ],
+        createdRow: (row, data) => {
+            row.querySelector('.btn-setup-price')?.addEventListener('click', () => openSetup(data));
+            row.querySelector('.btn-history')?.addEventListener('click', () => openHistory(data));
+        }
+    });
+
 
     filterForm.addEventListener('submit', event => {
         event.preventDefault();
