@@ -35,7 +35,7 @@
 
 @if($children->has($account->id))
     @foreach($children->get($account->id) as $child)
-        @include('master.account.akun-row', [
+        @include('master.coa.akun-row', [
             'account' => $child,
             'children' => $children,
             'nextCodes' => $nextCodes,
