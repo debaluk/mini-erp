@@ -323,8 +323,9 @@ class SalesController extends Controller
         return redirect()->route('inventori.penjualan.show', $saleId)->with('success', 'Penjualan berhasil diposting.');
     }
 
-    public function show(int $id)
+    public function show($id)
     {
+        $id = (int) $id;
         $entity = $this->entityId();
 
         $sale = DB::table('sales as s')
