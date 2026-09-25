@@ -6,7 +6,6 @@ use App\Http\Controllers\AccountController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ErpController;
 use App\Http\Controllers\ModuleController;
-use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\HppController;
@@ -34,6 +33,9 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
+    // ============================================================
+    // MASTER
+    // ============================================================
     Route::get('/master/unit-conversions', [UnitConversionController::class, 'index'])->middleware('access:master')->name('master.unit-conversions');
     Route::get('/master/produk/tambah', [ErpController::class, 'itemCreate'])->middleware('access:master')->name('master.item.create');
     Route::get('/master/produk/{id}/edit', [ErpController::class, 'itemEdit'])->middleware('access:master')->name('master.item.edit');
@@ -46,71 +48,37 @@ Route::middleware('auth')->group(function () {
     Route::put('/master/unit-conversions/{id}', [UnitConversionController::class, 'update'])->middleware('access:master')->name('master.unit-conversions.update');
     Route::delete('/master/unit-conversions/{id}', [UnitConversionController::class, 'destroy'])->middleware('access:master')->name('master.unit-conversions.delete');
 
-    $masterTypes = ['products','customers','suppliers','warehouses','units'];
-    foreach ($masterTypes as $type) {
-        if ($type === 'units') {
-            Route::get('/master/units', [ErpController::class, 'unitMaster'])->middleware('access:master')->name('master.units');
-            Route::post('/master/units', [ErpController::class, 'unitStore'])->middleware('access:master')->name('master.store.units');
-            Route::put('/master/units/{id}', [ErpController::class, 'unitUpdate'])->middleware('access:master')->name('master.update.units');
-            Route::delete('/master/units/{id}', [ErpController::class, 'unitDelete'])->middleware('access:master')->name('master.delete.units');
-        } else {
-            Route::get('/master/'.$type, function (Request $request) use ($type) {
-                return app(ErpController::class)->master($request, $type);
-            })->middleware('access:master')->name('master.'.$type);
-
-            Route::post('/master/'.$type, function (Request $request) use ($type) {
-                return app(ErpController::class)->masterStore($request, $type);
-            })->middleware('access:master')->name('master.store.'.$type);
-
-            Route::put('/master/'.$type.'/{id}', function (Request $request, int $id) use ($type) {
-                return app(ErpController::class)->masterUpdate($request, $type, $id);
-            })->middleware('access:master')->name('master.update.'.$type);
-
-            Route::delete('/master/'.$type.'/{id}', function (Request $request, int $id) use ($type) {
-                return app(ErpController::class)->masterDelete($request, $type, $id);
-            })->middleware('access:master')->name('master.delete.'.$type);
-        }
-    }
-
-
-
-
-
-
-    Route::get('/master/unit', function (Request $request) {
-        return app(ErpController::class)->master($request, 'units');
-    })->middleware('access:master')->name('master.menu.unit');
-
-    $masterMenuPaths = [
-        'produk' => 'products', 'customer' => 'customers', 'supplier' => 'suppliers',
-        'gudang' => 'warehouses', 'satuan' => 'units',
-        'konversi-satuan' => 'unit-conversions',
-    ];
     Route::get('/master/harga-jual', [ProductPriceController::class, 'index'])->middleware('access:master')->name('master.menu.harga-jual');
     Route::get('/master/harga-jual/export', [ProductPriceController::class, 'export'])->middleware('access:master')->name('master.harga-jual.export');
     Route::post('/master/harga-jual', [ProductPriceController::class, 'store'])->middleware('access:master')->name('master.harga-jual.store');
     Route::get('/master/harga-jual/history', [ProductPriceController::class, 'history'])->middleware('access:master')->name('master.harga-jual.history');
     Route::put('/master/harga-jual/{id}', [ProductPriceController::class, 'update'])->middleware('access:master')->name('master.harga-jual.update');
 
+    Route::get('/master/bom', [BomController::class, 'show'])
+        ->middleware('access:master')
+        ->name('master.bom');
+    Route::post('/master/bom', [BomController::class, 'store'])
+        ->middleware('access:master')
+        ->name('master.bom.store');
+    
+    Route::get('/master/akun', [AccountController::class, 'index'])->middleware('access:master')->name('master.akun');
+    Route::post('/master/akun', [AccountController::class, 'store'])->middleware('access:master')->name('master.akun.store');
+    Route::put('/master/akun/{id}', [AccountController::class, 'update'])->middleware('access:master')->name('master.akun.update');
+    Route::delete('/master/akun/{id}', [AccountController::class, 'destroy'])->middleware('access:master')->name('master.akun.delete');
+    Route::get('/master/akun/export-excel', [AccountController::class, 'exportExcel'])->middleware('access:master')->name('master.akun.export-excel');
+
+    Route::get('/pengaturan/konfigurasi/unit-bisnis', [BusinessUnitController::class, 'index'])->middleware('access:master')->name('pengaturan.unit-bisnis');
+    Route::get('/pengaturan/konfigurasi/unit-bisnis/{id}/edit', [BusinessUnitController::class, 'edit'])->middleware('access:master')->name('pengaturan.unit-bisnis.edit');
+    Route::post('/pengaturan/konfigurasi/unit-bisnis', [BusinessUnitController::class, 'store'])->middleware('access:master')->name('pengaturan.unit-bisnis.store');
+    Route::put('/pengaturan/konfigurasi/unit-bisnis/{id}', [BusinessUnitController::class, 'update'])->middleware('access:master')->name('pengaturan.unit-bisnis.update');
+    Route::delete('/pengaturan/konfigurasi/unit-bisnis/{id}', [BusinessUnitController::class, 'destroy'])->middleware('access:master')->name('pengaturan.unit-bisnis.destroy');
+
+    // ============================================================
+    // INVENTORI
+    // ============================================================
     Route::get('/inventori/initial-setup', [InitialSetupController::class, 'index'])->middleware('access:inventori')->name('inventori.initial-setup');
     Route::post('/inventori/initial-setup', [InitialSetupController::class, 'storeInitial'])->middleware('access:inventori')->name('inventori.initial-setup.store');
     Route::put('/inventori/initial-setup/{product}', [InitialSetupController::class, 'update'])->middleware('access:inventori')->name('inventori.initial-setup.update');
-
-    foreach ($masterMenuPaths as $path => $type) {
-        if ($type === 'unit-conversions') {
-            Route::get('/master/'.$path, [UnitConversionController::class, 'index'])->middleware('access:master')->name('master.menu.'.$path);
-        } elseif ($path === 'satuan') {
-            Route::get('/master/satuan', [ErpController::class, 'unitMaster'])->middleware('access:master')->name('master.menu.satuan');
-        } else {
-            if ($path === 'produk') {
-                Route::get('/master/'.$path, [ErpController::class, 'itemMaster'])->middleware('access:master')->name('master.menu.'.$path);
-            } else {
-                Route::get('/master/'.$path, function (Request $request) use ($type) {
-                    return app(ErpController::class)->master($request, $type);
-                })->middleware('access:master')->name('master.menu.'.$path);
-            }
-        }
-    }
 
     Route::get('/pos/penjualan', fn () => app(ModuleController::class)->show('sales'))->middleware('access:inventori')->name('pos.penjualan');
     Route::get('/inventori/penjualan', [SalesController::class, 'index'])->middleware('access:inventori')->name('inventori.penjualan');
@@ -132,8 +100,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/pos/retur/lookup', [SalesReturnController::class, 'saleLookup'])->middleware('access:inventori')->name('pos.retur.lookup');
     Route::post('/pos/retur', [SalesReturnController::class, 'store'])->middleware('access:inventori')->name('pos.retur.store');
 
-
-
     Route::get('/inventori/pembelian', [PurchaseController::class, 'index'])->middleware('access:inventori')->name('inventori.pembelian');
     Route::get('/inventori/pembelian/create', [PurchaseController::class, 'create'])->middleware('access:inventori')->name('inventori.pembelian.create');
     Route::get('/inventori/pembelian/{id}/edit', [PurchaseController::class, 'edit'])->middleware('access:inventori')->name('inventori.pembelian.edit');
@@ -145,23 +111,29 @@ Route::middleware('auth')->group(function () {
     Route::get('/inventori/transfer', fn () => app(ModuleController::class)->show('movements'))->middleware('access:inventori')->name('inventori.transfer');
     Route::get('/inventori/adjustment', fn () => app(ModuleController::class)->show('movements'))->middleware('access:inventori')->name('inventori.adjustment');
     Route::get('/inventori/stock-opname', fn () => app(ModuleController::class)->show('opname'))->middleware('access:inventori')->name('inventori.stock-opname');
+
+    Route::get('/inventori/pembelian/po', [PurchaseOrderController::class, 'index'])
+        ->name('inventori.pembelian-po');
+    Route::get('/inventori/pembelian/po/create', [PurchaseOrderController::class, 'create'])
+        ->name('inventori.pembelian-po.create');
+    Route::get('/inventori/pembelian/retur', fn () => view('inventori.pembelian.retur.index'))
+        ->name('inventori.retur-pembelian');
+
+    // ============================================================
+    // PRODUKSI
+    // ============================================================
     Route::get('/produksi', fn () => app(ModuleController::class)->show('production'))->middleware('access:inventori')->name('produksi');
     Route::get('/produksi/pemakaian-bahan', fn () => app(ModuleController::class)->show('material-usage'))->middleware('access:inventori')->name('produksi.pemakaian-bahan');
     Route::get('/produksi/hasil-produksi', fn () => app(ModuleController::class)->show('production-results'))->middleware('access:inventori')->name('produksi.hasil-produksi');
     Route::get('/produksi/reject', fn () => app(ModuleController::class)->show('production-results'))->middleware('access:inventori')->name('produksi.reject');
     Route::get('/produksi/hpp', [HppController::class, 'index'])->middleware('access:inventori')->name('produksi.hpp');
-    Route::get('/master/bom', [BomController::class, 'show'])
-        ->middleware('access:master')
-        ->name('master.bom');
-    Route::post('/master/bom', [BomController::class, 'store'])
-        ->middleware('access:master')
-        ->name('master.bom.store');
 
-    Route::get('/master/akun', [AccountController::class, 'index'])->middleware('access:master')->name('master.akun');
-    Route::post('/master/akun', [AccountController::class, 'store'])->middleware('access:master')->name('master.akun.store');
-    Route::put('/master/akun/{id}', [AccountController::class, 'update'])->middleware('access:master')->name('master.akun.update');
-    Route::delete('/master/akun/{id}', [AccountController::class, 'destroy'])->middleware('access:master')->name('master.akun.delete');
-    Route::get('/master/akun/export-excel', [AccountController::class, 'exportExcel'])->middleware('access:master')->name('master.akun.export-excel');
+    Route::get('/produksi/work-order', fn () => view('inventori.produksi.work-order.index'))
+        ->name('produksi.work-order');
+
+    // ============================================================
+    // KEUANGAN & AKUNTANSI
+    // ============================================================
     Route::get('/akuntansi/jurnal', fn () => app(ModuleController::class)->show('journals'))->middleware('access:keuangan')->name('akuntansi.jurnal');
     Route::get('/akuntansi/buku-besar', fn () => app(ModuleController::class)->show('ledger'))->middleware('access:keuangan')->name('akuntansi.buku-besar');
     Route::get('/akuntansi/kas-bank', fn () => app(ModuleController::class)->show('cashbank'))->middleware('access:keuangan')->name('akuntansi.kas-bank');
@@ -177,6 +149,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/akuntansi/arus-kas', fn () => app(ModuleController::class)->show('cash-flow'))->middleware('access:keuangan')->name('akuntansi.arus-kas');
     Route::get('/akuntansi/arus-kas/export-excel', [ModuleController::class, 'exportCashFlowExcel'])->middleware('access:keuangan')->name('akuntansi.arus-kas.export-excel');
 
+    Route::get('/akuntansi/closing-periode', fn () => app(ModuleController::class)->show('closing'))
+        ->name('akuntansi.closing-periode');
+
+    // ============================================================
+    // LAPORAN
+    // ============================================================
     Route::get('/laporan/penjualan', fn () => view('inventori.laporan.penjualan'))->middleware('access:inventori')->name('laporan.penjualan');
     Route::get('/laporan/pembelian', [PurchaseReportController::class, 'index'])->middleware('access:inventori')->name('laporan.pembelian');
     Route::get('/laporan/pembelian/export', [PurchaseReportController::class, 'export'])->middleware('access:inventori')->name('laporan.pembelian.export');
@@ -186,6 +164,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/laporan/hutang', fn () => app(ModuleController::class)->show('payables'))->middleware('access:keuangan')->name('laporan.hutang');
     Route::get('/laporan/keuangan', fn () => app(ModuleController::class)->show('profit-loss'))->middleware('access:keuangan')->name('laporan.keuangan');
 
+    Route::get('/inventori/monitoring/margin-harga', fn () => view('inventori.laporan.analisa-margin'))
+        ->name('inventori.margin-control');
+
+    // ============================================================
+    // PENGATURAN
+    // ============================================================
     Route::get('/pengaturan/entitas', [SettingsController::class, 'entity'])->middleware('access:pengaturan')->name('pengaturan.entitas');
     Route::put('/pengaturan/entitas', [SettingsController::class, 'entityUpdate'])->middleware('access:pengaturan')->name('pengaturan.entitas.update');
     Route::get('/pengaturan/user', [SettingsController::class, 'users'])->middleware('access:pengaturan')->name('pengaturan.user');
@@ -194,55 +178,84 @@ Route::middleware('auth')->group(function () {
     Route::patch('/pengaturan/user/{id}/toggle', [SettingsController::class, 'userToggle'])->middleware('access:pengaturan')->name('pengaturan.user.toggle');
     Route::get('/pengaturan/role', [SettingsController::class, 'roles'])->middleware('access:pengaturan')->name('pengaturan.role');
     Route::get('/pengaturan/konfigurasi', [SettingsController::class, 'configuration'])->middleware('access:pengaturan')->name('pengaturan.konfigurasi');
-    Route::get('/pengaturan/konfigurasi/unit-bisnis', [BusinessUnitController::class, 'index'])->middleware('access:master')->name('pengaturan.unit-bisnis');
-    Route::get('/pengaturan/konfigurasi/unit-bisnis/{id}/edit', [BusinessUnitController::class, 'edit'])->middleware('access:master')->name('pengaturan.unit-bisnis.edit');
-    Route::post('/pengaturan/konfigurasi/unit-bisnis', [BusinessUnitController::class, 'store'])->middleware('access:master')->name('pengaturan.unit-bisnis.store');
-    Route::put('/pengaturan/konfigurasi/unit-bisnis/{id}', [BusinessUnitController::class, 'update'])->middleware('access:master')->name('pengaturan.unit-bisnis.update');
-    Route::delete('/pengaturan/konfigurasi/unit-bisnis/{id}', [BusinessUnitController::class, 'destroy'])->middleware('access:master')->name('pengaturan.unit-bisnis.destroy');
     Route::get('/pengaturan/konfigurasi/mapping-account', [BusinessUnitAccountMappingController::class, 'index'])->middleware('access:pengaturan')->name('pengaturan.account-mapping');
     Route::post('/pengaturan/konfigurasi/mapping-account', [BusinessUnitAccountMappingController::class, 'save'])->middleware('access:master')->name('pengaturan.account-mapping.save');
     Route::post('/pengaturan/konfigurasi/mapping-warehouse', [SettingsController::class, 'warehouseMappingSave'])->middleware('access:master')->name('pengaturan.warehouse-mapping.save');
 
+    // ============================================================
+    // BRIDGING — ErpController
+    // ============================================================
+    Route::get('/master/unit', function (Request $request) {
+        return app(ErpController::class)->master($request, 'units');
+    })->middleware('access:master')->name('master.menu.unit');
     
-    Route::get('/inventori/pembelian/po', [PurchaseOrderController::class, 'index'])
-        ->middleware('access:inventori')
-        ->name('inventori.pembelian-po');
+    $masterMenuPaths = [
+        'produk' => 'products', 'customer' => 'customers', 'supplier' => 'suppliers',
+        'gudang' => 'warehouses', 'satuan' => 'units',
+        'konversi-satuan' => 'unit-conversions',
+    ];
 
-    Route::get('/inventori/pembelian/po/create', [PurchaseOrderController::class, 'create'])
-        ->middleware('access:inventori')
-        ->name('inventori.pembelian-po.create');
+    $masterTypes = ['products','customers','suppliers','warehouses','units'];
+    foreach ($masterTypes as $type) {
+        if ($type === 'units') {
+            Route::get('/master/units', [ErpController::class, 'unitMaster'])->middleware('access:master')->name('master.units');
+            Route::post('/master/units', [ErpController::class, 'unitStore'])->middleware('access:master')->name('master.store.units');
+            Route::put('/master/units/{id}', [ErpController::class, 'unitUpdate'])->middleware('access:master')->name('master.update.units');
+            Route::delete('/master/units/{id}', [ErpController::class, 'unitDelete'])->middleware('access:master')->name('master.delete.units');
+        } else {
+            Route::get('/master/'.$type, function (Request $request) use ($type) {
+                return app(ErpController::class)->master($request, $type);
+            })->middleware('access:master')->name('master.'.$type);
+    
+            Route::post('/master/'.$type, function (Request $request) use ($type) {
+                return app(ErpController::class)->masterStore($request, $type);
+            })->middleware('access:master')->name('master.store.'.$type);
+    
+            Route::put('/master/'.$type.'/{id}', function (Request $request, int $id) use ($type) {
+                return app(ErpController::class)->masterUpdate($request, $type, $id);
+            })->middleware('access:master')->name('master.update.'.$type);
+    
+            Route::delete('/master/'.$type.'/{id}', function (Request $request, int $id) use ($type) {
+                return app(ErpController::class)->masterDelete($request, $type, $id);
+            })->middleware('access:master')->name('master.delete.'.$type);
+        }
+    }
 
-    Route::get('/inventori/pembelian/retur', fn () => view('inventori.pembelian.retur.index'))
-        ->middleware('access:inventori')
-        ->name('inventori.retur-pembelian');
-
-    Route::get('/produksi/work-order', fn () => view('inventori.produksi.work-order.index'))
-        ->middleware('access:inventori')
-        ->name('produksi.work-order');
-
-    Route::get('/inventori/monitoring/margin-harga', fn () => view('inventori.laporan.analisa-margin'))
-        ->middleware('access:inventori')
-        ->name('inventori.margin-control');
-
-    Route::get('/akuntansi/closing-periode', fn () => app(ModuleController::class)->show('closing'))
-        ->middleware('access:keuangan')
-        ->name('akuntansi.closing-periode');
-
-    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+    foreach ($masterMenuPaths as $path => $type) {
+        if ($type === 'unit-conversions') {
+            Route::get('/master/'.$path, [UnitConversionController::class, 'index'])->middleware('access:master')->name('master.menu.'.$path);
+        } elseif ($path === 'satuan') {
+            Route::get('/master/satuan', [ErpController::class, 'unitMaster'])->middleware('access:master')->name('master.menu.satuan');
+        } else {
+            if ($path === 'produk') {
+                Route::get('/master/'.$path, [ErpController::class, 'itemMaster'])->middleware('access:master')->name('master.menu.'.$path);
+            } else {
+                Route::get('/master/'.$path, function (Request $request) use ($type) {
+                    return app(ErpController::class)->master($request, $type);
+                })->middleware('access:master')->name('master.menu.'.$path);
+            }
+        }
+    }
 
     Route::get('/master/pekerja', function (Request $request) {
         return app(ErpController::class)->master($request, 'workers');
     })->middleware('access:master')->name('master.menu.pekerja');
-
+    
     Route::post('/master/pekerja', function (Request $request) {
         return app(ErpController::class)->masterStore($request, 'workers');
     })->middleware('access:master')->name('master.pekerja.store');
-
+    
     Route::put('/master/pekerja/{id}', function (Request $request, int $id) {
         return app(ErpController::class)->masterUpdate($request, 'workers', $id);
     })->middleware('access:master')->name('master.pekerja.update');
-
+    
     Route::delete('/master/pekerja/{id}', function (Request $request, int $id) {
         return app(ErpController::class)->masterDelete($request, 'workers', $id);
     })->middleware('access:master')->name('master.pekerja.delete');
+
+    // ============================================================
+    // LOGOUT
+    // ============================================================
+    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
 });
