@@ -40,13 +40,6 @@
         <div class="collapse navbar-collapse" id="topMenu">
             <ul class="navbar-nav me-auto mb-2 mb-xl-0">
                 <li class="nav-item"><a class="nav-link" href="{{ route('dashboard') }}">Dashboard</a></li>
-                @if(auth()->user()->hasModuleAccess('inventori'))
-                <li class="nav-item">
-                    <a class="nav-link fw-semibold" href="{{ route('pos.penjualan') }}" title="Penjualan Tunai">
-                        <span class="me-1">🛒</span> Penjualan Tunai
-                    </a>
-                </li>
-                @endif
 
                 @if(auth()->user()->hasModuleAccess('master'))
                 <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">MASTER DATA</a><ul class="dropdown-menu">
@@ -162,7 +155,14 @@
                 </ul></li>
                 @endif
             </ul>
-            <div class="dropdown"><button class="btn btn-outline-light btn-sm dropdown-toggle" data-bs-toggle="dropdown">{{ auth()->user()->name }} · {{ ucfirst(auth()->user()->role) }}</button><ul class="dropdown-menu dropdown-menu-end"><li><span class="dropdown-item-text fw-semibold">{{ auth()->user()->name }}</span></li><li><span class="dropdown-item-text text-secondary">Role: {{ ucfirst(auth()->user()->role) }}</span></li><li><hr class="dropdown-divider"></li><li><form method="POST" action="{{ route('logout') }}">@csrf<button class="dropdown-item" type="submit">Logout</button></form></li></ul></div>
+            <div class="d-flex align-items-center gap-2">
+                @if(auth()->user()->hasModuleAccess('inventori'))
+                <a class="btn btn-outline-light btn-sm fw-semibold" href="{{ route('pos') }}" title="Penjualan Tunai">
+                    <span class="me-1">🛒</span> Penjualan Tunai
+                </a>
+                @endif
+                <div class="dropdown"><button class="btn btn-outline-light btn-sm dropdown-toggle" data-bs-toggle="dropdown">{{ auth()->user()->name }} · {{ ucfirst(auth()->user()->role) }}</button><ul class="dropdown-menu dropdown-menu-end"><li><span class="dropdown-item-text fw-semibold">{{ auth()->user()->name }}</span></li><li><span class="dropdown-item-text text-secondary">Role: {{ ucfirst(auth()->user()->role) }}</span></li><li><hr class="dropdown-divider"></li><li><form method="POST" action="{{ route('logout') }}">@csrf<button class="dropdown-item" type="submit">Logout</button></form></li></ul></div>
+            </div>
         </div>
     </div>
 </nav>
