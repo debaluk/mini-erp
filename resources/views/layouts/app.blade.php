@@ -75,7 +75,7 @@
                             <a class="dropdown-item dropdown-toggle" href="#">PENJUALAN</a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ route('inventori.penjualan') }}">Penjualan Tempo/Invoice</a></li>
-                                <li><a class="dropdown-item" href="{{ route('inventori.pembelian.retur') }}">Retur Penjualan</a></li>
+                                <li><a class="dropdown-item" href="{{ route('inventori.penjualan.retur') }}">Retur Penjualan</a></li>
                             </ul>
                         </li>
                         <li class="dropdown-submenu">
@@ -84,7 +84,7 @@
                                 <li><a class="dropdown-item" href="{{ route('inventori.pembelian-po') }}">Purchase Order (PO)</a></li>
                                 <li><a class="dropdown-item" href="{{ route('inventori.penerimaan') }}">Penerimaan Barang</a></li>
                                 <li><a class="dropdown-item" href="{{ route('inventori.pembelian') }}">Faktur Pembelian</a></li>
-                                <li><a class="dropdown-item" href="{{ route('inventori.retur-pembelian') }}">Retur Pembelian</a></li>
+                                <li><a class="dropdown-item" href="{{ route('inventori.pembelian.retur') }}">Retur Pembelian</a></li>
                             </ul>
                         </li>
                         <li class="dropdown-submenu">
