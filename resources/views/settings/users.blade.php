@@ -160,9 +160,9 @@
 <script>
 function defaultModules(role){
     const map={
-        owner:['master','inventori','keuangan','pengaturan'],
+        owner:['pos','master','inventori','keuangan','pengaturan'],
         admin:['master','pengaturan'],
-        kasir:['inventori'],
+        kasir:['pos'],
         inventori:['inventori'],
         akuntansi:['keuangan']
     };
