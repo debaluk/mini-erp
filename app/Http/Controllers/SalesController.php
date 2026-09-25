@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use App\Services\SalesJournalService;
 
 class SalesController extends Controller
 {
@@ -209,6 +210,13 @@ class SalesController extends Controller
         ]);
     }
 
+    public function postJournal(int $id)
+    {
+        $journalId = app(SalesJournalService::class)->post($id, $this->entityId());
+
+        return back()->with('success', 'Jurnal penjualan berhasil diposting.');
+    }
+
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -393,6 +401,8 @@ class SalesController extends Controller
                     'updated_at' => now(),
                 ]);
             }
+
+            app(SalesJournalService::class)->post($saleId, $entity);
 
             return $saleId;
         });
