@@ -98,7 +98,7 @@ class ProductPriceController extends Controller
 
         $prices = $query->get();
 
-        return view('master.harga-jual', compact('prices', 'businessUnits'));
+        return view('master.daftar-harga.index', compact('prices', 'businessUnits'));
     }
 
     public function store(Request $request)
