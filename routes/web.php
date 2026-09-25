@@ -117,8 +117,6 @@ Route::middleware('auth')->group(function () {
         ->name('inventori.pembelian-po');
     Route::get('/inventori/pembelian/po/create', [PurchaseOrderController::class, 'create'])
         ->name('inventori.pembelian-po.create');
-    Route::get('/inventori/pembelian/retur', fn () => view('inventori.pembelian.retur.index'))
-        ->name('inventori.retur-pembelian');
 
     // ============================================================
     // PRODUKSI
