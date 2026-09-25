@@ -102,7 +102,7 @@ class SalesController extends Controller
 
         $units = DB::table('business_units')->where('entity_id', $entity)->where('is_active', 1)->orderBy('name')->get();
 
-        return view('inventori.laporan.penjualan', compact('rows', 'units'));
+        return view('inventori.laporan.penjualan', compact('rows', 'units', 'startDate', 'endDate'));
     }
 
     public function export(Request $request)
