@@ -98,7 +98,10 @@ class SalesController extends Controller
             ->when($request->filled('payment_method'), fn ($q) => $q->whereExists(function ($sub) use ($request) {
                 $sub->select(DB::raw(1))->from('payments as fp')->whereColumn('fp.sale_id', 's.id')->where('fp.method', $request->payment_method);
             }))
-            ->select('s.*', 'c.name as customer_name', 'bu.name as unit_name', DB::raw("(SELECT GROUP_CONCAT(DISTINCT p.method ORDER BY p.id SEPARATOR ', ') FROM payments p WHERE p.sale_id = s.id) as payment_methods"))
+            ->select('s.*', 'c.name as customer_name', 'bu.name as unit_name',
+                DB::raw("(SELECT GROUP_CONCAT(DISTINCT p.method ORDER BY p.id SEPARATOR ', ') FROM payments p WHERE p.sale_id = s.id) as payment_methods"),
+                DB::raw("(SELECT j.id FROM journals j WHERE j.entity_id = s.entity_id AND j.source_type = 'sale' AND j.source_id = s.id LIMIT 1) as journal_id")
+            )
             ->orderByDesc('s.sale_date')->orderByDesc('s.id')->paginate(10)->withQueryString();
 
         $units = DB::table('business_units')->where('entity_id', $entity)->where('is_active', 1)->orderBy('name')->get();
