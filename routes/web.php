@@ -81,7 +81,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/inventori/initial-setup', [InitialSetupController::class, 'storeInitial'])->middleware('access:inventori')->name('inventori.initial-setup.store');
     Route::put('/inventori/initial-setup/{product}', [InitialSetupController::class, 'update'])->middleware('access:inventori')->name('inventori.initial-setup.update');
 
-    Route::get('/pos/penjualan', fn () => app(PosController::class)->show('sales'))->middleware('access:inventori')->name('pos.penjualan');
+    Route::get('/pos/', fn () => app(PosController::class)->show('sales'))->middleware('access:inventori')->name('pos');
     Route::get('/inventori/penjualan', [SalesController::class, 'index'])->middleware('access:inventori')->name('inventori.penjualan');
     Route::get('/inventori/penjualan/create', [SalesController::class, 'create'])->middleware('access:inventori')->name('inventori.penjualan.create');
     Route::get('/inventori/penjualan/export-data', [SalesController::class, 'export'])->middleware('access:inventori')->name('inventori.penjualan.export-data');
