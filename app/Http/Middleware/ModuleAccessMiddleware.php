@@ -10,7 +10,11 @@ class ModuleAccessMiddleware
 {
     public function handle(Request $request, Closure $next, string $module): Response
     {
-        abort_unless($request->user() && $request->user()->hasModuleAccess($module), 403);
+        if (!$request->user() || !$request->user()->hasModuleAccess($module)) {
+            return response()->view('errors.access-denied', [
+                'module' => $module,
+            ], 403);
+        }
 
         return $next($request);
     }
