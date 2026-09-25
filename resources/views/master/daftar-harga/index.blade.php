@@ -33,7 +33,7 @@
             <button type="button" id="priceExport" class="btn btn-sm btn-outline-success">Export</button>
         </div>
         <div class="table-responsive">
-            <table class="table table-bordered table-hover mb-0 align-middle">
+            <table class="table table-bordered table-hover mb-0 align-middle" id="priceDataTable" style="width:100%">
                 <thead>
                     <tr>
                         <th>Unit Bisnis</th>
@@ -51,12 +51,7 @@
                 </tbody>
             </table>
         </div>
-        <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <div class="small text-secondary" id="pricePaginationInfo"></div>
-            <nav aria-label="Pagination Harga Jual">
-                <ul class="pagination pagination-sm mb-0" id="pricePagination"></ul>
-            </nav>
-        </div>
+        <div class="card-footer"></div>
     </div>
 </div>
 
@@ -132,10 +127,74 @@
     const saveButton = document.getElementById('priceSaveButton');
     const today = new Date().toISOString().slice(0, 10);
     let current = null;
-    let currentPage = 1;
-    let lastPage = 1;
+    const dataTable = new DataTable('#priceDataTable', {
+        processing: true,
+        serverSide: true,
+        ordering: false,
+        pageLength: 15,
+        lengthMenu: [[15, 25, 50, 100], [15, 25, 50, 100]],
+        language: {
+            lengthMenu: 'Tampilkan _MENU_ data per halaman',
+            search: 'Cari:',
+            info: 'Menampilkan _START_ sampai _END_ dari _TOTAL_ data',
+            infoEmpty: 'Tidak ada data',
+            infoFiltered: '(disaring dari _MAX_ data)',
+            zeroRecords: 'Data tidak ditemukan',
+            emptyTable: 'Belum ada data',
+            paginate: { first: '<<', last: '>>', next: '>', previous: '<' },
+            processing: 'Memuat...'
+        },
+        ajax: {
+            url: '{{ route('master.menu.harga-jual') }}',
+            type: 'GET',
+            data: function (d) {
+                d.business_unit_id = businessUnitFilter.value || '';
+            },
+            dataSrc: 'data'
+        },
+        columns: [
+            { data: 'business_unit_name', defaultContent: '' },
+            { data: 'product_code', defaultContent: '', className: 'fw-semibold' },
+            { data: 'product_name', defaultContent: '' },
+            { data: 'unit_name', defaultContent: '' },
+            {
+                data: 'selling_price',
+                className: 'text-end',
+                render: (data, type, row) => row.price_id
+                    ? '<span class="fw-semibold">' + formatRupiah(data) + '</span>'
+                    : '<span class="text-muted">Belum Setup</span>'
+            },
+            {
+                data: 'updated_price_date',
+                className: 'text-center',
+                render: data => data ? new Date(data).toLocaleDateString('id-ID') : '-'
+            },
+            {
+                data: null,
+                orderable: false,
+                searchable: false,
+                className: 'text-center text-nowrap',
+                render: (data, type, row) =>
+                    '<button type="button" class="btn btn-sm btn-outline-primary btn-setup-price">Setup / Edit</button> ' +
+                    '<button type="button" class="btn btn-sm btn-outline-secondary btn-history">History</button>'
+            },
+            {
+                data: 'price_id',
+                orderable: false,
+                searchable: false,
+                className: 'text-center',
+                render: data => data
+                    ? '<span class="badge bg-success">Sudah Setup</span>'
+                    : '<span class="badge bg-secondary">Belum Setup</span>'
+            }
+        ],
+        createdRow: (row, data) => {
+            row.querySelector('.btn-setup-price')?.addEventListener('click', () => openSetup(data));
+            row.querySelector('.btn-history')?.addEventListener('click', () => openHistory(data));
+        }
+    });
 
-    const formatRupiah = value => {
+        const formatRupiah = value => {
         if (value === null || value === undefined || value === '') return '-';
         return 'Rp ' + Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 });
     };
@@ -157,103 +216,6 @@
             if (data.errors) message = Object.values(data.errors).flat()[0] || message;
         } catch (_) {}
         return message;
-    };
-
-    const loadPrices = async (page = 1) => {
-        currentPage = page;
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Memuat data...</td></tr>';
-
-        const params = new URLSearchParams();
-        if (businessUnitFilter.value) params.set('business_unit_id', businessUnitFilter.value);
-        if (search.value.trim()) params.set('search', search.value.trim());
-        params.set('page', String(page));
-
-        try {
-            const response = await fetch('{{ route('master.menu.harga-jual') }}?' + params.toString(), {
-                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
-            });
-            if (!response.ok) throw new Error(await apiError(response));
-            const result = await response.json();
-            const pagination = result.pagination || {};
-            currentPage = pagination.current_page || 1;
-            lastPage = pagination.last_page || 1;
-            updatePagination(pagination);
-            renderPrices(result.data || []);
-        } catch (error) {
-            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-4">' + escapeHtml(error.message) + '</td></tr>';
-        }
-    };
-
-    const updatePagination = pagination => {
-        const info = document.getElementById('pricePaginationInfo');
-        const pager = document.getElementById('pricePagination');
-        const total = pagination.total || 0;
-        const page = pagination.current_page || 1;
-        const perPage = pagination.per_page || 25;
-        const pages = pagination.last_page || 1;
-        const from = total ? ((page - 1) * perPage) + 1 : 0;
-        const to = Math.min(page * perPage, total);
-
-        info.textContent = total
-            ? 'Menampilkan ' + from + '–' + to + ' dari ' + total + ' item'
-            : 'Tidak ada data';
-
-        if (pages <= 1) {
-            pager.innerHTML = '';
-            return;
-        }
-
-        const start = Math.max(1, page - 2);
-        const end = Math.min(pages, page + 2);
-        let html = '<li class="page-item ' + (page <= 1 ? 'disabled' : '') + '">' +
-            '<a class="page-link" href="#" data-page="' + Math.max(1, page - 1) + '">‹</a></li>';
-
-        for (let p = start; p <= end; p++) {
-            html += '<li class="page-item ' + (p === page ? 'active' : '') + '">' +
-                '<a class="page-link" href="#" data-page="' + p + '">' + p + '</a></li>';
-        }
-
-        html += '<li class="page-item ' + (page >= pages ? 'disabled' : '') + '">' +
-            '<a class="page-link" href="#" data-page="' + Math.min(pages, page + 1) + '">›</a></li>';
-
-        pager.innerHTML = html;
-        pager.querySelectorAll('a[data-page]').forEach(link => {
-            link.addEventListener('click', event => {
-                event.preventDefault();
-                const target = Number(link.dataset.page);
-                if (target !== page && target >= 1 && target <= pages) loadPrices(target);
-            });
-        });
-    };
-
-    const renderPrices = rows => {
-        if (!rows.length) {
-            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Tidak ada item yang sesuai dengan filter.</td></tr>';
-            return;
-        }
-
-        tbody.innerHTML = rows.map(row => {
-            return '<tr>' +
-                '<td>' + escapeHtml(row.business_unit_name) + '</td>' +
-                '<td class="fw-semibold">' + escapeHtml(row.product_code) + '</td>' +
-                '<td>' + escapeHtml(row.product_name) + '</td>' +
-                '<td>' + escapeHtml(row.unit_name) + '</td>' +
-                '<td class="text-end">' + (row.price_id ? '<span class="fw-semibold">' + formatRupiah(row.selling_price) + '</span>' : '<span class="text-muted">Belum Setup</span>') + '</td>' +
-                '<td class="text-center">' + (row.updated_price_date ? new Date(row.updated_price_date).toLocaleDateString('id-ID') : '-') + '</td>' +
-                '<td class="text-center text-nowrap">' +
-                    '<button type="button" class="btn btn-sm btn-outline-primary btn-setup-price" data-row="' + encodeURIComponent(JSON.stringify(row)) + '">Setup / Edit</button> ' +
-                    '<button type="button" class="btn btn-sm btn-outline-secondary btn-history" data-row="' + encodeURIComponent(JSON.stringify(row)) + '">History</button>' +
-                '</td>' +
-                '<td class="text-center">' + (row.price_id ? '<span class="badge bg-success">Sudah Setup</span>' : '<span class="badge bg-secondary">Belum Setup</span>') + '</td>' +
-            '</tr>';
-        }).join('');
-
-        tbody.querySelectorAll('.btn-setup-price').forEach(button => {
-            button.addEventListener('click', () => openSetup(JSON.parse(decodeURIComponent(button.dataset.row))));
-        });
-        tbody.querySelectorAll('.btn-history').forEach(button => {
-            button.addEventListener('click', () => openHistory(JSON.parse(decodeURIComponent(button.dataset.row))));
-        });
     };
 
     const refreshOldPrice = () => {
@@ -318,7 +280,7 @@
             const result = await response.json();
             hideModal(setupModal);
             showAlert(result.message || 'Harga jual berhasil disimpan.');
-            await loadPrices();
+            dataTable.ajax.reload(null, false);
         } catch (error) {
             showAlert(error.message, 'danger');
         } finally {
@@ -379,10 +341,10 @@
 
     filterForm.addEventListener('submit', event => {
         event.preventDefault();
-        loadPrices(1);
+        dataTable.ajax.reload();
     });
 
-    businessUnitFilter.addEventListener('change', () => loadPrices(1));
+    businessUnitFilter.addEventListener('change', () => dataTable.ajax.reload());
 
     document.querySelectorAll('.btn-close-modal').forEach(button => button.addEventListener('click', () => {
         hideModal(button.closest('.modal'));
@@ -464,10 +426,10 @@
     document.getElementById('priceReset').addEventListener('click', () => {
         businessUnitFilter.value = '';
         search.value = '';
-        loadPrices(1);
+        dataTable.ajax.reload();
     });
 
-    loadPrices(1);
+    dataTable.ajax.reload();
 })();
 </script>
 @endsection
