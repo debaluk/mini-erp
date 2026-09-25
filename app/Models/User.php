@@ -28,10 +28,10 @@ class User extends Authenticatable
     public function hasModuleAccess(string $module): bool
     {
         if ($this->role === 'owner') {
-            return in_array($module, ['master', 'inventori', 'keuangan', 'pengaturan'], true);
+            return in_array($module, ['pos', 'master', 'inventori', 'keuangan', 'pengaturan'], true);
         }
 
-        if (!in_array($module, ['master', 'inventori', 'keuangan', 'pengaturan'], true)) {
+        if (!in_array($module, ['pos', 'master', 'inventori', 'keuangan', 'pengaturan'], true)) {
             return false;
         }
 
