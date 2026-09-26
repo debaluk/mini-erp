@@ -15,7 +15,7 @@
     const dueDateBox = document.getElementById('dueDate');
     const dueDate = dueDateBox?.querySelector('input[type="date"]');
     const discountInput = document.getElementById('discountInput');
-    const memoInput = document.getElementById('memo');
+    const memoInput = document.getElementById('memo') || document.getElementById('memoInput');
 
     const productModalEl = document.getElementById('productModal');
     const productFilter = document.getElementById('productFilter');
@@ -643,7 +643,8 @@
             yesButton.onclick = () => {
                 modal.hide();
 
-                const printUrl = `/inventori/penjualan/${result.sale_id}/print?print=1`;
+                const printTemplate = config.printUrlTemplate || '/inventori/penjualan/__ID__/print';
+                const printUrl = printTemplate.replace('__ID__', String(result.sale_id)) + '?print=1';
 
                 window.open(printUrl, '_blank');
                 window.location.href = config.createUrl || window.location.href;
