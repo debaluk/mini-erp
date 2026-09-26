@@ -508,6 +508,7 @@ public function paymentDetail(int $id)
             ->select(
                 's.*',
                 'e.name as entity_name',
+                'e.address as entity_address',
                 'c.name as customer_name',
                 'bu.name as unit_name'
             )

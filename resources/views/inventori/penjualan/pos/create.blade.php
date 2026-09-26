@@ -6,6 +6,7 @@
     body {
         height: 100%;
         overflow: hidden !important;
+        background: #fff !important;
     }
 
     body > nav.navbar,
@@ -20,18 +21,19 @@
         min-height: 100vh !important;
         overflow: hidden !important;
         padding: 0 !important;
+        margin: 0 !important;
+        background: #fff !important;
     }
 
     .pos-screen {
-        height: 100vh;
+        height: calc(100vh - 24px);
+        min-height: calc(100vh - 24px);
+        padding: 0 !important;
+        margin: 0 0 24px 0 !important;
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        padding: 12px;
-    }
-
-    .pos-header {
-        flex: 0 0 auto;
+        background: #fff !important;
     }
 
     .pos-card {
@@ -40,6 +42,9 @@
         display: flex;
         flex-direction: column;
         overflow: hidden;
+        border: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
     }
 
     .pos-card-body {
@@ -48,7 +53,7 @@
         overflow: hidden;
         display: flex;
         flex-direction: column;
-        padding: 0 !important;
+        padding: 0 12px 12px 12px !important;
     }
 
     .pos-cart {
@@ -77,12 +82,18 @@
     }
 
     .pos-action {
-        flex: 0 0 auto;
+        flex: 0 0 52px;
+        height: 52px;
+        min-height: 52px;
+        padding: 6px 12px !important;
+        position: relative;
+        z-index: 5;
+        margin: 0 !important;
     }
 
     @media (max-width: 767.98px) {
         .pos-screen {
-            padding: 6px;
+            padding: 0;
         }
 
         .pos-total {
@@ -91,10 +102,7 @@
     }
 </style>
 <div class="pos-screen">
-<div class="pos-header d-flex justify-content-between align-items-center mb-2">
-</div>
-
-<div class="card shadow-sm pos-card">
+<div class="card pos-card">
     <div class="card-body pos-card-body">
         <div class="row g-2">
             <div class="col-md-6">
@@ -142,7 +150,7 @@
 
         <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
             <div>
-                <h6 class="mb-0">Detail POS</h6>
+                <h6 class="mb-0">Detil Penjualan</h6>
                 <div class="small text-secondary">Masukkan barcode pada baris kosong untuk menambah barang.</div>
             </div>
             <span class="badge text-bg-light border text-secondary">Harga dapat disesuaikan</span>
@@ -167,8 +175,37 @@
 
         
 
-        <div class="row g-3">
-            <div class="col-md-6 ms-auto pos-summary">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-6">
+                <div class="pos-shortcuts h-100 d-flex flex-column justify-content-end pb-1">
+                    <div class="small fw-semibold text-secondary mb-2">
+                        Shortcut Kasir
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="small text-secondary">
+                            <kbd>F2</kbd> Pilih Barang
+                        </span>
+                        <span class="small text-secondary">
+                            <kbd>F4</kbd> Cara Bayar
+                        </span>
+                        <span class="small text-secondary">
+                            <kbd>F5</kbd> Refresh
+                        </span>
+                        <span class="small text-secondary">
+                            <kbd>F8</kbd> Bayar
+                        </span>
+                        <span class="small text-secondary">
+                            <kbd>Esc</kbd> Tutup
+                        </span>
+                        <span class="small text-secondary">
+                            <kbd>Enter</kbd> Barcode
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 pos-summary">
                 <h6 class="mt-2">Ringkasan Transaksi</h6>
 
                 <div class="d-flex justify-content-between py-1">
