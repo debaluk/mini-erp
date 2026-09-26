@@ -6,7 +6,7 @@
         <h4 class="mb-1">POS Kasir</h4>
         
     </div>
-    <a href="{{ route('inventori.penjualan') }}" class="btn btn-outline-secondary">← Kembali</a>
+    <a href="{{ route('pos') }}" class="btn btn-outline-secondary">← Kembali</a>
 </div>
 
 <div class="card shadow-sm">
@@ -229,17 +229,11 @@
     'mode' => 'pos',
     'requireCustomer' => false,
     'allowCredit' => false,
-    'mode' => 'tempo',
-    'requireCustomer' => true,
-    'allowCredit' => true,
-    'mode' => 'tempo',
-    'requireCustomer' => true,
-    'allowCredit' => true,
     'products' => $productCatalog,
     'storeUrl' => route('pos.penjualan.store'),
     'indexUrl' => route('pos'),
     'createUrl' => route('pos'),
     'printUrlTemplate' => route('pos.penjualan.print', ['id' => '__ID__']),
-]) !!}</script>
+]) !!}
 <script src="{{ asset('js/sales-create.js') }}"></script>
 @endpush
