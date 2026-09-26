@@ -458,7 +458,27 @@
             return;
         }
 
+        if (event.key === 'F5') {
+            event.preventDefault();
+            window.location.reload();
+            return;
+        }
+
+        if (event.key === 'F8') {
+            event.preventDefault();
+            document.getElementById('saveSales')?.click();
+            return;
+        }
+
         if (event.key === 'Escape') {
+            const openModal = document.querySelector('.modal.show');
+
+            if (openModal) {
+                bootstrap.Modal.getInstance(openModal)?.hide();
+                return;
+            }
+
+            window.close();
             return;
         }
 
@@ -703,8 +723,15 @@
                 const printTemplate = config.printUrlTemplate || '/inventori/penjualan/__ID__/print';
                 const printUrl = printTemplate.replace('__ID__', String(result.sale_id)) + '?print=1';
 
-                window.open(printUrl, '_blank');
-                window.location.href = config.createUrl || window.location.href;
+                const printWindow = window.open(
+                    printUrl,
+                    'miniErpPrint',
+                    'popup=yes,width=420,height=720,resizable=no,scrollbars=yes,menubar=no,toolbar=no,location=no,status=no'
+                );
+
+                if (!printWindow) {
+                    window.location.href = printUrl;
+                }
             };
 
             modal.show();
