@@ -273,6 +273,25 @@
         }
     }
 
+    function focusFirstBarcode() {
+        const input = body?.querySelector('.barcode-input');
+        if (input) {
+            input.focus();
+            input.select();
+            return true;
+        }
+        const choose = body?.querySelector('.choose-product');
+        if (choose) {
+            choose.focus();
+            return true;
+        }
+        return false;
+    }
+
+    function focusPaymentMethod() {
+        paymentMethod?.focus();
+    }
+
     function openProductModal(index) {
         activeRowIndex = index;
 
@@ -413,6 +432,40 @@
 
     productFilter?.addEventListener('input', () => {
         renderProductList(productFilter.value);
+    });
+
+    document.addEventListener('keydown', event => {
+        if (mode !== 'pos') return;
+
+        const tag = event.target?.tagName?.toLowerCase();
+        const typing = tag === 'input' || tag === 'textarea' || tag === 'select' || event.target?.isContentEditable;
+
+        if (event.key === 'F2') {
+            event.preventDefault();
+            if (productModalEl && !productModalEl.classList.contains('show')) {
+                const blankIndex = rows.findIndex(row => !row.product_id);
+                openProductModal(blankIndex >= 0 ? blankIndex : rows.length - 1);
+            } else {
+                productFilter?.focus();
+                productFilter?.select();
+            }
+            return;
+        }
+
+        if (event.key === 'F4') {
+            event.preventDefault();
+            focusPaymentMethod();
+            return;
+        }
+
+        if (event.key === 'Escape') {
+            return;
+        }
+
+        if (!typing && event.key === 'Enter') {
+            event.preventDefault();
+            focusFirstBarcode();
+        }
     });
 
     unitSelect?.addEventListener('change', () => {
@@ -620,7 +673,11 @@
                     Object.values(result.errors || {}).flat().join('\n') ||
                     'Penjualan gagal disimpan.';
 
-                alert(message);
+                if (typeof window.erpNotify === 'function') {
+                    window.erpNotify(message, 'danger');
+                } else {
+                    alert(message);
+                }
                 return;
             }
 
@@ -653,7 +710,11 @@
             modal.show();
         } catch (error) {
             console.error(error);
-            alert('Terjadi kesalahan saat menyimpan penjualan.');
+            if (typeof window.erpNotify === 'function') {
+                window.erpNotify('Terjadi kesalahan saat menyimpan penjualan.', 'danger');
+            } else {
+                alert('Terjadi kesalahan saat menyimpan penjualan.');
+            }
         }
     }
 
@@ -668,5 +729,9 @@
     ensureBlankRow();
     renderRows();
     calculateTotals();
+
+    if (mode === 'pos') {
+        setTimeout(() => focusFirstBarcode(), 150);
+    }
     updateDueDateState();
 })();
