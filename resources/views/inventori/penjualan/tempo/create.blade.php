@@ -253,6 +253,7 @@
     'storeUrl' => route('inventori.penjualan.store'),
     'indexUrl' => route('inventori.penjualan'),
     'createUrl' => route('inventori.penjualan.create'),
+    'printUrlTemplate' => route('inventori.penjualan.print', ['id' => '__ID__']),
 ]) !!}</script>
 <script src="{{ asset('js/sales-create.js') }}"></script>
 @endpush
