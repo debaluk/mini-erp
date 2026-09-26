@@ -49,7 +49,7 @@
 
 <div class="modal fade" id="customerModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h6 class="modal-title">Cari Customer</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input id="customerFilter" class="form-control mb-3" placeholder="Ketik nama customer..."><div class="list-group" id="customerList">@foreach($customers as $c)<button type="button" class="list-group-item list-group-item-action customer-choice d-flex justify-content-between align-items-center" data-id="{{ $c->id }}" data-name="{{ $c->name }}" data-balance="{{ $c->outstanding }}"><span>{{ $c->name }}</span><span class="small text-secondary">Piutang: Rp {{ number_format($c->outstanding, 0, ',', '.') }}</span></button>@endforeach</div></div></div></div></div>
 
-<div class="modal fade" id="itemModal" tabindex="-1"><div class="modal-dialog modal-md modal-dialog-centered"><div class="modal-content"><div class="modal-header py-2"><h6 class="modal-title">Cari Item</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body p-2"><input id="itemFilter" class="form-control form-control-sm mb-2" placeholder="Ketik nama / kode..."><div class="list-group list-group-flush">@foreach($products as $p)<button type="button" class="list-group-item list-group-item-action item-choice" data-id="{{ $p->id }}" data-name="{{ $p->name }}" data-code="{{ $p->code ?? $p->sku }}" data-base-unit-id="{{ $p->base_unit_id }}" data-base-unit="{{ $p->base_unit_code ?? '-' }}" data-price="{{ $p->selling_price ?? 0 }}" data-conversions='@json(($productConversions[$p->id] ?? collect())->values())'>{{ $p->code ?? $p->sku }} — {{ $p->name }}</button>@endforeach</div></div></div></div></div>
+<div class="modal fade" id="itemModal" tabindex="-1"><div class="modal-dialog modal-md modal-dialog-centered"><div class="modal-content"><div class="modal-header py-2"><h6 class="modal-title">Cari Item</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body p-2"><input id="itemFilter" class="form-control form-control-sm mb-2" placeholder="Ketik nama / kode..."><div class="list-group list-group-flush">@foreach($products as $p)<button type="button" class="list-group-item list-group-item-action item-choice" data-id="{{ $p->id }}" data-name="{{ $p->name }}" data-code="{{ $p->code ?? $p->sku }}" data-base-unit-id="{{ $p->base_unit_id }}" data-base-unit="{{ $p->base_unit_code ?? '-' }}" data-prices='@json(($productPrices[$p->id] ?? collect())->values())' data-conversions='@json(($productConversions[$p->id] ?? collect())->values())'>{{ $p->code ?? $p->sku }} — {{ $p->name }}</button>@endforeach</div></div></div></div></div>
 @endsection
 
 @push('scripts')
@@ -59,6 +59,17 @@
     let selectedItem = null;
 
     function rupiah(n) { return 'Rp ' + Number(n || 0).toLocaleString('id-ID'); }
+    function pricesFor(button) {
+        let rows = [];
+        try { rows = JSON.parse(button.dataset.prices || '[]'); } catch (e) {}
+        return rows.map(x => ({buId:Number(x.business_unit_id), unitId:Number(x.unit_id), price:Number(x.selling_price)}));
+    }
+
+    function priceFor(prices, businessUnitId, unitId) {
+        const row = prices.find(x => x.buId === Number(businessUnitId) && x.unitId === Number(unitId));
+        return row ? row.price : 0;
+    }
+
     function conversionsFor(button) {
         let rows = [];
         try { rows = JSON.parse(button.dataset.conversions || '[]'); } catch (e) {}
@@ -83,7 +94,7 @@
             '<td><b>'+selectedItem.code+'</b><div class="small text-secondary">'+selectedItem.name+'</div><div class="small text-secondary">Base: '+selectedItem.baseUnit+'</div></td>' +
             '<td><select class="form-select form-select-sm" id="itemUnitSelect"></select></td>' +
             '<td><input id="itemQty" type="number" min="0.001" step="0.001" class="form-control form-control-sm text-end" value="'+selectedItem.qty+'"></td>' +
-            '<td><input id="itemPrice" type="number" min="0" step="0.0001" class="form-control form-control-sm text-end" value="'+selectedItem.unit_price+'"></td>' +
+            '<td><input id="itemPrice" type="number" min="0" step="0.0001" class="form-control form-control-sm text-end" value="'+selectedItem.unit_price+'" readonly></td>' +
             '<td class="text-end" id="lineTotal">'+rupiah(selectedItem.qty*selectedItem.unit_price-selectedItem.discount)+'</td>' +
             '<td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger" id="removeItem">×</button></td>';
         body.appendChild(row);
@@ -102,9 +113,9 @@
             calculateTotals();
         }
         select.addEventListener('change', function(){
-            const oldFactor=selectedItem.factor||1;
-            const newFactor=Number(select.selectedOptions[0]?.dataset.factor||1);
-            selectedItem.unit_price = oldFactor ? (selectedItem.unit_price / oldFactor) * newFactor : selectedItem.unit_price;
+            selectedItem.unit_id=Number(select.value);
+            selectedItem.factor=Number(select.selectedOptions[0]?.dataset.factor||1);
+            selectedItem.unit_price=priceFor(selectedItem.prices, document.getElementById('unitSelect').value, selectedItem.unit_id);
             row.querySelector('#itemPrice').value=selectedItem.unit_price;
             refresh();
         });
@@ -146,6 +157,14 @@
         renderItem();
         bootstrap.Modal.getOrCreateInstance(document.getElementById('itemModal')).hide();
     }));
+
+    document.getElementById('unitSelect').addEventListener('change', function(){
+        if(!selectedItem) return;
+        const price=priceFor(selectedItem.prices, this.value, selectedItem.unit_id);
+        if(price <= 0) { alert('Harga jual item untuk Business Unit tersebut belum tersedia.'); return; }
+        selectedItem.unit_price=price;
+        renderItem();
+    });
 
     document.getElementById('discountInput').addEventListener('input', calculateTotals);
     document.getElementById('paymentMethod').addEventListener('change', e => document.getElementById('dueDate').classList.toggle('d-none',e.target.value!=='Kredit / Bon'));
