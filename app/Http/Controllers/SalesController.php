@@ -510,12 +510,20 @@ class SalesController extends Controller
     public function create()
     {
         $entity = $this->entityId();
+        $user = auth()->user();
 
-        $units = DB::table('business_units')
-            ->where('entity_id', $entity)
-            ->where('is_active', 1)
-            ->orderBy('name')
-            ->get();
+        $units = DB::table('business_units as bu')
+            ->join('user_business_units as ubu', 'ubu.business_unit_id', '=', 'bu.id')
+            ->where('ubu.user_id', $user->id)
+            ->where('bu.entity_id', $entity)
+            ->where('bu.is_active', 1)
+            ->orderBy('bu.name')
+            ->get(['bu.id', 'bu.code', 'bu.name']);
+
+        $defaultUnitId = $user->default_business_unit_id;
+        if ($defaultUnitId && !$units->contains('id', (int) $defaultUnitId)) {
+            $defaultUnitId = $units->first()->id ?? null;
+        }
 
         $customers = DB::table('customers as c')
             ->where('c.entity_id', $entity)
@@ -533,7 +541,7 @@ class SalesController extends Controller
             ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
             ->where('p.entity_id', $entity)
             ->where('p.is_active', 1)
-            ->select('p.id', 'p.code', 'p.sku', 'p.name', 'p.base_unit_id', 'u.code as base_unit_code')
+            ->select('p.id', 'p.code', 'p.sku', 'p.name', 'p.base_unit_id', 'u.code as base_unit_code', 'u.name as base_unit_name')
             ->orderBy('p.name')
             ->get();
 
@@ -552,6 +560,25 @@ class SalesController extends Controller
             ->get(['puc.product_id', 'puc.unit_id', 'puc.conversion_factor', 'puc.is_default_sale', 'u.code', 'u.name'])
             ->groupBy('product_id');
 
-        return view('inventori.penjualan.tempo.create', compact('units', 'customers', 'products', 'productConversions', 'productPrices'));
+        $productCatalog = $products->map(function ($product) use ($productPrices, $productConversions) {
+            return [
+                'id' => (int) $product->id,
+                'code' => $product->code,
+                'sku' => $product->sku,
+                'name' => $product->name,
+                'base_unit_id' => (int) $product->base_unit_id,
+                'base_unit_code' => $product->base_unit_code,
+                'base_unit_name' => $product->base_unit_name,
+                'prices' => ($productPrices[$product->id] ?? collect())->values(),
+                'conversions' => ($productConversions[$product->id] ?? collect())->values(),
+            ];
+        })->values();
+
+        return view('inventori.penjualan.tempo.create', compact(
+            'units',
+            'defaultUnitId',
+            'customers',
+            'productCatalog'
+        ));
     }
 }
