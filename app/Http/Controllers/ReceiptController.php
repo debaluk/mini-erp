@@ -263,10 +263,9 @@ class ReceiptController extends Controller
             ]);
 
             $totalBasePurchased = DB::table('receipt_items')->where('receipt_id', $receiptId)->sum('base_qty');
-            $totalBaseExpected = DB::table('receipt_items as ri')
-                ->join('purchase_items as pi', 'pi.id', '=', 'ri.purchase_item_id')
-                ->where('ri.receipt_id', $receiptId)
-                ->sum('pi.base_qty');
+            $totalBaseExpected = DB::table('purchase_items')
+                ->where('purchase_id', $purchase->id)
+                ->sum(DB::raw('COALESCE(base_qty, qty * COALESCE(conversion_factor, 1))'));
 
             if ($totalBasePurchased > 0) {
                 DB::table('purchases')->where('id', $purchase->id)->update([
