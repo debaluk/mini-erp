@@ -91,13 +91,6 @@
 </style>
 <div class="pos-screen">
 <div class="pos-header d-flex justify-content-between align-items-center mb-2">
-    <div>
-        <div class="d-flex align-items-center gap-2">
-            <h4 class="mb-0">POS Kasir</h4>
-            <span class="badge text-bg-primary">Retail</span>
-        </div>
-        <div class="small text-secondary mt-1">Scan barcode atau pilih barang</div>
-    </div>
 </div>
 
 <div class="card shadow-sm pos-card">
@@ -206,7 +199,7 @@
 
     <div class="card-footer pos-action d-flex justify-content-between align-items-center gap-2">
         <div class="small text-secondary">
-            <span class="fw-semibold">Siap transaksi</span> · [F4] CARA BAYAR
+            <span class="fw-semibold">Retail</span>
         </div>
         <div class="d-flex gap-2">
             <a href="{{ route('pos') }}" class="btn btn-outline-secondary">[ESC] BATAL</a>
@@ -244,7 +237,6 @@
         </div>
     </div>
 </div>
-@endsection
 
 
 <div class="modal fade" id="productModal" tabindex="-1" aria-hidden="true">
@@ -329,3 +321,4 @@
 ]) !!}</script>
 <script src="{{ asset('js/sales-create.js') }}"></script>
 @endpush
+@endsection
