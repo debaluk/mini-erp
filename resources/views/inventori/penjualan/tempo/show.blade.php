@@ -1,9 +1,10 @@
 @extends('layouts.app')
 @section('content')
 @if(request()->boolean('print'))
-@include('components.print.nota', [
+@include('components.print.faktur-penjualan', [
     'entityName' => $sale->entity_name ?? config('app.name'),
-    'title' => 'NOTA PENJUALAN',
+    'customerPhone' => $sale->customer_phone ?? null,
+    'customerAddress' => $sale->customer_address ?? null,
     'documentNo' => $sale->invoice_no,
     'date' => $sale->sale_date,
     'customerName' => $sale->customer_name ?? 'Umum',
@@ -36,12 +37,15 @@
     </div>
     <hr class="my-4"><h6 class="mb-2">Detail Penjualan</h6>
     <div class="table-responsive"><table class="table align-middle"><thead class="table-light"><tr><th>Item</th><th>Satuan Transaksi</th><th class="text-end">Qty Transaksi</th><th class="text-end">Qty Base</th><th class="text-end">Harga</th><th class="text-end">Diskon</th><th class="text-end">Subtotal</th></tr></thead>
-    <tbody>@forelse($items as $i)<tr><td><b>{{ $i->code }}</b><div class="small text-secondary">{{ $i->name }}</div></td><td>{{ $i->transaction_unit_code ?? '-' }}</td><td class="text-end">{{ number_format((float)$i->qty,3,',','.') }}</td><td class="text-end">{{ number_format((float)$i->base_qty,3,',','.') }} {{ $i->base_unit_code ?? '' }}</td><td class="text-end">Rp {{ number_format((float)$i->unit_price,0,',','.') }}</td><td class="text-end">Rp {{ number_format((float)$i->discount,0,',','.') }}</td><td class="text-end">Rp {{ number_format((float)$i->total,0,',','.') }}</td></tr>@empty<tr><td colspan="7" class="text-center text-secondary py-4">Tidak ada detail item.</td></tr>@endforelse</tbody></table></div>
+    <tbody>@forelse($items as $i)<tr><td><b>{{ $i->code }}</b><div class="small text-secondary">{{ $i->name }}</div></td><td>{{ $i->transaction_unit_code ?? '-' }}</td><td class="text-end">{{ rtrim(rtrim(number_format((float)$i->qty,3,',','.'),'0'),',') }}</td><td class="text-end">{{ rtrim(rtrim(number_format((float)$i->base_qty,3,',','.'),'0'),',') }} {{ $i->base_unit_code ?? '' }}</td><td class="text-end">Rp {{ number_format((float)$i->unit_price,0,',','.') }}</td><td class="text-end">Rp {{ number_format((float)$i->discount,0,',','.') }}</td><td class="text-end">Rp {{ number_format((float)$i->total,0,',','.') }}</td></tr>@empty<tr><td colspan="7" class="text-center text-secondary py-4">Tidak ada detail item.</td></tr>@endforelse</tbody></table></div>
     <hr class="my-4"><div class="row g-4">
         <div class="col-md-6"><h6>Informasi Customer</h6><div class="small text-secondary">Customer</div><div class="fw-semibold mb-3">{{ $sale->customer_name ?? 'Umum' }}</div>
             @if(!empty($sale->customer_phone))<div class="small text-secondary">No. Telepon</div><div class="mb-3">{{ $sale->customer_phone }}</div>@endif
             @if(!empty($sale->customer_address))<div class="small text-secondary">Alamat</div><div class="mb-3">{{ $sale->customer_address }}</div>@endif
-            <div class="small text-secondary">Piutang Sebelumnya</div><div class="fw-semibold">Rp {{ number_format($previousReceivable,0,',','.') }}</div>
+            <div class="previous-receivable">
+                <div class="small text-secondary">Piutang Sebelumnya</div>
+                <div class="fw-semibold">Rp {{ number_format($previousReceivable,0,',','.') }}</div>
+            </div>
             @if(!empty($sale->memo))<div class="small text-secondary mt-3">Memo</div><div>{{ $sale->memo }}</div>@endif
         </div>
         <div class="col-md-6"><h6>Informasi Transaksi</h6>
@@ -61,6 +65,10 @@
 <script>
 window.addEventListener('load', function () {
     window.print();
+});
+
+window.addEventListener('afterprint', function () {
+    window.close();
 });
 </script>
 @endpush

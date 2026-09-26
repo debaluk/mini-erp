@@ -1,16 +1,101 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <h4 class="mb-1">Penjualan Baru</h4>
-        
-    </div>
-    <a href="{{ route('inventori.penjualan') }}" class="btn btn-outline-secondary">← Kembali</a>
+<style>
+    html,
+    body {
+        height: 100%;
+        overflow: hidden !important;
+    }
+
+    body > nav.navbar,
+    body > footer,
+    .breadcrumb,
+    .app-sidebar {
+        display: none !important;
+    }
+
+    main {
+        height: 100vh !important;
+        min-height: 100vh !important;
+        overflow: hidden !important;
+        padding: 0 !important;
+    }
+
+    .pos-screen {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        padding: 12px;
+    }
+
+    .pos-header {
+        flex: 0 0 auto;
+    }
+
+    .pos-card {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .pos-card-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        padding: 0 !important;
+    }
+
+    .pos-cart {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    .pos-summary {
+        flex: 0 0 auto;
+    }
+
+    .pos-total {
+        font-size: 32pt;
+        line-height: 1;
+        font-weight: 800;
+        letter-spacing: .02em;
+    }
+
+    .pos-total-card {
+        background: #212529;
+        color: #fff;
+        border-radius: .75rem;
+        padding: 12px 16px;
+    }
+
+    .pos-action {
+        flex: 0 0 auto;
+    }
+
+    @media (max-width: 767.98px) {
+        .pos-screen {
+            padding: 6px;
+        }
+
+        .pos-total {
+            font-size: 28pt;
+        }
+    }
+</style>
+<div class="pos-screen">
+<div class="pos-header d-flex justify-content-between align-items-center mb-2">
 </div>
 
-<div class="card shadow-sm">
-    <div class="card-body">
+<div class="card shadow-sm pos-card">
+    <div class="card-body pos-card-body">
         <div class="row g-2">
             <div class="col-md-6">
                 <div class="d-flex align-items-center">
@@ -21,9 +106,9 @@
 
             <div class="col-md-6">
                 <div class="d-flex align-items-center">
-                    <label class="form-label mb-0 me-3 text-nowrap" style="min-width:80px">Pelanggan</label>
+                    <label class="form-label mb-0 me-3 text-nowrap" style="min-width:80px">Customer</label>
                     <div class="input-group">
-                        <input id="customerSearch" class="form-control" placeholder="Pilih pelanggan..." readonly>
+                        <input id="customerSearch" class="form-control" value="Umum" placeholder="Pilih customer..." readonly>
                         <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#customerModal">Pilih</button>
                     </div>
                 </div>
@@ -39,8 +124,7 @@
             <div class="col-md-6">
                 <div class="d-flex align-items-center">
                     <label class="form-label mb-0 me-3 text-nowrap" style="min-width:80px">Unit Bisnis</label>
-                    <select id="unitSelect" class="form-select" required>
-                        <option value="">Pilih Unit Bisnis</option>
+                    <select id="unitSelect" class="form-select" required disabled>
                         @foreach($units as $u)
                             <option value="{{ $u->id }}" @selected((int) $defaultUnitId === (int) $u->id)>
                                 {{ $u->name }}
@@ -56,11 +140,15 @@
 
         
 
-        <div class="mb-2">
-            <h6 class="mb-0 mt-3">Detail Penjualan</h6>
+        <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
+            <div>
+                <h6 class="mb-0">Detail POS</h6>
+                <div class="small text-secondary">Masukkan barcode pada baris kosong untuk menambah barang.</div>
+            </div>
+            <span class="badge text-bg-light border text-secondary">Harga dapat disesuaikan</span>
         </div>
 
-        <div class="table-responsive">
+        <div class="table-responsive pos-cart">
             <table class="table table-bordered align-middle mb-0" id="salesDetailTable">
                 <thead class="table-light">
                     <tr>
@@ -79,23 +167,9 @@
 
         
 
-        <div class="row g-4">
-            <div class="col-md-6">
-                <h6 class="mt-3">Informasi Pelanggan</h6>
-                <div class="small text-secondary">Pelanggan</div>
-                <div id="customerInfo" class="fw-semibold mb-3">-</div>
-
-                <div class="small text-secondary">Piutang Sebelumnya</div>
-                <div id="customerBalance" class="fw-semibold mb-2">Rp 0</div>
-
-                <div class="alert alert-warning py-2 d-none" id="arrears">⚠ Ada tunggakan sebelumnya</div>
-
-                <label class="form-label">Memo</label>
-                <textarea id="memoInput" class="form-control" rows="3"></textarea>
-            </div>
-
-            <div class="col-md-6">
-                <h6 class="mt-3">Informasi Transaksi</h6>
+        <div class="row g-3">
+            <div class="col-md-6 ms-auto pos-summary">
+                <h6 class="mt-2">Ringkasan Transaksi</h6>
 
                 <div class="d-flex justify-content-between py-1">
                     <span>Subtotal</span>
@@ -107,42 +181,40 @@
                     <input id="discountInput" type="number" min="0" class="form-control text-end" style="max-width:160px" value="0">
                 </div>
 
-                <div class="d-flex justify-content-between mt-2 pt-2 fs-5">
-                    <strong>TOTAL</strong>
-                    <strong id="totalAmount">Rp 0</strong>
+                <div class="pos-total-card mt-2">
+                    <div class="small text-uppercase fw-semibold opacity-75">TOTAL BAYAR</div>
+                    <div id="totalAmount" class="pos-total">Rp 0</div>
                 </div>
 
-                <div class="row g-2 mt-2 align-items-end">
-                    <div class="col-md-6">
-                        <label class="form-label">Cara Bayar</label>
-                        <select id="paymentMethod" class="form-select">
-                            <option value="Tunai">Tunai</option>
-                            <option value="Transfer">Transfer</option>
-                            <option value="QRIS">QRIS</option>
-                            <option value="Kredit / Bon">Kredit / Bon</option>
-                        </select>
-                    </div>
-
-                    <div id="dueDate" class="col-md-6 d-none">
-                        <label class="form-label">Jatuh Tempo</label>
-                        <input type="date" class="form-control">
-                    </div>
+                <div class="mt-2">
+                    <label class="form-label">Cara Bayar</label>
+                    <select id="paymentMethod" class="form-select">
+                        <option value="Tunai">Tunai</option>
+                        <option value="Transfer">Transfer</option>
+                        <option value="QRIS">QRIS</option>
+                    </select>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="card-footer d-flex justify-content-end gap-2">
-        <a href="{{ route('inventori.penjualan') }}" class="btn btn-outline-secondary">Batal</a>
-        <button type="button" id="saveSales" class="btn btn-primary">Simpan Penjualan</button>
+    <div class="card-footer pos-action d-flex justify-content-between align-items-center gap-2">
+        <div class="small text-secondary">
+            <span class="fw-semibold">Retail</span>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ route('pos') }}" class="btn btn-outline-secondary">[ESC] BATAL</a>
+            <button type="button" id="saveSales" class="btn btn-primary px-4">BAYAR</button>
+        </div>
     </div>
+</div>
 </div>
 
 <div class="modal fade" id="customerModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h6 class="modal-title">Pilih Pelanggan</h6>
+                <h6 class="modal-title">Pilih Customer</h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -166,7 +238,6 @@
         </div>
     </div>
 </div>
-@endsection
 
 
 <div class="modal fade" id="productModal" tabindex="-1" aria-hidden="true">
@@ -212,12 +283,12 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="saleSavedModalLabel">
-                    Penjualan Berhasil
+                    POS Berhasil
                 </h5>
             </div>
 
             <div class="modal-body">
-                Penjualan berhasil disimpan.<br>
+                POS berhasil disimpan.<br>
                 Cetak penjualan sekarang?
             </div>
 
@@ -240,20 +311,15 @@
 
 @push('scripts')
 <script type="application/json" id="salesCreateData">{!! json_encode([
-    'mode' => 'tempo',
-    'requireCustomer' => true,
-    'allowCredit' => true,
-    'mode' => 'tempo',
-    'requireCustomer' => true,
-    'allowCredit' => true,
-    'mode' => 'tempo',
-    'requireCustomer' => true,
-    'allowCredit' => true,
+    'mode' => 'pos',
+    'requireCustomer' => false,
+    'allowCredit' => false,
     'products' => $productCatalog,
-    'storeUrl' => route('inventori.penjualan.store'),
-    'indexUrl' => route('inventori.penjualan'),
-    'createUrl' => route('inventori.penjualan.create'),
-    'printUrlTemplate' => route('inventori.penjualan.print', ['id' => '__ID__']),
+    'storeUrl' => route('pos.penjualan.store'),
+    'indexUrl' => route('pos'),
+    'createUrl' => route('pos'),
+    'printUrlTemplate' => route('pos.penjualan.print', ['id' => '__ID__']),
 ]) !!}</script>
 <script src="{{ asset('js/sales-create.js') }}"></script>
 @endpush
+@endsection
