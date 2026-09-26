@@ -6,7 +6,11 @@
         min-width: 1080px;
     }
 
-    .sales-report-table th,
+    .sales-report-table th {
+        white-space: normal;
+        vertical-align: middle;
+    }
+
     .sales-report-table td {
         white-space: nowrap;
     }
