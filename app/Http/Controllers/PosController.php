@@ -501,11 +501,13 @@ public function paymentDetail(int $id)
         $sale = DB::table('sales as s')
             ->leftJoin('customers as c', 'c.id', '=', 's.customer_id')
             ->leftJoin('business_units as bu', 'bu.id', '=', 's.business_unit_id')
+            ->leftJoin('entities as e', 'e.id', '=', 's.entity_id')
             ->where('s.entity_id', $entity)
             ->where('s.id', $id)
             ->where('bu.code', 'RET')
             ->select(
                 's.*',
+                'e.name as entity_name',
                 'c.name as customer_name',
                 'bu.name as unit_name'
             )
