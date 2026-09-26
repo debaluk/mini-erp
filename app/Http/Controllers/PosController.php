@@ -385,4 +385,160 @@ public function paymentDetail(int $id)
         $entityRow = DB::table('entities')->where('id',$entity)->first();
         return response()->json(['payment'=>$row,'entity'=>$entityRow]);
     }
+    
+    public function create()
+    {
+        $entity = $this->entityId();
+        $user = auth()->user();
+
+        $unit = DB::table('business_units as bu')
+            ->join('user_business_units as ubu', 'ubu.business_unit_id', '=', 'bu.id')
+            ->where('ubu.user_id', $user->id)
+            ->where('bu.entity_id', $entity)
+            ->where('bu.code', 'RET')
+            ->where('bu.is_active', 1)
+            ->select('bu.id', 'bu.code', 'bu.name')
+            ->first();
+
+        abort_unless($unit, 403, 'User belum memiliki akses Business Unit Retail.');
+
+        $units = collect([$unit]);
+        $defaultUnitId = (int) $unit->id;
+
+        $customers = DB::table('customers as c')
+            ->where('c.entity_id', $entity)
+            ->where('c.is_active', 1)
+            ->leftJoin(DB::raw('(SELECT s.customer_id, SUM(GREATEST(s.total - COALESCE(p.paid_amount,0),0)) AS outstanding
+                FROM sales s
+                LEFT JOIN (SELECT sale_id, SUM(COALESCE(paid_amount,0)) paid_amount FROM payments GROUP BY sale_id) p ON p.sale_id=s.id
+                WHERE s.entity_id='.$entity.' AND s.customer_id IS NOT NULL
+                AND EXISTS (SELECT 1 FROM payments cp WHERE cp.sale_id=s.id AND cp.method="credit")
+                GROUP BY s.customer_id) ob'), 'ob.customer_id', '=', 'c.id')
+            ->orderBy('c.name')
+            ->get(['c.id', 'c.name', DB::raw('COALESCE(ob.outstanding,0) as outstanding')]);
+
+        $products = DB::table('products as p')
+            ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
+            ->where('p.entity_id', $entity)
+            ->where('p.is_active', 1)
+            ->select('p.id', 'p.code', 'p.sku', 'p.barcode', 'p.name', 'p.base_unit_id', 'u.code as base_unit_code', 'u.name as base_unit_name')
+            ->orderBy('p.name')
+            ->get();
+
+        $productPrices = DB::table('product_prices')
+            ->whereIn('product_id', $products->pluck('id'))
+            ->where('business_unit_id', $unit->id)
+            ->where('price_type', 'retail')
+            ->get(['product_id', 'business_unit_id', 'unit_id', 'selling_price'])
+            ->groupBy('product_id');
+
+        $productCatalog = $products->map(function ($product) use ($productPrices) {
+            return [
+                'id' => (int) $product->id,
+                'code' => $product->code,
+                'sku' => $product->sku,
+                'barcode' => $product->barcode,
+                'name' => $product->name,
+                'base_unit_id' => (int) $product->base_unit_id,
+                'base_unit_code' => $product->base_unit_code,
+                'base_unit_name' => $product->base_unit_name,
+                'prices' => ($productPrices[$product->id] ?? collect())->values(),
+                'conversions' => collect(),
+            ];
+        })->values();
+
+        return view('inventori.penjualan.pos.create', compact(
+            'units',
+            'defaultUnitId',
+            'customers',
+            'productCatalog'
+        ));
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'payment_method' => ['required', 'in:Tunai,Transfer,QRIS'],
+        ]);
+
+        $entity = $this->entityId();
+        $user = auth()->user();
+
+        $retail = DB::table('business_units as bu')
+            ->join('user_business_units as ubu', 'ubu.business_unit_id', '=', 'bu.id')
+            ->where('ubu.user_id', $user->id)
+            ->where('bu.entity_id', $entity)
+            ->where('bu.code', 'RET')
+            ->where('bu.is_active', 1)
+            ->select('bu.id')
+            ->first();
+
+        abort_unless($retail, 403, 'User belum memiliki akses Business Unit Retail.');
+
+        foreach ((array) $request->input('items', []) as $item) {
+            $product = DB::table('products')
+                ->where('id', (int) ($item['product_id'] ?? 0))
+                ->where('entity_id', $entity)
+                ->where('is_active', 1)
+                ->first(['id', 'base_unit_id']);
+
+            abort_unless($product, 422, 'Barang POS tidak valid.');
+            abort_unless((int) ($item['unit_id'] ?? 0) === (int) $product->base_unit_id, 422, 'POS hanya menggunakan satuan dasar barang.');
+        }
+
+        $request->merge([
+            'business_unit_id' => (int) $retail->id,
+            'due_date' => null,
+        ]);
+
+        return app(SalesController::class)->store($request);
+    }
+
+    public function print(int $id)
+    {
+        $entity = $this->entityId();
+
+        $sale = DB::table('sales as s')
+            ->leftJoin('customers as c', 'c.id', '=', 's.customer_id')
+            ->leftJoin('business_units as bu', 'bu.id', '=', 's.business_unit_id')
+            ->where('s.entity_id', $entity)
+            ->where('s.id', $id)
+            ->where('bu.code', 'RET')
+            ->select(
+                's.*',
+                'c.name as customer_name',
+                'bu.name as unit_name'
+            )
+            ->first();
+
+        abort_unless($sale, 404);
+
+        $items = DB::table('sale_items as si')
+            ->join('products as p', 'p.id', '=', 'si.product_id')
+            ->leftJoin('units as u', 'u.id', '=', 'si.unit_id')
+            ->where('si.sale_id', $sale->id)
+            ->select(
+                'p.code',
+                'p.name',
+                'u.code as unit_code',
+                'si.qty',
+                'si.unit_price',
+                'si.discount',
+                'si.total'
+            )
+            ->orderBy('si.id')
+            ->get();
+
+        $payments = DB::table('payments')
+            ->where('sale_id', $sale->id)
+            ->orderBy('id')
+            ->get();
+
+        return view('inventori.penjualan.pos.print', compact(
+            'sale',
+            'items',
+            'payments'
+        ));
+    }
+
 }
