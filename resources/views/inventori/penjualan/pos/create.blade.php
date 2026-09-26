@@ -119,7 +119,7 @@
     </div>
 
     <div class="card-footer d-flex justify-content-end gap-2">
-        <a href="{{ route('inventori.penjualan') }}" class="btn btn-outline-secondary">Batal</a>
+        <a href="{{ route('pos') }}" class="btn btn-outline-secondary">Batal</a>
         <button type="button" id="saveSales" class="btn btn-primary">Simpan POS</button>
     </div>
 </div>
@@ -234,6 +234,6 @@
     'indexUrl' => route('pos'),
     'createUrl' => route('pos'),
     'printUrlTemplate' => route('pos.penjualan.print', ['id' => '__ID__']),
-]) !!}
-<script src="{{ asset('js/sales-create.js') }}"></script>
+]) !!}</script>
+<script src="{{ asset('js/sales-create.js') }}"></script></script>
 @endpush
