@@ -1,9 +1,10 @@
 @extends('layouts.app')
 @section('content')
 @if(request()->boolean('print'))
-@include('components.print.nota', [
+@include('components.print.faktur-penjualan', [
     'entityName' => $sale->entity_name ?? config('app.name'),
-    'title' => 'NOTA PENJUALAN',
+    'customerPhone' => $sale->customer_phone ?? null,
+    'customerAddress' => $sale->customer_address ?? null,
     'documentNo' => $sale->invoice_no,
     'date' => $sale->sale_date,
     'customerName' => $sale->customer_name ?? 'Umum',
@@ -61,6 +62,10 @@
 <script>
 window.addEventListener('load', function () {
     window.print();
+});
+
+window.addEventListener('afterprint', function () {
+    window.close();
 });
 </script>
 @endpush

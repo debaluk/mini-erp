@@ -241,7 +241,7 @@ class SalesController extends Controller
     {
         $data = $request->validate([
             'customer_id' => ['nullable', 'integer'],
-            'unit_id' => ['required', 'integer'],
+            'business_unit_id' => ['required', 'integer'],
             'payment_method' => ['required', 'in:Tunai,Transfer,QRIS,Kredit / Bon'],
             'due_date' => ['nullable', 'date', 'required_if:payment_method,Kredit / Bon'],
             'memo' => ['nullable', 'string', 'max:5000'],
@@ -250,14 +250,14 @@ class SalesController extends Controller
             'items.*.product_id' => ['required', 'integer'],
             'items.*.unit_id' => ['nullable', 'integer'],
             'items.*.qty' => ['required', 'numeric', 'gt:0'],
-            'items.*.unit_price' => ['required', 'numeric', 'min:0'],
+            'items.*.selling_price' => ['required', 'numeric', 'min:0'],
             'items.*.discount' => ['nullable', 'numeric', 'min:0'],
         ]);
 
         $entity = $this->entityId();
 
         $unit = DB::table('business_units')
-            ->where('id', $data['unit_id'])
+            ->where('id', $data['business_unit_id'])
             ->where('entity_id', $entity)
             ->where('is_active', 1)
             ->first();
@@ -418,7 +418,12 @@ class SalesController extends Controller
                     'sale_id' => $saleId,
                     'user_id' => auth()->id(),
                     'payment_date' => now(),
-                    'method' => $data['payment_method'],
+                    'method' => match ($data['payment_method']) {
+                        'Tunai' => 'cash',
+                        'Transfer' => 'transfer',
+                        'QRIS' => 'qris',
+                        default => throw new \RuntimeException('Metode pembayaran tidak valid.'),
+                    },
                     'amount' => $total,
                     'paid_amount' => $total,
                     'change_amount' => 0,
@@ -541,7 +546,7 @@ class SalesController extends Controller
             ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
             ->where('p.entity_id', $entity)
             ->where('p.is_active', 1)
-            ->select('p.id', 'p.code', 'p.sku', 'p.name', 'p.base_unit_id', 'u.code as base_unit_code', 'u.name as base_unit_name')
+            ->select('p.id', 'p.code', 'p.sku', 'p.barcode', 'p.name', 'p.base_unit_id', 'u.code as base_unit_code', 'u.name as base_unit_name')
             ->orderBy('p.name')
             ->get();
 
@@ -565,6 +570,7 @@ class SalesController extends Controller
                 'id' => (int) $product->id,
                 'code' => $product->code,
                 'sku' => $product->sku,
+                'barcode' => $product->barcode,
                 'name' => $product->name,
                 'base_unit_id' => (int) $product->base_unit_id,
                 'base_unit_code' => $product->base_unit_code,

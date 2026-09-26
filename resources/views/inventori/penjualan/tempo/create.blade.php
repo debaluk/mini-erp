@@ -4,52 +4,60 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h4 class="mb-1">Penjualan Baru</h4>
-        <div class="text-secondary small">Pilih Business Unit sesuai alokasi user. Barang dipilih langsung pada baris detail.</div>
+        
     </div>
     <a href="{{ route('inventori.penjualan') }}" class="btn btn-outline-secondary">← Kembali</a>
 </div>
 
 <div class="card shadow-sm">
     <div class="card-body">
-        <div class="row g-3">
+        <div class="row g-2">
             <div class="col-md-6">
-                <label class="form-label">Tanggal</label>
-                <input type="date" class="form-control" value="{{ now()->toDateString() }}" readonly>
-            </div>
-
-            <div class="col-md-6">
-                <label class="form-label">Pelanggan</label>
-                <div class="input-group">
-                    <input id="customerSearch" class="form-control" placeholder="Pilih pelanggan..." readonly>
-                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#customerModal">Pilih</button>
+                <div class="d-flex align-items-center">
+                    <label class="form-label mb-0 me-3 text-nowrap" style="min-width:80px">Tanggal</label>
+                    <input type="date" class="form-control" value="{{ now()->toDateString() }}" readonly>
                 </div>
             </div>
 
             <div class="col-md-6">
-                <label class="form-label">Nomor</label>
-                <input class="form-control" value="Otomatis" readonly>
+                <div class="d-flex align-items-center">
+                    <label class="form-label mb-0 me-3 text-nowrap" style="min-width:80px">Pelanggan</label>
+                    <div class="input-group">
+                        <input id="customerSearch" class="form-control" placeholder="Pilih pelanggan..." readonly>
+                        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#customerModal">Pilih</button>
+                    </div>
+                </div>
             </div>
 
             <div class="col-md-6">
-                <label class="form-label">Unit Bisnis</label>
-                <select id="unitSelect" class="form-select" required>
-                    <option value="">Pilih Unit Bisnis</option>
-                    @foreach($units as $u)
-                        <option value="{{ $u->id }}" @selected((int) $defaultUnitId === (int) $u->id)>
-                            {{ $u->name }}
-                        </option>
-                    @endforeach
-                </select>
+                <div class="d-flex align-items-center">
+                    <label class="form-label mb-0 me-3 text-nowrap" style="min-width:80px">Nomor</label>
+                    <input class="form-control" value="Otomatis" readonly>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="d-flex align-items-center">
+                    <label class="form-label mb-0 me-3 text-nowrap" style="min-width:80px">Unit Bisnis</label>
+                    <select id="unitSelect" class="form-select" required>
+                        <option value="">Pilih Unit Bisnis</option>
+                        @foreach($units as $u)
+                            <option value="{{ $u->id }}" @selected((int) $defaultUnitId === (int) $u->id)>
+                                {{ $u->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
                 @if($units->isEmpty())
-                    <div class="form-text text-danger">User belum memiliki alokasi Business Unit.</div>
+                    <div class="form-text text-danger ms-5">User belum memiliki alokasi Business Unit.</div>
                 @endif
             </div>
         </div>
 
-        <hr class="my-4">
+        
 
         <div class="mb-2">
-            <h6 class="mb-0">Detail Penjualan</h6>
+            <h6 class="mb-0 mt-3">Detail Penjualan</h6>
         </div>
 
         <div class="table-responsive">
@@ -69,11 +77,11 @@
             </table>
         </div>
 
-        <hr class="my-4">
+        
 
         <div class="row g-4">
             <div class="col-md-6">
-                <h6>Informasi Pelanggan</h6>
+                <h6 class="mt-3">Informasi Pelanggan</h6>
                 <div class="small text-secondary">Pelanggan</div>
                 <div id="customerInfo" class="fw-semibold mb-3">-</div>
 
@@ -87,7 +95,7 @@
             </div>
 
             <div class="col-md-6">
-                <h6>Informasi Transaksi</h6>
+                <h6 class="mt-3">Informasi Transaksi</h6>
 
                 <div class="d-flex justify-content-between py-1">
                     <span>Subtotal</span>
@@ -99,24 +107,26 @@
                     <input id="discountInput" type="number" min="0" class="form-control text-end" style="max-width:160px" value="0">
                 </div>
 
-                <div class="d-flex justify-content-between border-top mt-2 pt-2 fs-5">
+                <div class="d-flex justify-content-between mt-2 pt-2 fs-5">
                     <strong>TOTAL</strong>
                     <strong id="totalAmount">Rp 0</strong>
                 </div>
 
-                <div class="mt-3">
-                    <label class="form-label">Cara Bayar</label>
-                    <select id="paymentMethod" class="form-select">
-                        <option value="Tunai">Tunai</option>
-                        <option value="Transfer">Transfer</option>
-                        <option value="QRIS">QRIS</option>
-                        <option value="Kredit / Bon">Kredit / Bon</option>
-                    </select>
-                </div>
+                <div class="row g-2 mt-2 align-items-end">
+                    <div class="col-md-6">
+                        <label class="form-label">Cara Bayar</label>
+                        <select id="paymentMethod" class="form-select">
+                            <option value="Tunai">Tunai</option>
+                            <option value="Transfer">Transfer</option>
+                            <option value="QRIS">QRIS</option>
+                            <option value="Kredit / Bon">Kredit / Bon</option>
+                        </select>
+                    </div>
 
-                <div id="dueDate" class="mt-3 d-none">
-                    <label class="form-label">Jatuh Tempo</label>
-                    <input type="date" class="form-control">
+                    <div id="dueDate" class="col-md-6 d-none">
+                        <label class="form-label">Jatuh Tempo</label>
+                        <input type="date" class="form-control">
+                    </div>
                 </div>
             </div>
         </div>
@@ -158,12 +168,91 @@
 </div>
 @endsection
 
+
+<div class="modal fade" id="productModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Pilih Barang</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+            </div>
+
+            <div class="modal-body">
+                <div class="mb-3">
+                    <input type="text"
+                           id="productFilter"
+                           class="form-control"
+                           placeholder="Cari kode, nama, barcode, atau SKU...">
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>Kode</th>
+                                <th>Nama Barang</th>
+                                <th>Barcode</th>
+                                <th>Satuan</th>
+                                <th class="text-end">Harga</th>
+                                <th class="text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productList"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade" id="saleSavedModal" tabindex="-1"
+     aria-labelledby="saleSavedModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="saleSavedModalLabel">
+                    Penjualan Berhasil
+                </h5>
+            </div>
+
+            <div class="modal-body">
+                Penjualan berhasil disimpan.<br>
+                Cetak penjualan sekarang?
+            </div>
+
+            <div class="modal-footer">
+                <button type="button"
+                        class="btn btn-outline-secondary"
+                        id="saleSavedNo">
+                    Tidak
+                </button>
+
+                <button type="button"
+                        class="btn btn-primary"
+                        id="saleSavedYes">
+                    Ya
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
-<script type="application/json" id="salesCreateData">@json([
+<script type="application/json" id="salesCreateData">{!! json_encode([
+    'mode' => 'tempo',
+    'requireCustomer' => true,
+    'allowCredit' => true,
+    'mode' => 'tempo',
+    'requireCustomer' => true,
+    'allowCredit' => true,
+    'mode' => 'tempo',
+    'requireCustomer' => true,
+    'allowCredit' => true,
     'products' => $productCatalog,
     'storeUrl' => route('inventori.penjualan.store'),
     'indexUrl' => route('inventori.penjualan'),
     'createUrl' => route('inventori.penjualan.create'),
-])</script>
+]) !!}</script>
 <script src="{{ asset('js/sales-create.js') }}"></script>
 @endpush
