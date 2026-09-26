@@ -2,7 +2,8 @@
 
 (function () {
     const dataNode = document.getElementById('salesCreateData');
-    const productCatalog = dataNode ? JSON.parse(dataNode.textContent || '[]') : [];
+    const config = dataNode ? JSON.parse(dataNode.textContent || '{}') : {};
+    const productCatalog = config.products || [];
     const rows = [];
     const body = document.getElementById('detailBody');
     const unitSelect = document.getElementById('unitSelect');
@@ -386,7 +387,7 @@
                 }))
             };
 
-            const response = await fetch('{{ route('inventori.penjualan.store') }}', {
+            const response = await fetch(config.storeUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -408,8 +409,8 @@
 
             const doPrint = window.confirm('Penjualan berhasil disimpan. Cetak penjualan sekarang?');
             window.location.href = doPrint
-                ? (json.redirect || '{{ route('inventori.penjualan') }}') + '?print=1'
-                : '{{ route('inventori.penjualan.create') }}';
+                ? (json.redirect || config.indexUrl) + '?print=1'
+                : config.createUrl;
         } catch (error) {
             alert(error.message);
         }
