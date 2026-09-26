@@ -3,8 +3,11 @@
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
-        <h4 class="mb-1">POS Kasir</h4>
-        
+        <div class="d-flex align-items-center gap-2">
+            <h4 class="mb-0">POS Kasir</h4>
+            <span class="badge text-bg-primary">Retail</span>
+        </div>
+        <div class="small text-secondary mt-1">Transaksi penjualan tunai · Scan barcode atau pilih barang</div>
     </div>
     <a href="{{ route('pos') }}" class="btn btn-outline-secondary">← Kembali</a>
 </div>
@@ -55,8 +58,12 @@
 
         
 
-        <div class="mb-2">
-            <h6 class="mb-0 mt-3">Detail POS</h6>
+        <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
+            <div>
+                <h6 class="mb-0">Detail POS</h6>
+                <div class="small text-secondary">Masukkan barcode pada baris kosong untuk menambah barang.</div>
+            </div>
+            <span class="badge text-bg-light border text-secondary">Harga dapat disesuaikan</span>
         </div>
 
         <div class="table-responsive">
@@ -80,16 +87,23 @@
 
         <div class="row g-4">
             <div class="col-md-6">
-                <h6 class="mt-3">Informasi Customer</h6>
-                <div class="small text-secondary">Customer</div>
-                <div id="customerInfo" class="fw-semibold mb-3">-</div>
-
-                <label class="form-label">Memo</label>
-                <textarea id="memo" class="form-control" rows="3"></textarea>
+                <div class="border rounded-3 bg-light p-3 mt-3 h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <strong>Shortcut Kasir</strong>
+                        <span class="small text-secondary">Keyboard</span>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 small">
+                        <span class="badge text-bg-white border text-dark"><kbd>F2</kbd> Cari barang</span>
+                        <span class="badge text-bg-white border text-dark"><kbd>F4</kbd> Cara bayar</span>
+                        <span class="badge text-bg-white border text-dark"><kbd>Enter</kbd> Pilih / scan</span>
+                        <span class="badge text-bg-white border text-dark"><kbd>Esc</kbd> Tutup modal</span>
+                    </div>
+                    <div class="small text-secondary mt-2">Fokus kembali ke barcode setelah barang dipilih.</div>
+                </div>
             </div>
 
             <div class="col-md-6">
-                <h6 class="mt-3">Informasi Transaksi</h6>
+                <h6 class="mt-3">Ringkasan Transaksi</h6>
 
                 <div class="d-flex justify-content-between py-1">
                     <span>Subtotal</span>
@@ -118,9 +132,14 @@
         </div>
     </div>
 
-    <div class="card-footer d-flex justify-content-end gap-2">
-        <a href="{{ route('pos') }}" class="btn btn-outline-secondary">Batal</a>
-        <button type="button" id="saveSales" class="btn btn-primary">Simpan POS</button>
+    <div class="card-footer d-flex justify-content-between align-items-center gap-2">
+        <div class="small text-secondary">
+            <span class="fw-semibold">Siap transaksi</span> · Pastikan total dan cara bayar sudah benar.
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ route('pos') }}" class="btn btn-outline-secondary">Batal</a>
+            <button type="button" id="saveSales" class="btn btn-primary px-4">Simpan POS</button>
+        </div>
     </div>
 </div>
 
@@ -235,5 +254,5 @@
     'createUrl' => route('pos'),
     'printUrlTemplate' => route('pos.penjualan.print', ['id' => '__ID__']),
 ]) !!}</script>
-<script src="{{ asset('js/sales-create.js') }}"></script></script>
+<script src="{{ asset('js/sales-create.js') }}"></script>
 @endpush
