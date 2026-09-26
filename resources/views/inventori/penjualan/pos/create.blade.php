@@ -2,22 +2,106 @@
 
 @section('content')
 <style>
-    body > nav.navbar { display: none !important; }
-    main { min-height: 100vh !important; }
+    html,
+    body {
+        height: 100%;
+        overflow: hidden !important;
+    }
+
+    body > nav.navbar,
+    body > footer,
+    .breadcrumb,
+    .app-sidebar {
+        display: none !important;
+    }
+
+    main {
+        height: 100vh !important;
+        min-height: 100vh !important;
+        overflow: hidden !important;
+        padding: 0 !important;
+    }
+
+    .pos-screen {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        padding: 12px;
+    }
+
+    .pos-header {
+        flex: 0 0 auto;
+    }
+
+    .pos-card {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .pos-card-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .pos-cart {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    .pos-summary {
+        flex: 0 0 auto;
+    }
+
+    .pos-total {
+        font-size: 32pt;
+        line-height: 1;
+        font-weight: 800;
+        letter-spacing: .02em;
+    }
+
+    .pos-total-card {
+        background: #212529;
+        color: #fff;
+        border-radius: .75rem;
+        padding: 12px 16px;
+    }
+
+    .pos-action {
+        flex: 0 0 auto;
+    }
+
+    @media (max-width: 767.98px) {
+        .pos-screen {
+            padding: 6px;
+        }
+
+        .pos-total {
+            font-size: 28pt;
+        }
+    }
 </style>
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="pos-screen">
+<div class="pos-header d-flex justify-content-between align-items-center mb-2">
     <div>
         <div class="d-flex align-items-center gap-2">
             <h4 class="mb-0">POS Kasir</h4>
             <span class="badge text-bg-primary">Retail</span>
         </div>
-        <div class="small text-secondary mt-1">Transaksi penjualan tunai · Scan barcode atau pilih barang</div>
+        <div class="small text-secondary mt-1">Scan barcode atau pilih barang</div>
     </div>
-    <a href="{{ route('pos') }}" class="btn btn-outline-secondary">← Kembali</a>
 </div>
 
-<div class="card shadow-sm">
-    <div class="card-body">
+<div class="card shadow-sm pos-card">
+    <div class="card-body pos-card-body">
         <div class="row g-2">
             <div class="col-md-6">
                 <div class="d-flex align-items-center">
@@ -70,7 +154,7 @@
             <span class="badge text-bg-light border text-secondary">Harga dapat disesuaikan</span>
         </div>
 
-        <div class="table-responsive">
+        <div class="table-responsive pos-cart">
             <table class="table table-bordered align-middle mb-0" id="salesDetailTable">
                 <thead class="table-light">
                     <tr>
@@ -89,25 +173,9 @@
 
         
 
-        <div class="row g-4">
+        <div class="row g-3">
             <div class="col-md-6">
-                <div class="border rounded-3 bg-light p-3 mt-3 h-100">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <strong>Shortcut Kasir</strong>
-                        <span class="small text-secondary">Keyboard</span>
-                    </div>
-                    <div class="d-flex flex-wrap gap-2 small">
-                        <span class="badge text-bg-white border text-dark"><kbd>F2</kbd> Cari barang</span>
-                        <span class="badge text-bg-white border text-dark"><kbd>F4</kbd> Cara bayar</span>
-                        <span class="badge text-bg-white border text-dark"><kbd>Enter</kbd> Pilih / scan</span>
-                        <span class="badge text-bg-white border text-dark"><kbd>Esc</kbd> Tutup modal</span>
-                    </div>
-                    <div class="small text-secondary mt-2">Fokus kembali ke barcode setelah barang dipilih.</div>
-                </div>
-            </div>
-
-            <div class="col-md-6">
-                <h6 class="mt-3">Ringkasan Transaksi</h6>
+                <h6 class="mt-2">Ringkasan Transaksi</h6>
 
                 <div class="d-flex justify-content-between py-1">
                     <span>Subtotal</span>
@@ -119,9 +187,9 @@
                     <input id="discountInput" type="number" min="0" class="form-control text-end" style="max-width:160px" value="0">
                 </div>
 
-                <div class="d-flex justify-content-between mt-2 pt-2 fs-5">
-                    <strong>TOTAL</strong>
-                    <strong id="totalAmount">Rp 0</strong>
+                <div class="pos-total-card mt-2">
+                    <div class="small text-uppercase fw-semibold opacity-75">TOTAL BAYAR</div>
+                    <div id="totalAmount" class="pos-total">Rp 0</div>
                 </div>
 
                 <div class="mt-2">
@@ -136,15 +204,16 @@
         </div>
     </div>
 
-    <div class="card-footer d-flex justify-content-between align-items-center gap-2">
+    <div class="card-footer pos-action d-flex justify-content-between align-items-center gap-2">
         <div class="small text-secondary">
-            <span class="fw-semibold">Siap transaksi</span> · Pastikan total dan cara bayar sudah benar.
+            <span class="fw-semibold">Siap transaksi</span> · [F4] BAYAR · [ESC] BATAL
         </div>
         <div class="d-flex gap-2">
             <a href="{{ route('pos') }}" class="btn btn-outline-secondary">Batal</a>
-            <button type="button" id="saveSales" class="btn btn-primary px-4">Simpan POS</button>
+            <button type="button" id="saveSales" class="btn btn-primary px-4">[F4] BAYAR</button>
         </div>
     </div>
+</div>
 </div>
 
 <div class="modal fade" id="customerModal" tabindex="-1">
