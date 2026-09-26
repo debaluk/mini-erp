@@ -157,8 +157,11 @@
             </ul>
             <div class="d-flex align-items-center gap-2">
                 @if(auth()->user()->hasModuleAccess('pos'))
-                <a class="btn btn-outline-light btn-sm fw-semibold" href="{{ route('pos') }}" title="Penjualan Tunai">
-                    <span class="me-1">🛒</span> Penjualan Tunai
+                <a id="kasirMenuButton"
+                   class="btn btn-outline-light btn-sm fw-semibold"
+                   href="{{ route('pos') }}"
+                   title="Buka Kasir">
+                    <span class="me-1">🛒</span> Kasir
                 </a>
                 @endif
                 <div class="dropdown"><button class="btn btn-outline-light btn-sm dropdown-toggle" data-bs-toggle="dropdown">{{ auth()->user()->name }} · {{ ucfirst(auth()->user()->role) }}</button><ul class="dropdown-menu dropdown-menu-end"><li><span class="dropdown-item-text fw-semibold">{{ auth()->user()->name }}</span></li><li><span class="dropdown-item-text text-secondary">Role: {{ ucfirst(auth()->user()->role) }}</span></li><li><hr class="dropdown-divider"></li><li><form method="POST" action="{{ route('logout') }}">@csrf<button class="dropdown-item" type="submit">Logout</button></form></li></ul></div>
@@ -272,6 +275,31 @@ document.addEventListener('DOMContentLoaded', () => {
         return data;
     };
 });
+
+const kasirMenuButton = document.getElementById('kasirMenuButton');
+if (kasirMenuButton) {
+    kasirMenuButton.addEventListener('click', event => {
+        event.preventDefault();
+        const url = kasirMenuButton.href;
+        const features = [
+            'popup=yes',
+            'width=1200',
+            'height=800',
+            'resizable=yes',
+            'scrollbars=yes',
+            'menubar=no',
+            'toolbar=no',
+            'location=no',
+            'status=no'
+        ].join(',');
+        const kasirWindow = window.open(url, 'miniErpKasir', features);
+        if (kasirWindow) {
+            kasirWindow.focus();
+        } else {
+            window.location.href = url;
+        }
+    });
+}
 
 document.querySelectorAll('.dropdown-submenu > .dropdown-toggle').forEach(toggle => {
     toggle.addEventListener('click', function (e) {
