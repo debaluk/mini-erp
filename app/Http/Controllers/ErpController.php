@@ -27,12 +27,11 @@ class ErpController extends Controller
                 'minimum_stock'=>['label'=>'Minimum Stok','type'=>'number','step'=>'0.001']]],
             'customers'=>[
                 'title'=>'Customer','table'=>'customers',
-                'columns'=>['code','name','customer_type','phone','address','is_active'],
-                'column_labels'=>['code'=>'Kode Customer','name'=>'Nama Customer','customer_type'=>'Jenis Customer','phone'=>'No. Telepon','address'=>'Alamat','is_active'=>'Status'],
+                'columns'=>['code','name','phone','address','is_active'],
+                'column_labels'=>['code'=>'Kode Customer','name'=>'Nama Customer','phone'=>'No. Telepon','address'=>'Alamat','is_active'=>'Status'],
                 'fields'=>[
                     'code'=>['label'=>'Kode Customer','type'=>'text','readonly'=>true],
                     'name'=>['label'=>'Nama Customer','type'=>'text','required'=>true],
-                    'customer_type'=>['label'=>'Jenis Customer','type'=>'select','required'=>true,'options'=>['umum'=>'Umum','proyek'=>'Proyek','perusahaan'=>'Perusahaan']],
                     'phone'=>['label'=>'No. Telepon','type'=>'text'],
                     'address'=>['label'=>'Alamat','type'=>'textarea'],
                     'is_active'=>['label'=>'Status','type'=>'select','options'=>['1'=>'Aktif','0'=>'Nonaktif']]
