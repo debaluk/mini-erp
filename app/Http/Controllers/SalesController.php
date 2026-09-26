@@ -14,6 +14,23 @@ class SalesController extends Controller
         return (int) (DB::table('entities')->value('id') ?? 1);
     }
 
+    private function resolveSalePrice(int $productId, int $businessUnitId, int $unitId, int $entity): float
+    {
+        $price = DB::table('product_prices as pp')
+            ->join('products as p', 'p.id', '=', 'pp.product_id')
+            ->where('pp.product_id', $productId)
+            ->where('pp.business_unit_id', $businessUnitId)
+            ->where('pp.unit_id', $unitId)
+            ->where('pp.price_type', 'retail')
+            ->where('p.entity_id', $entity)
+            ->where('p.is_active', 1)
+            ->value('pp.selling_price');
+
+        abort_unless($price !== null, 422, 'Harga jual item untuk Business Unit dan satuan tersebut belum tersedia.');
+
+        return (float) $price;
+    }
+
     private function resolveProductUnit(int $productId, ?int $unitId, int $entity): array
     {
         $product = DB::table('products')
@@ -276,7 +293,12 @@ class SalesController extends Controller
                 );
 
                 $transactionQty = (float) $item['qty'];
-                $transactionPrice = (float) $item['unit_price'];
+                $transactionPrice = $this->resolveSalePrice(
+                    $product->id,
+                    (int) $unit->id,
+                    $uom['unit_id'],
+                    $entity
+                );
                 $baseQty = round($transactionQty * $uom['factor'], 9);
                 $lineDiscount = min((float) ($item['discount'] ?? 0), $transactionQty * $transactionPrice);
                 $lineTotal = round(($transactionQty * $transactionPrice) - $lineDiscount, 2);
@@ -511,9 +533,16 @@ class SalesController extends Controller
             ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
             ->where('p.entity_id', $entity)
             ->where('p.is_active', 1)
-            ->select('p.id', 'p.code', 'p.sku', 'p.name', 'p.selling_price', 'p.base_unit_id', 'u.code as base_unit_code')
+            ->select('p.id', 'p.code', 'p.sku', 'p.name', 'p.base_unit_id', 'u.code as base_unit_code')
             ->orderBy('p.name')
             ->get();
+
+        $productPrices = DB::table('product_prices')
+            ->whereIn('product_id', $products->pluck('id'))
+            ->whereIn('business_unit_id', $units->pluck('id'))
+            ->where('price_type', 'retail')
+            ->get(['product_id', 'business_unit_id', 'unit_id', 'selling_price'])
+            ->groupBy('product_id');
 
         $productConversions = DB::table('product_unit_conversions as puc')
             ->join('units as u', 'u.id', '=', 'puc.unit_id')
@@ -523,6 +552,6 @@ class SalesController extends Controller
             ->get(['puc.product_id', 'puc.unit_id', 'puc.conversion_factor', 'puc.is_default_sale', 'u.code', 'u.name'])
             ->groupBy('product_id');
 
-        return view('inventori.penjualan.tempo.create', compact('units', 'customers', 'products', 'productConversions'));
+        return view('inventori.penjualan.tempo.create', compact('units', 'customers', 'products', 'productConversions', 'productPrices'));
     }
 }
