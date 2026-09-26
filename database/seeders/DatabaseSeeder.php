@@ -283,6 +283,35 @@ class DatabaseSeeder extends Seeder
         );
 
         // ================================================================
+        // SALES PRICE LIST
+        // Source of truth: Product + Business Unit + UOM + price_type.
+        // ================================================================
+        $salePrices = [
+            ['product'=>'SEMEN-001', 'bu'=>'RET',  'unit'=>'KG',   'price'=>1400],
+            ['product'=>'SEMEN-001', 'bu'=>'PROD', 'unit'=>'KG',   'price'=>1400],
+            ['product'=>'PASIR-001', 'bu'=>'RET',  'unit'=>'M3',   'price'=>300000],
+            ['product'=>'PASIR-001', 'bu'=>'PROD', 'unit'=>'M3',   'price'=>300000],
+            ['product'=>'BATAKO-001','bu'=>'RET',  'unit'=>'PCS',  'price'=>4000],
+            ['product'=>'BATAKO-001','bu'=>'PROD', 'unit'=>'PCS',  'price'=>3300],
+            ['product'=>'ANGKUT-001','bu'=>'JASA', 'unit'=>'TRIP', 'price'=>500000],
+        ];
+
+        foreach ($salePrices as $price) {
+            DB::table('product_prices')->updateOrInsert(
+                [
+                    'product_id' => $productIds[$price['product']],
+                    'business_unit_id' => $buIds[$price['bu']],
+                    'unit_id' => $unitIds[$price['unit']],
+                    'price_type' => 'retail',
+                ],
+                [
+                    'selling_price' => $price['price'],
+                    'updated_at' => $now,
+                ]
+            );
+        }
+
+        // ================================================================
         // CUSTOMER / SUPPLIER
         // ================================================================
         DB::table('customers')->updateOrInsert(
