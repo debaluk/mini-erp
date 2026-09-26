@@ -174,7 +174,7 @@
         
 
         <div class="row g-3">
-            <div class="col-md-6">
+            <div class="col-md-6 ms-auto pos-summary">
                 <h6 class="mt-2">Ringkasan Transaksi</h6>
 
                 <div class="d-flex justify-content-between py-1">
@@ -206,11 +206,11 @@
 
     <div class="card-footer pos-action d-flex justify-content-between align-items-center gap-2">
         <div class="small text-secondary">
-            <span class="fw-semibold">Siap transaksi</span> · [F4] BAYAR · [ESC] BATAL
+            <span class="fw-semibold">Siap transaksi</span> · [F4] CARA BAYAR
         </div>
         <div class="d-flex gap-2">
-            <a href="{{ route('pos') }}" class="btn btn-outline-secondary">Batal</a>
-            <button type="button" id="saveSales" class="btn btn-primary px-4">[F4] BAYAR</button>
+            <a href="{{ route('pos') }}" class="btn btn-outline-secondary">[ESC] BATAL</a>
+            <button type="button" id="saveSales" class="btn btn-primary px-4">BAYAR</button>
         </div>
     </div>
 </div>
