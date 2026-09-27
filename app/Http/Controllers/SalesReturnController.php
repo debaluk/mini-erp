@@ -15,20 +15,24 @@ class SalesReturnController extends Controller
         return (int) $entity->id;
     }
 
-    private function accountId(int $entity, array $names, ?string $type = null): int
+    private function mappingAccountId(int $entity, int $businessUnitId, string $mappingKey): int
     {
-        $accounts = DB::table('chart_of_accounts')
-            ->where('entity_id', $entity)
-            ->where('is_active', 1)
-            ->when($type, fn ($q) => $q->where('type', $type))
-            ->get(['id', 'name', 'code']);
+        $account = DB::table('business_unit_account_mappings as m')
+            ->join('chart_of_accounts as c', 'c.id', '=', 'm.account_id')
+            ->where('m.entity_id', $entity)
+            ->where('m.business_unit_id', $businessUnitId)
+            ->where('m.mapping_key', $mappingKey)
+            ->where('c.is_active', 1)
+            ->where('c.is_postable', 1)
+            ->first(['c.id']);
 
-        foreach ($names as $name) {
-            $account = $accounts->first(fn ($a) => mb_strtolower(trim($a->name)) === mb_strtolower($name));
-            if ($account) return (int) $account->id;
-        }
+        abort_unless(
+            $account,
+            422,
+            'Mapping account tidak ditemukan: ' . $mappingKey . '.'
+        );
 
-        abort(422, 'COA terkunci tidak ditemukan: ' . implode(' / ', $names) . '.');
+        return (int) $account->id;
     }
 
     public function index()
@@ -117,6 +121,132 @@ class SalesReturnController extends Controller
         ]);
     }
 
+    public function print(int $id)
+    {
+        $entity = $this->entityId();
+
+        $return = DB::table('sales_returns as r')
+            ->join('sales as s', 's.id', '=', 'r.sale_id')
+            ->leftJoin('customers as c', 'c.id', '=', 'r.customer_id')
+            ->leftJoin('users as u', 'u.id', '=', 'r.user_id')
+            ->leftJoin('warehouses as w', 'w.id', '=', 'r.warehouse_id')
+            ->leftJoin('business_units as bu', 'bu.id', '=', 'r.business_unit_id')
+            ->where('r.entity_id', $entity)
+            ->where('r.id', $id)
+            ->select(
+                'r.*',
+                's.invoice_no',
+                's.created_at as sale_created_at',
+                DB::raw("COALESCE(c.name, 'Pelanggan Umum') as customer_name"),
+                'c.address as customer_address',
+                'c.phone as customer_phone',
+                DB::raw("COALESCE(u.name, '-') as user_name"),
+                DB::raw("COALESCE(w.name, '-') as warehouse_name"),
+                'bu.name as business_unit_name'
+            )
+            ->first();
+
+        abort_unless($return, 404, 'Retur penjualan tidak ditemukan.');
+
+        $entityData = DB::table('entities')
+            ->where('id', $entity)
+            ->first(['name', 'address', 'phone']);
+
+        $items = DB::table('sales_return_items as ri')
+            ->join('products as p', 'p.id', '=', 'ri.product_id')
+            ->leftJoin('units as un', 'un.id', '=', 'ri.unit_id')
+            ->where('ri.sales_return_id', $return->id)
+            ->select(
+                'ri.*',
+                'p.code as product_code',
+                'p.name as product_name',
+                DB::raw("COALESCE(un.name, '-') as unit_name")
+            )
+            ->orderBy('ri.id')
+            ->get();
+
+        $paid = (float) DB::table('payments')
+            ->where('sale_id', $return->sale_id)
+            ->sum('amount');
+
+        $saleTotal = (float) DB::table('sales')
+            ->where('id', $return->sale_id)
+            ->value('total');
+
+        $refundTo = $paid >= $saleTotal
+            ? 'PENGEMBALIAN KAS / BANK'
+            : 'PIUTANG USAHA';
+
+        $terbilang = $this->terbilang((float) $return->total);
+
+        return view('inventori.penjualan.retur.print', compact(
+            'return',
+            'items',
+            'entityData',
+            'refundTo',
+            'terbilang'
+        ));
+    }
+
+    private function terbilang(float $number): string
+    {
+        $number = (int) round($number);
+
+        if ($number === 0) {
+            return 'Nol';
+        }
+
+        $words = [
+            '', 'Satu', 'Dua', 'Tiga', 'Empat', 'Lima',
+            'Enam', 'Tujuh', 'Delapan', 'Sembilan', 'Sepuluh',
+            'Sebelas'
+        ];
+
+        if ($number < 12) {
+            return $words[$number];
+        }
+
+        if ($number < 20) {
+            return $this->terbilang($number - 10) . ' Belas';
+        }
+
+        if ($number < 100) {
+            return $this->terbilang(intdiv($number, 10)) . ' Puluh'
+                . ($number % 10 ? ' ' . $this->terbilang($number % 10) : '');
+        }
+
+        if ($number < 200) {
+            return 'Seratus' . ($number % 100 ? ' ' . $this->terbilang($number % 100) : '');
+        }
+
+        if ($number < 1000) {
+            return $this->terbilang(intdiv($number, 100)) . ' Ratus'
+                . ($number % 100 ? ' ' . $this->terbilang($number % 100) : '');
+        }
+
+        if ($number < 2000) {
+            return 'Seribu' . ($number % 1000 ? ' ' . $this->terbilang($number % 1000) : '');
+        }
+
+        if ($number < 1000000) {
+            return $this->terbilang(intdiv($number, 1000)) . ' Ribu'
+                . ($number % 1000 ? ' ' . $this->terbilang($number % 1000) : '');
+        }
+
+        if ($number < 1000000000) {
+            return $this->terbilang(intdiv($number, 1000000)) . ' Juta'
+                . ($number % 1000000 ? ' ' . $this->terbilang($number % 1000000) : '');
+        }
+
+        if ($number < 1000000000000) {
+            return $this->terbilang(intdiv($number, 1000000000)) . ' Miliar'
+                . ($number % 1000000000 ? ' ' . $this->terbilang($number % 1000000000) : '');
+        }
+
+        return $this->terbilang(intdiv($number, 1000000000000)) . ' Triliun'
+            . ($number % 1000000000000 ? ' ' . $this->terbilang($number % 1000000000000) : '');
+    }
+
     public function exportExcel(Request $request)
     {
         $entity = $this->entityId();
@@ -187,6 +317,7 @@ class SalesReturnController extends Controller
             ->leftJoin('customers as c', 'c.id', '=', 's.customer_id')
             ->where('s.entity_id', $entity)
             ->where('s.invoice_no', $data['invoice_no'])
+            ->where('s.status', 'posted')
             ->select('s.*', DB::raw("COALESCE(c.name, 'Umum') as customer_name"))
             ->first();
 
@@ -265,8 +396,26 @@ class SalesReturnController extends Controller
             $sale = DB::table('sales')->where('entity_id', $entity)->where('id', $data['sale_id'])->lockForUpdate()->first();
             abort_unless($sale, 404, 'Penjualan tidak ditemukan.');
 
+            abort_unless(
+                $sale->business_unit_id,
+                422,
+                'Penjualan tidak memiliki Business Unit.'
+            );
+
+            abort_unless(
+                $sale->status === 'posted',
+                422,
+                'Penjualan belum berstatus posted dan tidak dapat diretur.'
+            );
+
             $warehouse = DB::table('warehouses')->where('entity_id', $entity)->where('id', $data['warehouse_id'])->where('is_active', 1)->first();
             abort_unless($warehouse, 404, 'Gudang tidak ditemukan.');
+
+            abort_unless(
+                (int) $warehouse->business_unit_id === (int) $sale->business_unit_id,
+                422,
+                'Gudang tidak sesuai dengan Business Unit Penjualan.'
+            );
 
             $saleItems = DB::table('sale_items')->where('sale_id', $sale->id)->get()->keyBy('id');
             $subtotal = (float) $sale->subtotal;
@@ -287,7 +436,7 @@ class SalesReturnController extends Controller
                 $qty = (float) $input['qty'];
                 abort_if($qty > max(0, (float) $item->qty - $returned), 422, 'Qty retur melebihi qty yang masih dapat diretur.');
                 $conversionFactor = (float) ($item->conversion_factor ?: 1);
-                $baseQty = (float) ($item->base_qty ?: ($qty * $conversionFactor));
+                $baseQty = round($qty * $conversionFactor, 9);
 
                 $grossItem = (float) $item->total;
                 $allocatedDiscount = $subtotal > 0 ? ($grossItem / $subtotal) * $saleDiscount : 0;
@@ -368,7 +517,7 @@ class SalesReturnController extends Controller
 
                 DB::table('stock_movements')->insert([
                     'entity_id' => $entity,
-                    'business_unit_id' => $warehouse->business_unit_id,
+                    'business_unit_id' => $sale->business_unit_id,
                     'warehouse_id' => $warehouse->id,
                     'product_id' => $item->product_id,
                     'unit_id' => $item->unit_id,
@@ -386,17 +535,88 @@ class SalesReturnController extends Controller
                 ]);
             }
 
+            $businessUnit = DB::table('business_units')
+                ->where('id', $sale->business_unit_id)
+                ->where('entity_id', $entity)
+                ->first(['id', 'business_type']);
+
+            abort_unless($businessUnit, 422, 'Business Unit penjualan tidak ditemukan.');
+
             $payment = DB::table('payments')->where('sale_id', $sale->id)->orderBy('id')->first(['method', 'amount']);
             $paid = (float) DB::table('payments')->where('sale_id', $sale->id)->sum('amount');
+
             $refundAccount = $paid >= (float) $sale->total
-                ? $this->accountId($entity, $payment && in_array(strtolower($payment->method), ['transfer', 'qris'], true) ? ['Bank', 'Bank & Giro'] : ['Kas'])
-                : $this->accountId($entity, ['Piutang', 'Piutang Usaha', 'Piutang Dagang'], 'asset');
+                ? $this->mappingAccountId(
+                    $entity,
+                    (int) $sale->business_unit_id,
+                    $payment && in_array(strtolower($payment->method), ['transfer', 'qris'], true)
+                        ? 'bank'
+                        : 'cash'
+                )
+                : $this->mappingAccountId(
+                    $entity,
+                    (int) $sale->business_unit_id,
+                    'receivable'
+                );
 
-            $returnAccount = $this->accountId($entity, ['Penjualan'], 'revenue');
-            $inventoryAccount = $this->accountId($entity, ['Persediaan'], 'asset');
-            $cogsAccount = $this->accountId($entity, ['HPP'], 'cogs');
+            $returnMappingKey = match ($businessUnit->business_type) {
+                'retail' => 'sales_return_merchandise',
+                'production' => 'sales_return_finished_goods',
+                default => null,
+            };
 
-            $description = 'Retur atas penjualan #' . $sale->invoice_no;
+            abort_unless(
+                $returnMappingKey,
+                422,
+                'Business Unit ini tidak mendukung Retur Penjualan.'
+            );
+
+            $returnAccount = $this->mappingAccountId(
+                $entity,
+                (int) $sale->business_unit_id,
+                $returnMappingKey
+            );
+
+            $inventoryAccount = $this->mappingAccountId(
+                $entity,
+                (int) $sale->business_unit_id,
+                'inventory'
+            );
+
+            $cogsMappingKey = match ($businessUnit->business_type) {
+                'retail' => 'cogs_merchandise',
+                'production' => 'cogs_finished_goods',
+                default => null,
+            };
+
+            abort_unless(
+                $cogsMappingKey,
+                422,
+                'Mapping HPP Business Unit tidak ditemukan.'
+            );
+
+            $cogsAccount = $this->mappingAccountId(
+                $entity,
+                (int) $sale->business_unit_id,
+                $cogsMappingKey
+            );
+
+            $damageAccount = $this->mappingAccountId(
+                $entity,
+                (int) $sale->business_unit_id,
+                'inventory_damage_loss'
+            );
+
+            $customerName = $sale->customer_id
+                ? DB::table('customers')
+                    ->where('entity_id', $entity)
+                    ->where('id', $sale->customer_id)
+                    ->value('name')
+                : null;
+
+            $description = 'Retur Penjualan No. ' . $returnNo
+                . ' (Ref: ' . $sale->invoice_no . ')'
+                . ($customerName ? ' - ' . $customerName : '');
             $journalNo = 'JRN-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(3));
             $journalId = DB::table('journals')->insertGetId([
                 'entity_id' => $entity,
@@ -411,17 +631,84 @@ class SalesReturnController extends Controller
                 'updated_at' => now(),
             ]);
 
-            $totalHpp = array_sum(array_column($prepared, 'hppTotal'));
-            DB::table('journal_entries')->insert([
-                ['journal_id' => $journalId, 'account_id' => $returnAccount, 'debit' => $returnTotal, 'credit' => 0, 'created_at' => now(), 'updated_at' => now()],
-                ['journal_id' => $journalId, 'account_id' => $refundAccount, 'debit' => 0, 'credit' => $returnTotal, 'created_at' => now(), 'updated_at' => now()],
-                ['journal_id' => $journalId, 'account_id' => $inventoryAccount, 'debit' => $totalHpp, 'credit' => 0, 'created_at' => now(), 'updated_at' => now()],
-                ['journal_id' => $journalId, 'account_id' => $cogsAccount, 'debit' => 0, 'credit' => $totalHpp, 'created_at' => now(), 'updated_at' => now()],
-            ]);
+            $totalGoodHpp = array_sum(
+                array_map(
+                    fn ($p) => $p['condition'] === 'good' ? $p['hppTotal'] : 0,
+                    $prepared
+                )
+            );
+
+            $totalRejectHpp = array_sum(
+                array_map(
+                    fn ($p) => $p['condition'] === 'reject' ? $p['hppTotal'] : 0,
+                    $prepared
+                )
+            );
+
+            $journalEntries = [
+                [
+                    'journal_id' => $journalId,
+                    'account_id' => $returnAccount,
+                    'debit' => $returnTotal,
+                    'credit' => 0,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ],
+                [
+                    'journal_id' => $journalId,
+                    'account_id' => $refundAccount,
+                    'debit' => 0,
+                    'credit' => $returnTotal,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ],
+            ];
+
+            if ($totalGoodHpp > 0) {
+                $journalEntries[] = [
+                    'journal_id' => $journalId,
+                    'account_id' => $inventoryAccount,
+                    'debit' => $totalGoodHpp,
+                    'credit' => 0,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+
+                $journalEntries[] = [
+                    'journal_id' => $journalId,
+                    'account_id' => $cogsAccount,
+                    'debit' => 0,
+                    'credit' => $totalGoodHpp,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+
+            if ($totalRejectHpp > 0) {
+                $journalEntries[] = [
+                    'journal_id' => $journalId,
+                    'account_id' => $damageAccount,
+                    'debit' => $totalRejectHpp,
+                    'credit' => 0,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+
+                $journalEntries[] = [
+                    'journal_id' => $journalId,
+                    'account_id' => $inventoryAccount,
+                    'debit' => 0,
+                    'credit' => $totalRejectHpp,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+
+            DB::table('journal_entries')->insert($journalEntries);
 
             return $returnId;
         });
 
-        return redirect()->route('pos.retur')->with('success', 'Retur berhasil diproses dan jurnal otomatis dibuat.');
+        return redirect()->route('inventori.penjualan.retur')->with('success', 'Retur berhasil diproses dan jurnal otomatis dibuat.');
     }
 }

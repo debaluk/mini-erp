@@ -361,9 +361,40 @@ class SettingsController extends Controller
 
         $mappingKeys = $units->mapWithKeys(fn ($unit) => [
             $unit->id => match ($unit->business_type) {
-                'retail' => ['cash','bank','receivable','payable','inventory','sales_merchandise','cogs_merchandise'],
-                'production' => ['cash','bank','receivable','payable','inventory','sales_finished_goods','cogs_finished_goods','direct_material','direct_labor','direct_overhead'],
-                'service' => ['cash','bank','receivable','payable','sales_service','direct_material','direct_labor','direct_overhead'],
+                'retail' => [
+                    'cash',
+                    'bank',
+                    'receivable',
+                    'payable',
+                    'inventory',
+                    'sales_merchandise',
+                    'sales_return_merchandise',
+                    'cogs_merchandise',
+                    'inventory_damage_loss',
+                ],
+                'production' => [
+                    'cash',
+                    'bank',
+                    'receivable',
+                    'payable',
+                    'inventory',
+                    'sales_finished_goods',
+                    'sales_return_finished_goods',
+                    'cogs_finished_goods',
+                    'inventory_damage_loss',
+                    'direct_material',
+                    'direct_labor',
+                    'direct_overhead',
+                ],
+                'service' => [
+                    'cash',
+                    'bank',
+                    'receivable',
+                    'payable',
+                    'sales_service',
+                    'direct_labor',
+                    'direct_overhead',
+                ],
                 default => [],
             },
         ]);
