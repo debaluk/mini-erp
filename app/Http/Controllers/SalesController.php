@@ -6,6 +6,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use App\Services\SalesJournalService;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 
 class SalesController extends Controller
 {
@@ -101,29 +106,446 @@ class SalesController extends Controller
     public function report(Request $request)
     {
         $entity = $this->entityId();
-        $startDate = $request->filled('start_date') ? $request->input('start_date') : now()->startOfMonth()->toDateString();
-        $endDate = $request->filled('end_date') ? $request->input('end_date') : now()->endOfMonth()->toDateString();
 
+        $startDate = $request->filled('start_date')
+            ? $request->input('start_date')
+            : now()->startOfMonth()->toDateString();
+
+        $endDate = $request->filled('end_date')
+            ? $request->input('end_date')
+            : now()->endOfMonth()->toDateString();
+
+        abort_if($startDate > $endDate, 422, 'Periode tanggal tidak valid.');
+
+        $businessUnitId = $request->filled('unit_id')
+            ? (int) $request->input('unit_id')
+            : null;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Detail transaksi
+        |--------------------------------------------------------------------------
+        */
         $rows = DB::table('sales as s')
             ->leftJoin('customers as c', 'c.id', '=', 's.customer_id')
             ->leftJoin('business_units as bu', 'bu.id', '=', 's.business_unit_id')
             ->where('s.entity_id', $entity)
-            ->whereDate('s.sale_date', '>=', $startDate)
-            ->whereDate('s.sale_date', '<=', $endDate)
-            ->when($request->filled('customer'), fn ($q) => $q->where('c.name', 'like', '%'.$request->customer.'%'))
-            ->when($request->filled('unit_id'), fn ($q) => $q->where('s.business_unit_id', $request->unit_id))
-            ->when($request->filled('payment_method'), fn ($q) => $q->whereExists(function ($sub) use ($request) {
-                $sub->select(DB::raw(1))->from('payments as fp')->whereColumn('fp.sale_id', 's.id')->where('fp.method', $request->payment_method);
-            }))
-            ->select('s.*', 'c.name as customer_name', 'bu.name as unit_name',
-                DB::raw("(SELECT GROUP_CONCAT(DISTINCT p.method ORDER BY p.id SEPARATOR ', ') FROM payments p WHERE p.sale_id = s.id) as payment_methods"),
-                DB::raw("(SELECT j.id FROM journals j WHERE j.entity_id = s.entity_id AND j.source_type = 'sale' AND j.source_id = s.id LIMIT 1) as journal_id")
+            ->where('s.status', 'posted')
+            ->whereBetween('s.sale_date', [
+                $startDate . ' 00:00:00',
+                $endDate . ' 23:59:59',
+            ])
+            ->when($businessUnitId, fn ($q) =>
+                $q->where('s.business_unit_id', $businessUnitId)
             )
-            ->orderByDesc('s.sale_date')->orderByDesc('s.id')->paginate(10)->withQueryString();
+            ->select(
+                's.*',
+                'c.name as customer_name',
+                'bu.name as unit_name',
+                DB::raw("(SELECT GROUP_CONCAT(DISTINCT p.method ORDER BY p.id SEPARATOR ', ')
+                    FROM payments p
+                    WHERE p.sale_id = s.id) as payment_methods"),
+                DB::raw("(SELECT j.id
+                    FROM journals j
+                    WHERE j.entity_id = s.entity_id
+                      AND j.source_type = 'sale'
+                      AND j.source_id = s.id
+                    LIMIT 1) as journal_id")
+            )
+            ->orderByDesc('s.sale_date')
+            ->orderByDesc('s.id')
+            ->paginate(10)
+            ->withQueryString();
 
-        $units = DB::table('business_units')->where('entity_id', $entity)->where('is_active', 1)->orderBy('name')->get();
+        /*
+        |--------------------------------------------------------------------------
+        | Penjualan
+        |--------------------------------------------------------------------------
+        */
+        $salesTotal = (float) DB::table('sales as s')
+            ->where('s.entity_id', $entity)
+            ->where('s.status', 'posted')
+            ->whereBetween('s.sale_date', [
+                $startDate . ' 00:00:00',
+                $endDate . ' 23:59:59',
+            ])
+            ->when($businessUnitId, fn ($q) =>
+                $q->where('s.business_unit_id', $businessUnitId)
+            )
+            ->sum('s.total');
 
-        return view('inventori.laporan.penjualan', compact('rows', 'units', 'startDate', 'endDate'));
+        /*
+        |--------------------------------------------------------------------------
+        | Retur
+        |--------------------------------------------------------------------------
+        */
+        $returnTotal = (float) DB::table('sales_returns as sr')
+            ->where('sr.entity_id', $entity)
+            ->where('sr.status', 'posted')
+            ->whereBetween('sr.return_date', [
+                $startDate . ' 00:00:00',
+                $endDate . ' 23:59:59',
+            ])
+            ->when($businessUnitId, fn ($q) =>
+                $q->where('sr.business_unit_id', $businessUnitId)
+            )
+            ->sum('sr.total');
+
+        /*
+        |--------------------------------------------------------------------------
+        | HPP penjualan
+        |--------------------------------------------------------------------------
+        */
+        $salesHpp = (float) DB::table('sale_items as si')
+            ->join('sales as s', 's.id', '=', 'si.sale_id')
+            ->where('s.entity_id', $entity)
+            ->where('s.status', 'posted')
+            ->whereBetween('s.sale_date', [
+                $startDate . ' 00:00:00',
+                $endDate . ' 23:59:59',
+            ])
+            ->when($businessUnitId, fn ($q) =>
+                $q->where('s.business_unit_id', $businessUnitId)
+            )
+            ->sum('si.hpp_total');
+
+        /*
+        |--------------------------------------------------------------------------
+        | HPP retur
+        |--------------------------------------------------------------------------
+        | Hanya retur GOOD yang mengembalikan barang ke persediaan.
+        */
+        $returnHpp = (float) DB::table('sales_return_items as sri')
+            ->join('sales_returns as sr', 'sr.id', '=', 'sri.sales_return_id')
+            ->where('sr.entity_id', $entity)
+            ->where('sr.status', 'posted')
+            ->where('sri.condition', 'good')
+            ->whereBetween('sr.return_date', [
+                $startDate . ' 00:00:00',
+                $endDate . ' 23:59:59',
+            ])
+            ->when($businessUnitId, fn ($q) =>
+                $q->where('sr.business_unit_id', $businessUnitId)
+            )
+            ->sum('sri.hpp_total');
+
+        $netSales = $salesTotal - $returnTotal;
+        $netHpp = $salesHpp - $returnHpp;
+        $grossProfit = $netSales - $netHpp;
+        $margin = $netSales > 0
+            ? ($grossProfit / $netSales) * 100
+            : 0;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Penerimaan kas
+        |--------------------------------------------------------------------------
+        */
+        $cashReceipt = (float) DB::table('payments as p')
+            ->where('p.entity_id', $entity)
+            ->where('p.method', 'cash')
+            ->whereBetween('p.payment_date', [
+                $startDate . ' 00:00:00',
+                $endDate . ' 23:59:59',
+            ])
+            ->when($businessUnitId, fn ($q) =>
+                $q->where('p.business_unit_id', $businessUnitId)
+            )
+            ->sum('p.amount');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Penerimaan bank
+        |--------------------------------------------------------------------------
+        */
+        $bankReceipt = (float) DB::table('payments as p')
+            ->where('p.entity_id', $entity)
+            ->whereIn('p.method', ['transfer', 'qris'])
+            ->whereBetween('p.payment_date', [
+                $startDate . ' 00:00:00',
+                $endDate . ' 23:59:59',
+            ])
+            ->when($businessUnitId, fn ($q) =>
+                $q->where('p.business_unit_id', $businessUnitId)
+            )
+            ->sum('p.amount');
+
+        $totalReceipt = $cashReceipt + $bankReceipt;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Penjualan kredit
+        |--------------------------------------------------------------------------
+        */
+        $creditSales = (float) DB::table('sales as s')
+            ->join('payments as p', function ($join) {
+                $join->on('p.sale_id', '=', 's.id')
+                    ->where('p.method', '=', 'credit');
+            })
+            ->where('s.entity_id', $entity)
+            ->where('s.status', 'posted')
+            ->whereBetween('s.sale_date', [
+                $startDate . ' 00:00:00',
+                $endDate . ' 23:59:59',
+            ])
+            ->when($businessUnitId, fn ($q) =>
+                $q->where('s.business_unit_id', $businessUnitId)
+            )
+            ->sum('s.total');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Pembayaran piutang
+        |--------------------------------------------------------------------------
+        | Belum ada workflow pembayaran piutang terpisah.
+        */
+        $receivablePayments = 0;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Saldo piutang akhir
+        |--------------------------------------------------------------------------
+        | Kumulatif sampai akhir periode.
+        */
+        $receivable = (float) DB::table('sales as s')
+            ->join('payments as p', function ($join) {
+                $join->on('p.sale_id', '=', 's.id')
+                    ->where('p.method', '=', 'credit');
+            })
+            ->where('s.entity_id', $entity)
+            ->where('s.status', 'posted')
+            ->where('s.sale_date', '<=', $endDate . ' 23:59:59')
+            ->when($businessUnitId, fn ($q) =>
+                $q->where('s.business_unit_id', $businessUnitId)
+            )
+            ->selectRaw('GREATEST(SUM(s.total) - SUM(p.paid_amount), 0) as saldo')
+            ->value('saldo');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Komposisi pembayaran
+        |--------------------------------------------------------------------------
+        */
+        $paymentComposition = [
+            'cash' => $cashReceipt,
+            'bank' => $bankReceipt,
+            'credit' => $creditSales,
+            'total' => $cashReceipt + $bankReceipt + $creditSales,
+        ];
+
+        /*
+        |--------------------------------------------------------------------------
+        | Trend harian
+        |--------------------------------------------------------------------------
+        */
+        $trend = DB::table('sales as s')
+            ->where('s.entity_id', $entity)
+            ->where('s.status', 'posted')
+            ->whereBetween('s.sale_date', [
+                $startDate . ' 00:00:00',
+                $endDate . ' 23:59:59',
+            ])
+            ->when($businessUnitId, fn ($q) =>
+                $q->where('s.business_unit_id', $businessUnitId)
+            )
+            ->selectRaw('DATE(s.sale_date) as period')
+            ->selectRaw('SUM(s.total) as sales')
+            ->selectRaw('COUNT(*) as transactions')
+            ->groupByRaw('DATE(s.sale_date)')
+            ->orderBy('period')
+            ->get();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Penjualan per Business Unit
+        |--------------------------------------------------------------------------
+        */
+        $unitSales = DB::table('business_units as bu')
+            ->leftJoin('sales as s', function ($join) use ($entity, $startDate, $endDate) {
+                $join->on('s.business_unit_id', '=', 'bu.id')
+                    ->where('s.entity_id', '=', $entity)
+                    ->where('s.status', '=', 'posted')
+                    ->whereBetween('s.sale_date', [
+                        $startDate . ' 00:00:00',
+                        $endDate . ' 23:59:59',
+                    ]);
+            })
+            ->where('bu.entity_id', $entity)
+            ->where('bu.is_active', 1)
+            ->when($businessUnitId, fn ($q) =>
+                $q->where('bu.id', $businessUnitId)
+            )
+            ->select('bu.id', 'bu.name')
+            ->selectRaw('COALESCE(SUM(s.total), 0) as sales')
+            ->groupBy('bu.id', 'bu.name')
+            ->orderBy('bu.name')
+            ->get();
+
+        foreach ($unitSales as $unit) {
+            $unitReturn = (float) DB::table('sales_returns as sr')
+                ->where('sr.entity_id', $entity)
+                ->where('sr.business_unit_id', $unit->id)
+                ->where('sr.status', 'posted')
+                ->whereBetween('sr.return_date', [
+                    $startDate . ' 00:00:00',
+                    $endDate . ' 23:59:59',
+                ])
+                ->sum('sr.total');
+
+            $unitHpp = (float) DB::table('sale_items as si')
+                ->join('sales as s', 's.id', '=', 'si.sale_id')
+                ->where('s.entity_id', $entity)
+                ->where('s.business_unit_id', $unit->id)
+                ->where('s.status', 'posted')
+                ->whereBetween('s.sale_date', [
+                    $startDate . ' 00:00:00',
+                    $endDate . ' 23:59:59',
+                ])
+                ->sum('si.hpp_total');
+
+            $unitReturnHpp = (float) DB::table('sales_return_items as sri')
+                ->join('sales_returns as sr', 'sr.id', '=', 'sri.sales_return_id')
+                ->where('sr.entity_id', $entity)
+                ->where('sr.business_unit_id', $unit->id)
+                ->where('sr.status', 'posted')
+                ->where('sri.condition', 'good')
+                ->whereBetween('sr.return_date', [
+                    $startDate . ' 00:00:00',
+                    $endDate . ' 23:59:59',
+                ])
+                ->sum('sri.hpp_total');
+
+            $unit->return = $unitReturn;
+            $unit->net_sales = (float) $unit->sales - $unitReturn;
+            $unit->hpp = $unitHpp - $unitReturnHpp;
+            $unit->gross_profit = $unit->net_sales - $unit->hpp;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Produk terlaris
+        |--------------------------------------------------------------------------
+        */
+        $topProducts = DB::table('sale_items as si')
+            ->join('sales as s', 's.id', '=', 'si.sale_id')
+            ->leftJoin('products as p', 'p.id', '=', 'si.product_id')
+            ->where('s.entity_id', $entity)
+            ->where('s.status', 'posted')
+            ->whereBetween('s.sale_date', [
+                $startDate . ' 00:00:00',
+                $endDate . ' 23:59:59',
+            ])
+            ->when($businessUnitId, fn ($q) =>
+                $q->where('s.business_unit_id', $businessUnitId)
+            )
+            ->select(
+                'p.id',
+                DB::raw("COALESCE(p.name, '-') as product_name")
+            )
+            ->selectRaw('SUM(si.base_qty) as qty')
+            ->selectRaw('SUM(si.total) as sales')
+            ->selectRaw('SUM(si.hpp_total) as hpp')
+            ->selectRaw('SUM(si.total - si.hpp_total) as gross_profit')
+            ->groupBy('p.id', 'p.name')
+            ->orderByDesc('sales')
+            ->limit(10)
+            ->get();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Pelanggan terbesar
+        |--------------------------------------------------------------------------
+        */
+        $topCustomers = DB::table('sales as s')
+            ->leftJoin('customers as c', 'c.id', '=', 's.customer_id')
+            ->where('s.entity_id', $entity)
+            ->where('s.status', 'posted')
+            ->whereBetween('s.sale_date', [
+                $startDate . ' 00:00:00',
+                $endDate . ' 23:59:59',
+            ])
+            ->when($businessUnitId, fn ($q) =>
+                $q->where('s.business_unit_id', $businessUnitId)
+            )
+            ->select(
+                'c.id',
+                DB::raw("COALESCE(c.name, 'Umum') as customer_name")
+            )
+            ->selectRaw('COUNT(s.id) as transactions')
+            ->selectRaw('SUM(s.total) as sales')
+            ->selectRaw("
+                SUM(
+                    CASE
+                        WHEN EXISTS (
+                            SELECT 1
+                            FROM payments cp
+                            WHERE cp.sale_id = s.id
+                              AND cp.method = 'credit'
+                        )
+                        THEN GREATEST(
+                            s.total - COALESCE((
+                                SELECT SUM(cp2.paid_amount)
+                                FROM payments cp2
+                                WHERE cp2.sale_id = s.id
+                            ), 0),
+                            0
+                        )
+                        ELSE 0
+                    END
+                ) as receivable
+            ")
+            ->groupBy('c.id', 'c.name')
+            ->orderByDesc('sales')
+            ->limit(10)
+            ->get();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Business Unit filter
+        |--------------------------------------------------------------------------
+        */
+        $units = DB::table('business_units')
+            ->where('entity_id', $entity)
+            ->where('is_active', 1)
+            ->orderBy('name')
+            ->get();
+
+        $entityName = DB::table('entities')
+            ->where('id', $entity)
+            ->value('name') ?? 'NAMA ENTITAS';
+
+        $selectedUnitName = $businessUnitId
+            ? $units->firstWhere('id', $businessUnitId)?->name
+            : 'Semua Business Unit';
+
+        return view('inventori.laporan.penjualan', compact(
+            'rows',
+            'units',
+            'startDate',
+            'endDate',
+            'businessUnitId',
+            'entityName',
+            'selectedUnitName',
+            'salesTotal',
+            'returnTotal',
+            'netSales',
+            'salesHpp',
+            'returnHpp',
+            'netHpp',
+            'grossProfit',
+            'margin',
+            'cashReceipt',
+            'bankReceipt',
+            'totalReceipt',
+            'creditSales',
+            'receivablePayments',
+            'receivable',
+            'paymentComposition',
+            'trend',
+            'unitSales',
+            'topProducts',
+            'topCustomers'
+        ));
     }
 
     public function export(Request $request)
@@ -173,61 +595,792 @@ class SalesController extends Controller
     public function exportExcel(Request $request)
     {
         $entity = $this->entityId();
-        $start = $request->input('start_date', now()->startOfMonth()->toDateString());
-        $end = $request->input('end_date', now()->endOfMonth()->toDateString());
 
-        abort_if($start > $end, 422, 'Periode tanggal tidak valid.');
+        $startDate = $request->filled('start_date')
+            ? $request->input('start_date')
+            : now()->startOfMonth()->toDateString();
+
+        $endDate = $request->filled('end_date')
+            ? $request->input('end_date')
+            : now()->endOfMonth()->toDateString();
+
+        abort_if($startDate > $endDate, 422, 'Periode tanggal tidak valid.');
+
+        $businessUnitId = $request->filled('unit_id')
+            ? (int) $request->input('unit_id')
+            : null;
+
+        $entityName = DB::table('entities')
+            ->where('id', $entity)
+            ->value('name') ?? 'NAMA ENTITAS';
+
+        $units = DB::table('business_units')
+            ->where('entity_id', $entity)
+            ->where('is_active', 1)
+            ->orderBy('name')
+            ->get();
+
+        $selectedUnitName = $businessUnitId
+            ? ($units->firstWhere('id', $businessUnitId)?->name ?? 'Business Unit tidak ditemukan')
+            : 'Semua Business Unit';
+
+        /*
+        |--------------------------------------------------------------------------
+        | KPI
+        |--------------------------------------------------------------------------
+        */
+
+        $salesTotal = (float) DB::table('sales as s')
+            ->where('s.entity_id', $entity)
+            ->where('s.status', 'posted')
+            ->whereBetween('s.sale_date', [
+                $startDate . ' 00:00:00',
+                $endDate . ' 23:59:59',
+            ])
+            ->when($businessUnitId, fn ($q) =>
+                $q->where('s.business_unit_id', $businessUnitId)
+            )
+            ->sum('s.total');
+
+        $returnTotal = (float) DB::table('sales_returns as sr')
+            ->where('sr.entity_id', $entity)
+            ->where('sr.status', 'posted')
+            ->whereBetween('sr.return_date', [
+                $startDate . ' 00:00:00',
+                $endDate . ' 23:59:59',
+            ])
+            ->when($businessUnitId, fn ($q) =>
+                $q->where('sr.business_unit_id', $businessUnitId)
+            )
+            ->sum('sr.total');
+
+        $salesHpp = (float) DB::table('sale_items as si')
+            ->join('sales as s', 's.id', '=', 'si.sale_id')
+            ->where('s.entity_id', $entity)
+            ->where('s.status', 'posted')
+            ->whereBetween('s.sale_date', [
+                $startDate . ' 00:00:00',
+                $endDate . ' 23:59:59',
+            ])
+            ->when($businessUnitId, fn ($q) =>
+                $q->where('s.business_unit_id', $businessUnitId)
+            )
+            ->sum('si.hpp_total');
+
+        $returnHpp = (float) DB::table('sales_return_items as sri')
+            ->join('sales_returns as sr', 'sr.id', '=', 'sri.sales_return_id')
+            ->where('sr.entity_id', $entity)
+            ->where('sr.status', 'posted')
+            ->where('sri.condition', 'good')
+            ->whereBetween('sr.return_date', [
+                $startDate . ' 00:00:00',
+                $endDate . ' 23:59:59',
+            ])
+            ->when($businessUnitId, fn ($q) =>
+                $q->where('sr.business_unit_id', $businessUnitId)
+            )
+            ->sum('sri.hpp_total');
+
+        $netSales = $salesTotal - $returnTotal;
+        $netHpp = $salesHpp - $returnHpp;
+        $grossProfit = $netSales - $netHpp;
+        $margin = $netSales > 0
+            ? ($grossProfit / $netSales) * 100
+            : 0;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Penerimaan & Piutang
+        |--------------------------------------------------------------------------
+        */
+
+        $cashReceipt = (float) DB::table('payments as p')
+            ->where('p.entity_id', $entity)
+            ->where('p.method', 'cash')
+            ->whereBetween('p.payment_date', [
+                $startDate . ' 00:00:00',
+                $endDate . ' 23:59:59',
+            ])
+            ->when($businessUnitId, fn ($q) =>
+                $q->where('p.business_unit_id', $businessUnitId)
+            )
+            ->sum('p.amount');
+
+        $bankReceipt = (float) DB::table('payments as p')
+            ->where('p.entity_id', $entity)
+            ->whereIn('p.method', ['transfer', 'qris'])
+            ->whereBetween('p.payment_date', [
+                $startDate . ' 00:00:00',
+                $endDate . ' 23:59:59',
+            ])
+            ->when($businessUnitId, fn ($q) =>
+                $q->where('p.business_unit_id', $businessUnitId)
+            )
+            ->sum('p.amount');
+
+        $totalReceipt = $cashReceipt + $bankReceipt;
+
+        $creditSales = (float) DB::table('sales as s')
+            ->join('payments as p', function ($join) {
+                $join->on('p.sale_id', '=', 's.id')
+                    ->where('p.method', '=', 'credit');
+            })
+            ->where('s.entity_id', $entity)
+            ->where('s.status', 'posted')
+            ->whereBetween('s.sale_date', [
+                $startDate . ' 00:00:00',
+                $endDate . ' 23:59:59',
+            ])
+            ->when($businessUnitId, fn ($q) =>
+                $q->where('s.business_unit_id', $businessUnitId)
+            )
+            ->sum('s.total');
+
+        $receivablePayments = 0;
+
+        $receivable = (float) DB::table('sales as s')
+            ->join('payments as p', function ($join) {
+                $join->on('p.sale_id', '=', 's.id')
+                    ->where('p.method', '=', 'credit');
+            })
+            ->where('s.entity_id', $entity)
+            ->where('s.status', 'posted')
+            ->where('s.sale_date', '<=', $endDate . ' 23:59:59')
+            ->when($businessUnitId, fn ($q) =>
+                $q->where('s.business_unit_id', $businessUnitId)
+            )
+            ->selectRaw('GREATEST(SUM(s.total) - SUM(p.paid_amount), 0) as saldo')
+            ->value('saldo');
+
+        $paymentComposition = [
+            'cash' => $cashReceipt,
+            'bank' => $bankReceipt,
+            'credit' => $creditSales,
+            'total' => $cashReceipt + $bankReceipt + $creditSales,
+        ];
+
+        /*
+        |--------------------------------------------------------------------------
+        | Trend
+        |--------------------------------------------------------------------------
+        */
+
+        $trend = DB::table('sales as s')
+            ->where('s.entity_id', $entity)
+            ->where('s.status', 'posted')
+            ->whereBetween('s.sale_date', [
+                $startDate . ' 00:00:00',
+                $endDate . ' 23:59:59',
+            ])
+            ->when($businessUnitId, fn ($q) =>
+                $q->where('s.business_unit_id', $businessUnitId)
+            )
+            ->selectRaw('DATE(s.sale_date) as period')
+            ->selectRaw('SUM(s.total) as sales')
+            ->selectRaw('COUNT(*) as transactions')
+            ->groupByRaw('DATE(s.sale_date)')
+            ->orderBy('period')
+            ->get();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Penjualan per BU
+        |--------------------------------------------------------------------------
+        */
+
+        $unitSales = DB::table('business_units as bu')
+            ->leftJoin('sales as s', function ($join) use ($entity, $startDate, $endDate) {
+                $join->on('s.business_unit_id', '=', 'bu.id')
+                    ->where('s.entity_id', '=', $entity)
+                    ->where('s.status', '=', 'posted')
+                    ->whereBetween('s.sale_date', [
+                        $startDate . ' 00:00:00',
+                        $endDate . ' 23:59:59',
+                    ]);
+            })
+            ->where('bu.entity_id', $entity)
+            ->where('bu.is_active', 1)
+            ->when($businessUnitId, fn ($q) =>
+                $q->where('bu.id', $businessUnitId)
+            )
+            ->select('bu.id', 'bu.name')
+            ->selectRaw('COALESCE(SUM(s.total), 0) as sales')
+            ->groupBy('bu.id', 'bu.name')
+            ->orderBy('bu.name')
+            ->get();
+
+        foreach ($unitSales as $unit) {
+            $unitReturn = (float) DB::table('sales_returns as sr')
+                ->where('sr.entity_id', $entity)
+                ->where('sr.business_unit_id', $unit->id)
+                ->where('sr.status', 'posted')
+                ->whereBetween('sr.return_date', [
+                    $startDate . ' 00:00:00',
+                    $endDate . ' 23:59:59',
+                ])
+                ->sum('sr.total');
+
+            $unitHpp = (float) DB::table('sale_items as si')
+                ->join('sales as s', 's.id', '=', 'si.sale_id')
+                ->where('s.entity_id', $entity)
+                ->where('s.business_unit_id', $unit->id)
+                ->where('s.status', 'posted')
+                ->whereBetween('s.sale_date', [
+                    $startDate . ' 00:00:00',
+                    $endDate . ' 23:59:59',
+                ])
+                ->sum('si.hpp_total');
+
+            $unitReturnHpp = (float) DB::table('sales_return_items as sri')
+                ->join('sales_returns as sr', 'sr.id', '=', 'sri.sales_return_id')
+                ->where('sr.entity_id', $entity)
+                ->where('sr.business_unit_id', $unit->id)
+                ->where('sr.status', 'posted')
+                ->where('sri.condition', 'good')
+                ->whereBetween('sr.return_date', [
+                    $startDate . ' 00:00:00',
+                    $endDate . ' 23:59:59',
+                ])
+                ->sum('sri.hpp_total');
+
+            $unit->return = $unitReturn;
+            $unit->net_sales = (float) $unit->sales - $unitReturn;
+            $unit->hpp = $unitHpp - $unitReturnHpp;
+            $unit->gross_profit = $unit->net_sales - $unit->hpp;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Produk terlaris
+        |--------------------------------------------------------------------------
+        */
+
+        $topProducts = DB::table('sale_items as si')
+            ->join('sales as s', 's.id', '=', 'si.sale_id')
+            ->leftJoin('products as p', 'p.id', '=', 'si.product_id')
+            ->where('s.entity_id', $entity)
+            ->where('s.status', 'posted')
+            ->whereBetween('s.sale_date', [
+                $startDate . ' 00:00:00',
+                $endDate . ' 23:59:59',
+            ])
+            ->when($businessUnitId, fn ($q) =>
+                $q->where('s.business_unit_id', $businessUnitId)
+            )
+            ->select(
+                'p.id',
+                DB::raw("COALESCE(p.name, '-') as product_name")
+            )
+            ->selectRaw('SUM(si.base_qty) as qty')
+            ->selectRaw('SUM(si.total) as sales')
+            ->selectRaw('SUM(si.hpp_total) as hpp')
+            ->selectRaw('SUM(si.total - si.hpp_total) as gross_profit')
+            ->groupBy('p.id', 'p.name')
+            ->orderByDesc('sales')
+            ->limit(10)
+            ->get();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Pelanggan terbesar
+        |--------------------------------------------------------------------------
+        */
+
+        $topCustomers = DB::table('sales as s')
+            ->leftJoin('customers as c', 'c.id', '=', 's.customer_id')
+            ->where('s.entity_id', $entity)
+            ->where('s.status', 'posted')
+            ->whereBetween('s.sale_date', [
+                $startDate . ' 00:00:00',
+                $endDate . ' 23:59:59',
+            ])
+            ->when($businessUnitId, fn ($q) =>
+                $q->where('s.business_unit_id', $businessUnitId)
+            )
+            ->select(
+                'c.id',
+                DB::raw("COALESCE(c.name, 'Umum') as customer_name")
+            )
+            ->selectRaw('COUNT(s.id) as transactions')
+            ->selectRaw('SUM(s.total) as sales')
+            ->selectRaw("
+                SUM(
+                    CASE
+                        WHEN EXISTS (
+                            SELECT 1
+                            FROM payments cp
+                            WHERE cp.sale_id = s.id
+                              AND cp.method = 'credit'
+                        )
+                        THEN GREATEST(
+                            s.total - COALESCE((
+                                SELECT SUM(cp2.paid_amount)
+                                FROM payments cp2
+                                WHERE cp2.sale_id = s.id
+                            ), 0),
+                            0
+                        )
+                        ELSE 0
+                    END
+                ) as receivable
+            ")
+            ->groupBy('c.id', 'c.name')
+            ->orderByDesc('sales')
+            ->limit(10)
+            ->get();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Detail transaksi
+        |--------------------------------------------------------------------------
+        */
 
         $rows = DB::table('sales as s')
             ->leftJoin('customers as c', 'c.id', '=', 's.customer_id')
             ->leftJoin('business_units as bu', 'bu.id', '=', 's.business_unit_id')
             ->where('s.entity_id', $entity)
-            ->whereDate('s.sale_date', '>=', $start)
-            ->whereDate('s.sale_date', '<=', $end)
-            ->when($request->filled('customer'), fn ($q) => $q->where('c.name', 'like', '%'.$request->customer.'%'))
-            ->when($request->filled('unit_id'), fn ($q) => $q->where('s.business_unit_id', $request->unit_id))
-            ->when($request->filled('payment_method'), fn ($q) => $q->whereExists(function ($sub) use ($request) {
-                $sub->select(DB::raw(1))->from('payments as fp')->whereColumn('fp.sale_id', 's.id')->where('fp.method', $request->payment_method);
-            }))
+            ->where('s.status', 'posted')
+            ->whereBetween('s.sale_date', [
+                $startDate . ' 00:00:00',
+                $endDate . ' 23:59:59',
+            ])
+            ->when($businessUnitId, fn ($q) =>
+                $q->where('s.business_unit_id', $businessUnitId)
+            )
             ->select(
-                's.invoice_no', 's.sale_date', 's.due_date', 's.subtotal', 's.discount', 's.total', 's.status',
+                's.invoice_no',
+                's.sale_date',
+                's.total',
+                's.status',
                 DB::raw("COALESCE(c.name, 'Umum') as customer_name"),
                 DB::raw("COALESCE(bu.name, '-') as unit_name"),
-                DB::raw("(SELECT GROUP_CONCAT(DISTINCT p.method ORDER BY p.id SEPARATOR ', ') FROM payments p WHERE p.sale_id = s.id) as payment_methods")
+                DB::raw("(SELECT GROUP_CONCAT(DISTINCT p.method ORDER BY p.id SEPARATOR ', ')
+                    FROM payments p
+                    WHERE p.sale_id = s.id) as payment_methods")
             )
-            ->orderBy('s.sale_date')->orderBy('s.id')->get();
+            ->orderBy('s.sale_date')
+            ->orderBy('s.id')
+            ->get();
 
-        $entityName = DB::table('entities')->where('id', $entity)->value('name') ?? 'MINI ERP';
-        $e = fn ($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
-        $num = fn ($v) => (string) (float) $v;
-        $methodLabel = fn ($v) => match ($v) {
-            'cash' => 'Tunai', 'credit' => 'Kredit / Bon', 'transfer' => 'Transfer', 'qris' => 'QRIS', default => $v ?: '-',
+        $methodLabel = fn ($value) => match ($value) {
+            'cash' => 'Tunai',
+            'credit' => 'Kredit / Bon',
+            'transfer' => 'Transfer',
+            'qris' => 'QRIS',
+            default => $value ?: '-',
         };
 
-        $html = '<html><head><meta charset="UTF-8"><style>
-            body{font-family:Arial,sans-serif}.kop{font-size:16px;font-weight:700}.title{font-size:14px;font-weight:700}
-            table{border-collapse:collapse;margin-top:14px}th,td{border:1px solid #000;padding:5px}th{font-weight:700}.right{text-align:right}
-        </style></head><body>';
-        $html .= '<div class="kop">' . $e($entityName) . '</div>';
-        $html .= '<div class="title">LAPORAN PENJUALAN</div>';
-        $html .= '<div>Periode : ' . $e(date('d/m/Y', strtotime($start))) . ' s/d ' . $e(date('d/m/Y', strtotime($end))) . '</div>';
-        $html .= '<div>Cetak Tanggal : ' . $e(now()->format('d/m/Y')) . '</div>';
-        $html .= '<br><table><thead><tr>';
-        foreach (['No. Penjualan','Tanggal','Customer','Unit','Cara Bayar','Jatuh Tempo','Subtotal','Diskon','Total','Status'] as $heading) {
-            $html .= '<th>' . $e($heading) . '</th>';
-        }
-        $html .= '</tr></thead><tbody>';
-        foreach ($rows as $r) {
-            $html .= '<tr><td>'.$e($r->invoice_no).'</td><td>'.$e(date('d/m/Y', strtotime($r->sale_date))).'</td><td>'.$e($r->customer_name).'</td><td>'.$e($r->unit_name).'</td><td>'.$e($methodLabel($r->payment_methods)).'</td><td>'.(!empty($r->due_date) ? $e(date('d/m/Y', strtotime($r->due_date))) : '-').'</td>';
-            foreach ([$r->subtotal, $r->discount, $r->total] as $value) { $v=$num($value); $html .= '<td class="right" x:num="'.$e($v).'">'.$e($v).'</td>'; }
-            $html .= '<td>'.$e($r->status ?? '-').'</td></tr>';
-        }
-        $html .= '</tbody></table></body></html>';
+        $spreadsheet = new Spreadsheet();
 
-        return response($html, 200, [
-            'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="laporan-penjualan_'.$start.'_'.$end.'.xls"',
-        ]);
+        $spreadsheet->getProperties()
+            ->setCreator('Mini ERP')
+            ->setTitle('Laporan Penjualan')
+            ->setSubject('Analisis penjualan, penerimaan, dan piutang');
+
+        $moneyFormat = '#,##0.00';
+        $percentFormat = '0.00"%"';
+
+        $applyTitle = function ($sheet, $range, $text) {
+            $sheet->mergeCells($range);
+            $cell = explode(':', $range)[0];
+            $sheet->setCellValue($cell, $text);
+            $sheet->getStyle($range)->getFont()->setBold(true)->setSize(15);
+            $sheet->getStyle($range)->getAlignment()
+                ->setHorizontal(Alignment::HORIZONTAL_LEFT)
+                ->setVertical(Alignment::VERTICAL_CENTER);
+        };
+
+        $applySection = function ($sheet, $range) {
+            $sheet->mergeCells($range);
+            $sheet->getStyle($range)->getFont()->setBold(true);
+            $sheet->getStyle($range)->getFill()
+                ->setFillType(Fill::FILL_SOLID)
+                ->getStartColor()->setARGB('D9EAF7');
+        };
+
+        $applyHeader = function ($sheet, $range) {
+            $sheet->getStyle($range)->getFont()->setBold(true);
+            $sheet->getStyle($range)->getFill()
+                ->setFillType(Fill::FILL_SOLID)
+                ->getStartColor()->setARGB('EDEDED');
+            $sheet->getStyle($range)->getAlignment()
+                ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+                ->setVertical(Alignment::VERTICAL_CENTER);
+            $sheet->getStyle($range)->getBorders()->getAllBorders()
+                ->setBorderStyle(Border::BORDER_THIN);
+        };
+
+        $applyBorders = function ($sheet, $range) {
+            $sheet->getStyle($range)->getBorders()->getAllBorders()
+                ->setBorderStyle(Border::BORDER_THIN);
+        };
+
+        /*
+        |--------------------------------------------------------------------------
+        | Sheet 1
+        |--------------------------------------------------------------------------
+        */
+
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Ringkasan Penjualan');
+
+        $applyTitle($sheet, 'A1:D1', $entityName);
+
+        $sheet->setCellValue('A2', 'LAPORAN PENJUALAN');
+        $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(13);
+
+        $sheet->setCellValue('A4', 'Periode');
+        $sheet->setCellValue(
+            'B4',
+            date('d/m/Y', strtotime($startDate)) . ' s/d ' .
+            date('d/m/Y', strtotime($endDate))
+        );
+
+        $sheet->setCellValue('A5', 'Business Unit');
+        $sheet->setCellValue('B5', $selectedUnitName);
+
+        $applySection($sheet, 'A7:B7');
+        $sheet->setCellValue('A7', 'KPI PENJUALAN');
+
+        $sheet->fromArray([
+            ['Komponen', 'Nilai'],
+            ['Penjualan', $salesTotal],
+            ['Retur', $returnTotal],
+            ['Penjualan Bersih', $netSales],
+            ['HPP', $netHpp],
+            ['Laba Kotor', $grossProfit],
+            ['Margin', $margin],
+        ], null, 'A8');
+
+        $applyHeader($sheet, 'A8:B8');
+        $applyBorders($sheet, 'A8:B14');
+        $sheet->getStyle('B9:B13')->getNumberFormat()->setFormatCode($moneyFormat);
+        $sheet->getStyle('B14')->getNumberFormat()->setFormatCode($percentFormat);
+
+        $sheet->getColumnDimension('A')->setWidth(25);
+        $sheet->getColumnDimension('B')->setWidth(25);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Sheet 2
+        |--------------------------------------------------------------------------
+        */
+
+        $sheet = $spreadsheet->createSheet();
+        $sheet->setTitle('Penerimaan & Piutang');
+
+        $applyTitle($sheet, 'A1:D1', $entityName);
+
+        $sheet->setCellValue('A2', 'PENERIMAAN & PIUTANG');
+        $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(13);
+
+        $sheet->setCellValue('A4', 'Periode');
+        $sheet->setCellValue(
+            'B4',
+            date('d/m/Y', strtotime($startDate)) . ' s/d ' .
+            date('d/m/Y', strtotime($endDate))
+        );
+
+        $sheet->setCellValue('A5', 'Business Unit');
+        $sheet->setCellValue('B5', $selectedUnitName);
+
+        $applySection($sheet, 'A7:B7');
+        $sheet->setCellValue('A7', 'PENERIMAAN & PIUTANG');
+
+        $sheet->fromArray([
+            ['Komponen', 'Nilai'],
+            ['Kas Tunai', $cashReceipt],
+            ['Bank', $bankReceipt],
+            ['Total Penerimaan', $totalReceipt],
+            ['Penjualan Kredit', $creditSales],
+            ['Pembayaran Piutang', $receivablePayments],
+            ['Saldo Piutang', $receivable],
+        ], null, 'A8');
+
+        $applyHeader($sheet, 'A8:B8');
+        $applyBorders($sheet, 'A8:B14');
+        $sheet->getStyle('B9:B14')->getNumberFormat()->setFormatCode($moneyFormat);
+
+        $applySection($sheet, 'A16:B16');
+        $sheet->setCellValue('A16', 'KOMPOSISI PEMBAYARAN');
+
+        $sheet->fromArray([
+            ['Komponen', 'Nilai'],
+            ['Kas Tunai', $paymentComposition['cash']],
+            ['Bank', $paymentComposition['bank']],
+            ['Piutang', $paymentComposition['credit']],
+            ['Total', $paymentComposition['total']],
+        ], null, 'A17');
+
+        $applyHeader($sheet, 'A17:B17');
+        $applyBorders($sheet, 'A17:B21');
+        $sheet->getStyle('B18:B21')->getNumberFormat()->setFormatCode($moneyFormat);
+
+        $sheet->getColumnDimension('A')->setWidth(28);
+        $sheet->getColumnDimension('B')->setWidth(25);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Sheet 3
+        |--------------------------------------------------------------------------
+        */
+
+        $sheet = $spreadsheet->createSheet();
+        $sheet->setTitle('Analisis Penjualan');
+
+        $applyTitle($sheet, 'A1:F1', $entityName);
+
+        $sheet->setCellValue('A2', 'ANALISIS PENJUALAN');
+        $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(13);
+
+        $sheet->setCellValue('A4', 'Periode');
+        $sheet->setCellValue(
+            'B4',
+            date('d/m/Y', strtotime($startDate)) . ' s/d ' .
+            date('d/m/Y', strtotime($endDate))
+        );
+
+        $sheet->setCellValue('A5', 'Business Unit');
+        $sheet->setCellValue('B5', $selectedUnitName);
+
+        $applySection($sheet, 'A7:C7');
+        $sheet->setCellValue('A7', 'TREND PENJUALAN HARIAN');
+
+        $sheet->fromArray([
+            ['Tanggal', 'Penjualan', 'Transaksi'],
+        ], null, 'A8');
+
+        $applyHeader($sheet, 'A8:C8');
+
+        $row = 9;
+
+        foreach ($trend as $item) {
+            $sheet->fromArray([
+                [
+                    date('d/m/Y', strtotime($item->period)),
+                    (float) $item->sales,
+                    (int) $item->transactions,
+                ],
+            ], null, 'A' . $row);
+            $row++;
+        }
+
+        $trendEnd = max(8, $row - 1);
+        $applyBorders($sheet, 'A8:C' . $trendEnd);
+
+        if ($row > 9) {
+            $sheet->getStyle('B9:B' . ($row - 1))
+                ->getNumberFormat()->setFormatCode($moneyFormat);
+        }
+
+        $unitStart = $row + 2;
+
+        $applySection($sheet, 'A' . $unitStart . ':F' . $unitStart);
+        $sheet->setCellValue('A' . $unitStart, 'PENJUALAN PER BUSINESS UNIT');
+
+        $unitHeader = $unitStart + 1;
+
+        $sheet->fromArray([
+            ['Business Unit', 'Penjualan', 'Retur', 'Bersih', 'HPP', 'Laba Kotor'],
+        ], null, 'A' . $unitHeader);
+
+        $applyHeader($sheet, 'A' . $unitHeader . ':F' . $unitHeader);
+
+        $row = $unitHeader + 1;
+
+        foreach ($unitSales as $unit) {
+            $sheet->fromArray([
+                [
+                    $unit->name,
+                    (float) $unit->sales,
+                    (float) $unit->return,
+                    (float) $unit->net_sales,
+                    (float) $unit->hpp,
+                    (float) $unit->gross_profit,
+                ],
+            ], null, 'A' . $row);
+
+            $row++;
+        }
+
+        $unitEnd = max($unitHeader, $row - 1);
+        $applyBorders($sheet, 'A' . $unitHeader . ':F' . $unitEnd);
+
+        if ($row > $unitHeader + 1) {
+            $sheet->getStyle(
+                'B' . ($unitHeader + 1) . ':F' . ($row - 1)
+            )->getNumberFormat()->setFormatCode($moneyFormat);
+        }
+
+        $productStart = $row + 2;
+
+        $applySection($sheet, 'A' . $productStart . ':E' . $productStart);
+        $sheet->setCellValue('A' . $productStart, 'PRODUK TERLARIS');
+
+        $productHeader = $productStart + 1;
+
+        $sheet->fromArray([
+            ['Produk', 'Qty', 'Penjualan', 'HPP', 'Laba Kotor'],
+        ], null, 'A' . $productHeader);
+
+        $applyHeader($sheet, 'A' . $productHeader . ':E' . $productHeader);
+
+        $row = $productHeader + 1;
+
+        foreach ($topProducts as $product) {
+            $sheet->fromArray([
+                [
+                    $product->product_name,
+                    (float) $product->qty,
+                    (float) $product->sales,
+                    (float) $product->hpp,
+                    (float) $product->gross_profit,
+                ],
+            ], null, 'A' . $row);
+
+            $row++;
+        }
+
+        $productEnd = max($productHeader, $row - 1);
+        $applyBorders($sheet, 'A' . $productHeader . ':E' . $productEnd);
+
+        if ($row > $productHeader + 1) {
+            $sheet->getStyle(
+                'B' . ($productHeader + 1) . ':B' . ($row - 1)
+            )->getNumberFormat()->setFormatCode('#,##0.###');
+
+            $sheet->getStyle(
+                'C' . ($productHeader + 1) . ':E' . ($row - 1)
+            )->getNumberFormat()->setFormatCode($moneyFormat);
+        }
+
+        $customerStart = $row + 2;
+
+        $applySection($sheet, 'A' . $customerStart . ':D' . $customerStart);
+        $sheet->setCellValue('A' . $customerStart, 'PELANGGAN TERBESAR');
+
+        $customerHeader = $customerStart + 1;
+
+        $sheet->fromArray([
+            ['Customer', 'Transaksi', 'Penjualan', 'Piutang'],
+        ], null, 'A' . $customerHeader);
+
+        $applyHeader($sheet, 'A' . $customerHeader . ':D' . $customerHeader);
+
+        $row = $customerHeader + 1;
+
+        foreach ($topCustomers as $customer) {
+            $sheet->fromArray([
+                [
+                    $customer->customer_name,
+                    (int) $customer->transactions,
+                    (float) $customer->sales,
+                    (float) $customer->receivable,
+                ],
+            ], null, 'A' . $row);
+
+            $row++;
+        }
+
+        $customerEnd = max($customerHeader, $row - 1);
+        $applyBorders($sheet, 'A' . $customerHeader . ':D' . $customerEnd);
+
+        if ($row > $customerHeader + 1) {
+            $sheet->getStyle(
+                'C' . ($customerHeader + 1) . ':D' . ($row - 1)
+            )->getNumberFormat()->setFormatCode($moneyFormat);
+        }
+
+        foreach (['A' => 30, 'B' => 18, 'C' => 18, 'D' => 18, 'E' => 18, 'F' => 18] as $col => $width) {
+            $sheet->getColumnDimension($col)->setWidth($width);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Sheet 4
+        |--------------------------------------------------------------------------
+        */
+
+        $sheet = $spreadsheet->createSheet();
+        $sheet->setTitle('Detail Transaksi');
+
+        $applyTitle($sheet, 'A1:G1', $entityName);
+
+        $sheet->setCellValue('A2', 'DETAIL TRANSAKSI PENJUALAN');
+        $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(13);
+
+        $sheet->setCellValue('A4', 'Periode');
+        $sheet->setCellValue(
+            'B4',
+            date('d/m/Y', strtotime($startDate)) . ' s/d ' .
+            date('d/m/Y', strtotime($endDate))
+        );
+
+        $sheet->setCellValue('A5', 'Business Unit');
+        $sheet->setCellValue('B5', $selectedUnitName);
+
+        $sheet->fromArray([
+            ['Tanggal', 'No Faktur', 'Customer', 'Business Unit', 'Pembayaran', 'Total', 'Status'],
+        ], null, 'A7');
+
+        $applyHeader($sheet, 'A7:G7');
+
+        $row = 8;
+
+        foreach ($rows as $item) {
+            $methods = collect(explode(', ', (string) $item->payment_methods))
+                ->map(fn ($method) => $methodLabel($method))
+                ->implode(', ');
+
+            $sheet->fromArray([
+                [
+                    date('d/m/Y', strtotime($item->sale_date)),
+                    $item->invoice_no,
+                    $item->customer_name,
+                    $item->unit_name,
+                    $methods ?: '-',
+                    (float) $item->total,
+                    $item->status ?? '-',
+                ],
+            ], null, 'A' . $row);
+
+            $row++;
+        }
+
+        $detailEnd = max(7, $row - 1);
+
+        $applyBorders($sheet, 'A7:G' . $detailEnd);
+
+        if ($row > 8) {
+            $sheet->getStyle('F8:F' . ($row - 1))
+                ->getNumberFormat()->setFormatCode($moneyFormat);
+        }
+
+        $sheet->freezePane('A8');
+        $sheet->setAutoFilter('A7:G' . $detailEnd);
+
+        foreach (['A' => 14, 'B' => 20, 'C' => 28, 'D' => 22, 'E' => 22, 'F' => 18, 'G' => 14] as $col => $width) {
+            $sheet->getColumnDimension($col)->setWidth($width);
+        }
+
+        foreach ($spreadsheet->getAllSheets() as $sheet) {
+            $sheet->getDefaultRowDimension()->setRowHeight(20);
+            $sheet->getSheetView()->setZoomScale(90);
+        }
+
+        $filename = 'laporan-penjualan_' . $startDate . '_' . $endDate . '.xlsx';
+
+        $writer = new Xlsx($spreadsheet);
+
+        return response()->streamDownload(
+            function () use ($writer) {
+                $writer->save('php://output');
+            },
+            $filename,
+            [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            ]
+        );
     }
 
     public function postJournal(int $id)
