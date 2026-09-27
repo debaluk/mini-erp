@@ -101,6 +101,7 @@
                             <a class="dropdown-item dropdown-toggle" href="#">LAPORAN OPERASIONAL</a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ route('laporan.penjualan') }}">Laporan Penjualan</a></li>
+<li><a class="dropdown-item" href="{{ route('laporan.retur-penjualan') }}">Laporan Retur Penjualan</a></li>
                                 <li><a class="dropdown-item" href="{{ route('laporan.pembelian') }}">Laporan Pembelian</a></li>
                                 <li><a class="dropdown-item" href="{{ route('laporan.persediaan') }}">Laporan Persediaan</a></li>
                                 <li><a class="dropdown-item" href="{{ route('laporan.produksi') }}">Laporan Produksi</a></li>
