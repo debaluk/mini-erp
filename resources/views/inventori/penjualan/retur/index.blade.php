@@ -44,6 +44,7 @@
                     <th class="text-end">Total</th>
                     <th>User</th>
                     <th>Status</th>
+                    <th>Aksi</th>
                 </tr>
             </thead>
         </table>
@@ -51,7 +52,7 @@
 </div>
 
 <div class="modal fade" id="return-modal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-dialog modal-xl return-modal-dialog">
         <div class="modal-content">
             <form method="POST" action="{{ route('inventori.penjualan.retur.store') }}" id="return-form">
                 @csrf
@@ -78,8 +79,8 @@
                     </div>
                     <input type="hidden" name="sale_id" id="return-sale-id">
                     <div id="return-sale-info" class="alert alert-light border d-none"></div>
-                    <div class="table-responsive">
-                        <table class="table table-sm table-bordered align-middle">
+                    <div class="table-responsive return-items-scroll">
+                        <table class="table table-sm table-bordered align-middle mb-0">
                             <thead><tr><th>#</th><th>SKU</th><th>Produk</th><th class="text-end">Terjual</th><th class="text-end">Sudah Retur</th><th class="text-end">Bisa Retur</th><th style="width:130px">Qty Retur</th><th style="width:150px">Kondisi</th><th class="text-end">Nilai</th></tr></thead>
                             <tbody id="return-items"><tr><td colspan="9" class="text-center text-secondary">Cari nomor struk terlebih dahulu.</td></tr></tbody>
                             <tfoot><tr><th colspan="8" class="text-end">TOTAL RETUR</th><th class="text-end" id="return-total">Rp 0</th></tr></tfoot>
@@ -98,6 +99,43 @@
         </div>
     </div>
 </div>
+<style>
+    #return-modal .return-modal-dialog {
+        height: calc(100vh - 2rem);
+        max-height: calc(100vh - 2rem);
+        margin-top: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    #return-modal .return-modal-dialog .modal-content {
+        height: 100%;
+    }
+
+    #return-modal .return-modal-dialog .modal-body {
+        overflow: hidden;
+    }
+
+    #return-modal .return-items-scroll {
+        max-height: 45vh;
+        overflow-y: auto;
+        overflow-x: auto;
+    }
+
+    #return-modal .modal-footer {
+        background: #fff;
+        border-top: 1px solid var(--bs-border-color);
+        position: relative;
+        z-index: 3;
+        flex-shrink: 0;
+    }
+
+    #return-modal .return-items-scroll thead th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: var(--bs-body-bg);
+    }
+</style>
 @endsection
 
 @push('scripts')
@@ -253,7 +291,20 @@ document.addEventListener('DOMContentLoaded', function () {
             { data: 'warehouse_name', defaultContent: '-' },
             { data: 'total', className: 'text-end fw-semibold', render: data => 'Rp ' + Number(data || 0).toLocaleString('id-ID') },
             { data: 'user_name', defaultContent: '-' },
-            { data: 'status', render: data => '<span class="badge text-bg-success">' + String(data || '-').toUpperCase() + '</span>' }
+            { data: 'status', render: data => '<span class="badge text-bg-success">' + String(data || '-').toUpperCase() + '</span>' },
+            {
+                data: null,
+                orderable: false,
+                searchable: false,
+                className: 'text-center',
+                render: function (data, type, row) {
+                    return '<a href="' +
+                        @json(url('/inventori/penjualan/retur')) +
+                        '/' + encodeURIComponent(row.id) +
+                        '/print" target="_blank" class="text-secondary text-decoration-none" style="font-size:11px;line-height:1;" title="Cetak Nota Kredit" aria-label="Cetak Nota Kredit">' +
+                        '🖨️</a>';
+                }
+            }
         ]
     });
 

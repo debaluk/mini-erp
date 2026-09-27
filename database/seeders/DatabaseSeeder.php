@@ -573,7 +573,7 @@ class DatabaseSeeder extends Seeder
             ['code'=>'7000102','name'=>'Pendapatan Lain-lain','type'=>'revenue','level'=>3,'parent'=>'70001','postable'=>true,'cash'=>false,'normal'=>'credit'],
             ['code'=>'70002','name'=>'Beban Lain-lain','type'=>'expense','level'=>2,'parent'=>'700','postable'=>false,'cash'=>false,'normal'=>'debit'],
             ['code'=>'7000201','name'=>'Rugi Penjualan Aset Tetap','type'=>'expense','level'=>3,'parent'=>'70002','postable'=>true,'cash'=>false,'normal'=>'debit'],
-            ['code'=>'7000202','name'=>'Kerugian Lain-lain','type'=>'expense','level'=>3,'parent'=>'70002','postable'=>true,'cash'=>false,'normal'=>'debit'],
+            ['code'=>'7000202','name'=>'Kerugian Kerusakan Persediaan','type'=>'expense','level'=>3,'parent'=>'70002','postable'=>true,'cash'=>false,'normal'=>'debit'],
         ];
 
         $coaIds = [];
@@ -622,11 +622,14 @@ class DatabaseSeeder extends Seeder
             'payable'=>'20001',
             'inventory'=>'1000401',
             'sales_merchandise'=>'4000101',
+            'sales_return_merchandise'=>'4000301',
             'sales_finished_goods'=>'4000102',
+            'sales_return_finished_goods'=>'4000302',
             'sales_service'=>'4000103',
             'cogs_merchandise'=>'5000101',
             'cogs_finished_goods'=>'5000102',
             'cogs_service'=>'5000103',
+            'inventory_damage_loss'=>'7000202',
             'direct_labor'=>'5000201',
             'direct_overhead'=>'5000202',
             'direct_material'=>'5000203',
@@ -637,11 +640,13 @@ class DatabaseSeeder extends Seeder
         $buMappings = [
             'RET'=>[
                 'cash','bank','receivable','payable','inventory',
-                'sales_merchandise','cogs_merchandise',
+                'sales_merchandise','sales_return_merchandise','cogs_merchandise',
+                'inventory_damage_loss',
             ],
             'PROD'=>[
                 'cash','bank','receivable','payable','inventory',
-                'sales_finished_goods','cogs_finished_goods',
+                'sales_finished_goods','sales_return_finished_goods','cogs_finished_goods',
+                'inventory_damage_loss',
                 'direct_material','direct_labor','direct_equipment',
                 'direct_rent','direct_overhead',
             ],
