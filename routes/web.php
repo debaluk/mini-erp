@@ -13,6 +13,7 @@ use App\Http\Controllers\PurchaseReportController;
 use App\Http\Controllers\ReceiptController;
 use App\Http\Controllers\SalesReturnController;
 use App\Http\Controllers\SalesReturnReportController;
+use App\Http\Controllers\SalesReceivableReportController;
 use App\Http\Controllers\PosController;
 use App\Http\Controllers\SalesController;
 use App\Http\Controllers\StockController;
@@ -172,6 +173,14 @@ Route::get('/laporan/retur-penjualan', [SalesReturnReportController::class, 'ind
 Route::get('/laporan/retur-penjualan/export', [SalesReturnReportController::class, 'exportExcel'])
     ->middleware('access:inventori')
     ->name('laporan.retur-penjualan.export');
+
+    Route::get('/laporan/piutang-penjualan', [SalesReceivableReportController::class, 'index'])
+        ->middleware('access:inventori')
+        ->name('laporan.piutang-penjualan');
+    Route::get('/laporan/piutang-penjualan/export', [SalesReceivableReportController::class, 'exportExcel'])
+        ->middleware('access:inventori')
+        ->name('laporan.piutang-penjualan.export');
+
     Route::get('/laporan/penjualan/export', [SalesController::class, 'exportExcel'])->middleware('access:inventori')->name('laporan.penjualan.export');
     Route::post('/laporan/penjualan/{id}/posting', [SalesController::class, 'postJournal'])->middleware('access:inventori')->name('laporan.penjualan.posting');
     Route::get('/laporan/pembelian', [PurchaseReportController::class, 'index'])->middleware('access:inventori')->name('laporan.pembelian');
