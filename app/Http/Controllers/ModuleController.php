@@ -116,9 +116,25 @@ class ModuleController extends Controller
             'deliveries' => DB::table('deliveries')->where('entity_id',$entity)->latest('id')->paginate(15)->withQueryString(),
             'operations' => DB::table('vehicle_operations')->where('entity_id',$entity)->latest('id')->paginate(15)->withQueryString(),
             'fleet-costs' => DB::table('fleet_costs')->where('entity_id',$entity)->latest('id')->paginate(15)->withQueryString(),
-            'journals' => DB::table('journals')->where('entity_id',$entity)->latest('id')->paginate(15)->withQueryString(),
+            'journals' => DB::table('journals')
+                ->where('entity_id', $entity)
+                ->when(request('start_date'), fn ($q, $v) => $q->whereDate('journal_date', '>=', $v))
+                ->when(request('end_date'), fn ($q, $v) => $q->whereDate('journal_date', '<=', $v))
+                ->when(request('business_unit_id'), fn ($q, $v) => $q->where('business_unit_id', $v))
+                ->when(request('source_type'), fn ($q, $v) => $q->where('source_type', $v))
+                ->latest('id')
+                ->paginate(15)
+                ->withQueryString(),
         ];
         $data['rows'] = $queries[$module] ?? collect();
+
+        if ($module === 'journals') {
+            $data['businessUnits'] = DB::table('business_units')
+                ->where('entity_id', $entity)
+                ->where('is_active', 1)
+                ->orderBy('name')
+                ->get();
+        }
 
         if ($module === 'sales') {
             $saleIds = collect($data['rows']->items())->pluck('id')->all();

@@ -1,388 +1,504 @@
 @extends('layouts.app')
+
 @section('content')
-<div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+<div class="container-fluid px-4 py-3">
+
+    <!-- Page Header (Judul & 2 Tombol Modal) -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <h5 class="card-title fw-bold mb-0 text-dark">Daftar Penerimaan Kas & Bank</h5>
-            <small class="text-muted">Monitoring seluruh transaksi arus uang masuk (Sales POS, Pelunasan Piutang, & Penerimaan Umum)</small>
+            <h3 class="mb-1 fw-bold text-dark">Penerimaan Kas & Bank</h3>
+            <div class="text-secondary small">Daftar & Monitoring Seluruh Arus Uang Masuk</div>
         </div>
         <div class="d-flex gap-2">
-            <!-- Tombol Memicu Modal Pelunasan Piutang -->
-            <button type="button" 
-                    class="btn btn-warning btn-sm fw-bold" 
-                    data-bs-toggle="modal" 
-                    data-bs-target="#modalPelunasanPiutang">
-                <i class="bi bi-plus-circle me-1"></i> + Pelunasan Piutang
+            <!-- Tombol 1: Pelunasan Piutang -->
+            <button type="button" class="btn btn-outline-primary btn-sm px-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#modal-pelunasan-piutang">
+                <i class="bi bi-receipt me-1"></i> + Pelunasan Piutang
             </button>
 
-            <!-- Tombol Memicu Modal Penerimaan Umum -->
-            <button type="button" 
-                    class="btn btn-primary btn-sm" 
-                    data-bs-toggle="modal" 
-                    data-bs-target="#modalKasMasukUmum">
-                <i class="bi bi-plus-circle me-1"></i> + Penerimaan Umum
+            <!-- Tombol 2: Penerimaan Kas/Bank Umum -->
+            <button type="button" class="btn btn-primary btn-sm px-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#modal-penerimaan-lain">
+                <i class="bi bi-plus-lg me-1"></i> + Penerimaan Kas / Bank
             </button>
         </div>
     </div>
 
-    <!-- Card Body: Form Filter Bar -->
-    <div class="card-body border-bottom py-2 bg-light">
-        <form method="GET"
-              class="d-flex align-items-end gap-2 flex-nowrap overflow-auto py-1"
-              style="white-space: nowrap;">
+    <!-- Alert Notifications -->
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle me-1"></i> {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle me-1"></i> {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
 
-            <div>
-                <label class="form-label mb-1 small fw-bold">Mulai Tanggal</label>
-                <input type="date"
-                       name="start_date"
-                       class="form-control form-control-sm"
-                       value="{{ request('start_date', now()->startOfMonth()->format('Y-m-d')) }}">
+    <!-- Summary KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="p-3 bg-white rounded border shadow-sm">
+                <div class="text-muted small">Pelunasan Piutang (AR)</div>
+                <div class="fw-bold fs-5 text-primary">Rp {{ number_format($totalArPayment, 2, ',', '.') }}</div>
+                <div class="small text-muted">Pembayaran Faktur Customer</div>
             </div>
-
-            <div>
-                <label class="form-label mb-1 small fw-bold">Sampai Tanggal</label>
-                <input type="date"
-                       name="end_date"
-                       class="form-control form-control-sm"
-                       value="{{ request('end_date', now()->endOfMonth()->format('Y-m-d')) }}">
+        </div>
+        <div class="col-md-4">
+            <div class="p-3 bg-white rounded border shadow-sm">
+                <div class="text-muted small">Penerimaan Umum / Lainnya</div>
+                <div class="fw-bold fs-5 text-info">Rp {{ number_format($totalOtherReceipt, 2, ',', '.') }}</div>
+                <div class="small text-muted">Setoran Modal / Non-Faktur</div>
             </div>
-
-            <div style="min-width:180px;">
-                <label class="form-label mb-1 small fw-bold">Business Unit</label>
-                <select name="unit_id" class="form-select form-select-sm">
-                    <option value="">Semua Business Unit</option>
-                    @foreach($businessUnits ?? [] as $bu)
-                        <option value="{{ $bu->id }}" {{ request('unit_id') == $bu->id ? 'selected' : '' }}>
-                            {{ $bu->nama }}
-                        </option>
-                    @endforeach
-                </select>
+        </div>
+        <div class="col-md-4">
+            <div class="p-3 bg-white rounded border shadow-sm">
+                <div class="text-muted small">Total Seluruh Penerimaan</div>
+                <div class="fw-bold fs-5 text-success">Rp {{ number_format($totalReceiptAmount, 2, ',', '.') }}</div>
+                <div class="small text-muted">Periode Filter Terpilih</div>
             </div>
-
-            <div style="min-width:180px;">
-                <label class="form-label mb-1 small fw-bold">Jenis Penerimaan</label>
-                <select name="jenis_penerimaan" class="form-select form-select-sm">
-                    <option value="">Semua Jenis Penerimaan</option>
-                    <option value="POS">Penjualan</option>
-                    <option value="PELUNASAN_PIUTANG">Pelunasan Piutang</option>
-                    <option value="UMUM">Penerimaan Umum</option>
-                </select>
-            </div>
-
-            <div style="min-width:180px;">
-                <label class="form-label mb-1 small fw-bold">Kas / Bank</label>
-                <select name="kas_bank_id" class="form-select form-select-sm">
-                    <option value="">Semua Rekening</option>
-                    <option value="KAS">Kas Laci / Kas Besar</option>
-                    <option value="BANK">Bank Operasional</option>
-                </select>
-            </div>
-
-            <button type="submit" class="btn btn-primary btn-sm px-3 fw-bold">
-                Tampilkan
-            </button>
-
-            <a href=""
-               class="btn btn-success btn-sm px-3 fw-bold">
-                Export Excel
-            </a>
-        </form>
+        </div>
     </div>
 
-    <!-- Table Section -->
-    <div class="table-responsive px-2 py-2">
-        <table id="penerimaan-kas-bank-datatable"
-               class="table table-hover align-middle w-100 mb-0">
-            <thead class="table-light text-muted small">
-                <tr>
-                    <th style="width:45px;" class="text-center">No</th>
-                    <th>No. Bukti</th>
-                    <th>Tanggal</th>
-                    <th>Tipe Penerimaan</th>
-                    <th>Diterima Pada Kas/Bank</th>
-                    <th>Dari / Sumber</th>
-                    <th class="text-end">Total Nominal</th>
-                    <th class="text-center" style="width:90px;">Aksi</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- DataTables AJAX / Server-side Rendering -->
-            </tbody>
-        </table>
-    </div>
-</div>
+    <!-- Card Filter List (Periode | Unit Bisnis | Jenis | Tipe Kas/Bank) -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body p-3">
+            <form id="form-filter-kas-masuk" method="GET" action="{{ route('akuntansi.kas-masuk') }}" class="row g-2 align-items-end">
 
-<!-- Modal Form Penerimaan Umum -->
-<div class="modal fade" id="modalKasMasukUmum" tabindex="-1" aria-labelledby="modalKasMasukUmumLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-    <div class="modal-content border-0 shadow-lg">
-      
-      <!-- Modal Header -->
-      <div class="modal-header bg-primary text-white py-3">
-        <h5 class="modal-title fw-bold fs-6" id="modalKasMasukUmumLabel">
-          📝 Form Penerimaan Kas & Bank Masuk Umum
-        </h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-
-      <!-- Modal Body -->
-      <div class="modal-body p-4">
-        
-        <!-- Section 1: Header Info -->
-        <div class="row g-3 mb-3">
-          <div class="col-md-4">
-            <label class="form-label text-muted small fw-bold mb-1">No. Voucher</label>
-            <input type="text" value="CR/202609/0003" readonly class="form-control form-control-sm bg-light font-monospace">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label text-muted small fw-bold mb-1">Tanggal Transaksi</label>
-            <input type="date" value="2026-09-27" class="form-control form-control-sm">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label text-muted small fw-bold mb-1">Business Unit</label>
-            <select class="form-select form-select-sm">
-              <option selected>Retail Toko Bangunan</option>
-              <option>Produksi Batako BUASO</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="row g-3 mb-4">
-          <div class="col-md-6">
-            <label class="form-label text-muted small fw-bold mb-1">
-              Diterima Pada (Kas/Bank) <span class="text-danger">*</span>
-            </label>
-            <select class="form-select form-select-sm fw-bold text-primary">
-              <option value="1000201">1000201 - Bank BCA Operasional</option>
-              <option value="1000102">1000102 - Kas Besar Utama</option>
-            </select>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label text-muted small fw-bold mb-1">No. Referensi / Bank</label>
-            <input type="text" placeholder="Contoh: TRF-BCA-988212 / No. Slip" class="form-control form-control-sm">
-          </div>
-        </div>
-
-        <hr class="text-muted my-3">
-
-        <!-- Section 2: Dynamic Multi-Line Table -->
-        <div class="mb-4">
-          <label class="form-label fw-bold text-dark text-uppercase small mb-2">
-            RINCIAN AKUN SUMBER / KREDIT
-          </label>
-          
-          <div class="table-responsive">
-            <table class="table table-bordered table-sm align-middle mb-2">
-              <thead class="table-light text-muted small">
-                <tr>
-                  <th style="width: 45%;">Akun COA Sumber (Kredit)</th>
-                  <th>Keterangan Rincian</th>
-                  <th style="width: 25%;" class="text-end">Nominal (Rp)</th>
-                  <th style="width: 50px;" class="text-center">Aksi</th>
-                </tr>
-              </thead>
-              <tbody id="gridAkunSumber">
-                <tr>
-                  <td>
-                    <select class="form-select form-select-sm">
-                      <option value="3000101">3000101 - Modal Disetor</option>
-                      <option value="4000301">4000301 - Pendapatan Bunga Bank</option>
+                <div class="col-md-3">
+                    <label class="form-label mb-1 small fw-bold">Unit Bisnis</label>
+                    <select name="business_unit_id" class="form-select form-select-sm">
+                       <option value="">Semua Unit Bisnis</option>
+                        @foreach($businessUnits as $bu)
+                            <option value="{{ $bu->id }}" {{ (string) $businessUnitId === (string) $bu->id ? "selected" : "" }}>
+                                {{ $bu->code }} - {{ $bu->name }}
+                            </option>
+                        @endforeach
                     </select>
-                  </td>
-                  <td>
-                    <input type="text" value="Setoran modal tambahan owner" class="form-control form-control-sm">
-                  </td>
-                  <td>
-                    <input type="number" value="50000000" class="form-control form-control-sm text-end font-monospace">
-                  </td>
-                  <td class="text-center">
-                    <button type="button" class="btn btn-outline-danger btn-sm border-0 py-0 px-2 fw-bold">&times;</button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          
-          <button type="button" class="btn btn-outline-secondary btn-sm fw-bold">
-            + Tambah Baris Akun
-          </button>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label mb-1 small fw-bold">Tipe (Akun Kas/Bank)</label>
+                    <select name="cash_account_id" class="form-select form-select-sm">
+                        <option value="">Semua Kas & Bank</option>
+                       <option value="">Semua Kas & Bank</option>
+                        @foreach($cashAccounts as $acc)
+                            <option value="{{ $acc->id }}" {{ (string) $cashAccountId === (string) $acc->id ? "selected" : "" }}>
+                                [{{ $acc->code }}] {{ $acc->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label mb-1 small fw-bold">Jenis (Kategori)</label>
+                    <select name="receipt_type" class="form-select form-select-sm">
+                        <option value="">Semua Kategori</option>
+                        <option value="AR_PAYMENT" {{ $receiptType === 'AR_PAYMENT' ? 'selected' : '' }}>Pelunasan Piutang</option>
+                        <option value="CASH_IN" {{ $receiptType === 'CASH_IN' ? 'selected' : '' }}>Penerimaan Umum</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label mb-1 small fw-bold">Mulai Tanggal</label>
+                    <input type="date" name="start_date" class="form-control form-control-sm" value="{{ $startDate }}">
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label mb-1 small fw-bold">Sampai Tanggal</label>
+                    <input type="date" name="end_date" class="form-control form-control-sm" value="{{ $endDate }}">
+                </div>
+
+                <div class="col-md-8 mt-2">
+                    <input type="text" name="search" class="form-control form-control-sm" placeholder="Cari no. transaksi / keterangan..." value="{{ $search }}">
+                </div>
+
+                <div class="col-md-4 d-flex justify-content-end gap-2 mt-2">
+                    <a href="{{ route('akuntansi.kas-masuk') }}" class="btn btn-outline-secondary btn-sm px-3">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
+                    </a>
+                    <button type="submit" class="btn btn-primary btn-sm px-3">
+                        <i class="bi bi-search me-1"></i> Tampilkan
+                    </button>
+                    <button type="button" id="btn-export-excel" class="btn btn-success btn-sm px-3">
+                        <i class="bi bi-file-earmark-excel me-1"></i> Excel
+                    </button>
+                </div>
+
+            </form>
         </div>
-
-        <!-- Section 3: Total Summary Box -->
-        <div class="alert alert-primary d-flex justify-content-between align-items-center mb-0 py-3 px-3">
-          <span class="fw-bold text-primary">TOTAL PENERIMAAN KAS/BANK</span>
-          <span class="font-monospace fw-bold fs-5 text-primary">Rp 50.150.000</span>
-        </div>
-
-      </div>
-
-      <!-- Modal Footer -->
-      <div class="modal-footer bg-light px-4 py-2">
-        <button type="button" class="btn btn-secondary btn-sm px-3" data-bs-dismiss="modal">Batal</button>
-        <button type="button" class="btn btn-primary btn-sm px-3 fw-bold">💾 Simpan & Post Jurnal</button>
-      </div>
-
     </div>
-  </div>
-</div>
 
-<!-- Modal Form Pelunasan Piutang -->
-<div class="modal fade" id="modalPelunasanPiutang" tabindex="-1" aria-labelledby="modalPelunasanPiutangLabel" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-    <div class="modal-content border-0 shadow-lg">
-      
-      <!-- Modal Header -->
-      <div class="modal-header bg-warning text-white py-3">
-        <h5 class="modal-title fw-bold fs-6" id="modalPelunasanPiutangLabel">
-          💳 Form Pelunasan Piutang Pelanggan (Invoice Settlement)
-        </h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-
-      <!-- Modal Body -->
-      <div class="modal-body p-4">
-        
-        <!-- Section 1: Header Info & Filter Pelanggan -->
-        <div class="row g-3 mb-3">
-          <div class="col-md-3">
-            <label class="form-label text-muted small fw-bold mb-1">No. Bukti Pelunasan</label>
-            <input type="text" value="OR/202609/0012" readonly class="form-control form-control-sm bg-light font-monospace">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label text-muted small fw-bold mb-1">Tanggal Bayar</label>
-            <input type="date" value="2026-09-27" class="form-control form-control-sm">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label text-muted small fw-bold mb-1">Business Unit</label>
-            <select class="form-select form-select-sm">
-              <option selected>Retail Toko Bangunan</option>
-              <option>Produksi Batako BUASO</option>
-            </select>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label text-muted small fw-bold mb-1">
-              Pelanggan / Customer <span class="text-danger">*</span>
-            </label>
-            <select class="form-select form-select-sm fw-bold border-primary">
-              <option value="">-- Pilih Pelanggan (Piutang Aktif) --</option>
-              <option value="CUST-001" selected>Budiasa (Total AR: Rp 14.000)</option>
-              <option value="CUST-002">CV Jaya Kontraktor Utama (Total AR: Rp 35.000.000)</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="row g-3 mb-4">
-          <div class="col-md-6">
-            <label class="form-label text-muted small fw-bold mb-1">
-              Diterima Pada (Rekening Kas/Bank) <span class="text-danger">*</span>
-            </label>
-            <select class="form-select form-select-sm fw-bold text-primary">
-              <option value="1000201">1000201 - Bank BCA Operasional</option>
-              <option value="1000102">1000102 - Kas Besar Utama</option>
-            </select>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label text-muted small fw-bold mb-1">No. Referensi / Bukti Transfer</label>
-            <input type="text" placeholder="Contoh: TRF-BCA-889102 / Slip Setoran" class="form-control form-control-sm">
-          </div>
-        </div>
-
-        <hr class="text-muted my-3">
-
-        <!-- Section 2: Invoice Matching Table (Rincian Faktur Aktif) -->
-        <div class="mb-4">
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <label class="form-label fw-bold text-dark text-uppercase small mb-0">
-              DAFTAR FAKTUR AKTIF (INVOICE MATCHING)
-            </label>
-            <span class="badge bg-info text-dark">Pelanggan Selected: <strong>Budiasa</strong></span>
-          </div>
-          
-          <div class="table-responsive">
-            <table class="table table-bordered table-sm align-middle mb-2">
-              <thead class="table-light text-muted small text-nowrap">
-                <tr>
-                  <th style="width: 40px;" class="text-center">Pilih</th>
-                  <th>No. Faktur Asal</th>
-                  <th>Tgl Faktur</th>
-                  <th>Jatuh Tempo</th>
-                  <th class="text-end">Nilai Faktur (Rp)</th>
-                  <th class="text-end">Sisa Piutang (Rp)</th>
-                  <th style="width: 200px;" class="text-end">Nominal Bayar (Rp)</th>
-                  <th style="width: 80px;" class="text-center">Aksi Cepat</th>
-                </tr>
-              </thead>
-              <tbody id="gridFakturAktif">
-                <!-- Row Faktur 1 -->
-                <tr>
-                  <td class="text-center">
-                    <input type="checkbox" class="form-check-input" id="chk1" checked>
-                  </td>
-                  <td class="font-monospace fw-bold text-primary">INV-20260926163608-CAOM</td>
-                  <td>26/09/2026</td>
-                  <td>30/09/2026</td>
-                  <td class="text-end font-monospace">Rp 6.000</td>
-                  <td class="text-end font-monospace text-danger fw-bold">Rp 6.000</td>
-                  <td>
-                    <input type="number" value="6000" class="form-control form-control-sm text-end font-monospace fw-bold border-success">
-                  </td>
-                  <td class="text-center">
-                    <button type="button" class="btn btn-outline-success btn-sm py-0 px-2 text-nowrap fs-7">Full</button>
-                  </td>
-                </tr>
-                <!-- Row Faktur 2 -->
-                <tr>
-                  <td class="text-center">
-                    <input type="checkbox" class="form-check-input" id="chk2">
-                  </td>
-                  <td class="font-monospace fw-bold text-primary">INV-20260927042003-LON1</td>
-                  <td>27/09/2026</td>
-                  <td>30/09/2026</td>
-                  <td class="text-end font-monospace">Rp 8.000</td>
-                  <td class="text-end font-monospace text-danger fw-bold">Rp 8.000</td>
-                  <td>
-                    <input type="number" value="0" disabled class="form-control form-control-sm text-end font-monospace bg-light">
-                  </td>
-                  <td class="text-center">
-                    <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2 text-nowrap fs-7">Full</button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Section 3: Catatan & Total Summary Box -->
-        <div class="row g-3 align-items-center">
-          <div class="col-md-6">
-            <label class="form-label text-muted small fw-bold mb-1">Catatan / Keterangan Pelunasan</label>
-            <textarea rows="2" placeholder="Pelunasan faktur INV-... via transfer BCA Pak Budiasa" class="form-control form-control-sm"></textarea>
-          </div>
-          <div class="col-md-6">
-            <div class="alert alert-success d-flex justify-content-between align-items-center mb-0 py-3 px-3 border-success">
-              <div>
-                <span class="d-block text-muted small fw-bold">TOTAL ALOKASI PEMBAYARAN</span>
-                <small class="text-muted">Memotong Saldo Piutang Usaha (`1000301`)</small>
-              </div>
-              <span class="font-monospace fw-bold fs-4 text-success">Rp 6.000</span>
+    <!-- Table Data Penerimaan Kas/Bank -->
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped align-middle mb-0" style="font-size: 0.9rem;">
+                    <thead class="table-dark">
+                        <tr>
+                            <th class="text-center" style="width: 100px;">Tanggal</th>
+                            <th class="text-center" style="width: 150px;">No. Transaksi</th>
+                            <th style="width: 140px;">Business Unit</th>
+                            <th class="text-center" style="width: 130px;">Kategori</th>
+                            <th style="width: 180px;">Akun Penerima (Kas/Bank)</th>
+                            <th style="width: 180px;">Akun Sumber / Lawan</th>
+                            <th>Keterangan / Memo</th>
+                            <th class="text-end" style="width: 160px;">Nominal (Rp)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                         @forelse($receipts as $journal)
+                            @php
+                                $cashEntry = $journal->entries->where('debit', '>', 0)->first();
+                                $counterpartEntry = $journal->entries->where('credit', '>', 0)->first();
+                            @endphp
+                           <tr>
+                                <td class="text-center">{{ $journal->journal_date }}</td>
+                                <td class="text-center font-monospace fw-semibold">{{ $journal->journal_no }}</td>
+                                <td>{{ $journal->businessUnit?->name ?? '-' }}</td>
+                                <td class="text-center">
+                                    <span class="badge {{ $journal->source_type === 'AR_PAYMENT' ? 'bg-primary' : 'bg-info text-dark' }}">
+                                        {{ $journal->source_type === 'AR_PAYMENT' ? 'PELUNASAN AR' : 'KAS MASUK' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="fw-semibold text-primary">
+                                        [{{ $cashEntry?->account?->code }}] {{ $cashEntry?->account?->name }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="text-dark">
+                                        [{{ $counterpartEntry?->account?->code }}] {{ $counterpartEntry?->account?->name }}
+                                    </span>
+                                </td>
+                                <td>{{ $journal->description }}</td>
+                                <td class="text-end fw-bold text-success">
+                                    Rp {{ number_format($cashEntry?->debit ?? 0, 2, ',', '.') }}
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="8" class="text-center py-4 text-muted">
+                                    <i class="bi bi-inbox fs-3 d-block mb-1"></i>
+                                    Tidak ada data penerimaan kas/bank pada periode ini.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
-          </div>
         </div>
 
-      </div>
-
-      <!-- Modal Footer -->
-      <div class="modal-footer bg-light px-4 py-2">
-        <button type="button" class="btn btn-secondary btn-sm px-3" data-bs-dismiss="modal">Batal</button>
-        <button type="button" class="btn btn-warning btn-sm px-4 fw-bold">💾 Simpan & Post Jurnal</button>
-      </div>
-
+        <!-- Server-Side Pagination Links Footer -->
+       <div class="card-footer bg-light d-flex justify-content-between align-items-center py-2 px-3">
+            <div class="text-muted small">
+                Menampilkan <strong>{{ $receipts->firstItem() ?? 0 }}</strong> - <strong>{{ $receipts->lastItem() ?? 0 }}</strong> dari total <strong>{{ $receipts->total() }}</strong> transaksi
+            </div>
+            <div>
+                {{ $receipts->links('pagination::bootstrap-5') }}
+            </div>
+        </div>
     </div>
-  </div>
+
 </div>
 
+<!-- Modal 1: Pelunasan Piutang (Pilih Pelanggan -> Tampil Faktur Unpaid + Checkbox) -->
+<div class="modal fade" id="modal-pelunasan-piutang" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white py-2">
+                <h6 class="modal-title fw-bold"><i class="bi bi-receipt me-1"></i> Form Pelunasan Piutang Pelanggan</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('akuntansi.kas-masuk.store-ar') }}" method="POST">
+                @csrf
+                <div class="modal-body p-3">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Business Unit <span class="text-danger">*</span></label>
+                            <select name="business_unit_id" class="form-select form-select-sm" required>
+                                <option value="">-- Pilih Business Unit --</option>
+                                @foreach($businessUnits as $bu)
+                                    <option value="{{ $bu->id }}">{{ $bu->code }} - {{ $bu->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Pelanggan / Customer <span class="text-danger">*</span></label>
+                            <select name="customer_id" id="select-customer-ar" class="form-select form-select-sm" required>
+                                <option value="">-- Pilih Customer --</option>
+                                @foreach($customers as $c)
+                                    <option value="{{ $c->id }}">{{ $c->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <!-- Dynamic Table Faktur Belum Lunas -->
+                        <div class="col-md-12 d-none" id="wrapper-unpaid-invoices">
+                            <label class="form-label small fw-bold text-primary mb-1">
+                                <i class="bi bi-list-check me-1"></i> Pilih Faktur Belum Lunas yang Dibayar:
+                            </label>
+                            <div class="table-responsive border rounded bg-light" style="max-height: 180px; overflow-y: auto;">
+                                <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.85rem;">
+								<thead class="table-secondary sticky-top">
+									<tr>
+										<th class="text-center" style="width: 40px;">#</th>
+										<th>No. Faktur</th>
+										<th>Tgl. Faktur</th>
+										<th class="text-end">Sisa Piutang (Rp)</th>
+										<th class="text-end" style="width: 170px;">Jumlah Bayar (Rp)</th>
+									</tr>
+								</thead>
+								<tbody id="tbody-unpaid-invoices">
+									<!-- Diisi otomatis via AJAX -->
+								</tbody>
+							</table>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Tanggal Pembayaran <span class="text-danger">*</span></label>
+                            <input type="date" name="journal_date" class="form-control form-control-sm" value="{{ date('Y-m-d') }}" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Akun Penerima (Kas/Bank) <span class="text-danger">*</span></label>
+                            <select name="cash_account_id" class="form-select form-select-sm" required>
+                                <option value="">-- Pilih Kas/Bank --</option>
+                                @foreach($cashAccounts as $acc)
+                                    <option value="{{ $acc->id }}">[{{ $acc->code }}] {{ $acc->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label small fw-bold">Nominal Pembayaran (Rp) <span class="text-danger">*</span></label>
+                            <input type="number" name="amount" id="input-amount-ar" step="0.01" min="1" class="form-control form-control-sm fw-bold text-success fs-6" placeholder="0.00" required readonly>
+                            <span class="text-muted" style="font-size: 0.75rem;">*Nominal terhitung otomatis dari total faktur yang dicentang.</span>
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label small fw-bold">Keterangan / Memo <span class="text-danger">*</span></label>
+                            <textarea name="description" id="input-description-ar" class="form-control form-control-sm" rows="2" placeholder="Pelunasan faktur..." required></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-3">
+                        <i class="bi bi-save me-1"></i> Simpan Pelunasan AR
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 2: Penerimaan Kas / Bank Umum (Dengan COA Hierarki Level 2 & 3) -->
+<div class="modal fade" id="modal-penerimaan-lain" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-dark text-white py-2">
+                <h6 class="modal-title fw-bold"><i class="bi bi-plus-circle me-1"></i> Form Penerimaan Kas / Bank Umum</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('akuntansi.kas-masuk.store-other') }}" method="POST">
+                @csrf
+                <div class="modal-body p-3">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Business Unit <span class="text-danger">*</span></label>
+                            <select name="business_unit_id" class="form-select form-select-sm" required>
+                                <option value="">-- Pilih Business Unit --</option>
+                                @foreach($businessUnits as $bu)
+                                    <option value="{{ $bu->id }}">{{ $bu->code }} - {{ $bu->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Tanggal Transaksi <span class="text-danger">*</span></label>
+                            <input type="date" name="journal_date" class="form-control form-control-sm" value="{{ date('Y-m-d') }}" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Akun Penerima (Kas/Bank - Debit) <span class="text-danger">*</span></label>
+                            <select name="cash_account_id" class="form-select form-select-sm" required>
+                                <option value="">-- Pilih Akun Kas/Bank --</option>
+                                @foreach($cashAccounts as $acc)
+                                    <option value="{{ $acc->id }}">[{{ $acc->code }}] {{ $acc->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <!-- Dropdown Akun Lawan dengan Hierarki Level 2 (Optgroup) dan Level 3 (Option) -->
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Akun Sumber / Lawan (Hierarki COA Level 2 & 3 - Kredit) <span class="text-danger">*</span></label>
+                            <select name="counterpart_account_id" class="form-select form-select-sm" required>
+                               <option value="">-- Pilih Akun Sumber (Level 3) --</option>
+                                @foreach($coaLevel2 as $headerL2)
+                                    @if($headerL2->children->count() > 0)
+                                        <optgroup label="[Level 2] {{ $headerL2->code }} - {{ $headerL2->name }}">
+                                            @foreach($headerL2->children as $childL3)
+                                                <option value="{{ $childL3->id }}">
+                                                    &nbsp;&nbsp;&nbsp;&nbsp; [L3: {{ $childL3->code }}] {{ $childL3->name }}
+                                                </option>
+                                            @endforeach
+                                        </optgroup>
+                                    @endif
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label small fw-bold">Nominal Penerimaan (Rp) <span class="text-danger">*</span></label>
+                            <input type="number" name="amount" step="0.01" min="1" class="form-control form-control-sm fw-bold text-success fs-6" placeholder="0.00" required>
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label small fw-bold">Keterangan / Memo <span class="text-danger">*</span></label>
+                            <textarea name="description" class="form-control form-control-sm" rows="2" placeholder="Penerimaan setoran modal / pendapatan bunga bank..." required></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-dark btn-sm px-3">
+                        <i class="bi bi-save me-1"></i> Simpan & Posting Jurnal
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript Integration -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    // 1. Handler Export Excel
+    document.getElementById('btn-export-excel')?.addEventListener('click', function () {
+        const form     = document.getElementById('form-filter-kas-masuk');
+        const formData = new FormData(form);
+        const params   = new URLSearchParams(formData).toString();
+
+        window.location.href = "{{ route('akuntansi.kas-masuk.export') }}?" + params;
+    });
+
+    // 2. AJAX Fetch Invoices saat Customer Dipilih
+    document.getElementById('select-customer-ar')?.addEventListener('change', function () {
+        const customerId  = this.value;
+        const wrapper     = document.getElementById('wrapper-unpaid-invoices');
+        const tbody       = document.getElementById('tbody-unpaid-invoices');
+        const amountInput = document.getElementById('input-amount-ar');
+        const descInput   = document.getElementById('input-description-ar');
+
+        tbody.innerHTML   = '';
+        if (amountInput) amountInput.value = '0';
+        if (descInput) descInput.value = '';
+
+        if (!customerId) {
+            wrapper.classList.add('d-none');
+            return;
+        }
+
+        fetch("{{ url('/akuntansi/kas-bank/masuk/unpaid-invoices') }}/" + customerId)
+            .then(response => response.json())
+            .then(data => {
+                wrapper.classList.remove('d-none');
+
+                if (data.success && data.invoices.length > 0) {
+                    data.invoices.forEach(inv => {
+                        const row = `
+                            <tr>
+                                <td class="text-center">
+                                    <input type="checkbox" name="invoice_ids[]" value="${inv.id}" 
+                                           data-id="${inv.id}" 
+                                           data-no="${inv.invoice_no}" 
+                                           data-max="${inv.remaining_amount}" 
+                                           class="form-check-input chk-invoice">
+                                </td>
+                                <td class="fw-semibold text-primary">${inv.invoice_no}</td>
+                                <td>${inv.sale_date}</td>
+                                <td class="text-end fw-bold">Rp ${parseFloat(inv.remaining_amount).toLocaleString('id-ID')}</td>
+                                <td>
+                                    <input type="number" name="pay_amounts[${inv.id}]" id="pay-amount-${inv.id}" 
+                                           class="form-control form-control-sm text-end fw-semibold input-pay-amount" 
+                                           step="0.01" min="0" max="${inv.remaining_amount}" value="0" disabled>
+                                </td>
+                            </tr>
+                        `;
+                        tbody.insertAdjacentHTML('beforeend', row);
+                    });
+
+                    // Event Listener Checkbox: Aktifkan input & isi default nominal lunas
+                    document.querySelectorAll('.chk-invoice').forEach(chk => {
+                        chk.addEventListener('change', function() {
+                            const invId = this.dataset.id;
+                            const maxAmount = this.dataset.max;
+                            const inputPay = document.getElementById('pay-amount-' + invId);
+
+                            if (this.checked) {
+                                inputPay.disabled = false;
+                                inputPay.value = maxAmount; 
+                            } else {
+                                inputPay.disabled = true;
+                                inputPay.value = 0;
+                            }
+                            calculateSelectedInvoices();
+                        });
+                    });
+
+                    // Event Listener Input Nominal Bayar: Re-calculate saat diketik
+                    document.querySelectorAll('.input-pay-amount').forEach(input => {
+                        input.addEventListener('input', calculateSelectedInvoices);
+                        input.addEventListener('keyup', calculateSelectedInvoices);
+                    });
+
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted small py-2"><i class="bi bi-check-all me-1"></i> Tidak ada faktur belum lunas untuk pelanggan ini.</td></tr>';
+                }
+            })
+            .catch(error => console.error('Error fetching invoices:', error));
+    });
+
+    // 3. Fungsi Auto Hitung Total & Buat Memo
+    function calculateSelectedInvoices() {
+        let totalSum = 0;
+        let selectedInvoices = [];
+
+        document.querySelectorAll('.chk-invoice:checked').forEach(chk => {
+            const invId    = chk.dataset.id;
+            const invNo    = chk.dataset.no;
+            const inputPay = document.getElementById('pay-amount-' + invId);
+            const payValue = parseFloat(inputPay ? inputPay.value : 0) || 0;
+
+            totalSum += payValue;
+            if (invNo) {
+                selectedInvoices.push(invNo);
+            }
+        });
+
+        // Set Nilai Total ke Form
+        const amountInput = document.getElementById('input-amount-ar');
+        const descInput   = document.getElementById('input-description-ar');
+
+        if (amountInput) {
+            amountInput.value = totalSum;
+        }
+
+        if (descInput) {
+            if (selectedInvoices.length > 0) {
+                descInput.value = 'Pelunasan/Cicilan Piutang Faktur: ' + selectedInvoices.join(', ');
+            } else {
+                descInput.value = '';
+            }
+        }
+    }
+
+});
+</script>
 
 @endsection
-
-@push('scripts')
-
-@endpush

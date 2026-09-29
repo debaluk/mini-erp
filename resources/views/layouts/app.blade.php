@@ -7,6 +7,7 @@
     <title>{{ config('app.name', 'Mini ERP') }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/2.3.3/css/dataTables.bootstrap5.css" rel="stylesheet">
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
         .navbar .dropdown-menu { min-width: 230px; }
         .navbar .dropdown-menu .dropdown-header { font-weight: 700; color: var(--bs-primary); }
@@ -121,9 +122,9 @@
                         <li class="dropdown-submenu">
                             <a class="dropdown-item dropdown-toggle" href="#">KAS &amp; BANK</a>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{{ route('akuntansi.kas-bank.masuk') }}">Kas / Bank Masuk</a></li>
-                                <li><a class="dropdown-item" href="{{ route('akuntansi.kas-bank.keluar') }}">Kas / Bank Keluar</a></li>
-                                <li><a class="dropdown-item" href="{{ route('akuntansi.kas-bank.transfer') }}">Transfer / Mutasi</a></li>
+                                <li><a class="dropdown-item" href="{{ route('akuntansi.kas-masuk') }}">Kas / Bank Masuk</a></li>
+                                <li><a class="dropdown-item" href="{{ route('akuntansi.kas-keluar') }}">Kas / Bank Keluar</a></li>
+                                <li><a class="dropdown-item" href="{{ route('akuntansi.kas-mutasi') }}">Transfer / Mutasi</a></li>
                             </ul>
                         </li>
                         <li class="dropdown-submenu">
@@ -131,6 +132,8 @@
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ route('akuntansi.jurnal') }}">Jurnal Umum</a></li>
                                 <li><a class="dropdown-item" href="{{ route('akuntansi.buku-besar') }}">Buku Besar</a></li>
+								<li><a class="dropdown-item" href="{{ route('akuntansi.buku-piutang') }}">Buku Piutang</a></li>
+								<li><a class="dropdown-item" href="{{ route('akuntansi.buku-hutang') }}">Buku Hutang</a></li>
                                 <li><a class="dropdown-item" href="{{ route('akuntansi.closing-periode') }}">Closing Periode</a></li>
                             </ul>
                         </li>
@@ -141,8 +144,8 @@
                                 <li><a class="dropdown-item" href="{{ route('akuntansi.neraca-saldo') }}">Laporan Neraca Saldo</a></li>
                                 <li><a class="dropdown-item" href="{{ route('akuntansi.neraca') }}">Laporan Neraca</a></li>
                                 <li><a class="dropdown-item" href="{{ route('akuntansi.arus-kas') }}">Laporan Arus Kas</a></li>
-                                <li><a class="dropdown-item" href="{{ route('laporan.piutang') }}">Laporan Aging Piutang</a></li>
-                                <li><a class="dropdown-item" href="{{ route('laporan.hutang') }}">Laporan Aging Hutang</a></li>
+                                <li><a class="dropdown-item" href="{{ route('akuntansi.aging-piutang.index') }}">Laporan Umur Piutang</a></li>
+                                <li><a class="dropdown-item" href="{{ route('akuntansi.aging-hutang.index') }}">Laporan Umur Hutang</a></li>
                             </ul>
                         </li>
                     </ul>

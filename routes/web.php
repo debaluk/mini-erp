@@ -23,6 +23,20 @@ use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\BusinessUnitController;
 use App\Http\Controllers\BusinessUnitAccountMappingController;
 use App\Http\Controllers\UnitConversionController;
+use App\Http\Controllers\JournalController;
+use App\Http\Controllers\GeneralLedgerController;
+use App\Http\Controllers\TrialBalanceController;
+use App\Http\Controllers\ProfitLossController;
+use App\Http\Controllers\BalanceSheetController;
+use App\Http\Controllers\AccountingClosingController;
+use App\Http\Controllers\CashReceiptController;
+use App\Http\Controllers\CashDisbursementController;
+use App\Http\Controllers\CashTransferController;
+use App\Http\Controllers\CashFlowController;
+use App\Http\Controllers\ArSubLedgerController;
+use App\Http\Controllers\ApSubLedgerController;
+use App\Http\Controllers\ArAgingController;
+use App\Http\Controllers\ApAgingController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -123,11 +137,38 @@ Route::middleware('auth')->group(function () {
     Route::get('/inventori/adjustment', fn () => app(ModuleController::class)->show('movements'))->middleware('access:inventori')->name('inventori.adjustment');
     Route::get('/inventori/stock-opname', fn () => app(ModuleController::class)->show('opname'))->middleware('access:inventori')->name('inventori.stock-opname');
 
-    Route::get('/inventori/pembelian/po', [PurchaseOrderController::class, 'index'])
+    /*Route::get('/inventori/pembelian/po', [PurchaseOrderController::class, 'index'])
         ->name('inventori.pembelian-po');
     Route::get('/inventori/pembelian/po/create', [PurchaseOrderController::class, 'create'])
-        ->name('inventori.pembelian-po.create');
+        ->name('inventori.pembelian-po.create');*/
+Route::middleware(['auth', 'access:inventori'])->group(function () {
+    Route::prefix('inventori/pembelian')->group(function () {
+        Route::get('po/data', [PurchaseOrderController::class, 'data'])
+            ->name('purchase_orders.data');
 
+        Route::get('po/export-excel', [PurchaseOrderController::class, 'exportExcel'])
+            ->name('purchase_orders.export_excel');
+
+        Route::get('po/{id}/print', [PurchaseOrderController::class, 'print'])
+            ->whereNumber('id')
+            ->name('purchase_orders.print');
+
+        Route::post('po/{id}/approval', [PurchaseOrderController::class, 'approval'])
+            ->whereNumber('id')
+            ->name('purchase_orders.approval');
+
+        Route::resource('po', PurchaseOrderController::class)
+		->names([
+			'index'   => 'inventori.pembelian-po',
+			'create'  => 'purchase_orders.create',
+			'store'   => 'purchase_orders.store',
+			'show'    => 'purchase_orders.show',
+			'edit'    => 'purchase_orders.edit',
+			'update'  => 'purchase_orders.update',
+			'destroy' => 'purchase_orders.destroy',
+		]);
+    });
+});
     // ============================================================
     // PRODUKSI
     // ============================================================
@@ -143,23 +184,94 @@ Route::middleware('auth')->group(function () {
     // ============================================================
     // KEUANGAN & AKUNTANSI
     // ============================================================
-    Route::get('/akuntansi/jurnal', fn () => app(ModuleController::class)->show('journals'))->middleware('access:keuangan')->name('akuntansi.jurnal');
-    Route::get('/akuntansi/buku-besar', fn () => app(ModuleController::class)->show('ledger'))->middleware('access:keuangan')->name('akuntansi.buku-besar');
-    Route::get('/akuntansi/kas-bank', fn () => app(ModuleController::class)->show('cashbank'))->middleware('access:keuangan')->name('akuntansi.kas-bank');
-    Route::get('/akuntansi/kas-bank/masuk', fn () => view('keuangan.kas-bank.masuk.index'))->middleware('access:keuangan')->name('akuntansi.kas-bank.masuk');
-    Route::get('/akuntansi/kas-bank/keluar', fn () => view('keuangan.kas-bank.keluar.index'))->middleware('access:keuangan')->name('akuntansi.kas-bank.keluar');
-    Route::get('/akuntansi/kas-bank/transfer', fn () => view('keuangan.kas-bank.transfer.index'))->middleware('access:keuangan')->name('akuntansi.kas-bank.transfer');
-    Route::get('/akuntansi/laba-rugi', fn () => app(ModuleController::class)->show('profit-loss'))->middleware('access:keuangan')->name('akuntansi.laba-rugi');
-    Route::get('/akuntansi/laba-rugi/export-excel', [ModuleController::class, 'exportProfitLossExcel'])->middleware('access:keuangan')->name('akuntansi.laba-rugi.export-excel');
-    Route::get('/akuntansi/neraca-saldo', fn () => app(ModuleController::class)->show('trial-balance'))->middleware('access:keuangan')->name('akuntansi.neraca-saldo');
-    Route::get('/akuntansi/neraca-saldo/export-excel', [ModuleController::class, 'exportTrialBalanceExcel'])->middleware('access:keuangan')->name('akuntansi.neraca-saldo.export-excel');
-    Route::get('/akuntansi/neraca', fn () => app(ModuleController::class)->show('balance-sheet'))->middleware('access:keuangan')->name('akuntansi.neraca');
-    Route::get('/akuntansi/neraca/export-excel', [ModuleController::class, 'exportBalanceSheetExcel'])->middleware('access:keuangan')->name('akuntansi.neraca.export-excel');
+    
     Route::get('/akuntansi/arus-kas', fn () => app(ModuleController::class)->show('cash-flow'))->middleware('access:keuangan')->name('akuntansi.arus-kas');
     Route::get('/akuntansi/arus-kas/export-excel', [ModuleController::class, 'exportCashFlowExcel'])->middleware('access:keuangan')->name('akuntansi.arus-kas.export-excel');
 
-    Route::get('/akuntansi/closing-periode', fn () => app(ModuleController::class)->show('closing'))
-        ->name('akuntansi.closing-periode');
+    
+		
+		
+Route::middleware(['auth', 'access:keuangan'])->group(function () {
+	
+	// --- 1. Penerimaan Kas & Bank (Kas Masuk / FIN-01) ---
+	Route::get('/akuntansi/kas-bank/masuk', [CashReceiptController::class, 'index'])->name('akuntansi.kas-masuk');
+	Route::post('/akuntansi/kas-bank/masuk/ar-payment', [CashReceiptController::class, 'storeArPayment'])->name('akuntansi.kas-masuk.store-ar');
+	Route::post('/akuntansi/kas-bank/masuk/other', [CashReceiptController::class, 'storeOtherReceipt'])->name('akuntansi.kas-masuk.store-other');
+	Route::get('/akuntansi/kas-bank/masuk/export', [CashReceiptController::class, 'export'])->name('akuntansi.kas-masuk.export');
+    Route::get('/akuntansi/kas-bank/masuk/unpaid-invoices/{customerId}', [CashReceiptController::class, 'getUnpaidInvoices'])->name('akuntansi.kas-masuk.unpaid-invoices');
+	
+	// --- 2. Pengeluaran Kas & Bank (Kas Keluar / FIN-02) ---
+    Route::get('/akuntansi/kas-bank/keluar', [CashDisbursementController::class, 'index'])->name('akuntansi.kas-keluar');
+	Route::post('/akuntansi/kas-bank/keluar/ap-payment', [CashDisbursementController::class, 'storeApPayment'])->name('akuntansi.kas-keluar.store-ap');
+	Route::post('/akuntansi/kas-bank/keluar/other', [CashDisbursementController::class, 'storeOtherDisbursement'])->name('akuntansi.kas-keluar.store-other');
+	Route::get('/akuntansi/kas-bank/keluar/export', [CashDisbursementController::class, 'export'])->name('akuntansi.kas-keluar.export');
+	Route::get('/akuntansi/kas-bank/keluar/unpaid-bills/{supplierId}', [CashDisbursementController::class, 'getUnpaidBills'])->name('akuntansi.kas-keluar.unpaid-bills');
+	
+    // --- 3. Mutasi / Transfer Antar Kas & Bank (FIN-03) ---
+	Route::get('/akuntansi/kas-bank/mutasi', [CashTransferController::class, 'index'])->name('akuntansi.kas-mutasi');
+	Route::post('/akuntansi/kas-bank/mutasi', [CashTransferController::class, 'store'])->name('akuntansi.kas-mutasi.store');
+	Route::get('/akuntansi/kas-bank/mutasi/export', [CashTransferController::class, 'export'])->name('akuntansi.kas-mutasi.export');   
+   // 1. Route Halaman Utama & DataTables AJAX
+    Route::get('/akuntansi/jurnal', [JournalController::class, 'index'])->name('akuntansi.jurnal');
+    Route::get('/akuntansi/jurnal/data', [JournalController::class, 'data'])->name('akuntansi.jurnal.data');
+
+    // 2. Route Export Excel (WAJIB DITARUH SEBELUM /{id})
+    Route::get('/akuntansi/jurnal/export', [JournalController::class, 'export'])->name('akuntansi.jurnal.export');
+
+    // 3. Route Wildcard /{id} (Harus ditaruh di bawah route spesifik)
+    Route::get('/akuntansi/jurnal/{id}', [JournalController::class, 'show'])->name('akuntansi.jurnal.show');
+    Route::post('/akuntansi/jurnal', [JournalController::class, 'store'])->name('akuntansi.jurnal.store');
+    Route::put('/akuntansi/jurnal/{id}', [JournalController::class, 'update'])->name('akuntansi.jurnal.update');
+    Route::delete('/akuntansi/jurnal/{id}', [JournalController::class, 'destroy'])->name('akuntansi.jurnal.destroy');
+	//gl
+	Route::get('/akuntansi/buku-besar', [GeneralLedgerController::class, 'index'])->name('akuntansi.buku-besar');
+    Route::get('/akuntansi/buku-besar/export', [GeneralLedgerController::class, 'export'])->name('akuntansi.buku-besar.export');
+	//N-Salso
+	Route::get('/akuntansi/neraca-saldo', [TrialBalanceController::class, 'index'])->name('akuntansi.neraca-saldo');
+    Route::get('/akuntansi/neraca-saldo/export', [TrialBalanceController::class, 'export'])->name('akuntansi.neraca-saldo.export');
+	
+	//PNL
+	Route::get('/akuntansi/laba-rugi', [ProfitLossController::class, 'index'])->name('akuntansi.laba-rugi');
+    Route::get('/akuntansi/laba-rugi/export', [ProfitLossController::class, 'export'])->name('akuntansi.laba-rugi.export');
+	
+	//NERACA
+	Route::get('/akuntansi/neraca', [BalanceSheetController::class, 'index'])->name('akuntansi.neraca');
+    Route::get('/akuntansi/neraca/export', [BalanceSheetController::class, 'export'])->name('akuntansi.neraca.export');
+	
+	//CF
+	// Halaman Laporan Arus Kas
+    Route::get('/akuntansi/arus-kas', [CashFlowController::class, 'index'])->name('akuntansi.arus-kas');
+    Route::get('/akuntansi/arus-kas/export', [CashFlowController::class, 'export'])->name('akuntansi.arus-kas.export');
+	//Tutup buku
+	Route::get('/akuntansi/closing-periode', [AccountingClosingController::class, 'index'])
+		->name('akuntansi.closing-periode');
+
+	Route::get('/akuntansi/closing-periode/check', [AccountingClosingController::class, 'check'])
+    ->name('akuntansi.closing-periode.check');
+	//piutang
+	Route::get('/akuntansi/buku-piutang', [ArSubLedgerController::class, 'index'])->name('akuntansi.buku-piutang');
+    Route::get('/akuntansi/buku-piutang/customer-ledger/{customerId}', [ArSubLedgerController::class, 'getCustomerLedger'])->name('akuntansi.buku-piutang.customer-ledger');
+    Route::post('/akuntansi/buku-piutang/store-initial', [ArSubLedgerController::class, 'storeInitialBalance'])->name('akuntansi.buku-piutang.store-initial');
+    Route::put('/akuntansi/buku-piutang/update-initial/{id}', [ArSubLedgerController::class, 'updateInitialBalance'])->name('akuntansi.buku-piutang.update-initial');
+    Route::get('/akuntansi/buku-piutang/export-list', [ArSubLedgerController::class, 'exportList'])->name('akuntansi.buku-piutang.export-list');
+    Route::get('/akuntansi/buku-piutang/export-customer-ledger/{customerId}', [ArSubLedgerController::class, 'exportCustomerLedger'])->name('akuntansi.buku-piutang.export-customer-ledger');
+	//hutang
+	Route::get('/akuntansi/buku-hutang', [ApSubLedgerController::class, 'index'])->name('akuntansi.buku-hutang');
+    Route::get('/akuntansi/buku-hutang/supplier-ledger/{supplierId}', [ApSubLedgerController::class, 'getSupplierLedger'])->name('supplier-ledger');
+    Route::post('/akuntansi/buku-hutang/store-initial', [ApSubLedgerController::class, 'storeInitialBalance'])->name('store-initial');
+    Route::put('/akuntansi/buku-hutang/update-initial/{id}', [ApSubLedgerController::class, 'updateInitialBalance'])->name('update-initial');
+    Route::get('/akuntansi/buku-hutang/export-list', [ApSubLedgerController::class, 'exportList'])->name('export-list');
+    Route::get('/akuntansi/buku-hutang/export-supplier-ledger/{supplierId}', [ApSubLedgerController::class, 'exportSupplierLedger'])->name('export-supplier-ledger');
+	
+});
+Route::middleware(['auth', 'access:keuangan'])->prefix('akuntansi/aging-piutang')->name('akuntansi.aging-piutang.')->group(function () {
+    Route::get('/', [ArAgingController::class, 'index'])->name('index');
+    Route::get('/export', [ArAgingController::class, 'export'])->name('export');
+});
+Route::middleware(['auth', 'access:keuangan'])->prefix('akuntansi/aging-hutang')->name('akuntansi.aging-hutang.')->group(function () {
+    Route::get('/', [ApAgingController::class, 'index'])->name('index');
+    Route::get('/export', [ApAgingController::class, 'export'])->name('export');
+});
 
     // ============================================================
     // LAPORAN

@@ -122,8 +122,8 @@ public function show(string $module)
             'trial-balance' => 'keuangan.laporan.neraca-saldo',
             'balance-sheet' => 'keuangan.laporan.neraca',
             'cash-flow' => 'keuangan.laporan.arus-kas',
-            'receivables' => 'keuangan.laporan.aging-piutang',
-            'payables' => 'keuangan.laporan.aging-hutang',
+            'receivables' => null,
+            'payables' => null,
         ];
 
         if (isset($accountingViews[$module])) {
