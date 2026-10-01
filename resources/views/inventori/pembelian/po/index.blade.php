@@ -442,7 +442,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         Swal.fire({
             title: 'Approve PO?',
-            text: `PO [${no}] akan di-approve dan tidak lagi berstatus draft.`,
+            text: `PO [${no}] akan di-approve untuk proses selanjutnya.`,
             icon: 'question',
             showCancelButton: true,
             confirmButtonText: 'Ya, Approve',
