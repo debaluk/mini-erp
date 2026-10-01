@@ -273,6 +273,11 @@ document.addEventListener('DOMContentLoaded', function () {
                         actions += `<a href="{{ url('/inventori/pembelian/penerimaan/create') }}?po_id=${row.id}" class="btn btn-success" title="Terima Barang"><i class="bi bi-box-arrow-in-down"></i> Penerimaan</a>`;
                     }
 
+                    // Tombol Approve (Hanya Draft)
+                    if (row.status === 'draft') {
+                        actions += `<button type="button" class="btn btn-success btn-approve-po" data-id="${row.id}" data-no="${row.po_no}" title="Approve PO"><i class="bi bi-check-circle"></i> Approve</button>`;
+                    }
+
                     // Tombol Edit (Hanya Draft)
                     if (row.status === 'draft') {
                         actions += `<button type="button" class="btn btn-outline-warning btn-edit-po" data-id="${row.id}" title="Edit Draft"><i class="bi bi-pencil"></i></button>`;
@@ -426,6 +431,34 @@ document.addEventListener('DOMContentLoaded', function () {
             },
             error: function (xhr) {
                 Swal.fire({ icon: 'error', title: 'Gagal!', text: xhr.responseJSON?.message || 'Terjadi kesalahan sistem' });
+            }
+        });
+    });
+
+    // Action Approve PO
+    $(document).on('click', '.btn-approve-po', function () {
+        const id = $(this).data('id');
+        const no = $(this).data('no');
+
+        Swal.fire({
+            title: 'Approve PO?',
+            text: `PO [${no}] akan di-approve dan tidak lagi berstatus draft.`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Ya, Approve',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.post(`{{ url('/inventori/pembelian/po') }}/${id}/approve`, {
+                    _token: '{{ csrf_token() }}'
+                }, function (res) {
+                    if (res.success) {
+                        table.ajax.reload();
+                        Swal.fire({ icon: 'success', title: 'Berhasil!', text: res.message, timer: 1500, showConfirmButton: false });
+                    }
+                }).fail(function (xhr) {
+                    Swal.fire({ icon: 'error', title: 'Gagal!', text: xhr.responseJSON?.message || 'PO gagal di-approve' });
+                });
             }
         });
     });
