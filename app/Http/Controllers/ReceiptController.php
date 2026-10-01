@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Exports\ReceiptExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ReceiptController extends Controller
 {
@@ -111,7 +113,7 @@ class ReceiptController extends Controller
     public function export(Request $request)
     {
         $fileName = 'Laporan_Penerimaan_' . now()->format('Ymd_His') . '.xlsx';
-        return MaatwebsiteExcelFacadesExcel::download(new AppExports\ReceiptExport($request), $fileName);
+        return Excel::download(new ReceiptExport($request), $fileName);
     }
 
     public function create()
