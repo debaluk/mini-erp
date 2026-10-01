@@ -22,7 +22,7 @@
         <div class="card-body">
             <div class="row g-3">
                 <div class="col-md-3"><div class="text-muted small">No. Faktur</div><strong>{{ $p->invoice_no }}</strong></div>
-                <div class="col-md-3"><div class="text-muted small">Tanggal</div><strong>{{ CarbonCarbon::parse($p->purchase_date)->format('d/m/Y') }}</strong></div>
+                <div class="col-md-3"><div class="text-muted small">Tanggal</div><strong>{{ \Carbon\Carbon::parse($p->purchase_date)->format('d/m/Y') }}</strong></div>
                 <div class="col-md-3"><div class="text-muted small">Supplier</div><strong>{{ $p->supplier_name }}</strong></div>
                 <div class="col-md-3"><div class="text-muted small">Unit Bisnis</div><strong>{{ $p->business_unit_name }}</strong></div>
                 <div class="col-md-3"><div class="text-muted small">PO</div><strong>{{ $p->po_no ?? 'Non-PO' }}</strong></div>
