@@ -165,7 +165,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (row.status === 'draft') {
                         actions += `
                             <a href="{{ url('/inventori/pembelian') }}/${row.id}/edit" class="btn btn-outline-warning" title="Edit Draft"><i class="bi bi-pencil"></i></a>
-                            <button type="button" class="btn btn-success btn-post-item" data-id="${row.id}" data-no="${row.invoice_no}" title="Post"><i class="bi bi-check-circle"></i></button>
+                            <button type="button" class="btn btn-success btn-post-item" data-id="${row.id}" data-no="${row.invoice_no}" data-goods-received="${row.goods_received}" title="Post"><i class="bi bi-check-circle"></i></button>
                             <button type="button" class="btn btn-outline-danger btn-delete-item" data-id="${row.id}" data-no="${row.invoice_no}" title="Hapus"><i class="bi bi-trash"></i></button>
                         `;
                     }
@@ -184,23 +184,51 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
      $(document).on('click', '.btn-post-item', function () {
-        const id =  $(this).data('id');
-        const no =  $(this).data('no');
+        const id = $(this).data('id');
+        const no = $(this).data('no');
+        const goodsReceived = Number($(this).data('goods-received')) === 1;
+
+        let warehouseField = '';
+        if (goodsReceived) {
+            warehouseField = `
+                <select id="post-warehouse-id" class="form-select text-start">
+                    <option value="">-- Pilih Gudang --</option>
+                    @foreach($warehouses as $warehouse)
+                        <option value="{{ $warehouse->id }}">{{ $warehouse->name }}</option>
+                    @endforeach
+                </select>`;
+        }
 
         Swal.fire({
             title: 'Posting Faktur Pembelian?',
-            text: `Posting [${no}] akan merubah stok gudang & menerbitkan Jurnal Keuangan GL!`,
+            html: goodsReceived
+                ? `Posting [<strong>${no}</strong>] akan menerima barang ke gudang.<br><div class="mt-3">${warehouseField}</div>`
+                : `Posting [<strong>${no}</strong>] akan menerbitkan Jurnal Keuangan GL.`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#198754',
             confirmButtonText: 'Ya, Post Sekarang!',
-            cancelButtonText: 'Batal'
+            cancelButtonText: 'Batal',
+            preConfirm: () => {
+                if (goodsReceived) {
+                    const warehouseId = document.getElementById('post-warehouse-id')?.value;
+                    if (!warehouseId) {
+                        Swal.showValidationMessage('Gudang wajib dipilih.');
+                        return false;
+                    }
+                    return warehouseId;
+                }
+                return null;
+            }
         }).then((result) => {
             if (result.isConfirmed) {
                 const form = document.createElement('form');
                 form.method = 'POST';
                 form.action = `{{ url('/inventori/pembelian') }}/${id}/post`;
                 form.innerHTML = `@csrf`;
+                if (result.value) {
+                    form.insertAdjacentHTML('beforeend', `<input type="hidden" name="warehouse_id" value="${result.value}">`);
+                }
                 document.body.appendChild(form);
                 form.submit();
             }
