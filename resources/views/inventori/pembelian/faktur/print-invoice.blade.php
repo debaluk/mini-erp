@@ -65,7 +65,7 @@
                     <td class="font-monospace text-center">{{ $i->product_code }}</td>
                     <td>{{ $i->product_name }}</td>
                     <td class="text-center fw-bold">{{ number_format($i->qty, 2, ',', '.') }} {{ $i->unit_name }}</td>
-                    <td class="text-end font-monospace">{{ number_format($i->unit_price, 0, ',', '.') }}</td>
+                    <td class="text-end font-monospace">{{ number_format($i->unit_cost, 0, ',', '.') }}</td>
                     <td class="text-end font-monospace">{{ number_format($i->discount, 0, ',', '.') }}</td>
                     <td class="text-end font-monospace fw-bold">{{ number_format($i->total, 0, ',', '.') }}</td>
                 </tr>
@@ -73,7 +73,7 @@
         </tbody>
         <tfoot class="fw-bold">
             <tr><td colspan="6" class="text-end">SUBTOTAL:</td><td class="text-end font-monospace">Rp {{ number_format($p->subtotal, 0, ',', '.') }}</td></tr>
-            <tr><td colspan="6" class="text-end">PAJAK (PPN):</td><td class="text-end font-monospace">Rp {{ number_format($p->tax_amount, 0, ',', '.') }}</td></tr>
+            <tr><td colspan="6" class="text-end">PAJAK (PPN):</td><td class="text-end font-monospace">Rp {{ number_format($p->ppn_amount, 0, ',', '.') }}</td></tr>
             <tr><td colspan="6" class="text-end fs-6">GRAND TOTAL TAGIHAN:</td><td class="text-end font-monospace fs-6">Rp {{ number_format($p->grand_total, 0, ',', '.') }}</td></tr>
         </tfoot>
     </table>
