@@ -16,9 +16,6 @@
             <a href="{{ route('inventori.pembelian.export-excel', request()->all()) }}" class="btn btn-success btn-sm px-3 fw-semibold shadow-sm">
                 <i class="bi bi-file-earmark-excel me-1"></i> Export Excel
             </a>
-            <a href="{{ route('inventori.pembelian.print-list', request()->all()) }}" target="_blank" class="btn btn-secondary btn-sm px-3 fw-semibold shadow-sm">
-                <i class="bi bi-printer me-1"></i> Cetak List
-            </a>
         </div>
     </div>
 
@@ -75,13 +72,13 @@
                 <table id="table-pembelian" class="table table-hover table-striped align-middle w-100" style="font-size: 0.88rem;">
                     <thead class="table-dark text-center">
                         <tr>
+                            <th style="width: 140px;">No. Bukti</th>
                             <th style="width: 85px;">Tanggal</th>
-                            <th style="width: 140px;">No. Faktur</th>
-                            <th>Supplier / Vendor</th>
-                            <th style="width: 130px;">Gudang</th>
+                            <th>Supplier</th>
+                            <th style="width: 140px;">Faktur Supplier</th>
                             <th style="width: 110px;">Cara Bayar</th>
-                            <th style="width: 100px;">Stok +</th>
-                            <th style="width: 130px;">Total Nominal</th>
+                            <th style="width: 90px;">Stok</th>
+                            <th style="width: 130px;">Jumlah</th>
                             <th style="width: 90px;">Status</th>
                             <th style="width: 200px;">Aksi</th>
                         </tr>
@@ -119,10 +116,10 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         },
         columns: [
-            { data: 'formatted_date', className: 'text-center' },
             { data: 'invoice_no', className: 'text-center font-monospace fw-bold text-primary' },
+            { data: 'formatted_date', className: 'text-center' },
             { data: 'supplier_name', className: 'fw-semibold text-dark' },
-            { data: 'warehouse_name' },
+            { data: 'supplier_invoice_no', className: 'text-center font-monospace' },
             {
                 data: 'payment_type',
                 className: 'text-center',
