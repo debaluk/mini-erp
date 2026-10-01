@@ -154,6 +154,7 @@ Route::middleware(['auth', 'access:inventori'])->prefix('inventori/pembelian/po'
     // 2. CRUD Utama
     Route::get('/', [PurchaseOrderController::class, 'index'])->name('index');
     Route::post('/', [PurchaseOrderController::class, 'store'])->name('store');
+    Route::post('/{id}/approve', [PurchaseOrderController::class, 'approve'])->name('approve');
     Route::get('/{id}/edit-data', [PurchaseOrderController::class, 'getEditData'])->name('edit-data');
     Route::put('/{id}', [PurchaseOrderController::class, 'update'])->name('update');
     Route::delete('/{id}', [PurchaseOrderController::class, 'destroy'])->name('destroy');
