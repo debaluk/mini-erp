@@ -163,8 +163,7 @@
             </div>
             <div class="card-footer text-end">
                 <a href="{{ route('inventori.pembelian.index') }}" class="btn btn-secondary me-2">Batal</a>
-                <button type="submit" name="save_draft" value="1" id="btn-save-draft" class="btn btn-outline-primary me-2">Simpan Draft</button>
-                <button type="submit" name="post_now" value="1" class="btn btn-success" onclick="return confirm('Posting faktur ini?')">Simpan & Posting</button>
+                <button type="submit" class="btn btn-primary">Simpan</button>
             </div>
         </div>
     </form>
@@ -177,7 +176,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const businessUnit = document.getElementById('business-unit-id');
     const warehouse = document.getElementById('warehouse-id');
     const goodsReceived = document.getElementById('goods-received');
-    const saveDraft = document.getElementById('btn-save-draft');
 
     function syncPoMode() {
         const selected = poSelect.options[poSelect.selectedIndex];
@@ -186,7 +184,6 @@ document.addEventListener('DOMContentLoaded', function () {
         goodsReceived.checked = false;
         goodsReceived.disabled = isPo;
         warehouse.disabled = isPo;
-        saveDraft.disabled = false;
 
         if (isPo && selected) {
             supplier.value = selected.dataset.supplier || '';
@@ -262,10 +259,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.getElementById('payment-method').addEventListener('change', function () {
         document.getElementById('due-date-wrap').classList.toggle('d-none', this.value !== 'credit');
-    });
-
-    goodsReceived.addEventListener('change', function () {
-        saveDraft.disabled = this.checked;
     });
 
     function calcTotals() {
