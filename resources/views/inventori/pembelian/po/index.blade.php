@@ -7,12 +7,12 @@
     <!-- Header Page & Action Buttons -->
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <h4 class="fw-bold mb-1 text-dark"><i class="bi bi-cart-check me-2"></i>Daftar Purchase Order (PO)</h4>
-            <p class="text-muted small mb-0">Kelola pemesanan barang ke supplier, cetak dokumen PO, dan ekspor laporan Excel ber-kop entitas.</p>
+            <h4 class="fw-bold mb-1 text-dark">Daftar Purchase Order (PO)</h4>
+            <p class="text-muted small mb-0">Kelola pemesanan barang ke supplier</p>
         </div>
         <div class="d-flex gap-2">
             <button type="button" class="btn btn-primary fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTambahPO">
-                <i class="bi bi-plus-circle me-1"></i> + Tambah PO Baru
+                <i class="bi bi-plus-circle me-1"></i> + PO Baru
             </button>
             <a href="{{ route('purchase_orders.export_excel') }}" id="btnExportExcel" class="btn btn-outline-success fw-bold shadow-sm">
                 <i class="bi bi-file-earmark-excel me-1"></i> 📊 Cetak Excel

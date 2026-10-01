@@ -37,6 +37,11 @@ use App\Http\Controllers\ArSubLedgerController;
 use App\Http\Controllers\ApSubLedgerController;
 use App\Http\Controllers\ArAgingController;
 use App\Http\Controllers\ApAgingController;
+use App\Http\Controllers\StockTransferController;
+use App\Http\Controllers\StockOpnameController;
+use App\Http\Controllers\StockAdjustmentController;
+
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -133,14 +138,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/inventori/stok', [StockController::class, 'index'])->middleware('access:inventori')->name('inventori.stok');
     Route::get('/inventori/stok/export', [StockController::class, 'export'])->middleware('access:inventori')->name('inventori.stok.export');
     Route::get('/inventori/stok/{product}/{warehouse}', [StockController::class, 'detail'])->middleware('access:inventori')->name('inventori.stok.detail');
-    Route::get('/inventori/transfer', fn () => app(ModuleController::class)->show('movements'))->middleware('access:inventori')->name('inventori.transfer');
-    Route::get('/inventori/adjustment', fn () => app(ModuleController::class)->show('movements'))->middleware('access:inventori')->name('inventori.adjustment');
+    //Route::get('/inventori/transfer', fn () => app(ModuleController::class)->show('movements'))->middleware('access:inventori')->name('inventori.transfer');
+    //Route::get('/inventori/adjustment', fn () => app(ModuleController::class)->show('movements'))->middleware('access:inventori')->name('inventori.adjustment');
     Route::get('/inventori/stock-opname', fn () => app(ModuleController::class)->show('opname'))->middleware('access:inventori')->name('inventori.stock-opname');
 
-    /*Route::get('/inventori/pembelian/po', [PurchaseOrderController::class, 'index'])
-        ->name('inventori.pembelian-po');
-    Route::get('/inventori/pembelian/po/create', [PurchaseOrderController::class, 'create'])
-        ->name('inventori.pembelian-po.create');*/
+ 
 Route::middleware(['auth', 'access:inventori'])->group(function () {
     Route::prefix('inventori/pembelian')->group(function () {
         Route::get('po/data', [PurchaseOrderController::class, 'data'])
@@ -169,6 +171,56 @@ Route::middleware(['auth', 'access:inventori'])->group(function () {
 		]);
     });
 });
+
+Route::middleware(['auth', 'access:inventori'])->prefix('inventori/transfer')->name('inventori.transfer.')->group(function () {
+    Route::get('/', [StockTransferController::class, 'index'])->name('index');
+    Route::get('/detail/{id}', [StockTransferController::class, 'getDetail'])->name('detail');
+    Route::get('/warehouse-products/{warehouseId}', [StockTransferController::class, 'getWarehouseProducts'])->name('warehouse-products');
+    Route::post('/store', [StockTransferController::class, 'store'])->name('store');
+    Route::put('/update/{id}', [StockTransferController::class, 'update'])->name('update');
+    Route::delete('/delete/{id}', [StockTransferController::class, 'destroy'])->name('delete');
+    Route::post('/approve-sender/{id}', [StockTransferController::class, 'approveSender'])->name('approve-sender');
+    Route::post('/approve-receiver/{id}', [StockTransferController::class, 'approveReceiver'])->name('approve-receiver');
+    Route::get('/print-proof/{id}', [StockTransferController::class, 'printProof'])->name('print-proof');
+    Route::get('/export', [StockTransferController::class, 'exportList'])->name('export');
+});
+
+Route::middleware(['auth', 'access:inventori'])->prefix('inventori/stock-opname')->name('inventori.stock-opname.')->group(function () {
+    Route::get('/', [StockOpnameController::class, 'index'])->name('index');
+    
+    Route::get('/create', [StockOpnameController::class, 'create'])->name('create');
+    Route::get('/{id}/edit', [StockOpnameController::class, 'edit'])->name('edit');
+    Route::post('/store-snapshot', [StockOpnameController::class, 'storeSnapshot'])->name('store-snapshot');
+    Route::put('/{id}', [StockOpnameController::class, 'update'])->name('update');
+    Route::get('/{id}/input-count', [StockOpnameController::class, 'inputCount'])->name('input-count');
+    Route::post('/{id}/store-count', [StockOpnameController::class, 'storeCount'])->name('store-count');
+    Route::get('/{id}', [StockOpnameController::class, 'show'])->name('show');
+    Route::delete('/{id}', [StockOpnameController::class, 'destroy'])->name('destroy');
+    Route::get('/{id}/print-sheet', [StockOpnameController::class, 'printSheet'])->name('print-sheet');
+    Route::get('/{id}/print-report', [StockOpnameController::class, 'printReport'])->name('print-report');
+    Route::get('/export-list', [StockOpnameController::class, 'exportList'])->name('export-list');
+    Route::get('/{id}/export-detail', [StockOpnameController::class, 'exportDetail'])->name('export-detail');
+});
+
+Route::middleware(['auth', 'access:inventori'])->prefix('inventori/penyesuaian')->name('inventori.penyesuaian.')->group(function () {
+    // 1. DataTables AJAX Endpoint & Cetak Rekap List (Harus di atas resource dengan ID)
+    Route::get('/data', [StockAdjustmentController::class, 'data'])->name('data');
+    Route::get('/print-list', [StockAdjustmentController::class, 'printList'])->name('print-list');
+
+    // 2. CRUD Standard
+    Route::get('/', [StockAdjustmentController::class, 'index'])->name('index');
+    Route::get('/create', [StockAdjustmentController::class, 'create'])->name('create');
+    Route::post('/', [StockAdjustmentController::class, 'store'])->name('store');
+    Route::get('/{id}', [StockAdjustmentController::class, 'show'])->name('show');
+    Route::get('/{id}/edit', [StockAdjustmentController::class, 'edit'])->name('edit');
+    Route::put('/{id}', [StockAdjustmentController::class, 'update'])->name('update');
+    Route::delete('/{id}', [StockAdjustmentController::class, 'destroy'])->name('destroy');
+
+    // 3. Action Posting & Cetak Detail
+    Route::post('/{id}/post', [StockAdjustmentController::class, 'post'])->name('post');
+    Route::get('/{id}/print-detail', [StockAdjustmentController::class, 'printDetail'])->name('print-detail');
+});
+
     // ============================================================
     // PRODUKSI
     // ============================================================

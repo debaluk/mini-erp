@@ -93,9 +93,9 @@
                             <a class="dropdown-item dropdown-toggle" href="#">PERSEDIAAN</a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ route('inventori.initial-setup') }}">Setup Stok Awal</a></li>
-                                <li><a class="dropdown-item" href="{{ route('inventori.transfer') }}">Mutasi Barang</a></li>
-                                <li><a class="dropdown-item" href="{{ route('inventori.adjustment') }}">Penyesuaian Stok</a></li>
-                                <li><a class="dropdown-item" href="{{ route('inventori.stock-opname') }}">Stok Opname</a></li>
+                                <li><a class="dropdown-item" href="{{ route('inventori.transfer.index') }}">Mutasi Barang</a></li>
+                                <li><a class="dropdown-item" href="{{ route('inventori.stock-opname.index') }}">Stok Opname</a></li>
+								<li><a class="dropdown-item" href="{{ route('inventori.penyesuaian.index') }}">Penyesuain Stok</a></li>
                             </ul>
                         </li>
                         <li class="dropdown-submenu">
