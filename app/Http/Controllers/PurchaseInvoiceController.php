@@ -354,9 +354,9 @@ class PurchaseInvoiceController extends Controller
     /**
      * Action Post Faktur Pembelian
      */
-    public function post($id)
+    public function post(Request $request, $id)
     {
-        return $this->executePosting($id);
+        return $this->executePosting($id, $request->input('warehouse_id'));
     }
 
     private function executePosting($id, $warehouseId = null)
