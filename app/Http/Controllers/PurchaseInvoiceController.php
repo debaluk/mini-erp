@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\ReceiptController;
 use Illuminate\Http\Request;
 use App\Models\BusinessUnit;
 use App\Models\Warehouse;
@@ -41,14 +42,12 @@ class PurchaseInvoiceController extends Controller
         $endDate        = $request->query('end_date', now()->endOfMonth()->format('Y-m-d'));
         $businessUnitId = $request->query('business_unit_id');
         $supplierId     = $request->query('supplier_id');
-        $warehouseId    = $request->query('warehouse_id');
         $paymentType    = $request->query('payment_type');
         $statusFilter   = $request->query('status');
 
         $query = DB::table('purchases as p')
             ->leftJoin('business_units as bu', 'bu.id', '=', 'p.business_unit_id')
-            ->join('suppliers as s', 's.id', '=', 'p.supplier_id')
-            ->join('warehouses as w', 'w.id', '=', 'p.warehouse_id')
+            ->leftJoin('suppliers as s', 's.id', '=', 'p.supplier_id')
             ->leftJoin('purchase_orders as po', 'po.id', '=', 'p.purchase_order_id')
             ->join('users as u', 'u.id', '=', 'p.user_id')
             ->whereNull('p.deleted_at')
@@ -56,16 +55,17 @@ class PurchaseInvoiceController extends Controller
             ->whereDate('p.purchase_date', '<=', $endDate);
 
         if ($businessUnitId) $query->where('p.business_unit_id', $businessUnitId);
-        if ($supplierId)     $query->where('p.supplier_id', $supplierId);
-        if ($warehouseId)    $query->where('p.warehouse_id', $warehouseId);
-        if ($paymentType)    $query->where('p.payment_type', $paymentType);
-        if ($statusFilter)   $query->where('p.status', $statusFilter);
+        if ($supplierId) $query->where('p.supplier_id', $supplierId);
+        if ($paymentType) $query->where('p.payment_method', $paymentType);
+        if ($statusFilter) $query->where('p.status', $statusFilter);
 
         $data = $query->select(
             'p.*',
+            'p.purchase_no as invoice_no',
+            'p.payment_method as payment_type',
+            'p.total as grand_total',
             'bu.name as business_unit_name',
             's.name as supplier_name',
-            'w.name as warehouse_name',
             'po.po_no',
             'u.name as creator_name'
         )->orderBy('p.created_at', 'desc')->get();
@@ -74,6 +74,7 @@ class PurchaseInvoiceController extends Controller
             $item->formatted_date = Carbon::parse($item->purchase_date)->format('d/m/Y');
             $item->formatted_due  = $item->due_date ? Carbon::parse($item->due_date)->format('d/m/Y') : '-';
             $item->formatted_grand = 'Rp ' . number_format($item->grand_total, 0, ',', '.');
+            $item->warehouse_name = '-';
         }
 
         return response()->json(['data' => $data]);
@@ -84,18 +85,23 @@ class PurchaseInvoiceController extends Controller
      */
     public function create(Request $request)
     {
+        $entityId = (int) (auth()->user()->entity_id ?? 1);
         $businessUnits = BusinessUnit::where('is_active', 1)->orderBy('code')->get();
-        $warehouses    = Warehouse::where('is_active', 1)->orderBy('name')->get();
-        $suppliers     = Supplier::where('is_active', 1)->orderBy('name')->get();
-        $products      = Product::where('is_active', 1)->orderBy('name')->get();
+        $warehouses    = Warehouse::where('entity_id', $entityId)->where('is_active', 1)->orderBy('name')->get();
+        $suppliers     = Supplier::where('entity_id', $entityId)->where('is_active', 1)->orderBy('name')->get();
+        $products      = Product::where('entity_id', $entityId)->where('is_active', 1)->orderBy('name')->get();
         $autoInvNo     = $this->generateInvoiceCode();
 
-        $fromPoId      = $request->query('from_po');
-        $selectedPo    = null;
-        $poItems       = collect();
+        $fromPoId = $request->query('from_po');
+        $selectedPo = null;
+        $poItems = collect();
 
         if ($fromPoId) {
-            $selectedPo = DB::table('purchase_orders')->where('id', $fromPoId)->first();
+            $selectedPo = DB::table('purchase_orders')
+                ->where('entity_id', $entityId)
+                ->where('id', $fromPoId)
+                ->first();
+
             if ($selectedPo) {
                 $poItems = DB::table('purchase_order_items as poi')
                     ->join('products as p', 'p.id', '=', 'poi.product_id')
@@ -108,10 +114,11 @@ class PurchaseInvoiceController extends Controller
 
         $approvedPos = DB::table('purchase_orders as po')
             ->join('suppliers as s', 's.id', '=', 'po.supplier_id')
+            ->where('po.entity_id', $entityId)
             ->whereIn('po.status', ['approved', 'partial'])
             ->whereNull('po.deleted_at')
-            ->select('po.id', 'po.po_no', 'po.po_date', 's.name as supplier_name')
-            ->orderBy('po.id', 'desc')
+            ->select('po.id', 'po.po_no', 'po.po_date', 'po.supplier_id', 'po.business_unit_id', 'po.warehouse_id', 's.name as supplier_name')
+            ->orderByDesc('po.id')
             ->get();
 
         return view('inventori.pembelian.faktur.create', compact(
@@ -146,82 +153,132 @@ class PurchaseInvoiceController extends Controller
         $request->validate([
             'business_unit_id' => 'required|exists:business_units,id',
             'supplier_id'      => 'required|exists:suppliers,id',
-            'warehouse_id'     => 'required|exists:warehouses,id',
+            'purchase_order_id'=> 'nullable|exists:purchase_orders,id',
+            'warehouse_id'     => 'nullable|exists:warehouses,id',
             'purchase_date'    => 'required|date',
-            'payment_type'     => 'required|in:cash,credit',
+            'payment_method'   => 'required|in:cash,credit',
             'products'         => 'required|array|min:1',
             'qty'              => 'required|array|min:1',
             'unit_price'       => 'required|array|min:1',
         ]);
 
-        DB::beginTransaction();
+        $isPo = $request->filled('purchase_order_id');
+        $goodsReceived = !$isPo && $request->boolean('goods_received');
+
+        if (!$isPo && $goodsReceived && !$request->filled('warehouse_id')) {
+            return back()->withInput()->with('swal_error', 'Gudang wajib dipilih jika barang langsung diterima.');
+        }
+
         try {
-            $invNo = $this->generateInvoiceCode();
-            $goodsReceived = $request->has('goods_received') ? 1 : 0;
-            $dueDate = ($request->payment_type === 'credit') ? ($request->due_date ?? now()->addDays(30)->format('Y-m-d')) : null;
+            $purchaseId = DB::transaction(function () use ($request, $isPo, $goodsReceived) {
+                $entityId = (int) (auth()->user()->entity_id ?? 1);
+                $purchaseNo = $this->generateInvoiceCode();
+                $dueDate = $request->payment_method === 'credit'
+                    ? ($request->input('due_date') ?: now()->addDays(30)->toDateString())
+                    : null;
 
-            $purchaseId = DB::table('purchases')->insertGetId([
-                'entity_id'           => auth()->user()->entity_id ?? 1,
-                'business_unit_id'    => $request->business_unit_id,
-                'supplier_id'         => $request->supplier_id,
-                'warehouse_id'        => $request->warehouse_id,
-                'purchase_order_id'   => $request->purchase_order_id ?? null,
-                'user_id'             => auth()->id() ?? 1,
-                'invoice_no'          => $invNo,
-                'supplier_invoice_no' => $request->supplier_invoice_no ?? $invNo,
-                'purchase_date'       => $request->purchase_date,
-                'due_date'            => $dueDate,
-                'payment_type'        => $request->payment_type,
-                'goods_received'      => $goodsReceived,
-                'status'              => 'draft',
-                'memo'                => $request->memo,
-                'created_at'          => now(),
-                'updated_at'          => now(),
-            ]);
+                $purchaseOrder = null;
+                if ($isPo) {
+                    $purchaseOrder = DB::table('purchase_orders')
+                        ->where('entity_id', $entityId)
+                        ->where('id', $request->purchase_order_id)
+                        ->first();
+                    abort_unless($purchaseOrder, 422, 'PO tidak ditemukan.');
+                    abort_unless((int) $purchaseOrder->supplier_id === (int) $request->supplier_id, 422, 'Supplier faktur harus sama dengan supplier PO.');
+                    abort_unless((int) $purchaseOrder->business_unit_id === (int) $request->business_unit_id, 422, 'Unit bisnis faktur harus sama dengan PO.');
+                }
 
-            $subtotal = 0;
-            foreach ($request->products as $idx => $prodId) {
-                $qty      = (float) $request->qty[$idx];
-                $price    = (float) $request->unit_price[$idx];
-                $discount = (float) ($request->discount[$idx] ?? 0);
-                $total    = ($qty * $price) - $discount;
-                $subtotal += $total;
-
-                $product = Product::find($prodId);
-
-                DB::table('purchase_items')->insert([
-                    'purchase_id'       => $purchaseId,
-                    'product_id'        => $prodId,
-                    'unit_id'           => $product->base_unit_id ?? null,
-                    'qty'               => $qty,
-                    'conversion_factor' => 1.000000,
-                    'base_qty'          => $qty,
-                    'unit_price'        => $price,
-                    'discount'          => $discount,
-                    'total'             => $total,
+                $purchaseId = DB::table('purchases')->insertGetId([
+                    'entity_id'           => $entityId,
+                    'business_unit_id'    => $request->business_unit_id,
+                    'supplier_id'         => $request->supplier_id,
+                    'purchase_order_id'   => $isPo ? $request->purchase_order_id : null,
+                    'user_id'             => auth()->id() ?? 1,
+                    'document_type'       => 'invoice',
+                    'source_type'         => $isPo ? 'po' : 'direct',
+                    'goods_received'      => $goodsReceived,
+                    'posting_status'      => 'draft',
+                    'purchase_no'         => $purchaseNo,
+                    'supplier_invoice_no' => $request->input('supplier_invoice_no') ?: $purchaseNo,
+                    'supplier_invoice_date'=> $request->purchase_date,
+                    'purchase_date'       => $request->purchase_date,
+                    'subtotal'            => 0,
+                    'discount'            => 0,
+                    'total'               => 0,
+                    'payment_method'      => $request->payment_method,
+                    'due_date'            => $dueDate,
+                    'dpp'                 => 0,
+                    'ppn_amount'          => (float) $request->input('tax_amount', 0),
+                    'tax_condition'       => $request->input('tax_condition', 'non_ppn'),
+                    'memo'                => $request->input('memo'),
+                    'created_at'          => now(),
+                    'updated_at'          => now(),
                 ]);
-            }
 
-            $taxAmount = (float) ($request->tax_amount ?? 0);
-            $grandTotal = $subtotal + $taxAmount;
+                $subtotal = 0.0;
+                $discountTotal = 0.0;
 
-            DB::table('purchases')->where('id', $purchaseId)->update([
-                'subtotal'    => $subtotal,
-                'tax_amount'  => $taxAmount,
-                'grand_total' => $grandTotal,
-            ]);
+                foreach ($request->products as $idx => $productId) {
+                    $qty = (float) ($request->qty[$idx] ?? 0);
+                    $price = (float) ($request->unit_price[$idx] ?? 0);
+                    $discount = (float) ($request->discount[$idx] ?? 0);
+                    abort_if($qty <= 0, 422, 'Qty item harus lebih dari 0.');
 
-            DB::commit();
+                    $product = Product::findOrFail($productId);
+                    $factor = $isPo
+                        ? (float) ($request->input("conversion_factor.$idx") ?: 1)
+                        : 1.0;
+                    $baseQty = $qty * $factor;
+                    $lineGross = $qty * $price;
+                    $lineNet = max(0, $lineGross - $discount);
 
-            if ($request->has('post_now')) {
+                    $subtotal += $lineGross;
+                    $discountTotal += $discount;
+
+                    DB::table('purchase_items')->insert([
+                        'purchase_id'       => $purchaseId,
+                        'product_id'        => $productId,
+                        'unit_id'           => $isPo ? ($request->input("unit_id.$idx") ?: $product->base_unit_id) : $product->base_unit_id,
+                        'qty'               => $qty,
+                        'conversion_factor' => $factor,
+                        'base_qty'          => $baseQty,
+                        'unit_cost'         => $qty > 0 ? $lineNet / $qty : 0,
+                        'base_unit_cost'    => $baseQty > 0 ? $lineNet / $baseQty : 0,
+                        'discount'          => $discount,
+                        'total'             => $lineNet,
+                        'line_subtotal'     => $lineGross,
+                        'line_discount'     => $discount,
+                        'taxable_amount'    => $lineNet,
+                        'tax_rate'          => 0,
+                        'tax_amount'        => 0,
+                        'created_at'        => now(),
+                        'updated_at'        => now(),
+                    ]);
+                }
+
+                $taxAmount = (float) $request->input('tax_amount', 0);
+                $total = max(0, $subtotal - $discountTotal) + $taxAmount;
+
+                DB::table('purchases')->where('id', $purchaseId)->update([
+                    'subtotal' => $subtotal,
+                    'discount' => $discountTotal,
+                    'total' => $total,
+                    'dpp' => max(0, $subtotal - $discountTotal),
+                    'ppn_amount' => $taxAmount,
+                    'updated_at' => now(),
+                ]);
+
+                return $purchaseId;
+            });
+
+            if ($request->boolean('post_now')) {
                 return $this->executePosting($purchaseId);
             }
 
             return redirect()->route('inventori.pembelian.index')
-                ->with('swal_success', "Draft Faktur Pembelian [{$invNo}] berhasil disimpan!");
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return redirect()->back()->with('swal_error', 'Gagal menyimpan pembelian: ' . $e->getMessage());
+                ->with('swal_success', "Draft Faktur Pembelian [{$purchaseId}] berhasil disimpan.");
+        } catch (\Throwable $e) {
+            return back()->withInput()->with('swal_error', 'Gagal menyimpan pembelian: ' . $e->getMessage());
         }
     }
 
@@ -262,108 +319,58 @@ class PurchaseInvoiceController extends Controller
 
     private function executePosting($id)
     {
-        $p = DB::table('purchases')->where('id', $id)->whereNull('deleted_at')->first();
-        if (!$p || $p->status === 'posted') {
-            return redirect()->back()->with('swal_error', 'Faktur sudah berstatus POSTED / tidak ditemukan.');
-        }
-
-        DB::beginTransaction();
         try {
-            $items = DB::table('purchase_items')->where('purchase_id', $id)->get();
+            $purchase = DB::table('purchases')
+                ->whereNull('deleted_at')
+                ->where('id', $id)
+                ->lockForUpdate()
+                ->first();
 
-            // LOGIKA ATURAN 7: JIKA BARANG DITERIMA DICENTANG -> STOK BERTAMBAH & HPP RECALCULATED
-            if ((int) $p->goods_received === 1) {
-                foreach ($items as $item) {
-                    $qty      = (float) $item->qty;
-                    $price    = (float) $item->unit_price;
-
-                    $stock = DB::table('warehouses_stocks')
-                        ->where('warehouse_id', $p->warehouse_id)
-                        ->where('product_id', $item->product_id)
-                        ->first();
-
-                    $oldQty  = $stock ? (float) $stock->qty : 0;
-                    $oldCost = $stock ? (float) $stock->avg_cost : 0;
-
-                    // Moving Average HPP Recalculation
-                    $newQty  = $oldQty + $qty;
-                    $newCost = ($newQty > 0) ? (($oldQty * $oldCost) + ($qty * $price)) / $newQty : $price;
-
-                    // Update / Insert Stok Gudang
-                    if ($stock) {
-                        DB::table('warehouses_stocks')
-                            ->where('id', $stock->id)
-                            ->update([
-                                'qty'        => $newQty,
-                                'avg_cost'   => $newCost,
-                                'updated_at' => now(),
-                            ]);
-                    } else {
-                        DB::table('warehouses_stocks')->insert([
-                            'warehouse_id' => $p->warehouse_id,
-                            'product_id'   => $item->product_id,
-                            'qty'          => $newQty,
-                            'avg_cost'     => $newCost,
-                            'created_at'   => now(),
-                            'updated_at'   => now(),
-                        ]);
-                    }
-
-                    // Mutasi Stok
-                    DB::table('stock_movements')->insert([
-                        'entity_id'         => $p->entity_id,
-                        'business_unit_id'  => $p->business_unit_id,
-                        'warehouse_id'      => $p->warehouse_id,
-                        'product_id'        => $item->product_id,
-                        'unit_id'           => $item->unit_id,
-                        'transaction_qty'   => $qty,
-                        'conversion_factor' => 1.000000,
-                        'movement_type'     => 'PURCHASE_IN',
-                        'qty'               => $qty,
-                        'unit_cost'         => $price,
-                        'reference_type'    => 'purchase',
-                        'reference_id'      => $p->id,
-                        'occurred_at'       => now(),
-                        'created_by'        => auth()->id() ?? 1,
-                        'created_at'        => now(),
-                        'updated_at'        => now(),
-                    ]);
-                }
+            if (!$purchase) {
+                return back()->with('swal_error', 'Faktur tidak ditemukan.');
             }
 
-            // LOGIKA ATURAN 8: CARA BAYAR TUNAI VS KREDIT (HUTANG USAHA)
-            $invAccount    = ChartOfAccount::where('code', '1000401')->first() ?? ChartOfAccount::where('type', 'asset')->where('name', 'LIKE', '%Persediaan%')->first();
-            $unbilledAccount = ChartOfAccount::where('code', '2000105')->first() ?? ChartOfAccount::where('type', 'liability')->where('name', 'LIKE', '%Hutang Belum Ditagih%')->first();
-            $payableAccount = ChartOfAccount::where('code', '2000101')->first() ?? ChartOfAccount::where('type', 'liability')->where('name', 'LIKE', '%Hutang Usaha%')->first();
-            $cashAccount    = ChartOfAccount::where('code', '1000101')->first() ?? ChartOfAccount::where('type', 'asset')->where('name', 'LIKE', '%Kas%')->first();
+            if ($purchase->status === 'posted') {
+                return redirect()->route('inventori.pembelian.show', $id)
+                    ->with('swal_error', 'Faktur sudah POSTED.');
+            }
 
-            $debitAccount  = ((int) $p->goods_received === 1) ? $invAccount->id : $unbilledAccount->id;
-            $creditAccount = ($p->payment_type === 'cash') ? $cashAccount->id : $payableAccount->id;
+            if ($purchase->source_type !== 'po' && (int) $purchase->goods_received === 1) {
+                $items = DB::table('purchase_items')
+                    ->where('purchase_id', $purchase->id)
+                    ->get();
 
-            // Auto-Jurnal GL
-            $journal = Journal::create([
-                'entity_id'        => $p->entity_id,
-                'business_unit_id' => $p->business_unit_id,
-                'journal_no'       => 'JRN-PUR-' . date('YmdHis'),
-                'journal_date'     => $p->purchase_date,
-                'source_type'      => 'purchase_invoice',
-                'source_id'        => $p->id,
-                'description'      => "Faktur Pembelian #{$p->invoice_no} ({$p->payment_type})",
-                'status'           => 'posted',
+                $warehouseId = request()->input('warehouse_id');
+                if (!$warehouseId) {
+                    return back()->with('swal_error', 'Gudang wajib dipilih untuk penerimaan barang langsung.');
+                }
+
+                $receiptRequest = Request::create('/inventori/penerimaan', 'POST', [
+                    'purchase_id' => $purchase->id,
+                    'warehouse_id' => $warehouseId,
+                    'receipt_date' => $purchase->purchase_date,
+                    'memo' => 'Penerimaan langsung dari Faktur '.$purchase->purchase_no,
+                    'items' => $items->map(fn ($item) => [
+                        'purchase_item_id' => $item->id,
+                        'qty' => $item->qty,
+                    ])->values()->all(),
+                ]);
+
+                app(ReceiptController::class)->store($receiptRequest);
+            }
+
+            DB::table('purchases')->where('id', $id)->update([
+                'status' => 'posted',
+                'posting_status' => $purchase->source_type !== 'po' && (int) $purchase->goods_received === 1 ? 'posted' : 'posted',
+                'posted_at' => now(),
+                'posted_by' => auth()->id() ?? 1,
+                'updated_at' => now(),
             ]);
 
-            JournalEntry::create(['journal_id' => $journal->id, 'account_id' => $debitAccount, 'debit' => $p->grand_total, 'credit' => 0]);
-            JournalEntry::create(['journal_id' => $journal->id, 'account_id' => $creditAccount, 'debit' => 0, 'credit' => $p->grand_total]);
-
-            // Update Status -> POSTED
-            DB::table('purchases')->where('id', $id)->update(['status' => 'posted', 'updated_at' => now()]);
-
-            DB::commit();
             return redirect()->route('inventori.pembelian.show', $id)
-                ->with('swal_success', "Faktur Pembelian [{$p->invoice_no}] BERHASIL DIPOSTING! Stok & Jurnal Keuangan telah diperbarui.");
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return redirect()->back()->with('swal_error', 'Gagal memproses posting: ' . $e->getMessage());
+                ->with('swal_success', "Faktur Pembelian [{$purchase->purchase_no}] BERHASIL DIPOSTING.");
+        } catch (\Throwable $e) {
+            return back()->with('swal_error', 'Gagal memproses posting: ' . $e->getMessage());
         }
     }
 
@@ -371,13 +378,22 @@ class PurchaseInvoiceController extends Controller
     {
         $p = DB::table('purchases as p')
             ->leftJoin('business_units as bu', 'bu.id', '=', 'p.business_unit_id')
-            ->join('suppliers as s', 's.id', '=', 'p.supplier_id')
-            ->join('warehouses as w', 'w.id', '=', 'p.warehouse_id')
+            ->leftJoin('suppliers as s', 's.id', '=', 'p.supplier_id')
             ->leftJoin('purchase_orders as po', 'po.id', '=', 'p.purchase_order_id')
             ->join('users as u', 'u.id', '=', 'p.user_id')
             ->where('p.id', $id)
             ->whereNull('p.deleted_at')
-            ->select('p.*', 'bu.name as business_unit_name', 's.name as supplier_name', 's.address as supplier_address', 'w.name as warehouse_name', 'po.po_no', 'u.name as creator_name')
+            ->select(
+                'p.*',
+                'p.purchase_no as invoice_no',
+                'p.total as grand_total',
+                'p.payment_method as payment_type',
+                'bu.name as business_unit_name',
+                's.name as supplier_name',
+                's.address as supplier_address',
+                'po.po_no',
+                'u.name as creator_name'
+            )
             ->firstOrFail();
 
         $items = DB::table('purchase_items as pi')
@@ -387,7 +403,8 @@ class PurchaseInvoiceController extends Controller
             ->select('pi.*', 'pr.code as product_code', 'pr.name as product_name', 'u.name as unit_name')
             ->get();
 
-        $journals = DB::table('journals')->where('source_id', $id)->where('source_type', 'purchase_invoice')->get();
+        $journals = DB::table('journals')->where('source_id', $id)->where('source_type', 'receipt')->get();
+
         foreach ($journals as $j) {
             $j->entries = DB::table('journal_entries as je')
                 ->join('chart_of_accounts as coa', 'coa.id', '=', 'je.account_id')
@@ -414,11 +431,22 @@ class PurchaseInvoiceController extends Controller
     {
         $p = DB::table('purchases as p')
             ->leftJoin('business_units as bu', 'bu.id', '=', 'p.business_unit_id')
-            ->join('suppliers as s', 's.id', '=', 'p.supplier_id')
-            ->join('warehouses as w', 'w.id', '=', 'p.warehouse_id')
+            ->leftJoin('suppliers as s', 's.id', '=', 'p.supplier_id')
+            ->leftJoin('purchase_orders as po', 'po.id', '=', 'p.purchase_order_id')
             ->join('users as u', 'u.id', '=', 'p.user_id')
             ->where('p.id', $id)
-            ->select('p.*', 'bu.name as business_unit_name', 's.name as supplier_name', 's.address as supplier_address', 's.phone as supplier_phone', 'w.name as warehouse_name', 'u.name as creator_name')
+            ->whereNull('p.deleted_at')
+            ->select(
+                'p.*',
+                'p.purchase_no as invoice_no',
+                'p.total as grand_total',
+                'bu.name as business_unit_name',
+                's.name as supplier_name',
+                's.address as supplier_address',
+                's.phone as supplier_phone',
+                'po.po_no',
+                'u.name as creator_name'
+            )
             ->firstOrFail();
 
         $items = DB::table('purchase_items as pi')
@@ -433,18 +461,30 @@ class PurchaseInvoiceController extends Controller
 
     public function printList(Request $request)
     {
-        $startDate      = $request->query('start_date', now()->startOfMonth()->format('Y-m-d'));
-        $endDate        = $request->query('end_date', now()->endOfMonth()->format('Y-m-d'));
+        $startDate = $request->query('start_date', now()->startOfMonth()->format('Y-m-d'));
+        $endDate   = $request->query('end_date', now()->endOfMonth()->format('Y-m-d'));
 
         $purchases = DB::table('purchases as p')
             ->leftJoin('business_units as bu', 'bu.id', '=', 'p.business_unit_id')
-            ->join('suppliers as s', 's.id', '=', 'p.supplier_id')
-            ->join('warehouses as w', 'w.id', '=', 'p.warehouse_id')
+            ->leftJoin('suppliers as s', 's.id', '=', 'p.supplier_id')
+            ->leftJoin('purchase_orders as po', 'po.id', '=', 'p.purchase_order_id')
             ->whereNull('p.deleted_at')
             ->whereDate('p.purchase_date', '>=', $startDate)
             ->whereDate('p.purchase_date', '<=', $endDate)
-            ->select('p.*', 'bu.name as business_unit_name', 's.name as supplier_name', 'w.name as warehouse_name')
-            ->orderBy('p.created_at', 'desc')->get();
+            ->select(
+                'p.*',
+                'p.purchase_no as invoice_no',
+                'p.total as grand_total',
+                'bu.name as business_unit_name',
+                's.name as supplier_name',
+                'po.po_no'
+            )
+            ->orderByDesc('p.created_at')
+            ->get();
+
+        foreach ($purchases as $purchase) {
+            $purchase->warehouse_name = '-';
+        }
 
         return view('inventori.pembelian.faktur.print-list', compact('purchases', 'startDate', 'endDate'));
     }
@@ -457,12 +497,12 @@ class PurchaseInvoiceController extends Controller
     private function generateInvoiceCode()
     {
         $dateStr = date('Ymd');
-        $last    = DB::table('purchases')
-            ->where('invoice_no', 'LIKE', "INV-{$dateStr}-%")
-            ->orderBy('id', 'desc')
+        $last = DB::table('purchases')
+            ->where('purchase_no', 'LIKE', "INV-{$dateStr}-%")
+            ->orderByDesc('id')
             ->first();
 
-        $nextSeq = $last ? ((int) substr($last->invoice_no, -3)) + 1 : 1;
+        $nextSeq = $last ? ((int) substr($last->purchase_no, -3)) + 1 : 1;
         return 'INV-' . $dateStr . '-' . str_pad($nextSeq, 3, '0', STR_PAD_LEFT);
     }
 }
