@@ -158,8 +158,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 render: function (data, type, row) {
                     let actions = `
                         <div class="btn-group btn-group-sm">
-                            <a href="{{ url('/inventori/pembelian') }} ${row.id}" class="btn btn-outline-info" title="Detail"><i class="bi bi-eye"></i></a>
-                            <a href="{{ url('/inventori/pembelian') }} ${row.id}/print-invoice" target="_blank" class="btn btn-outline-secondary" title="Cetak Dotmatrix"><i class="bi bi-printer"></i></a>
+                            <a href="{{ url('/inventori/pembelian') }}/${row.id}" class="btn btn-outline-info" title="Detail"><i class="bi bi-eye"></i></a>
+                            <a href="{{ url('/inventori/pembelian') }}/${row.id}/print-invoice" target="_blank" class="btn btn-outline-secondary" title="Cetak Dotmatrix"><i class="bi bi-printer"></i></a>
                     `;
 
                     if (row.status === 'draft') {
@@ -199,7 +199,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (result.isConfirmed) {
                 const form = document.createElement('form');
                 form.method = 'POST';
-                form.action = `{{ url('/inventori/pembelian') }} ${id}/post`;
+                form.action = `{{ url('/inventori/pembelian') }}/${id}/post`;
                 form.innerHTML = `@csrf`;
                 document.body.appendChild(form);
                 form.submit();
@@ -223,7 +223,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (result.isConfirmed) {
                 const form = document.createElement('form');
                 form.method = 'POST';
-                form.action = `{{ url('/inventori/pembelian') }} ${id}`;
+                form.action = `{{ url('/inventori/pembelian') }}/${id}`;
                 form.innerHTML = `@csrf @method('DELETE')`;
                 document.body.appendChild(form);
                 form.submit();
