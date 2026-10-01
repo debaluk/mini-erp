@@ -316,6 +316,29 @@ class PurchaseOrderController extends Controller
     }
 
     /**
+     * Approve Draft PO
+     */
+    public function approve($id)
+    {
+        $po = DB::table('purchase_orders')->where('id', $id)->whereNull('deleted_at')->first();
+
+        if (!$po) {
+            return response()->json(['success' => false, 'message' => 'PO tidak ditemukan.'], 404);
+        }
+
+        if ($po->status !== 'draft') {
+            return response()->json(['success' => false, 'message' => 'Hanya PO berstatus DRAFT yang dapat di-approve.'], 400);
+        }
+
+        DB::table('purchase_orders')->where('id', $id)->update([
+            'status' => 'approved',
+            'updated_at' => now(),
+        ]);
+
+        return response()->json(['success' => true, 'message' => "Purchase Order [{$po->po_no}] berhasil di-approve untuk proses selanjutnya."]);
+    }
+
+    /**
      * Force Close PO
      */
     public function closePo(Request $request, $id)
