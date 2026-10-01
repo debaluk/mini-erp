@@ -604,24 +604,29 @@ toWarehouse.addEventListener('change', function () {
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    new DataTable('#table-transfer', {
-        pageLength: 10,
-        lengthMenu: [10, 25, 50, 100],
-        order: [[0, 'desc']],
-        language: {
-            search: 'Cari:',
-            lengthMenu: 'Tampilkan _MENU_ data',
-            info: 'Menampilkan _START_ sampai _END_ dari _TOTAL_ data',
-            infoEmpty: 'Tidak ada data',
-            zeroRecords: 'Data tidak ditemukan',
-            paginate: {
-                first: 'Awal',
-                last: 'Akhir',
-                next: '›',
-                previous: '‹'
+    const transferTable = document.querySelector('#table-transfer');
+    const emptyTransferRow = transferTable?.querySelector('tbody td[colspan="7"]');
+
+    if (transferTable && !emptyTransferRow) {
+        new DataTable('#table-transfer', {
+            pageLength: 10,
+            lengthMenu: [10, 25, 50, 100],
+            order: [[0, 'desc']],
+            language: {
+                search: 'Cari:',
+                lengthMenu: 'Tampilkan _MENU_ data',
+                info: 'Menampilkan _START_ sampai _END_ dari _TOTAL_ data',
+                infoEmpty: 'Tidak ada data',
+                zeroRecords: 'Data tidak ditemukan',
+                paginate: {
+                    first: 'Awal',
+                    last: 'Akhir',
+                    next: '›',
+                    previous: '‹'
+                }
             }
-        }
-    });
+        });
+    }
 });
 </script>
 @endpush

@@ -1,113 +1,266 @@
 @extends('layouts.app')
+
 @section('content')
-@php($isEdit = isset($purchase))
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div><h4 class="mb-1">{{ $isEdit ? 'Edit Pembelian' : 'Tambah Pembelian' }}</h4><div class="text-secondary small">{{ $isEdit ? 'Perbarui dokumen transaksi pembelian' : 'Buat dokumen transaksi pembelian' }}</div></div>
-    <a href="{{ route('inventori.pembelian') }}" class="btn btn-outline-secondary">← Kembali ke Pembelian</a>
-</div>
+<div class="container-fluid px-4 py-3">
 
-<div class="card shadow-sm">
-<div class="card-body">
-<div class="row g-3">
-    <div class="col-md-6"><label class="form-label">Tanggal</label><input type="date" class="form-control" value="{{ isset($purchase) ? \Carbon\Carbon::parse($purchase->purchase_date)->toDateString() : now()->toDateString() }}" readonly></div>
-    <div class="col-md-6"><label class="form-label">Nomor Pembelian</label><input class="form-control" value="{{ $purchase->purchase_no ?? 'Otomatis' }}" readonly></div>
-
-    <div class="col-12">
-        <label class="form-label">Cari PO</label>
-        <div class="input-group">
-            <input id="poSearch" class="form-control" placeholder="Pilih PO..." readonly>
-            <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#poModal">🔍</button>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h3 class="mb-1 fw-bold text-dark"><i class="bi bi-cart-plus me-2 text-primary"></i> Input Faktur Pembelian Baru</h3>
+            <div class="text-secondary small">Dapat merujuk Ref PO, Opsi Otomatis Tambah Stok & Pengaturan Jatuh Tempo Hutang.</div>
         </div>
-        <div class="form-text">PO belum diimplementasikan. Field disiapkan untuk integrasi berikutnya.</div>
+        <a href="{{ route('inventori.pembelian.index') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Kembali ke List
+        </a>
     </div>
 
-    <div class="col-md-6">
-        <label class="form-label">Supplier</label>
-        <div class="input-group">
-            <input id="supplierSearch" class="form-control" value="{{ $purchase->supplier_name ?? '' }}" placeholder="Cari supplier..." readonly>
-            <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#supplierModal">🔍</button>
+    <form action="{{ route('inventori.pembelian.store') }}" method="POST">
+        @csrf
+        
+        <!-- Option Header Card -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body p-4">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">No. Faktur Sistem</label>
+                        <input type="text" class="form-control font-monospace fw-bold bg-light" value="{{  $autoInvNo }}" readonly>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">No. Faktur Supplier</label>
+                        <input type="text" name="supplier_invoice_no" class="form-control font-monospace" placeholder="Nomor Nota dari Supplier">
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Tarik Dari Ref PO (Interaktif)</label>
+                        <select name="purchase_order_id" id="select-ref-po" class="form-select">
+                            <option value="">-- Tanpa PO (Direct Purchase) --</option>
+                            @foreach((approvedPos as )po)
+                                <option value="{{  $po->id }}" {{ (string) (fromPoId === (string) )po->id ? 'selected' : '' }}>
+                                    {{ (po->po_no }} - {{ )po->supplier_name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Tanggal Pembelian <span class="text-danger">*</span></label>
+                        <input type="date" name="purchase_date" class="form-control" value="{{ date('Y-m-d') }}" required>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Unit Bisnis <span class="text-danger">*</span></label>
+                        <select name="business_unit_id" class="form-select" required>
+                            <option value="">-- Pilih Unit Bisnis --</option>
+                            @foreach((businessUnits as )bu)
+                                <option value="{{  $bu->id }}">{{ (bu->code }} - {{ )bu->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Supplier / Vendor <span class="text-danger">*</span></label>
+                        <select name="supplier_id" id="supplier-id" class="form-select" required>
+                            <option value="">-- Pilih Supplier --</option>
+                            @foreach((suppliers as )s)
+                                <option value="{{ (s->id }}">{{ )s->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Gudang Tujuan <span class="text-danger">*</span></label>
+                        <select name="warehouse_id" class="form-select" required>
+                            <option value="">-- Pilih Gudang --</option>
+                            @foreach((warehouses as )w)
+                                <option value="{{ (w->id }}">{{ )w->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Cara Pembayaran <span class="text-danger">*</span></label>
+                        <select name="payment_type" id="select-payment-type" class="form-select fw-bold" required>
+                            <option value="cash" class="text-success">Tunai / Cash</option>
+                            <option value="credit" class="text-danger">Kredit / Tempo (Hutang Usaha)</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3 d-none" id="container-due-date">
+                        <label class="form-label fw-bold text-danger">Tanggal Jatuh Tempo <span class="text-danger">*</span></label>
+                        <input type="date" name="due_date" id="due-date" class="form-control border-danger" value="{{ date('Y-m-d', strtotime('+30 days')) }}">
+                    </div>
+
+                    <!-- ATURAN 7: CHECKBOX BARANG DITERIMA -->
+                    <div class="col-md-9 d-flex align-items-center">
+                        <div class="form-check form-switch bg-light p-3 rounded border w-100">
+                            <input class="form-check-input ms-0 me-2" type="checkbox" name="goods_received" id="check-goods-received" value="1" checked style="transform: scale(1.3);">
+                            <label class="form-check-label fw-bold text-dark" for="check-goods-received">
+                                <i class="bi bi-box-seam me-1 text-info"></i> Barang Langsung Diterima di Gudang
+                                <span class="d-block text-muted small fw-normal">Jika dicentang, stok fisik di `warehouses_stocks` langsung bertambah & Moving Average HPP dihitung ulang saat di-Posting. Jika tidak dicentang, hanya pengakuan kewajiban/keuangan.</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
-    <div class="col-md-6"><label class="form-label">Pilih Unit</label><select id="unitSelect" class="form-select" required><option value="">Pilih Unit</option>@foreach($units as $u)<option value="{{ $u->id }}" @selected(isset($purchase) && (int)$purchase->unit_id === (int)$u->id)>{{ $u->name }}</option>@endforeach</select></div>
 
-    <div class="col-md-6"><label class="form-label">No. Faktur Supplier</label><input class="form-control" placeholder="Nomor faktur supplier"></div>
-    <div class="col-md-6"><label class="form-label">Tanggal Faktur</label><input type="date" class="form-control"></div>
+        <!-- Items Table Card -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-dark text-white py-2 d-flex justify-content-between align-items-center">
+                <span class="fw-bold small"><i class="bi bi-cart me-1"></i> Detail Rincian Item Barang Pembelian</span>
+                <button type="button" class="btn btn-sm btn-light fw-bold" id="btn-add-row">+ Tambah Item Manual</button>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle mb-0" id="table-invoice-items" style="font-size: 0.88rem;">
+                        <thead class="table-light text-center">
+                            <tr>
+                                <th>Produk / Barang</th>
+                                <th style="width: 120px;">Qty Beli</th>
+                                <th style="width: 140px;">Harga Satuan</th>
+                                <th style="width: 120px;">Diskon</th>
+                                <th style="width: 160px;">Subtotal (Rp)</th>
+                                <th style="width: 50px;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-items">
+                            @forelse((poItems as )item)
+                                <tr>
+                                    <td>
+                                        <input type="hidden" name="products[]" value="{{  $item->product_id }}">
+                                        <div class="fw-semibold text-dark">{{  $item->product_name }}</div>
+                                        <div class="small font-monospace text-muted">{{  $item->product_code }}</div>
+                                    </td>
+                                    <td><input type="number" name="qty[]" class="form-control form-control-sm text-center input-qty" step="0.01" value="{{ (float) $item->qty }}" required></td>
+                                    <td><input type="number" name="unit_price[]" class="form-control form-control-sm text-end input-price" step="0.01" value="{{ (float) $item->unit_price }}" required></td>
+                                    <td><input type="number" name="discount[]" class="form-control form-control-sm text-end input-discount" step="0.01" value="{{ (float) $item->discount }}"></td>
+                                    <td class="text-end font-monospace fw-bold cell-subtotal">Rp {{ number_format( $item->total, 0, ',', '.') }}</td>
+                                    <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger btn-remove-row"><i class="bi bi-x"></i></button></td>
+                                </tr>
+                            @empty
+                            @endforelse
+                        </tbody>
+                        <tfoot class="table-light fw-bold">
+                            <tr>
+                                <td colspan="4" class="text-end">SUBTOTAL:</td>
+                                <td class="text-end font-monospace" id="footer-subtotal">Rp 0</td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td colspan="4" class="text-end">PAJAK (PPN/Lainnya):</td>
+                                <td class="text-end">
+                                    <input type="number" name="tax_amount" id="input-tax" class="form-control form-control-sm text-end font-monospace" value="0">
+                                </td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td colspan="4" class="text-end text-primary fs-6">GRAND TOTAL PEMBELIAN:</td>
+                                <td class="text-end font-monospace fs-6 text-primary" id="footer-grand-total">Rp 0</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer bg-light p-3 text-end">
+                <a href="{{ route('inventori.pembelian.index') }}" class="btn btn-secondary me-2">Batal</a>
+                <button type="submit" name="save_draft" value="1" class="btn btn-outline-primary me-2">
+                    <i class="bi bi-save me-1"></i> Simpan Draft
+                </button>
+                <button type="submit" name="post_now" value="1" class="btn btn-success px-4 fw-bold" onclick="return confirm('Posting langsung Faktur Pembelian ini? Jurnal Keuangan & Stok akan diperbarui.')">
+                    <i class="bi bi-check-circle me-1"></i> Simpan & Posting
+                </button>
+            </div>
+        </div>
+    </form>
+
 </div>
 
-<hr class="my-4">
-<div class="d-flex justify-content-between align-items-center mb-2"><h6 class="mb-0">Detail Pembelian</h6><button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#itemModal">+ Tambah Item</button></div>
-<div class="table-responsive"><table class="table align-middle"><thead class="table-light"><tr><th>Item</th><th>Satuan</th><th class="text-end">Qty</th><th class="text-end">Harga Beli</th><th class="text-end">Diskon</th><th class="text-end">Subtotal</th><th></th></tr></thead>
-<tbody id="detailBody">
-@forelse(($items ?? []) as $i=>$item)
-<tr><td><b>{{ $item->code ?? $item->sku }}</b><div class="small text-secondary">{{ $item->name }}</div></td><td>{{ $item->unit_code ?? '-' }}</td><td class="text-end">{{ number_format((float)$item->qty,3,',','.') }}</td><td class="text-end">Rp {{ number_format((float)$item->unit_cost,0,',','.') }}</td><td class="text-end">Rp 0</td><td class="text-end">Rp {{ number_format((float)$item->total,0,',','.') }}</td><td></td></tr>
-@empty
-<tr id="emptyRow"><td colspan="7" class="text-center text-secondary py-4">Belum ada item.</td></tr>
-@endforelse
-</tbody></table></div>
-
-<hr class="my-4">
-<div class="row g-4">
-    <div class="col-md-6"><h6>Informasi Supplier</h6><div class="small text-secondary">Supplier</div><div id="supplierInfo" class="fw-semibold mb-3">{{ $purchase->supplier_name ?? '-' }}</div><div class="small text-secondary">Hutang Sebelumnya</div><div class="fw-semibold mb-3">Rp 0</div><label class="form-label">Memo</label><textarea id="memo" class="form-control" rows="3" placeholder="Catatan transaksi...">{{ $purchase->memo ?? '' }}</textarea></div>
-    <div class="col-md-6"><h6>Informasi Transaksi</h6><div class="d-flex justify-content-between py-1"><span>Subtotal</span><strong id="subtotalAmount">Rp 0</strong></div><div class="d-flex justify-content-between align-items-center py-1"><span>Diskon (Rp)</span><input id="discountInput" type="number" min="0" class="form-control text-end" style="max-width:160px" value="{{ $purchase->discount ?? 0 }}"></div><div class="d-flex justify-content-between border-top mt-2 pt-2 fs-5"><strong>TOTAL</strong><strong id="totalAmount">Rp 0</strong></div>
-    <div class="mt-3"><label class="form-label">Cara Bayar</label><select id="paymentMethod" class="form-select"><option>Tunai</option><option>Transfer</option><option>QRIS</option><option>Kredit / Bon</option></select></div>
-    <div id="dueDateWrap" class="mt-3 d-none"><label class="form-label">Jatuh Tempo</label><input id="dueDate" type="date" class="form-control" value="{{ $purchase->due_date ?? '' }}"></div></div>
-</div>
-</div>
-<div class="card-footer d-flex justify-content-end gap-2"><a href="{{ route('inventori.pembelian') }}" class="btn btn-outline-secondary">Batal</a><button type="button" id="savePurchase" class="btn btn-primary">{{ $isEdit ? 'Update Pembelian' : 'Simpan Pembelian' }}</button></div>
-</div>
-
-<div class="modal fade" id="poModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h6 class="modal-title">Pilih PO</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="alert alert-info mb-0">PO belum diimplementasikan. Pilihan PO akan diaktifkan setelah modul PO tersedia.</div></div></div></div></div>
-<div class="modal fade" id="supplierModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h6 class="modal-title">Cari Supplier</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input id="supplierFilter" class="form-control mb-3" placeholder="Ketik nama supplier..."><div class="list-group">@foreach($suppliers as $s)<button type="button" class="list-group-item list-group-item-action supplier-choice" data-id="{{ $s->id }}" data-name="{{ $s->name }}" data-phone="{{ $s->phone ?? '' }}">{{ $s->name }}<div class="small text-secondary">{{ $s->code }} @if($s->phone) · {{ $s->phone }} @endif</div></button>@endforeach</div></div></div></div></div>
-<div class="modal fade" id="itemModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h6 class="modal-title">Cari Item</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input id="itemFilter" class="form-control mb-3" placeholder="Ketik kode / nama item..."><div class="list-group">@foreach($products as $p)<button type="button" class="list-group-item list-group-item-action item-choice" data-id="{{ $p->id }}" data-code="{{ $p->code ?? $p->sku }}" data-name="{{ $p->name }}" data-unit="{{ $p->unit_code ?? '-' }}" data-cost="{{ $p->cost_price ?? 0 }}">{{ $p->code ?? $p->sku }} — {{ $p->name }}</button>@endforeach</div></div></div></div></div>
-@endsection
-@push('scripts')
 <script>
-(function(){
-    let selectedSupplier = null;
-    let rows = [];
+document.addEventListener('DOMContentLoaded', function () {
 
-    document.querySelectorAll('.supplier-choice').forEach(b=>b.addEventListener('click',()=>{
-        selectedSupplier={id:b.dataset.id,name:b.dataset.name};
-        document.getElementById('supplierSearch').value=b.dataset.name;
-        document.getElementById('supplierInfo').textContent=b.dataset.name;
-        bootstrap.Modal.getOrCreateInstance(document.getElementById('supplierModal')).hide();
-    }));
-    document.getElementById('supplierFilter').addEventListener('input',e=>{
-        const q=e.target.value.toLowerCase();
-        document.querySelectorAll('.supplier-choice').forEach(b=>b.classList.toggle('d-none',!b.textContent.toLowerCase().includes(q)));
+    // Toggle Tanggal Jatuh Tempo jika Kredit
+     $('#select-payment-type').on('change', function () {
+        if (((this).val() === 'credit') {
+            )('#container-due-date').removeClass('d-none');
+        } else {
+             $('#container-due-date').addClass('d-none');
+        }
     });
-    document.getElementById('itemFilter').addEventListener('input',e=>{
-        const q=e.target.value.toLowerCase();
-        document.querySelectorAll('.item-choice').forEach(b=>b.classList.toggle('d-none',!b.textContent.toLowerCase().includes(q)));
-    });
-    document.querySelectorAll('.item-choice').forEach(b=>b.addEventListener('click',()=>{
-        const body=document.getElementById('detailBody');
-        document.getElementById('emptyRow')?.remove();
-        const tr=document.createElement('tr');
-        const cost=Number(b.dataset.cost||0);
-        tr.innerHTML='<td><b>'+b.dataset.code+'</b><div class="small text-secondary">'+b.dataset.name+'</div></td><td>'+b.dataset.unit+'</td><td class="text-end"><input class="form-control form-control-sm text-end qty" type="number" min="0.001" step="0.001" value="1"></td><td class="text-end"><input class="form-control form-control-sm text-end cost" type="number" min="0" step="0.01" value="'+cost+'"></td><td class="text-end"><input class="form-control form-control-sm text-end line-discount" type="number" min="0" step="0.01" value="0"></td><td class="text-end line-total">Rp 0</td><td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger remove">×</button></td>';
-        body.appendChild(tr);
-        tr.querySelectorAll('input').forEach(i=>i.addEventListener('input',calc));
-        tr.querySelector('.remove').addEventListener('click',()=>{tr.remove();calc();});
-        calc();
-        bootstrap.Modal.getOrCreateInstance(document.getElementById('itemModal')).hide();
-    }));
-    document.getElementById('discountInput').addEventListener('input',calc);
-    document.getElementById('paymentMethod').addEventListener('change',e=>document.getElementById('dueDateWrap').classList.toggle('d-none',e.target.value!=='Kredit / Bon'));
 
-    function rupiah(n){return 'Rp '+Number(n||0).toLocaleString('id-ID');}
-    function calc(){
-        let subtotal=0;
-        document.querySelectorAll('#detailBody tr').forEach(tr=>{
-            const q=Number(tr.querySelector('.qty')?.value||0), c=Number(tr.querySelector('.cost')?.value||0), d=Number(tr.querySelector('.line-discount')?.value||0);
-            const total=Math.max(q*c-d,0); subtotal+=total;
-            const cell=tr.querySelector('.line-total'); if(cell) cell.textContent=rupiah(total);
-        });
-        const discount=Math.min(Math.max(Number(document.getElementById('discountInput').value||0),0),subtotal);
-        document.getElementById('subtotalAmount').textContent=rupiah(subtotal);
-        document.getElementById('totalAmount').textContent=rupiah(subtotal-discount);
+    // Pull Item PO Interaktif
+     $('#select-ref-po').on('change', function () {
+        const poId = ((this).value || )(this).val();
+        if (poId) {
+             $.get(`{{ url('/inventori/pembelian/po-items') }} ${poId}`, function (res) {
+                if (res.success) {
+                     $('#supplier-id').val(res.po.supplier_id);
+                     $('#tbody-items').empty();
+                    res.items.forEach(i => {
+                        addRow(i.product_id, i.product_name, i.product_code, i.qty, i.unit_price, i.discount);
+                    });
+                }
+            });
+        }
+    });
+
+     $('#btn-add-row').on('click', function () { addRow(); });
+
+    function addRow(prodId = '', name = '', code = '', qty = 1, price = 0, disc = 0) {
+        const rowId = Date.now();
+        let prodOptions = `@foreach($products as $p)<option value="{{ $p->id }}" data-price="{{ $p->purchase_price ?? 0 }}">{{ $p->code }} - {{ $p->name }}</option>@endforeach`;
+        
+        const html = `
+            <tr id="row-${rowId}">
+                <td>
+                    ${prodId ? `<input type="hidden" name="products[]" value=" ${prodId}"><div class="fw-semibold text-dark"> ${name}</div><div class="small font-monospace text-muted"> ${code}</div>` : 
+                    `<select name="products[]" class="form-select form-select-sm select-prod" required><option value="">-- Pilih Barang --</option> ${prodOptions}</select>`}
+                </td>
+                <td><input type="number" name="qty[]" class="form-control form-control-sm text-center input-qty" step="0.01" value="${qty}" required></td>
+                <td><input type="number" name="unit_price[]" class="form-control form-control-sm text-end input-price" step="0.01" value="${price}" required></td>
+                <td><input type="number" name="discount[]" class="form-control form-control-sm text-end input-discount" step="0.01" value="${disc}"></td>
+                <td class="text-end font-monospace fw-bold cell-subtotal">Rp 0</td>
+                <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger btn-remove-row"><i class="bi bi-x"></i></button></td>
+            </tr>
+        `;
+         $('#tbody-items').append(html);
+        calcTotals();
     }
-    document.getElementById('savePurchase').addEventListener('click',()=>alert('{{ $isEdit ? 'Update' : 'Simpan' }} Pembelian akan diaktifkan setelah alur Hutang/Penerimaan dikunci. UI sudah siap.'));
-})();
+
+    ((document).on('click', '.btn-remove-row', function () {
+        )(this).closest('tr').remove();
+        calcTotals();
+    });
+
+     $(document).on('change', '.select-prod', function () {
+        const price =  $(this).find(':selected').data('price') || 0;
+         $(this).closest('tr').find('.input-price').val(price);
+        calcTotals();
+    });
+
+     $(document).on('input', '.input-qty, .input-price, .input-discount, #input-tax', function () {
+        calcTotals();
+    });
+
+    function calcTotals() {
+        let subtotal = 0;
+         $('#tbody-items tr').each(function () {
+            const q = parseFloat( $(this).find('.input-qty').val()) || 0;
+            const p = parseFloat( $(this).find('.input-price').val()) || 0;
+            const d = parseFloat( $(this).find('.input-discount').val()) || 0;
+            const sub = (q * p) - d;
+             $(this).find('.cell-subtotal').text('Rp ' + sub.toLocaleString('id-ID'));
+            subtotal += sub;
+        });
+
+        const tax = parseFloat( $('#input-tax').val()) || 0;
+        const grand = subtotal + tax;
+
+         $('#footer-subtotal').text('Rp ' + subtotal.toLocaleString('id-ID'));
+         $('#footer-grand-total').text('Rp ' + grand.toLocaleString('id-ID'));
+    }
+
+    calcTotals();
+});
 </script>
-@endpush
+@endsection

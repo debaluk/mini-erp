@@ -6,8 +6,9 @@ use App\Http\Controllers\AccountController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ErpController;
 use App\Http\Controllers\ModuleController;
-use App\Http\Controllers\PurchaseController;
+use App\Http\Controllers\PurchaseController;		//tidak terpakai
 use App\Http\Controllers\PurchaseOrderController;
+use App\Http\Controllers\PurchaseInvoiceController;
 use App\Http\Controllers\HppController;
 use App\Http\Controllers\PurchaseReportController;
 use App\Http\Controllers\ReceiptController;
@@ -129,9 +130,9 @@ Route::middleware('auth')->group(function () {
         ->middleware('access:inventori')
         ->name('inventori.pembelian.retur');
 
-    Route::get('/inventori/pembelian', [PurchaseController::class, 'index'])->middleware('access:inventori')->name('inventori.pembelian');
-    Route::get('/inventori/pembelian/create', [PurchaseController::class, 'create'])->middleware('access:inventori')->name('inventori.pembelian.create');
-    Route::get('/inventori/pembelian/{id}/edit', [PurchaseController::class, 'edit'])->middleware('access:inventori')->name('inventori.pembelian.edit');
+    //Route::get('/inventori/pembelian', [PurchaseController::class, 'index'])->middleware('access:inventori')->name('inventori.pembelian');
+    //Route::get('/inventori/pembelian/create', [PurchaseController::class, 'create'])->middleware('access:inventori')->name('inventori.pembelian.create');
+    //Route::get('/inventori/pembelian/{id}/edit', [PurchaseController::class, 'edit'])->middleware('access:inventori')->name('inventori.pembelian.edit');
     Route::get('/inventori/penerimaan', [ReceiptController::class, 'index'])->middleware('access:inventori')->name('inventori.penerimaan');
     Route::get('/inventori/penerimaan/create', [ReceiptController::class, 'create'])->middleware('access:inventori')->name('inventori.penerimaan.create');
     Route::post('/inventori/penerimaan', [ReceiptController::class, 'store'])->middleware('access:inventori')->name('inventori.penerimaan.store');
@@ -143,33 +144,46 @@ Route::middleware('auth')->group(function () {
     Route::get('/inventori/stock-opname', fn () => app(ModuleController::class)->show('opname'))->middleware('access:inventori')->name('inventori.stock-opname');
 
  
-Route::middleware(['auth', 'access:inventori'])->group(function () {
-    Route::prefix('inventori/pembelian')->group(function () {
-        Route::get('po/data', [PurchaseOrderController::class, 'data'])
-            ->name('purchase_orders.data');
+Route::middleware(['auth', 'access:inventori'])->prefix('inventori/pembelian/po')->name('inventori.pembelian.po.')->group(function () {
+    // 1. Endpoint AJAX DataTables & Info Supplier
+    Route::get('/data', [PurchaseOrderController::class, 'data'])->name('data');
+    Route::get('/supplier-info/{id}', [PurchaseOrderController::class, 'getSupplierInfo'])->name('supplier-info');
+    Route::get('/products', [PurchaseOrderController::class, 'products'])->name('products');
+    Route::get('/print-list', [PurchaseOrderController::class, 'printList'])->name('print-list');
 
-        Route::get('po/export-excel', [PurchaseOrderController::class, 'exportExcel'])
-            ->name('purchase_orders.export_excel');
+    // 2. CRUD Utama
+    Route::get('/', [PurchaseOrderController::class, 'index'])->name('index');
+    Route::post('/', [PurchaseOrderController::class, 'store'])->name('store');
+    Route::get('/{id}/edit-data', [PurchaseOrderController::class, 'getEditData'])->name('edit-data');
+    Route::put('/{id}', [PurchaseOrderController::class, 'update'])->name('update');
+    Route::delete('/{id}', [PurchaseOrderController::class, 'destroy'])->name('destroy');
 
-        Route::get('po/{id}/print', [PurchaseOrderController::class, 'print'])
-            ->whereNumber('id')
-            ->name('purchase_orders.print');
+    // 3. Detail, Close PO, & Cetak Faktur PO
+    Route::get('/{id}', [PurchaseOrderController::class, 'show'])->name('show');
+    Route::post('/{id}/close', [PurchaseOrderController::class, 'closePo'])->name('close');
+    Route::get('/{id}/print', [PurchaseOrderController::class, 'printPo'])->name('print');
+	Route::get('/export-excel', [PurchaseOrderController::class, 'exportExcel'])->name('export-excel');
+});
 
-        Route::post('po/{id}/approval', [PurchaseOrderController::class, 'approval'])
-            ->whereNumber('id')
-            ->name('purchase_orders.approval');
+Route::middleware(['auth', 'access:inventori'])->prefix('inventori/pembelian')->name('inventori.pembelian.')->group(function () {
+    // 1. Endpoint DataTables AJAX, Export Excel, & Cetak List Rekap
+    Route::get('/data', [PurchaseInvoiceController::class, 'data'])->name('data');
+    Route::get('/export-excel', [PurchaseInvoiceController::class, 'exportExcel'])->name('export-excel');
+    Route::get('/print-list', [PurchaseInvoiceController::class, 'printList'])->name('print-list');
+    Route::get('/po-items/{poId}', [PurchaseInvoiceController::class, 'getPoItems'])->name('po-items');
 
-        Route::resource('po', PurchaseOrderController::class)
-		->names([
-			'index'   => 'inventori.pembelian-po',
-			'create'  => 'purchase_orders.create',
-			'store'   => 'purchase_orders.store',
-			'show'    => 'purchase_orders.show',
-			'edit'    => 'purchase_orders.edit',
-			'update'  => 'purchase_orders.update',
-			'destroy' => 'purchase_orders.destroy',
-		]);
-    });
+    // 2. CRUD Faktur Pembelian (URL Link: /inventori/pembelian)
+    Route::get('/', [PurchaseInvoiceController::class, 'index'])->name('index');
+    Route::get('/create', [PurchaseInvoiceController::class, 'create'])->name('create');
+    Route::post('/', [PurchaseInvoiceController::class, 'store'])->name('store');
+    Route::get('/{id}', [PurchaseInvoiceController::class, 'show'])->name('show');
+    Route::get('/{id}/edit', [PurchaseInvoiceController::class, 'edit'])->name('edit');
+    Route::put('/{id}', [PurchaseInvoiceController::class, 'update'])->name('update');
+    Route::delete('/{id}', [PurchaseInvoiceController::class, 'destroy'])->name('destroy');
+
+    // 3. Action Posting & Cetak Nota Faktur Dotmatrix
+    Route::post('/{id}/post', [PurchaseInvoiceController::class, 'post'])->name('post');
+    Route::get('/{id}/print-invoice', [PurchaseInvoiceController::class, 'printInvoice'])->name('print-invoice');
 });
 
 Route::middleware(['auth', 'access:inventori'])->prefix('inventori/transfer')->name('inventori.transfer.')->group(function () {
