@@ -176,9 +176,9 @@ class PurchaseInvoiceExport implements FromCollection, WithHeadings, WithMapping
                 if ($lastDataRow >= $dataStartRow) {
                     $sheet->getStyle("I{$dataStartRow}:I{$lastDataRow}")->getNumberFormat()->setFormatCode('"Rp "#,##0');
                     $sheet->getStyle("A{$dataStartRow}:B{$lastDataRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                    $sheet->getStyle("C{$dataStartRow}:C{$lastDataRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->getFont()->setBold(true);
+                    $sheet->getStyle("C{$dataStartRow}:C{$lastDataRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);\n                    $sheet->getStyle("C{$dataStartRow}:C{$lastDataRow}")->getFont()->setBold(true);
                     $sheet->getStyle("G{$dataStartRow}:H{$lastDataRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                    $sheet->getStyle("J{$dataStartRow}:J{$lastDataRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->getFont()->setBold(true);
+                    $sheet->getStyle("J{$dataStartRow}:J{$lastDataRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);\n                    $sheet->getStyle("J{$dataStartRow}:J{$lastDataRow}")->getFont()->setBold(true);
                     $sheet->getStyle("A11:J{$lastDataRow}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setARGB('D9D9D9');
                 }
 
