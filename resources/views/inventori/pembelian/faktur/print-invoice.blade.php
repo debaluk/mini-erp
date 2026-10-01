@@ -20,7 +20,7 @@
 
     <div class="row align-items-center kop-header">
         <div class="col-8">
-            <h4 class="fw-bold mb-0">{{ $p->business_unit_name ?? 'MINI ERP SYSTEM' }}</h4>
+            <h4 class="fw-bold mb-0">{{ $p->entity_name ?? 'MINI ERP SYSTEM' }}</h4>
             <div>FAKTUR PEMBELIAN BARANG / TAGIHAN SUPPLIER</div>
         </div>
         <div class="col-4 text-end">
