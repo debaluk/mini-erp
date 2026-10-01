@@ -116,7 +116,7 @@ class PurchaseInvoiceExport implements FromCollection, WithHeadings, WithMapping
         ];
     }
 
-    public function styles(Worksheet $sheet)
+    public function styles(Worksheet $sheet): ?array
     {
         return [
             11 => [
