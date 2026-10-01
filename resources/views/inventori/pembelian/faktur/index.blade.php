@@ -164,7 +164,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     if (row.status === 'draft') {
                         actions += `
-                            <a href="{{ url('/inventori/pembelian') }} ${row.id}/edit" class="btn btn-outline-warning" title="Edit Draft"><i class="bi bi-pencil"></i></a>
+                            <a href="{{ url('/inventori/pembelian') }}/${row.id}/edit" class="btn btn-outline-warning" title="Edit Draft"><i class="bi bi-pencil"></i></a>
                             <button type="button" class="btn btn-success btn-post-item" data-id="${row.id}" data-no="${row.invoice_no}" title="Post"><i class="bi bi-check-circle"></i></button>
                             <button type="button" class="btn btn-outline-danger btn-delete-item" data-id="${row.id}" data-no="${row.invoice_no}" title="Hapus"><i class="bi bi-trash"></i></button>
                         `;
