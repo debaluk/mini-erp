@@ -320,54 +320,57 @@ class PurchaseInvoiceController extends Controller
     private function executePosting($id, $warehouseId = null)
     {
         try {
-            $purchase = DB::table('purchases')
-                ->whereNull('deleted_at')
-                ->where('id', $id)
-                ->lockForUpdate()
-                ->first();
+            $purchaseNo = DB::transaction(function () use ($id, $warehouseId) {
+                $purchase = DB::table('purchases')
+                    ->whereNull('deleted_at')
+                    ->where('id', $id)
+                    ->lockForUpdate()
+                    ->first();
 
-            if (!$purchase) {
-                return back()->with('swal_error', 'Faktur tidak ditemukan.');
-            }
-
-            if ($purchase->status === 'posted') {
-                return redirect()->route('inventori.pembelian.show', $id)
-                    ->with('swal_error', 'Faktur sudah POSTED.');
-            }
-
-            if ($purchase->source_type !== 'po' && (int) $purchase->goods_received === 1) {
-                $items = DB::table('purchase_items')
-                    ->where('purchase_id', $purchase->id)
-                    ->get();
-
-                if (!$warehouseId) {
-                    return back()->with('swal_error', 'Gudang wajib dipilih untuk penerimaan barang langsung.');
+                if (!$purchase) {
+                    throw new \RuntimeException('Faktur tidak ditemukan.');
                 }
 
-                $receiptRequest = Request::create('/inventori/penerimaan', 'POST', [
-                    'purchase_id' => $purchase->id,
-                    'warehouse_id' => $warehouseId,
-                    'receipt_date' => $purchase->purchase_date,
-                    'memo' => 'Penerimaan langsung dari Faktur '.$purchase->purchase_no,
-                    'items' => $items->map(fn ($item) => [
-                        'purchase_item_id' => $item->id,
-                        'qty' => $item->qty,
-                    ])->values()->all(),
+                if ($purchase->status === 'posted') {
+                    throw new \RuntimeException('Faktur sudah POSTED.');
+                }
+
+                if ($purchase->source_type !== 'po' && (int) $purchase->goods_received === 1) {
+                    if (!$warehouseId) {
+                        throw new \RuntimeException('Gudang wajib dipilih untuk penerimaan barang langsung.');
+                    }
+
+                    $items = DB::table('purchase_items')
+                        ->where('purchase_id', $purchase->id)
+                        ->get();
+
+                    $receiptRequest = Request::create('/inventori/penerimaan', 'POST', [
+                        'purchase_id' => $purchase->id,
+                        'warehouse_id' => $warehouseId,
+                        'receipt_date' => $purchase->purchase_date,
+                        'memo' => 'Penerimaan langsung dari Faktur '.$purchase->purchase_no,
+                        'items' => $items->map(fn ($item) => [
+                            'purchase_item_id' => $item->id,
+                            'qty' => $item->qty,
+                        ])->values()->all(),
+                    ]);
+
+                    app(ReceiptController::class)->store($receiptRequest);
+                }
+
+                DB::table('purchases')->where('id', $id)->update([
+                    'status' => 'posted',
+                    'posting_status' => 'posted',
+                    'posted_at' => now(),
+                    'posted_by' => auth()->id() ?? 1,
+                    'updated_at' => now(),
                 ]);
 
-                app(ReceiptController::class)->store($receiptRequest);
-            }
-
-            DB::table('purchases')->where('id', $id)->update([
-                'status' => 'posted',
-                'posting_status' => $purchase->source_type !== 'po' && (int) $purchase->goods_received === 1 ? 'posted' : 'posted',
-                'posted_at' => now(),
-                'posted_by' => auth()->id() ?? 1,
-                'updated_at' => now(),
-            ]);
+                return $purchase->purchase_no;
+            });
 
             return redirect()->route('inventori.pembelian.show', $id)
-                ->with('swal_success', "Faktur Pembelian [{$purchase->purchase_no}] BERHASIL DIPOSTING.");
+                ->with('swal_success', "Faktur Pembelian [{$purchaseNo}] BERHASIL DIPOSTING.");
         } catch (\Throwable $e) {
             return back()->with('swal_error', 'Gagal memproses posting: ' . $e->getMessage());
         }
