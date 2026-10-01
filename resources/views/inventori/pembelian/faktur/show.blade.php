@@ -13,14 +13,6 @@
                 <i class="bi bi-printer me-1"></i> Print Invoice
             </a>
         </div>
-        <div class="border-top px-3 py-2">
-            <div class="text-muted small">Status</div>
-            @if($p->status === 'posted')
-                <span class="badge bg-success">POSTED</span>
-            @else
-                <span class="badge bg-secondary">DRAFT</span>
-            @endif
-        </div>
     </div>
 
     <div class="card shadow-sm border-0 mb-3">
@@ -40,6 +32,14 @@
 
     <div class="card shadow-sm border-0 mb-3">
         <div class="card-body p-0">
+            <div class="border-bottom px-3 py-2">
+                <div class="text-muted small">Status</div>
+                @if($p->status === 'posted')
+                    <span class="badge bg-success">POSTED</span>
+                @else
+                    <span class="badge bg-secondary">DRAFT</span>
+                @endif
+            </div>
             <div class="table-responsive">
                 <table class="table table-bordered table-sm mb-0 align-middle">
                     <thead class="table-dark text-center">
