@@ -481,7 +481,7 @@ class PurchaseInvoiceController extends Controller
     public function printInvoice($id)
     {
         $p = DB::table('purchases as p')
-            ->leftJoin('business_units as bu', 'bu.id', '=', 'p.business_unit_id')
+            ->leftJoin('entities as e', 'e.id', '=', 'p.entity_id')
             ->leftJoin('suppliers as s', 's.id', '=', 'p.supplier_id')
             ->leftJoin('purchase_orders as po', 'po.id', '=', 'p.purchase_order_id')
             ->join('users as u', 'u.id', '=', 'p.user_id')
@@ -491,13 +491,21 @@ class PurchaseInvoiceController extends Controller
                 'p.*',
                 'p.purchase_no as invoice_no',
                 'p.total as grand_total',
-                'bu.name as business_unit_name',
+                'e.name as entity_name',
                 's.name as supplier_name',
                 's.address as supplier_address',
                 's.phone as supplier_phone',
                 'po.po_no',
                 'u.name as creator_name'
             )
+            ->addSelect([
+                'warehouse_name' => DB::table('receipts as r')
+                    ->leftJoin('warehouses as w', 'w.id', '=', 'r.warehouse_id')
+                    ->whereColumn('r.purchase_id', 'p.id')
+                    ->orderBy('r.id')
+                    ->limit(1)
+                    ->select('w.name')
+            ])
             ->firstOrFail();
 
         $items = DB::table('purchase_items as pi')
