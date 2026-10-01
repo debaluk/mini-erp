@@ -80,7 +80,7 @@
                             <th style="width: 90px;">Stok</th>
                             <th style="width: 130px;">Jumlah</th>
                             <th style="width: 90px;">Status</th>
-                            <th style="width: 200px;">Aksi</th>
+                            <th style="width: 130px;">Aksi</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
