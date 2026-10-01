@@ -8,6 +8,7 @@ use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Concerns\WithCustomStartCell;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Events\AfterSheet;
@@ -17,7 +18,7 @@ use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use Carbon\Carbon;
 
-class PurchaseInvoiceExport implements FromCollection, WithHeadings, WithMapping, WithEvents, WithStyles, ShouldAutoSize
+class PurchaseInvoiceExport implements FromCollection, WithHeadings, WithMapping, WithEvents, WithStyles, ShouldAutoSize, WithCustomStartCell
 {
     protected $request;
     protected $rowNumber = 0;
@@ -98,6 +99,11 @@ class PurchaseInvoiceExport implements FromCollection, WithHeadings, WithMapping
             (float) $p->total,
             strtoupper($p->status),
         ];
+    }
+
+    public function startCell(): string
+    {
+        return 'A11';
     }
 
     public function headings(): array
