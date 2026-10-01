@@ -153,26 +153,24 @@ class PurchaseInvoiceExport implements FromCollection, WithHeadings, WithMapping
                 $sheet->mergeCells('A2:J2');
                 $sheet->setCellValue('A2', 'Laporan Pembelian');
                 $sheet->getStyle('A2')->getFont()->setSize(14)->setBold(true);
-                $sheet->getStyle('A2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle('A2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
 
-                $sheet->getStyle('A3:J3')->getBorders()->getBottom()->setBorderStyle(Border::BORDER_MEDIUM)->getColor()->setARGB('1F4E78');
-
-                $sheet->setCellValue('A7', 'Unit Bisnis');
-                $sheet->setCellValue('B7', ': ' . $this->unitBisnisName);
-                $sheet->setCellValue('A8', 'Periode');
+                $sheet->setCellValue('A6', 'Unit Bisnis');
+                $sheet->setCellValue('B6', ': ' . $this->unitBisnisName);
+                $sheet->setCellValue('A7', 'Periode');
                 $sheet->setCellValue(
-                    'B8',
+                    'B7',
                     ': ' .
                     Carbon::parse($this->request->query('start_date', now()->startOfMonth()))->format('d/m/Y') .
                     ' s/d ' .
                     Carbon::parse($this->request->query('end_date', now()->endOfMonth()))->format('d/m/Y')
                 );
 
-                $sheet->setCellValue('H8', 'Tgl Cetak');
-                $sheet->setCellValue('I8', ': ' . now()->format('d/m/Y H:i'));
+                $sheet->setCellValue('H9', 'Tgl Cetak');
+                $sheet->setCellValue('I9', ': ' . now()->format('d/m/Y H:i'));
 
-                $sheet->getStyle('A7:A8')->getFont()->setBold(true);
-                $sheet->getStyle('H8')->getFont()->setBold(true);
+                $sheet->getStyle('A6:A7')->getFont()->setBold(true);
+                $sheet->getStyle('H9')->getFont()->setBold(true);
 
                 if ($lastDataRow >= $dataStartRow) {
                     $sheet->getStyle("I{$dataStartRow}:I{$lastDataRow}")->getNumberFormat()->setFormatCode('"Rp "#,##0');
