@@ -271,8 +271,8 @@ class PurchaseInvoiceController extends Controller
                 return $purchaseId;
             });
 
-            if ($request->boolean('post_now')) {
-                return $this->executePosting($purchaseId);
+            if ($request->boolean('post_now') || $goodsReceived) {
+                return $this->executePosting($purchaseId, $goodsReceived ? $request->input('warehouse_id') : null);
             }
 
             return redirect()->route('inventori.pembelian.index')
@@ -317,7 +317,7 @@ class PurchaseInvoiceController extends Controller
         return $this->executePosting($id);
     }
 
-    private function executePosting($id)
+    private function executePosting($id, $warehouseId = null)
     {
         try {
             $purchase = DB::table('purchases')
@@ -340,7 +340,6 @@ class PurchaseInvoiceController extends Controller
                     ->where('purchase_id', $purchase->id)
                     ->get();
 
-                $warehouseId = request()->input('warehouse_id');
                 if (!$warehouseId) {
                     return back()->with('swal_error', 'Gudang wajib dipilih untuk penerimaan barang langsung.');
                 }
