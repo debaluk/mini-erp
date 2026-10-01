@@ -134,8 +134,12 @@ Route::middleware('auth')->group(function () {
     //Route::get('/inventori/pembelian/create', [PurchaseController::class, 'create'])->middleware('access:inventori')->name('inventori.pembelian.create');
     //Route::get('/inventori/pembelian/{id}/edit', [PurchaseController::class, 'edit'])->middleware('access:inventori')->name('inventori.pembelian.edit');
     Route::get('/inventori/penerimaan', [ReceiptController::class, 'index'])->middleware('access:inventori')->name('inventori.penerimaan');
+    Route::get('/inventori/penerimaan/data', [ReceiptController::class, 'data'])->middleware('access:inventori')->name('inventori.penerimaan.data');
+    Route::get('/inventori/penerimaan/export', [ReceiptController::class, 'export'])->middleware('access:inventori')->name('inventori.penerimaan.export');
     Route::get('/inventori/penerimaan/create', [ReceiptController::class, 'create'])->middleware('access:inventori')->name('inventori.penerimaan.create');
     Route::post('/inventori/penerimaan', [ReceiptController::class, 'store'])->middleware('access:inventori')->name('inventori.penerimaan.store');
+    Route::get('/inventori/penerimaan/{id}/print', [ReceiptController::class, 'print'])->middleware('access:inventori')->name('inventori.penerimaan.print');
+    Route::get('/inventori/penerimaan/{id}', [ReceiptController::class, 'show'])->middleware('access:inventori')->name('inventori.penerimaan.show');
     Route::get('/inventori/stok', [StockController::class, 'index'])->middleware('access:inventori')->name('inventori.stok');
     Route::get('/inventori/stok/export', [StockController::class, 'export'])->middleware('access:inventori')->name('inventori.stok.export');
     Route::get('/inventori/stok/{product}/{warehouse}', [StockController::class, 'detail'])->middleware('access:inventori')->name('inventori.stok.detail');
