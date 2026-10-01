@@ -18,8 +18,8 @@ class ReceiptController extends Controller
         $startDate = $request->input('start_date', now()->startOfMonth()->toDateString());
         $endDate = $request->input('end_date', now()->endOfMonth()->toDateString());
 
-        // UI stage: receipt data will be backed by dedicated receipt tables in the next implementation phase.
-        $rows = collect();
+        $businessUnits = DB::table('business_units')
+            ->where('is_active', 1)->orderBy('code')->get(['id','code','name']);
 
         $suppliers = DB::table('suppliers')
             ->where('entity_id', $entity)->where('is_active', 1)
@@ -29,7 +29,89 @@ class ReceiptController extends Controller
             ->where('entity_id', $entity)->where('is_active', 1)
             ->orderBy('name')->get(['id','code','name']);
 
-        return view('inventori.pembelian.penerimaan.index', compact('rows','suppliers','warehouses','startDate','endDate'));
+        return view('inventori.pembelian.penerimaan.index', compact('businessUnits','suppliers','warehouses','startDate','endDate'));
+    }
+
+    public function data(Request $request)
+    {
+        $startDate = $request->query('start_date', now()->startOfMonth()->toDateString());
+        $endDate = $request->query('end_date', now()->endOfMonth()->toDateString());
+
+        $query = DB::table('receipts as r')
+            ->leftJoin('purchases as p', 'p.id', '=', 'r.purchase_id')
+            ->leftJoin('purchase_orders as po', 'po.id', '=', 'p.purchase_order_id')
+            ->leftJoin('suppliers as s', 's.id', '=', 'r.supplier_id')
+            ->leftJoin('warehouses as w', 'w.id', '=', 'r.warehouse_id')
+            ->leftJoin('business_units as bu', 'bu.id', '=', 'r.business_unit_id')
+            ->leftJoin(DB::raw('(SELECT receipt_id, COUNT(*) as total_items FROM receipt_items GROUP BY receipt_id) ri'), 'ri.receipt_id', '=', 'r.id')
+            ->where('r.entity_id', $this->entityId())
+            ->whereDate('r.receipt_date', '>=', $startDate)
+            ->whereDate('r.receipt_date', '<=', $endDate)
+            ->whereNull('r.deleted_at');
+
+        if ($request->filled('business_unit_id')) $query->where('r.business_unit_id', $request->business_unit_id);
+        if ($request->filled('supplier_id')) $query->where('r.supplier_id', $request->supplier_id);
+        if ($request->filled('warehouse_id')) $query->where('r.warehouse_id', $request->warehouse_id);
+        if ($request->filled('status')) $query->where('r.status', $request->status);
+
+        $data = $query->select(
+            'r.id', 'r.receipt_no', 'r.receipt_date', 'r.status',
+            'po.po_no', 's.name as supplier_name', 'w.name as warehouse_name',
+            'bu.name as business_unit_name', DB::raw('COALESCE(ri.total_items, 0) as total_items')
+        )->orderByDesc('r.receipt_date')->orderByDesc('r.id')->get();
+
+        foreach ($data as $row) {
+            $row->formatted_date = CarbonCarbon::parse($row->receipt_date)->format('d/m/Y H:i');
+        }
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function show(int $id)
+    {
+        $receipt = DB::table('receipts as r')
+            ->leftJoin('purchases as p', 'p.id', '=', 'r.purchase_id')
+            ->leftJoin('purchase_orders as po', 'po.id', '=', 'p.purchase_order_id')
+            ->leftJoin('suppliers as s', 's.id', '=', 'r.supplier_id')
+            ->leftJoin('warehouses as w', 'w.id', '=', 'r.warehouse_id')
+            ->leftJoin('business_units as bu', 'bu.id', '=', 'r.business_unit_id')
+            ->where('r.entity_id', $this->entityId())
+            ->where('r.id', $id)
+            ->whereNull('r.deleted_at')
+            ->select('r.*', 'po.po_no', 's.name as supplier_name', 'w.name as warehouse_name', 'bu.name as business_unit_name')
+            ->firstOrFail();
+
+        $items = DB::table('receipt_items as ri')
+            ->join('products as p', 'p.id', '=', 'ri.product_id')
+            ->leftJoin('units as u', 'u.id', '=', 'ri.unit_id')
+            ->where('ri.receipt_id', $id)
+            ->select('ri.*', 'p.code as product_code', 'p.name as product_name', 'u.name as unit_name')
+            ->orderBy('ri.id')
+            ->get();
+
+        foreach ($items as $item) {
+            $item->line_value = (float) $item->base_qty * (float) $item->base_unit_cost;
+        }
+
+        $receipt->formatted_date = CarbonCarbon::parse($receipt->receipt_date)->format('d/m/Y H:i');
+
+        return response()->json(['success' => true, 'receipt' => $receipt, 'items' => $items]);
+    }
+
+    public function print(int $id)
+    {
+        $response = $this->show($id);
+        $payload = $response->getData();
+        return view('inventori.pembelian.penerimaan.print', [
+            'receipt' => $payload->receipt,
+            'items' => $payload->items,
+        ]);
+    }
+
+    public function export(Request $request)
+    {
+        $fileName = 'Laporan_Penerimaan_' . now()->format('Ymd_His') . '.xlsx';
+        return MaatwebsiteExcelFacadesExcel::download(new AppExports\ReceiptExport($request), $fileName);
     }
 
     public function create()
