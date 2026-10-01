@@ -87,6 +87,7 @@ class ReceiptController extends Controller
 
             $receiptNo = 'GRN-'.now()->format('YmdHis').'-'.str()->upper(str()->random(3));
             $receiptDate = $data['receipt_date'] ?? now()->toDateString();
+            $receiptDate = \Carbon\Carbon::parse($receiptDate)->format('Y-m-d H:i:s');
 
             $receiptId = DB::table('receipts')->insertGetId([
                 'entity_id' => $entityId,
@@ -95,7 +96,7 @@ class ReceiptController extends Controller
                 'supplier_id' => $purchase->supplier_id,
                 'user_id' => $userId,
                 'receipt_no' => $receiptNo,
-                'receipt_date' => $receiptDate.' '.now()->format('H:i:s'),
+                'receipt_date' => $receiptDate,
                 'source_type' => $purchase->source_type ?? 'po',
                 'purchase_id' => $purchase->id,
                 'memo' => $data['memo'] ?? null,
