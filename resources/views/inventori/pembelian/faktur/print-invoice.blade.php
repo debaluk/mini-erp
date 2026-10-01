@@ -34,7 +34,7 @@
             <table class="table table-borderless table-sm mb-0">
                 <tr><td style="width: 140px;">Supplier / Vendor</td><td>: <strong>{{ $p->supplier_name }}</strong></td></tr>
                 <tr><td>Alamat Supplier</td><td>: {{ $p->supplier_address ?? '-' }}</td></tr>
-                <tr><td>Cara Bayar</td><td>: <strong class="text-uppercase">{{ $p->payment_type }}</strong></td></tr>
+                <tr><td>Cara Bayar</td><td>: <strong class="text-uppercase">{{ $p->payment_method }}</strong></td></tr>
             </table>
         </div>
         <div class="col-6">
