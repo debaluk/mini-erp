@@ -157,16 +157,8 @@ class PurchaseInvoiceExport implements FromCollection, WithHeadings, WithMapping
 
                 $sheet->getStyle('A3:J3')->getBorders()->getBottom()->setBorderStyle(Border::BORDER_MEDIUM)->getColor()->setARGB('1F4E78');
 
-                $sheet->mergeCells('A5:J5');
-                $sheet->setCellValue('A5', 'Laporan Pembelian');
-                $sheet->getStyle('A5')->getFont()->setSize(14)->setBold(true);
-                $sheet->getStyle('A5')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-
                 $sheet->setCellValue('A7', 'Unit Bisnis');
                 $sheet->setCellValue('B7', ': ' . $this->unitBisnisName);
-                $sheet->setCellValue('H7', 'Tgl Cetak');
-                $sheet->setCellValue('I7', ': ' . now()->format('d/m/Y H:i'));
-
                 $sheet->setCellValue('A8', 'Periode');
                 $sheet->setCellValue(
                     'B8',
@@ -176,8 +168,11 @@ class PurchaseInvoiceExport implements FromCollection, WithHeadings, WithMapping
                     Carbon::parse($this->request->query('end_date', now()->endOfMonth()))->format('d/m/Y')
                 );
 
+                $sheet->setCellValue('H8', 'Tgl Cetak');
+                $sheet->setCellValue('I8', ': ' . now()->format('d/m/Y H:i'));
+
                 $sheet->getStyle('A7:A8')->getFont()->setBold(true);
-                $sheet->getStyle('H7')->getFont()->setBold(true);
+                $sheet->getStyle('H8')->getFont()->setBold(true);
 
                 if ($lastDataRow >= $dataStartRow) {
                     $sheet->getStyle("I{$dataStartRow}:I{$lastDataRow}")->getNumberFormat()->setFormatCode('"Rp "#,##0');
