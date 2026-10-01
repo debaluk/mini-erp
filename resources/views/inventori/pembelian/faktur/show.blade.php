@@ -12,8 +12,13 @@
             <a href="{{ route('inventori.pembelian.print-invoice', $p->id) }}" target="_blank" class="btn btn-secondary btn-sm">
                 <i class="bi bi-printer me-1"></i> Print Invoice
             </a>
-            @if($p->status === 'draft')
-                <a href="{{ route('inventori.pembelian.edit', $p->id) }}" class="btn btn-warning btn-sm">Edit</a>
+        </div>
+        <div class="border-top px-3 py-2">
+            <div class="text-muted small">Status</div>
+            @if($p->status === 'posted')
+                <span class="badge bg-success">POSTED</span>
+            @else
+                <span class="badge bg-secondary">DRAFT</span>
             @endif
         </div>
     </div>
@@ -28,13 +33,7 @@
                 <div class="col-md-3"><div class="text-muted small">PO</div><strong>{{ $p->po_no ?? 'Non-PO' }}</strong></div>
                 <div class="col-md-3"><div class="text-muted small">Pembayaran</div><strong>{{ strtoupper($p->payment_type) }}</strong></div>
                 <div class="col-md-3"><div class="text-muted small">Barang Diterima</div><strong>{{ (int)$p->goods_received === 1 ? 'YA' : 'TIDAK' }}</strong></div>
-                <div class="col-md-3"><div class="text-muted small">Status</div>
-                    @if($p->status === 'posted')
-                        <span class="badge bg-success">POSTED</span>
-                    @else
-                        <span class="badge bg-secondary">DRAFT</span>
-                    @endif
-                </div>
+                <div class="col-md-3"><div class="text-muted small">Gudang</div><strong>{{ $warehouse->warehouse_name ?? '-' }}</strong></div>
             </div>
         </div>
     </div>
