@@ -309,6 +309,48 @@ class PurchaseInvoiceController extends Controller
         return view('inventori.pembelian.faktur.edit', compact('p', 'businessUnits', 'warehouses', 'suppliers', 'products', 'items'));
     }
 
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'purchase_date' => 'required|date',
+            'supplier_invoice_no' => 'nullable|string|max:100',
+            'payment_method' => 'required|in:cash,credit',
+            'memo' => 'nullable|string',
+        ]);
+
+        $purchase = DB::table('purchases')
+            ->where('id', $id)
+            ->whereNull('deleted_at')
+            ->first();
+
+        if (!$purchase) {
+            return redirect()->route('inventori.pembelian.index')
+                ->with('swal_error', 'Faktur tidak ditemukan.');
+        }
+
+        if ($purchase->status === 'posted') {
+            return redirect()->route('inventori.pembelian.show', $id)
+                ->with('swal_error', 'Faktur POSTED tidak dapat diedit.');
+        }
+
+        $dueDate = $request->payment_method === 'credit'
+            ? ($purchase->due_date ?: now()->addDays(30)->toDateString())
+            : null;
+
+        DB::table('purchases')->where('id', $id)->update([
+            'purchase_date' => $request->purchase_date,
+            'supplier_invoice_no' => $request->supplier_invoice_no,
+            'supplier_invoice_date' => $request->purchase_date,
+            'payment_method' => $request->payment_method,
+            'due_date' => $dueDate,
+            'memo' => $request->memo,
+            'updated_at' => now(),
+        ]);
+
+        return redirect()->route('inventori.pembelian.show', $id)
+            ->with('swal_success', 'Draft Faktur Pembelian berhasil diperbarui.');
+    }
+
     /**
      * Action Post Faktur Pembelian
      */
