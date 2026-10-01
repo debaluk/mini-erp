@@ -41,7 +41,7 @@
             <table class="table table-borderless table-sm mb-0">
                 <tr><td style="width: 140px;">Tanggal Faktur</td><td>: {{ \Carbon\Carbon::parse($p->purchase_date)->format('d/m/Y') }}</td></tr>
                 <tr><td>Jatuh Tempo</td><td>: {{ $p->due_date ? \Carbon\Carbon::parse($p->due_date)->format('d/m/Y') : '-' }}</td></tr>
-                <tr><td>Gudang Tujuan</td><td>: <strong>{{ $p->warehouse_name }}</strong></td></tr>
+                <tr><td>Gudang Tujuan</td><td>: <strong>{{ $p->warehouse_name ?? '-' }}</strong></td></tr>
             </table>
         </div>
     </div>
