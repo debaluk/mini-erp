@@ -219,7 +219,7 @@ class ProductionWorkOrderController extends Controller
             'cost_description' => ['nullable', 'array'],
             'cost_description.*' => ['nullable', 'string', 'max:255'],
             'cost_amount' => ['nullable', 'array'],
-            'cost_amount.*' => ['nullable', 'numeric', 'gt:0'],
+            'cost_amount.*' => ['nullable', 'numeric'],
         ]);
 
         $entityId = $this->entityId();
