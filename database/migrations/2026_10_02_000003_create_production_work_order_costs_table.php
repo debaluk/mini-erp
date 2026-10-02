@@ -17,8 +17,8 @@ return new class extends Migration
             $table->decimal('amount', 18, 2);
             $table->timestamps();
 
-            $table->index(['production_work_order_id', 'cost_group']);
-            $table->index(['worker_id']);
+            $table->index(['production_work_order_id', 'cost_group'], 'pwo_cost_group_idx');
+            $table->index(['worker_id'], 'pwo_worker_idx');
         });
     }
 
