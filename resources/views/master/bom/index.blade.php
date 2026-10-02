@@ -60,7 +60,7 @@
                         <div class="text-secondary small">{{ $bom->product_sku }}</div>
                     </td>
                     <td class="text-end">
-                        {{ rtrim(rtrim(number_format((float) $bom->output_qty, 2, ',', '.'), '0'), ',') }}
+                        {{ FormatIndo::indo($bom->output_qty, 2) }}
                         <span class="text-secondary small">{{ $bom->output_unit_code }}</span>
                     </td>
                     <td class="text-center">
