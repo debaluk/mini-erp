@@ -18,12 +18,16 @@
         <button onclick="window.print()" class="btn btn-primary btn-sm"><i class="bi bi-printer"></i> Cetak Faktur PO</button>
     </div>
 
-    <!-- KOP PERUSAHAAN RESMI -->
+    @php($entity = current_entity())
+
+    <!-- KOP ENTITAS -->
     <div class="row align-items-center kop-header">
         <div class="col-8">
-            <h3 class="fw-bold mb-0 text-uppercase">{{ $po->business_unit_name ?? 'MINI ERP ENTERPRISE' }}</h3>
-            <div class="small">Jl. Industri Utama No. 88, Kawasan Bisnis & Logistik</div>
-            <div class="small">Telp: (021) 555-8899 | Email: purchasing@minierp.com</div>
+            <h3 class="fw-bold mb-0 text-uppercase">{{ $entity?->name ?? 'ENTITAS' }}</h3>
+            <div class="small">{{ $entity?->address ?? '-' }}</div>
+            <div class="small">
+                Telp: {{ $entity?->phone ?? '-' }} | Email: {{ $entity?->email ?? '-' }}
+            </div>
         </div>
         <div class="col-4 text-end">
             <h4 class="fw-bold text-decoration-underline mb-0">PURCHASE ORDER</h4>
