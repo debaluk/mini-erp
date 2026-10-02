@@ -170,7 +170,7 @@
                                     <label class="form-label">Output</label>
                                     <div class="input-group">
                                         <input type="number" name="output_qty" id="bomOutput" class="form-control" min="0.001" step="0.001" required>
-                                        <span class="input-group-text py-2" id="outputUnit">-</span>
+                                        <span class="input-group-text" id="outputUnit">-</span>
                                     </div>
                                 </div>
                             </div>
