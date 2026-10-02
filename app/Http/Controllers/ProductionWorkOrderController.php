@@ -155,7 +155,17 @@ class ProductionWorkOrderController extends Controller
                     ->first(['avg_cost'])
                 : null;
 
-            $unitCost = (float) ($stock->avg_cost ?? 0);
+            if ($stock) {
+                $unitCost = (float) $stock->avg_cost;
+            } else {
+                $avgCost = DB::table('warehouses_stocks')
+                    ->where('entity_id', $entityId)
+                    ->where('product_id', $item->product_id)
+                    ->where('qty', '>', 0)
+                    ->avg('avg_cost');
+
+                $unitCost = (float) ($avgCost ?? 0);
+            }
             $baseQty = round((float) $item->qty * $factor * $batchQty, 3);
             $lineCost = round($baseQty * $unitCost, 2);
             $materialCost += $lineCost;
