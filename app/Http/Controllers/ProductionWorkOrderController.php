@@ -89,6 +89,83 @@ class ProductionWorkOrderController extends Controller
         ));
     }
 
+    public function bomInfo(Request $request, int $bomId)
+    {
+        $entityId = $this->entityId();
+        $warehouseId = (int) $request->integer('warehouse_id');
+        $batchQty = max((float) $request->input('batch_qty', 1), 0);
+
+        $bom = DB::table('boms as b')
+            ->join('products as p', 'p.id', '=', 'b.product_id')
+            ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
+            ->where('b.entity_id', $entityId)
+            ->where('b.id', $bomId)
+            ->where('b.is_active', 1)
+            ->first([
+                'b.id', 'b.code', 'b.name', 'b.output_qty',
+                'p.name as product_name', 'p.sku as product_sku',
+                'u.code as output_unit_code', 'u.name as output_unit_name',
+            ]);
+
+        abort_unless($bom, 404);
+
+        $items = DB::table('bom_items as bi')
+            ->join('products as p', 'p.id', '=', 'bi.product_id')
+            ->join('units as u', 'u.id', '=', 'bi.unit_id')
+            ->where('bi.bom_id', $bomId)
+            ->orderBy('bi.id')
+            ->get(['bi.product_id', 'bi.unit_id', 'bi.qty', 'p.sku', 'p.name as product_name', 'p.base_unit_id', 'u.code as unit_code', 'u.name as unit_name']);
+
+        $materialCost = 0.0;
+        $materials = $items->map(function ($item) use ($entityId, $warehouseId, $batchQty, &$materialCost) {
+            $factor = 1.0;
+            if ((int) $item->unit_id !== (int) $item->base_unit_id) {
+                $factor = (float) DB::table('product_unit_conversions')
+                    ->where('product_id', $item->product_id)
+                    ->where('unit_id', $item->unit_id)
+                    ->where('is_active', 1)
+                    ->value('conversion_factor');
+            }
+
+            $stock = $warehouseId
+                ? DB::table('warehouses_stocks')
+                    ->where('entity_id', $entityId)
+                    ->where('warehouse_id', $warehouseId)
+                    ->where('product_id', $item->product_id)
+                    ->first(['avg_cost'])
+                : null;
+
+            $unitCost = (float) ($stock->avg_cost ?? 0);
+            $baseQty = round((float) $item->qty * $factor * $batchQty, 3);
+            $lineCost = round($baseQty * $unitCost, 2);
+            $materialCost += $lineCost;
+
+            return [
+                'sku' => $item->sku,
+                'name' => $item->product_name,
+                'qty' => (float) $item->qty,
+                'unit' => $item->unit_code ?: $item->unit_name,
+                'base_qty' => $baseQty,
+                'unit_cost' => $unitCost,
+                'line_cost' => $lineCost,
+            ];
+        })->values();
+
+        return response()->json([
+            'bom' => [
+                'code' => $bom->code,
+                'name' => $bom->name,
+                'product_name' => $bom->product_name,
+                'product_sku' => $bom->product_sku,
+                'output_qty' => (float) $bom->output_qty,
+                'output_unit' => $bom->output_unit_code ?: $bom->output_unit_name,
+                'target_output_qty' => round((float) $bom->output_qty * $batchQty, 3),
+            ],
+            'materials' => $materials,
+            'material_cost' => round($materialCost, 2),
+        ]);
+    }
+
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -100,8 +177,14 @@ class ProductionWorkOrderController extends Controller
             'notes' => ['nullable', 'string'],
             'worker_id' => ['required', 'array', 'min:1'],
             'worker_id.*' => ['required', 'integer', 'distinct'],
-            'worker_role' => ['nullable', 'array'],
-            'worker_role.*' => ['nullable', 'string', 'max:100'],
+            'worker_amount' => ['required', 'array', 'min:1'],
+            'worker_amount.*' => ['required', 'numeric', 'gt:0'],
+            'cost_group' => ['nullable', 'array'],
+            'cost_group.*' => ['nullable', 'in:A,S,O'],
+            'cost_description' => ['nullable', 'array'],
+            'cost_description.*' => ['nullable', 'string', 'max:255'],
+            'cost_amount' => ['nullable', 'array'],
+            'cost_amount.*' => ['nullable', 'numeric', 'gt:0'],
         ]);
 
         $entityId = $this->entityId();
@@ -157,7 +240,34 @@ class ProductionWorkOrderController extends Controller
                 DB::table('production_work_order_workers')->insert([
                     'production_work_order_id' => $woId,
                     'worker_id' => $workerId,
-                    'role' => trim((string) (($data['worker_role'] ?? [])[$i] ?? '')) ?: null,
+                    'role' => null,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                DB::table('production_work_order_costs')->insert([
+                    'production_work_order_id' => $woId,
+                    'worker_id' => $workerId,
+                    'cost_group' => 'U',
+                    'description' => 'Tenaga',
+                    'amount' => round((float) $data['worker_amount'][$i], 2),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            foreach (($data['cost_group'] ?? []) as $i => $group) {
+                $amount = round((float) (($data['cost_amount'] ?? [])[$i] ?? 0), 2);
+                if ($amount <= 0) {
+                    continue;
+                }
+
+                DB::table('production_work_order_costs')->insert([
+                    'production_work_order_id' => $woId,
+                    'worker_id' => null,
+                    'cost_group' => $group,
+                    'description' => trim((string) (($data['cost_description'] ?? [])[$i] ?? '')) ?: null,
+                    'amount' => $amount,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
@@ -184,13 +294,24 @@ class ProductionWorkOrderController extends Controller
 
         $workers = DB::table('production_work_order_workers as wow')
             ->join('workers as w', 'w.id', '=', 'wow.worker_id')
+            ->leftJoin('production_work_order_costs as wc', function ($join) {
+                $join->on('wc.production_work_order_id', '=', 'wow.production_work_order_id')
+                    ->on('wc.worker_id', '=', 'wow.worker_id')
+                    ->where('wc.cost_group', '=', 'U');
+            })
             ->where('wow.production_work_order_id', $id)
             ->orderBy('w.name')
-            ->get(['w.code', 'w.name', 'wow.role']);
+            ->get(['w.code', 'w.name', 'wc.amount']);
+
+        $costs = DB::table('production_work_order_costs')
+            ->where('production_work_order_id', $id)
+            ->orderBy('cost_group')
+            ->orderBy('id')
+            ->get();
 
         $entity = DB::table('entities')->where('id', $entityId)->first();
 
-        return view('inventori.produksi.work-order.print', compact('wo', 'workers', 'entity'));
+        return view('inventori.produksi.work-order.print', compact('wo', 'workers', 'costs', 'entity'));
     }
 
     public function export(Request $request)
