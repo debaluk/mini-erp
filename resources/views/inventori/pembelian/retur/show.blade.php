@@ -32,7 +32,7 @@
                     <td class="text-center">{{ $i + 1 }}</td><td>{{ $item->product_code }}</td><td>{{ $item->product_name }}</td>
                     <td class="text-end">{{ number_format($item->qty, 2, ',', '.') }} {{ $item->unit_name }}</td>
                     <td class="text-center"><span class="badge {{ $item->condition === 'reject' ? 'bg-danger' : 'bg-success' }}">{{ $item->condition === 'reject' ? 'RUSAK' : 'BAGUS' }}</span></td>
-                    <td class="text-end">Rp {{ number_format($item->unit_cost, 0, ',', '.') }}</td><td class="text-end fw-bold">Rp {{ number_format($item->total, 0, ',', '.') }}</td>
+                    <td class="text-end">Rp {{ number_format($item->unit_value, 0, ',', '.') }}</td><td class="text-end fw-bold">Rp {{ number_format($item->total, 0, ',', '.') }}</td>
                 </tr>
             @endforeach
             </tbody>
