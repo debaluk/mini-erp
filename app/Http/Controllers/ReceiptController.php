@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 use App\Exports\ReceiptExport;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -191,7 +192,7 @@ class ReceiptController extends Controller
             'purchase_id' => ['nullable', 'integer'],
             'po_id' => ['nullable', 'integer'],
             'journal' => ['nullable', 'boolean'],
-            'warehouse_id' => ['required', 'integer'],
+            'warehouse_id' => ['nullable', 'integer'],
             'receipt_date' => ['nullable', 'date'],
             'memo' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
@@ -319,9 +320,13 @@ class ReceiptController extends Controller
                 abort_if($purchase->status === 'cancelled', 422, 'Faktur pembelian sudah dibatalkan.');
             }
 
+            $warehouseId = $po
+                ? (int) $po->warehouse_id
+                : (int) ($data['warehouse_id'] ?? 0);
+
             $warehouse = DB::table('warehouses')
                 ->where('entity_id', $entityId)
-                ->where('id', $data['warehouse_id'])
+                ->where('id', $warehouseId)
                 ->where('is_active', 1)
                 ->first();
 
@@ -331,7 +336,7 @@ class ReceiptController extends Controller
             }
 
             $receiptNo = 'GRN-'.now()->format('YmdHis').'-'.str()->upper(str()->random(3));
-            $receiptDate = CarbonCarbon::parse($data['receipt_date'] ?? now()->toDateString())->format('Y-m-d H:i:s');
+            $receiptDate = Carbon::parse($data['receipt_date'] ?? now()->toDateString())->format('Y-m-d H:i:s');
 
             $receiptId = DB::table('receipts')->insertGetId([
                 'entity_id' => $entityId,

@@ -56,9 +56,14 @@
                     <select name="warehouse_id" class="form-select" required>
                         <option value="">-- Pilih Gudang --</option>
                         @foreach($warehouses as $w)
-                            <option value="{{ $w->id }}">{{ $w->code }} - {{ $w->name }}</option>
+                            <option value="{{ $w->id }}" @selected(isset($po->warehouse_id) && (int) $po->warehouse_id === (int) $w->id)>{{ $w->code }} - {{ $w->name }}</option>
                         @endforeach
                     </select>
+                    @if(isset($po->warehouse_id))
+                        <input type="hidden" name="po_warehouse_id" value="{{ $po->warehouse_id }}">
+                    @endif
+                    @if(isset($po->warehouse_id))
+                    @endif
                     <div class="form-text">Gudang harus sesuai Unit Bisnis PO.</div>
                 </div>
             </div>
