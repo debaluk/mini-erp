@@ -86,6 +86,15 @@ Route::middleware('auth')->group(function () {
     Route::post('/master/bom', [BomController::class, 'store'])
         ->middleware('access:master')
         ->name('master.bom.store');
+    Route::put('/master/bom/{id}', [BomController::class, 'update'])
+        ->middleware('access:master')
+        ->name('master.bom.update');
+    Route::delete('/master/bom/{id}', [BomController::class, 'destroy'])
+        ->middleware('access:master')
+        ->name('master.bom.delete');
+    Route::get('/master/bom/{id}/print', [BomController::class, 'print'])
+        ->middleware('access:master')
+        ->name('master.bom.print');
     
     Route::get('/master/akun', [AccountController::class, 'index'])->middleware('access:master')->name('master.akun');
     Route::post('/master/akun', [AccountController::class, 'store'])->middleware('access:master')->name('master.akun.store');
