@@ -6,6 +6,7 @@
         <div><h3 class="mb-1 fw-bold">Detail Retur Pembelian</h3><div class="text-muted">{{ $return->return_no }}</div></div>
         <div class="d-flex gap-2">
             <a href="{{ route('inventori.pembelian.retur') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
+            <a href="{{ route('inventori.pembelian.retur.print', $return->id) }}" target="_blank" class="btn btn-outline-primary btn-sm"><i class="bi bi-printer me-1"></i>Cetak</a>
             @if($return->status === 'draft')
                 <form method="POST" action="{{ route('inventori.pembelian.retur.post', $return->id) }}" class="d-inline">
                     @csrf
