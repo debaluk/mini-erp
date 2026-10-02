@@ -403,6 +403,7 @@ class PurchaseReturnController extends Controller
         $endDate = $request->query('end_date', now()->endOfMonth()->toDateString());
         $businessUnitId = $request->query('business_unit_id');
         $warehouseId = $request->query('warehouse_id');
+        $businessUnitName = $businessUnitId ? DB::table('business_units')->where('id', $businessUnitId)->value('name') : null;
 
         $query = DB::table('purchase_returns as r')
             ->leftJoin('business_units as bu', 'bu.id', '=', 'r.business_unit_id')
@@ -423,7 +424,7 @@ class PurchaseReturnController extends Controller
             DB::raw("(SELECT COALESCE(SUM(pri.return_value), 0) FROM purchase_return_items pri WHERE pri.purchase_return_id = r.id) as total")
         )->orderByDesc('r.return_date')->orderByDesc('r.id')->get();
 
-        return view('inventori.pembelian.retur.print-list', compact('entity', 'returns', 'startDate', 'endDate', 'businessUnitId', 'warehouseId'));
+        return view('inventori.pembelian.retur.print-list', compact('entity', 'returns', 'startDate', 'endDate', 'businessUnitId', 'businessUnitName', 'warehouseId'));
     }
 
     public function printDetail(int $id)
