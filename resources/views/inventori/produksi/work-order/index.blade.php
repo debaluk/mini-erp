@@ -59,7 +59,7 @@
                     @endphp
                     <tr>
                         <td class="fw-semibold">{{ $row->wo_no }}</td>
-                        <td data-order="{{ $row->wo_date }}">{{ CarbonCarbon::parse($row->wo_date)->format('d/m/Y') }}</td>
+                        <td data-order="{{ $row->wo_date }}">{{ \Carbon\Carbon::parse($row->wo_date)->format('d/m/Y') }}</td>
                         <td>{{ $row->product_name }}</td>
                         <td><span class="badge text-bg-light border">{{ $row->bom_code }}</span></td>
                         <td>{{ $row->warehouse_name }}</td>
