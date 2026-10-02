@@ -166,6 +166,13 @@ class BomController extends Controller
 
     private function validateAndBuild(Request $request): array
     {
+        $request->merge([
+            'output_qty' => parse_id_number($request->input('output_qty')),
+            'material_qty' => collect($request->input('material_qty', []))
+                ->map(fn ($value) => parse_id_number($value))
+                ->all(),
+        ]);
+
         $data = $request->validate([
             'product_id' => ['required', 'integer'],
             'code' => ['required', 'string', 'max:100'],
