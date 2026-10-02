@@ -48,7 +48,7 @@
         <div class="col-6">
             <div class="p-2 border rounded">
                 <table class="table table-borderless table-sm mb-0">
-                    <tr><td style="width: 130px;">Tanggal PO</td><td>: {{ CarbonCarbon::parse($po->po_date)->format('d/m/Y') }}</td></tr>
+                    <tr><td style="width: 130px;">Tanggal PO</td><td>: {{ \Carbon\Carbon::parse($po->po_date)->format('d/m/Y') }}</td></tr>
                     <tr><td>Gudang Tujuan</td><td>: <strong>{{ $po->warehouse_name }}</strong></td></tr>
                     <tr><td>Status PO</td><td>: <strong class="text-uppercase">{{ $po->status }}</strong></td></tr>
                 </table>
