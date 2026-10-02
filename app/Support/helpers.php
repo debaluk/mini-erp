@@ -19,16 +19,3 @@ if (! function_exists('current_entity')) {
         });
     }
 }
-if (! function_exists('decimal_input')) {
-    function decimal_input($value, int $precision = 6): string
-    {
-        if ($value === null || $value === '') {
-            return '';
-        }
-
-        $number = (float) $value;
-        $formatted = number_format($number, $precision, '.', '');
-
-        return rtrim(rtrim($formatted, '0'), '.');
-    }
-}
