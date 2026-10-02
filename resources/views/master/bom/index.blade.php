@@ -126,7 +126,7 @@
     @endif
 </div>
 
-<div class="modal fade" id="bomModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="bomModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-xl modal-fullscreen-md-down">
         <div class="modal-content">
             <form method="POST" id="bomForm">
