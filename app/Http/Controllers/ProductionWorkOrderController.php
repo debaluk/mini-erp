@@ -90,6 +90,25 @@ class ProductionWorkOrderController extends Controller
         ));
     }
 
+    public function create(Request $request)
+    {
+        $entityId = $this->entityId();
+        abort_unless($entityId, 422, 'Entitas belum tersedia.');
+
+        $boms = DB::table('boms as b')
+            ->join('products as p', 'p.id', '=', 'b.product_id')
+            ->join('business_units as bu', 'bu.id', '=', 'b.business_unit_id')
+            ->where('b.entity_id', $entityId)->where('b.is_active', 1)->where('bu.business_type', 'production')
+            ->select('b.id','b.code','b.name','b.output_qty','b.business_unit_id','p.name as product_name')->orderBy('b.code')->get();
+        $warehouses = DB::table('warehouses as w')->join('business_units as bu','bu.id','=','w.business_unit_id')
+            ->where('w.entity_id',$entityId)->where('w.is_active',1)->where('bu.business_type','production')
+            ->select('w.id','w.code','w.name','w.business_unit_id')->orderBy('w.name')->get();
+        $businessUnits = DB::table('business_units')->where('entity_id',$entityId)->where('business_type','production')->orderBy('name')->get(['id','code','name']);
+        $workers = DB::table('workers')->where('entity_id',$entityId)->where('is_active',1)->orderBy('name')->get(['id','code','name']);
+
+        return view('inventori.produksi.work-order.create', compact('boms','warehouses','businessUnits','workers'));
+    }
+
     public function bomInfo(Request $request, int $bomId)
     {
         $entityId = $this->entityId();
