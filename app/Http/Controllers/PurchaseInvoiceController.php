@@ -566,9 +566,17 @@ class PurchaseInvoiceController extends Controller
 
         $purchaseReturns = DB::table('purchase_returns as r')
             ->leftJoin('users as u', 'u.id', '=', 'r.user_id')
-            ->where('r.purchase_id', $id)
+            ->where('r.entity_id', $p->entity_id)
+            ->whereExists(function ($q) use ($id) {
+                $q->select(DB::raw(1))
+                    ->from('purchase_return_items as pri')
+                    ->join('purchase_items as pi', 'pi.id', '=', 'pri.purchase_item_id')
+                    ->whereColumn('pri.purchase_return_id', 'r.id')
+                    ->where('pi.purchase_id', $id);
+            })
             ->select(
-                'r.id', 'r.return_no', 'r.return_date', 'r.total', 'r.status',
+                'r.id', 'r.return_no', 'r.return_date', 'r.status',
+                DB::raw("(SELECT COALESCE(SUM(pri.return_value), 0) FROM purchase_return_items pri WHERE pri.purchase_return_id = r.id) as total"),
                 DB::raw("COALESCE(u.name, '-') as user_name"),
                 DB::raw("(SELECT COALESCE(SUM(pri.qty), 0) FROM purchase_return_items pri WHERE pri.purchase_return_id = r.id) as return_qty")
             )
