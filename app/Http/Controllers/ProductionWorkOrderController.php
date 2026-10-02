@@ -71,7 +71,7 @@ class ProductionWorkOrderController extends Controller
             ->orderByDesc('wo.wo_date')
             ->orderByDesc('wo.id');
 
-        $rows = $query->paginate(15)->withQueryString();
+        $rows = $query->get();
 
         $workerCounts = DB::table('production_work_order_workers')
             ->select('production_work_order_id', DB::raw('COUNT(*) as total_workers'))
