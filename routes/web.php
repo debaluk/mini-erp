@@ -11,6 +11,7 @@ use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\PurchaseInvoiceController;
 use App\Http\Controllers\PurchaseReturnController;
 use App\Http\Controllers\HppController;
+use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\PurchaseReportController;
 use App\Http\Controllers\ReceiptController;
 use App\Http\Controllers\SalesReturnController;
@@ -250,7 +251,8 @@ Route::middleware(['auth', 'access:inventori'])->prefix('inventori/penyesuaian')
     // ============================================================
     // PRODUKSI
     // ============================================================
-    Route::get('/produksi', fn () => app(ModuleController::class)->show('production'))->middleware('access:inventori')->name('produksi');
+    Route::get('/produksi', [ProductionController::class, 'index'])->middleware('access:inventori')->name('produksi');
+    Route::post('/produksi', [ProductionController::class, 'store'])->middleware('access:inventori')->name('produksi.store');
     Route::get('/produksi/pemakaian-bahan', fn () => app(ModuleController::class)->show('material-usage'))->middleware('access:inventori')->name('produksi.pemakaian-bahan');
     Route::get('/produksi/hasil-produksi', fn () => app(ModuleController::class)->show('production-results'))->middleware('access:inventori')->name('produksi.hasil-produksi');
     Route::get('/produksi/reject', fn () => app(ModuleController::class)->show('production-results'))->middleware('access:inventori')->name('produksi.reject');
