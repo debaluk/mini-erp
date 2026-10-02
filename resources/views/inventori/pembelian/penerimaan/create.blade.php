@@ -1,102 +1,175 @@
 @extends('layouts.app')
+
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <div><h4 class="mb-1">Penerimaan Barang</h4><div class="text-secondary small">Input barang yang diterima secara fisik di gudang</div></div>
+    <div>
+        <h4 class="mb-1">Penerimaan Barang</h4>
+        <div class="text-secondary small">Penerimaan barang berdasarkan Purchase Order</div>
+    </div>
     <a href="{{ route('inventori.penerimaan') }}" class="btn btn-outline-secondary">← Kembali</a>
 </div>
 
-<div class="card shadow-sm mb-3">
- <div class="card-header fw-semibold">Informasi Penerimaan</div>
- <div class="card-body">
-  <div class="row g-3">
-   <div class="col-md-3"><label class="form-label">Tanggal</label><input type="date" class="form-control" value="{{ now()->toDateString() }}" readonly></div>
-   <div class="col-md-3"><label class="form-label">Nomor Penerimaan</label><input class="form-control" value="Otomatis" readonly></div>
-   <div class="col-md-6">
-    <label class="form-label">Cari PO</label>
-    <div class="input-group"><input class="form-control" placeholder="Pilih PO (fitur PO akan diaktifkan)" readonly><button type="button" class="btn btn-outline-primary" disabled>🔍 Pilih PO</button></div>
-    <div class="form-text">PO menjadi sumber penerimaan; integrasi PO akan diaktifkan pada tahap berikutnya.</div>
-   </div>
-   <div class="col-md-6"><label class="form-label">Supplier</label><div class="input-group"><input id="supplierName" class="form-control" placeholder="Supplier dari PO" readonly><button type="button" class="btn btn-outline-secondary" disabled>🔍 Cari Supplier</button></div></div>
-   <div class="col-md-3"><label class="form-label">Gudang</label><select class="form-select" id="warehouse_id"><option value="">Pilih Gudang</option>@foreach($warehouses as $w)<option value="{{ $w->id }}">{{ $w->code }} - {{ $w->name }}</option>@endforeach</select></div>
-   <div class="col-md-3"><label class="form-label">No. Surat Jalan</label><input class="form-control" placeholder="Nomor surat jalan"></div>
-   <div class="col-md-3"><label class="form-label">Tanggal Surat Jalan</label><input type="date" class="form-control"></div>
-  </div>
- </div>
-</div>
+@if(!$po)
+    <div class="alert alert-warning">
+        <i class="bi bi-info-circle me-1"></i>
+        Penerimaan Barang dibuat dari <strong>Purchase Order</strong>. Buka PO berstatus APPROVED/PARTIAL lalu klik <strong>Penerimaan</strong>.
+    </div>
+@else
+@if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle me-1"></i>{{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    <script>alert(@json(session('error')));</script>
+@endif
+<form method="POST" action="{{ route('inventori.penerimaan.store') }}" id="receiptForm">
+    @csrf
+    <input type="hidden" name="po_id" value="{{ $po->id }}">
+    <input type="hidden" name="journal" value="0">
 
-<div class="card shadow-sm mb-3">
- <div class="card-header d-flex justify-content-between align-items-center"><span class="fw-semibold">Detail Barang</span><button type="button" class="btn btn-sm btn-outline-primary" id="addRow">+ Tambah Item</button></div>
- <div class="table-responsive">
-  <table class="table table-bordered align-middle mb-0" id="receiptTable">
-   <thead class="table-light"><tr><th style="min-width:260px">Item</th><th>Satuan</th><th class="text-end">Qty PO</th><th class="text-end">Qty Terima</th><th class="text-end">Selisih</th><th style="width:70px">Aksi</th></tr></thead>
-   <tbody id="receiptItems"></tbody>
-  </table>
- </div>
-</div>
+    <div class="card shadow-sm mb-3">
+        <div class="card-header fw-semibold">Informasi Penerimaan</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Tanggal</label>
+                    <input type="date" name="receipt_date" class="form-control" value="{{ now()->toDateString() }}" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Nomor Penerimaan</label>
+                    <input class="form-control" value="Otomatis" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">No. PO</label>
+                    <input class="form-control fw-bold text-primary" value="{{ $po->po_no }}" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Supplier</label>
+                    <input class="form-control" value="{{ $po->supplier_name }}" readonly>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Unit Bisnis</label>
+                    <input class="form-control" value="{{ $po->business_unit_name ?? '-' }}" readonly>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Gudang Penerimaan <span class="text-danger">*</span></label>
+                    <select name="warehouse_id" class="form-select" required>
+                        <option value="">-- Pilih Gudang --</option>
+                        @foreach($warehouses as $w)
+                            <option value="{{ $w->id }}" @selected(isset($po->warehouse_id) && (int) $po->warehouse_id === (int) $w->id)>{{ $w->code }} - {{ $w->name }}</option>
+                        @endforeach
+                    </select>
+                    @if(isset($po->warehouse_id))
+                        <input type="hidden" name="po_warehouse_id" value="{{ $po->warehouse_id }}">
+                    @endif
+                    @if(isset($po->warehouse_id))
+                    @endif
+                    <div class="form-text">Gudang harus sesuai Unit Bisnis PO.</div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-<div class="card shadow-sm mb-3">
- <div class="card-header fw-semibold">Catatan</div>
- <div class="card-body"><textarea class="form-control" rows="3" placeholder="Catatan penerimaan..."></textarea></div>
-</div>
+    <div class="card shadow-sm mb-3">
+        <div class="card-header fw-semibold">Detail Barang dari PO</div>
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle mb-0">
+                <thead class="table-light text-center">
+                    <tr>
+                        <th style="width:120px">Kode</th>
+                        <th>Barang</th>
+                        <th style="width:110px">Satuan</th>
+                        <th style="width:120px">Qty PO</th>
+                        <th style="width:120px">Sudah Diterima</th>
+                        <th style="width:130px">Sisa</th>
+                        <th style="width:150px">Qty Diterima</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @forelse($poItems as $index => $item)
+                    <tr>
+                        <td class="font-monospace text-center">{{ $item->product_code }}</td>
+                        <td>{{ $item->product_name }}</td>
+                        <td class="text-center">{{ $item->unit_code ?? '-' }}</td>
+                        <td class="text-end">{{ rtrim(rtrim(number_format($item->ordered_qty, 3, '.', ''), '0'), '.') }}</td>
+                        <td class="text-end text-muted">{{ rtrim(rtrim(number_format($item->received_qty, 3, '.', ''), '0'), '.') }}</td>
+                        <td class="text-end fw-semibold text-primary">{{ rtrim(rtrim(number_format($item->remaining_qty, 3, '.', ''), '0'), '.') }}</td>
+                        <td>
+                            <input type="hidden" name="items[{{ $index }}][purchase_order_item_id]" value="{{ $item->purchase_order_item_id }}">
+                            <input
+                                type="number"
+                                name="items[{{ $index }}][qty]"
+                                class="form-control text-end qty-received"
+                                min="0"
+                                max="{{ $item->remaining_qty }}"
+                                step="0.001"
+                                value="0"
+                                data-remaining="{{ $item->remaining_qty }}"
+                            >
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">
+                            Semua item PO sudah diterima.
+                        </td>
+                    </tr>
+                @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-<div class="d-flex justify-content-end gap-2">
- <a href="{{ route('inventori.penerimaan') }}" class="btn btn-outline-secondary">Batal</a>
- <button type="button" class="btn btn-primary" id="saveReceipt">Simpan Penerimaan</button>
-</div>
+    <div class="card shadow-sm mb-3">
+        <div class="card-header fw-semibold">Catatan</div>
+        <div class="card-body">
+            <textarea name="memo" class="form-control" rows="3" placeholder="Catatan penerimaan..."></textarea>
+        </div>
+    </div>
 
-<div class="modal fade" id="itemModal" tabindex="-1" aria-hidden="true">
- <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
-  <div class="modal-header"><h5 class="modal-title">Pilih Item</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-  <div class="modal-body">
-   <input id="itemSearch" class="form-control mb-3" placeholder="Cari kode / nama item...">
-   <div class="table-responsive"><table class="table table-hover align-middle"><thead><tr><th>Kode</th><th>Item</th><th>Satuan</th><th></th></tr></thead><tbody id="itemRows">
-   @foreach($products as $p)<tr data-search="{{ strtolower($p->code.' '.$p->name) }}"><td>{{ $p->code }}</td><td>{{ $p->name }}</td><td>{{ $p->unit_code ?? '-' }}</td><td class="text-end"><button type="button" class="btn btn-sm btn-primary choose-item" data-id="{{ $p->id }}" data-name="{{ $p->name }}" data-unit="{{ $p->unit_code ?? '-' }}">Pilih</button></td></tr>@endforeach
-   </tbody></table></div>
-  </div>
- </div></div>
-</div>
+    <div class="d-flex justify-content-end gap-2">
+        <a href="{{ route('inventori.pembelian.po.index') }}" class="btn btn-outline-secondary">Batal</a>
+        <button type="submit" class="btn btn-primary" id="saveReceipt">
+            <i class="bi bi-box-arrow-in-down me-1"></i> Simpan Penerimaan
+        </button>
+    </div>
+</form>
+@endif
 @endsection
 
 @push('scripts')
 <script>
-(() => {
- const modal = new bootstrap.Modal(document.getElementById('itemModal'));
- let activeRow = null;
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('receiptForm');
+    if (!form) return;
 
- function addRow(product={}) {
-   const tr=document.createElement('tr');
-   tr.innerHTML='<td><div class="input-group"><input class="form-control item-name" value="'+(product.name||'')+'" readonly><button type="button" class="btn btn-outline-primary choose-btn">🔍</button></div><input type="hidden" class="item-id" value="'+(product.id||'')+'"></td>'
-     +'<td class="item-unit">'+(product.unit||'-')+'</td>'
-     +'<td><input type="number" min="0" step="0.001" class="form-control text-end qty-po" value="0"></td>'
-     +'<td><input type="number" min="0" step="0.001" class="form-control text-end qty-received" value="0"></td>'
-     +'<td class="text-end selisih">0</td>'
-     +'<td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger remove-row">×</button></td>';
-   document.getElementById('receiptItems').appendChild(tr);
-   bindRow(tr);
-   return tr;
- }
- function bindRow(tr){
-   tr.querySelector('.choose-btn').onclick=()=>{activeRow=tr; modal.show();};
-   tr.querySelector('.remove-row').onclick=()=>tr.remove();
-   tr.querySelectorAll('.qty-po,.qty-received').forEach(el=>el.addEventListener('input',()=>{
-     const po=Number(tr.querySelector('.qty-po').value||0), rec=Number(tr.querySelector('.qty-received').value||0);
-     tr.querySelector('.selisih').textContent=(rec-po).toLocaleString('id-ID',{maximumFractionDigits:3});
-   }));
- }
- document.getElementById('addRow').onclick=()=>addRow();
- document.querySelectorAll('.choose-item').forEach(btn=>btn.onclick=()=>{
-   if(!activeRow) return;
-   activeRow.querySelector('.item-id').value=btn.dataset.id;
-   activeRow.querySelector('.item-name').value=btn.dataset.name;
-   activeRow.querySelector('.item-unit').textContent=btn.dataset.unit;
-   modal.hide();
- });
- document.getElementById('itemSearch').addEventListener('input',e=>{
-   const q=e.target.value.toLowerCase();
-   document.querySelectorAll('#itemRows tr').forEach(tr=>tr.style.display=tr.dataset.search.includes(q)?'':'none');
- });
- document.getElementById('saveReceipt').onclick=()=>alert('UI Penerimaan Barang sudah siap. Penyimpanan dan posting stok akan diaktifkan setelah schema Penerimaan dikunci.');
- addRow();
-})();
+    form.addEventListener('submit', function (e) {
+        const inputs = form.querySelectorAll('.qty-received');
+        let total = 0;
+        let invalid = false;
+
+        inputs.forEach(function (input) {
+            const qty = parseFloat(input.value || 0);
+            const remaining = parseFloat(input.dataset.remaining || 0);
+
+            if (qty < 0 || qty > remaining) {
+                invalid = true;
+            }
+
+            total += qty;
+        });
+
+        if (invalid) {
+            e.preventDefault();
+            alert('Qty penerimaan tidak boleh melebihi sisa Qty PO.');
+            return;
+        }
+
+        if (total <= 0) {
+            e.preventDefault();
+            alert('Minimal satu item harus diisi Qty Diterima.');
+        }
+    });
+});
 </script>
 @endpush

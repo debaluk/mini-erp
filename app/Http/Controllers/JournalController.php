@@ -71,7 +71,7 @@ class JournalController extends Controller
                     'journal_date'       => $journal->journal_date ? $journal->journal_date->format('d/m/Y') : '-',
                     'business_unit_name' => $journal->businessUnit->name ?? '-',
                     'source_type'        => $journal->source_type ?? 'manual',
-                    'source_id'          => $journal->source_id ?? '-',
+                    'source_id'          => $this->sourceReference($journal),
                     'description'        => $journal->description,
                     'total_debit'        => (float) $journal->entries->sum('debit'),
                     'total_credit'       => (float) $journal->entries->sum('credit'),
@@ -85,6 +85,29 @@ class JournalController extends Controller
             'recordsFiltered' => $filteredRecords,
             'data'            => $journals,
         ]);
+    }
+
+    private function sourceReference($journal): string
+    {
+        if (!$journal->source_id) {
+            return '-';
+        }
+
+        $reference = match (strtolower((string) $journal->source_type)) {
+            'sale' => DB::table('sales')->where('id', $journal->source_id)->value('invoice_no'),
+            'purchase', 'po' => DB::table('purchases')->where('id', $journal->source_id)->value('purchase_no'),
+            'receipt' => DB::table('receipts')->where('id', $journal->source_id)->value('receipt_no'),
+            'purchase_return' => DB::table('purchase_returns')->where('id', $journal->source_id)->value('return_no'),
+            'stock_adjustment_loss', 'stock_adjustment_gain' => DB::table('stock_adjustments')
+                ->where('id', $journal->source_id)
+                ->value('adjustment_no'),
+            'cash_in', 'cash_out' => DB::table('cash_bank_transactions')
+                ->where('id', $journal->source_id)
+                ->value('transaction_no'),
+            default => null,
+        };
+
+        return $reference ?: (string) $journal->source_id;
     }
 
     /**
@@ -108,7 +131,7 @@ class JournalController extends Controller
                 'business_unit_id'   => $journal->business_unit_id,
                 'business_unit_name' => $journal->businessUnit->name ?? '-',
                 'source_type'        => $journal->source_type ?? 'manual',
-                'source_id'          => $journal->source_id ?? '-',
+                'source_id'          => $this->sourceReference($journal),
                 'description'        => $journal->description,
                 'is_editable'        => $journal->is_editable,
                 'entries'            => $journal->entries->map(function ($entry) {

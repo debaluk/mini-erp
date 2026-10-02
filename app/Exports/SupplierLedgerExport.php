@@ -39,11 +39,14 @@ class SupplierLedgerExport implements FromCollection, WithHeadings, WithStyles, 
             ->whereDate('purchase_date', '<', $startDate)
             ->when($businessUnitId, fn($q) => $q->where('business_unit_id', $businessUnitId))->sum('total');
 
-        $initialPayments = DB::table('payments as p')
-            ->join('purchases as pur', 'pur.id', '=', 'p.purchase_id')
+        $initialPayments = DB::table('supplier_payment_allocations as spa')
+            ->join('supplier_payments as sp', 'sp.id', '=', 'spa.supplier_payment_id')
+            ->join('purchases as pur', 'pur.id', '=', 'spa.purchase_id')
             ->where('pur.supplier_id', $this->supplierId)->where('pur.status', 'posted')
-            ->whereDate('p.payment_date', '<', $startDate)
-            ->when($businessUnitId, fn($q) => $q->where('pur.business_unit_id', $businessUnitId))->sum('p.paid_amount');
+            ->where('spa.status', 'posted')->where('sp.status', 'posted')
+            ->whereDate('sp.payment_date', '<', $startDate)
+            ->when($businessUnitId, fn($q) => $q->where('pur.business_unit_id', $businessUnitId))
+            ->sum('spa.amount');
 
         $openingBalance = $initialPurchases - $initialPayments;
 
@@ -53,12 +56,14 @@ class SupplierLedgerExport implements FromCollection, WithHeadings, WithStyles, 
             ->when($businessUnitId, fn($q) => $q->where('business_unit_id', $businessUnitId))
             ->select('purchase_date as trans_date', 'purchase_no as ref_no', 'memo as description', DB::raw('0 as debit'), 'total as credit')->get();
 
-        $paymentEntries = DB::table('payments as p')
-            ->join('purchases as pur', 'pur.id', '=', 'p.purchase_id')
+        $paymentEntries = DB::table('supplier_payment_allocations as spa')
+            ->join('supplier_payments as sp', 'sp.id', '=', 'spa.supplier_payment_id')
+            ->join('purchases as pur', 'pur.id', '=', 'spa.purchase_id')
             ->where('pur.supplier_id', $this->supplierId)->where('pur.status', 'posted')
-            ->whereDate('p.payment_date', '>=', $startDate)->whereDate('p.payment_date', '<=', $endDate)
+            ->where('spa.status', 'posted')->where('sp.status', 'posted')
+            ->whereDate('sp.payment_date', '>=', $startDate)->whereDate('sp.payment_date', '<=', $endDate)
             ->when($businessUnitId, fn($q) => $q->where('pur.business_unit_id', $businessUnitId))
-            ->select('p.payment_date as trans_date', DB::raw("CONCAT('PAY-', pur.purchase_no) as ref_no"), 'p.reference as description', 'p.paid_amount as debit', DB::raw('0 as credit'))->get();
+            ->select('sp.payment_date as trans_date', DB::raw("CONCAT('PAY-', pur.purchase_no) as ref_no"), 'sp.reference as description', 'spa.amount as debit', DB::raw('0 as credit'))->get();
 
         $mutations = $purchaseEntries->concat($paymentEntries)->sortBy('trans_date');
 

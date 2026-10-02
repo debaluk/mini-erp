@@ -1,0 +1,508 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use App\Models\BusinessUnit;
+use App\Models\Warehouse;
+use App\Models\Product;
+use App\Exports\StockTransferExport;
+use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
+
+class StockTransferController extends Controller
+{
+    /**
+     * Halaman Utama List Mutasi Antar Gudang
+     */
+    public function index(Request $request)
+    {
+        $startDate      = $request->query('start_date', now()->startOfMonth()->format('Y-m-d'));
+        $endDate        = $request->query('end_date', now()->endOfMonth()->format('Y-m-d'));
+        $businessUnitId = $request->query('business_unit_id');
+        $fromWhId       = $request->query('from_warehouse_id');
+        $toWhId         = $request->query('to_warehouse_id');
+        $statusFilter   = $request->query('status');
+        $search         = $request->query('search');
+
+        $businessUnits = BusinessUnit::where('is_active', 1)->orderBy('code')->get();
+        $warehouses    = Warehouse::where('is_active', 1)->orderBy('name')->get();
+        $products      = Product::where('is_active', 1)->orderBy('name')->get();
+
+        // Generate Kode Mutasi Otomatis (MUT-YYYYMMDD-XXX)
+        $autoCode = $this->generateTransferCode();
+
+        // Query Data Mutasi
+        $query = DB::table('stock_transfers as st')
+            ->leftJoin('business_units as bu', 'bu.id', '=', 'st.business_unit_id')
+            ->join('warehouses as w_from', 'w_from.id', '=', 'st.from_warehouse_id')
+            ->join('warehouses as w_to', 'w_to.id', '=', 'st.to_warehouse_id')
+            ->join('users as u_creator', 'u_creator.id', '=', 'st.created_by')
+            ->whereDate('st.transfer_date', '>=', $startDate)
+            ->whereDate('st.transfer_date', '<=', $endDate)
+            ->whereNull('st.deleted_at');
+
+        if ($businessUnitId) $query->where('st.business_unit_id', $businessUnitId);
+        if ($fromWhId)       $query->where('st.from_warehouse_id', $fromWhId);
+        if ($toWhId)         $query->where('st.to_warehouse_id', $toWhId);
+        if ($statusFilter)   $query->where('st.status', $statusFilter);
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('st.transfer_no', 'LIKE', "%{$search}%")
+                  ->orWhere('st.memo', 'LIKE', "%{$search}%");
+            });
+        }
+
+        $transfers = $query->select(
+            'st.*',
+            'bu.name as business_unit_name',
+            'w_from.name as from_warehouse_name',
+            'w_to.name as to_warehouse_name',
+            'u_creator.name as creator_name'
+        )->orderBy('st.created_at', 'desc')->get();
+
+        return view('inventori.persediaan.mutasi.index', compact(
+            'businessUnits', 'warehouses', 'products', 'transfers',
+            'startDate', 'endDate', 'businessUnitId', 'fromWhId',
+            'toWhId', 'statusFilter', 'search', 'autoCode'
+        ));
+    }
+
+    /**
+     * AJAX Endpoint: Get Products with Stock for Source Warehouse
+     */
+    public function getWarehouseProducts($warehouseId)
+    {
+        $products = DB::table('products as p')
+            ->join('warehouses_stocks as ws', function ($join) use ($warehouseId) {
+                $join->on('ws.product_id', '=', 'p.id')
+                     ->where('ws.warehouse_id', '=', $warehouseId);
+            })
+            ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
+            ->where('p.is_active', 1)
+            ->where('ws.qty', '>', 0)
+            ->select(
+                'p.id',
+                'p.code',
+                'p.name',
+                'p.base_unit_id',
+                'u.name as unit_name',
+                'ws.qty as stock_qty'
+            )
+            ->orderBy('p.name')
+            ->get();
+
+        return response()->json($products);
+    }
+
+    /**
+     * AJAX Endpoint: Get Detail Items Mutasi
+     */
+    public function getDetail($id)
+    {
+        $transfer = DB::table('stock_transfers as st')
+            ->leftJoin('business_units as bu', 'bu.id', '=', 'st.business_unit_id')
+            ->join('warehouses as w_from', 'w_from.id', '=', 'st.from_warehouse_id')
+            ->join('warehouses as w_to', 'w_to.id', '=', 'st.to_warehouse_id')
+            ->join('users as u_creator', 'u_creator.id', '=', 'st.created_by')
+            ->leftJoin('users as u_sender', 'u_sender.id', '=', 'st.approved_sender_by')
+            ->leftJoin('users as u_receiver', 'u_receiver.id', '=', 'st.approved_receiver_by')
+            ->where('st.id', $id)
+            ->select(
+                'st.*',
+                'bu.name as business_unit_name',
+                'w_from.name as from_warehouse_name',
+                'w_to.name as to_warehouse_name',
+                'u_creator.name as creator_name',
+                'u_sender.name as sender_approver_name',
+                'u_receiver.name as receiver_approver_name'
+            )->first();
+
+        if (!$transfer) {
+            return response()->json(['success' => false, 'message' => 'Data tidak ditemukan.'], 404);
+        }
+
+        $items = DB::table('stock_transfer_items as sti')
+            ->join('products as p', 'p.id', '=', 'sti.product_id')
+            ->leftJoin('units as un', 'un.id', '=', 'p.base_unit_id')
+            ->where('sti.stock_transfer_id', $id)
+            ->select('sti.*', 'p.code as product_code', 'p.name as product_name', 'un.name as unit_name')
+            ->get();
+
+        return response()->json([
+            'success'  => true,
+            'transfer' => $transfer,
+            'items'    => $items,
+        ]);
+    }
+
+    /**
+     * Action: Simpan Pengajuan Mutasi Baru
+     */
+    public function store(Request $request)
+    {
+        $request->validate([
+            'business_unit_id'  => 'required|exists:business_units,id',
+            'from_warehouse_id' => 'required|exists:warehouses,id',
+            'to_warehouse_id'   => 'required|exists:warehouses,id|different:from_warehouse_id',
+            'transfer_date'     => 'required|date',
+            'products'          => 'required|array|min:1',
+            'products.*'        => 'exists:products,id',
+            'quantities'        => 'required|array|min:1',
+            'quantities.*'      => 'numeric|min:0.01',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $transferNo = $this->generateTransferCode();
+
+            $transferId = DB::table('stock_transfers')->insertGetId([
+                'entity_id'         => auth()->user()->entity_id ?? 1,
+                'business_unit_id'  => $request->business_unit_id,
+                'transfer_no'       => $transferNo,
+                'from_warehouse_id' => $request->from_warehouse_id,
+                'to_warehouse_id'   => $request->to_warehouse_id,
+                'transfer_date'     => $request->transfer_date,
+                'status'            => 'draft',
+                'memo'              => $request->memo,
+                'created_by'        => auth()->id() ?? 1,
+                'created_at'        => now(),
+                'updated_at'        => now(),
+            ]);
+
+            foreach ($request->products as $idx => $prodId) {
+                $qty = (float) $request->quantities[$idx];
+                if ($qty <= 0) continue;
+
+                DB::table('stock_transfer_items')->insert([
+                    'stock_transfer_id' => $transferId,
+                    'product_id'        => $prodId,
+                    'quantity'          => $qty,
+                    'created_at'        => now(),
+                    'updated_at'        => now(),
+                ]);
+            }
+
+            DB::commit();
+            return redirect()->back()->with('success', "Pengajuan Mutasi Barang [{$transferNo}] berhasil dibuat!");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Gagal menyimpan mutasi: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Action: Update Data Mutasi (Hanya jika status 'draft')
+     */
+    public function update(Request $request, $id)
+    {
+        $transfer = DB::table('stock_transfers')->where('id', $id)->first();
+        if (!$transfer || $transfer->status !== 'draft') {
+            return redirect()->back()->with('error', 'Mutasi tidak dapat diubah karena sudah disetujui/dalam proses.');
+        }
+
+        $request->validate([
+            'business_unit_id'  => 'required|exists:business_units,id',
+            'from_warehouse_id' => 'required|exists:warehouses,id',
+            'to_warehouse_id'   => 'required|exists:warehouses,id|different:from_warehouse_id',
+            'transfer_date'     => 'required|date',
+            'products'          => 'required|array|min:1',
+            'quantities'        => 'required|array|min:1',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            DB::table('stock_transfers')->where('id', $id)->update([
+                'business_unit_id'  => $request->business_unit_id,
+                'from_warehouse_id' => $request->from_warehouse_id,
+                'to_warehouse_id'   => $request->to_warehouse_id,
+                'transfer_date'     => $request->transfer_date,
+                'memo'              => $request->memo,
+                'updated_at'        => now(),
+            ]);
+
+            DB::table('stock_transfer_items')->where('stock_transfer_id', $id)->delete();
+
+            foreach ($request->products as $idx => $prodId) {
+                $qty = (float) $request->quantities[$idx];
+                if ($qty <= 0) continue;
+
+                DB::table('stock_transfer_items')->insert([
+                    'stock_transfer_id' => $id,
+                    'product_id'        => $prodId,
+                    'quantity'          => $qty,
+                    'created_at'        => now(),
+                    'updated_at'        => now(),
+                ]);
+            }
+
+            DB::commit();
+            return redirect()->back()->with('success', "Data Mutasi [{$transfer->transfer_no}] berhasil diperbarui!");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Gagal memperbarui: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Approval Step 1: Gudang Pengirim (TRANSFER_OUT)
+     */
+    public function approveSender($id)
+    {
+        $transfer = DB::table('stock_transfers')->where('id', $id)->first();
+        if (!$transfer || $transfer->status !== 'draft') {
+            return redirect()->back()->with('error', 'Status mutasi tidak valid untuk persetujuan pengirim.');
+        }
+
+        DB::beginTransaction();
+        try {
+            $items = DB::table('stock_transfer_items')->where('stock_transfer_id', $id)->get();
+
+            foreach ($items as $item) {
+                // Ambil data stok & avg_cost dari warehouses_stocks gudang pengirim
+                $stock = DB::table('warehouses_stocks')
+                    ->where('warehouse_id', $transfer->from_warehouse_id)
+                    ->where('product_id', $item->product_id)
+                    ->first();
+
+                if (!$stock || $stock->qty < $item->quantity) {
+                    $product = DB::table('products')
+                        ->where('id', $item->product_id)
+                        ->first(['code', 'name']);
+
+                    $productLabel = $product
+                        ? "{$product->code} - {$product->name}"
+                        : "ID {$item->product_id}";
+
+                    throw new \Exception("Stok {$productLabel} di Gudang Pengirim tidak mencukupi!");
+                }
+
+                $unitCost = (float) $stock->avg_cost;
+
+                // 1. Potong saldo stok di warehouses_stocks
+                DB::table('warehouses_stocks')
+                    ->where('id', $stock->id)
+                    ->decrement('qty', $item->quantity);
+
+                // Ambil data produk untuk unit_id
+                $product = DB::table('products')->where('id', $item->product_id)->first();
+
+                // 2. Insert ke stock_movements (TRANSFER_OUT: qty NEGATIF)
+                DB::table('stock_movements')->insert([
+                    'entity_id'         => $transfer->entity_id ?? (auth()->user()->entity_id ?? 1),
+                    'business_unit_id'  => $transfer->business_unit_id,
+                    'warehouse_id'      => $transfer->from_warehouse_id,
+                    'product_id'        => $item->product_id,
+                    'unit_id'           => $product->unit_id ?? null,
+                    'transaction_qty'   => $item->quantity,
+                    'conversion_factor' => 1.000000,
+                    'movement_type'     => 'TRANSFER_OUT',
+                    'qty'               => -$item->quantity, // Negatif
+                    'unit_cost'         => $unitCost,        // Dari warehouses_stocks.avg_cost
+                    'reference_type'    => 'transfer',
+                    'reference_id'      => $transfer->id,
+                    'occurred_at'       => now(),
+                    'created_by'        => auth()->id() ?? 1,
+                    'created_at'        => now(),
+                    'updated_at'        => now(),
+                ]);
+            }
+
+            DB::table('stock_transfers')->where('id', $id)->update([
+                'status'             => 'shipped',
+                'approved_sender_by' => auth()->id() ?? 1,
+                'approved_sender_at' => now(),
+                'updated_at'         => now(),
+            ]);
+
+            DB::commit();
+            return redirect()->back()->with('success', "Pengiriman Mutasi [{$transfer->transfer_no}] DISETUJUI oleh Gudang Pengirim!");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Gagal Persetujuan Pengirim: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Approval Step 2: Gudang Penerima (TRANSFER_IN)
+     */
+    public function approveReceiver($id)
+    {
+        $transfer = DB::table('stock_transfers')->where('id', $id)->first();
+        if (!$transfer || $transfer->status !== 'shipped') {
+            return redirect()->back()->with('error', 'Status mutasi tidak valid untuk persetujuan penerima.');
+        }
+
+        DB::beginTransaction();
+        try {
+            $items = DB::table('stock_transfer_items')->where('stock_transfer_id', $id)->get();
+
+            foreach ($items as $item) {
+                // Ambil unit_cost dari record TRANSFER_OUT sebelumnya agar konsisten
+                $outMovement = DB::table('stock_movements')
+                    ->where('reference_type', 'transfer')
+                    ->where('reference_id', $transfer->id)
+                    ->where('movement_type', 'TRANSFER_OUT')
+                    ->where('product_id', $item->product_id)
+                    ->first();
+
+                $unitCost = $outMovement ? (float) $outMovement->unit_cost : 0.0000;
+
+                // Cek stok di warehouses_stocks gudang penerima
+                $destStock = DB::table('warehouses_stocks')
+                    ->where('warehouse_id', $transfer->to_warehouse_id)
+                    ->where('product_id', $item->product_id)
+                    ->first();
+
+                // 1. Tambah stok & hitung ulang Moving Average Cost (avg_cost) gudang penerima
+                if ($destStock) {
+                    $oldQty     = (float) $destStock->qty;
+                    $oldAvgCost = (float) $destStock->avg_cost;
+                    $newQty     = $oldQty + (float) $item->quantity;
+
+                    $newAvgCost = ($newQty > 0)
+                        ? (($oldQty * $oldAvgCost) + ((float) $item->quantity * $unitCost)) / $newQty
+                        : $unitCost;
+
+                    DB::table('warehouses_stocks')
+                        ->where('id', $destStock->id)
+                        ->update([
+                            'qty'        => $newQty,
+                            'avg_cost'   => $newAvgCost,
+                            'updated_at' => now(),
+                        ]);
+                } else {
+                    DB::table('warehouses_stocks')->insert([
+                        'entity_id'    => $transfer->entity_id ?? (auth()->user()->entity_id ?? 1),
+                        'warehouse_id' => $transfer->to_warehouse_id,
+                        'product_id'   => $item->product_id,
+                        'qty'          => $item->quantity,
+                        'avg_cost'     => $unitCost,
+                        'created_at'   => now(),
+                        'updated_at'   => now(),
+                    ]);
+                }
+
+                $product = DB::table('products')->where('id', $item->product_id)->first();
+
+                // 2. Insert ke stock_movements (TRANSFER_IN: qty POSITIF)
+                DB::table('stock_movements')->insert([
+                    'entity_id'         => $transfer->entity_id ?? (auth()->user()->entity_id ?? 1),
+                    'business_unit_id'  => $transfer->business_unit_id,
+                    'warehouse_id'      => $transfer->to_warehouse_id,
+                    'product_id'        => $item->product_id,
+                    'unit_id'           => $product->unit_id ?? null,
+                    'transaction_qty'   => $item->quantity,
+                    'conversion_factor' => 1.000000,
+                    'movement_type'     => 'TRANSFER_IN',
+                    'qty'               => $item->quantity, // Positif
+                    'unit_cost'         => $unitCost,       // Sama dengan unit_cost pengirim
+                    'reference_type'    => 'transfer',
+                    'reference_id'      => $transfer->id,
+                    'occurred_at'       => now(),
+                    'created_by'        => auth()->id() ?? 1,
+                    'created_at'        => now(),
+                    'updated_at'        => now(),
+                ]);
+            }
+
+            DB::table('stock_transfers')->where('id', $id)->update([
+                'status'               => 'completed',
+                'approved_receiver_by' => auth()->id() ?? 1,
+                'approved_receiver_at' => now(),
+                'updated_at'           => now(),
+            ]);
+
+            DB::commit();
+            return redirect()->back()->with('success', "Penerimaan Barang [{$transfer->transfer_no}] DISETUJUI! Stok & HPP Gudang Tujuan telah diperbarui.");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Gagal Persetujuan Penerima: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Cetak Bukti Transfer / Surat Jalan Mutasi (Window Print View)
+     */
+    public function printProof($id)
+    {
+        $transfer = DB::table('stock_transfers as st')
+            ->leftJoin('business_units as bu', 'bu.id', '=', 'st.business_unit_id')
+            ->join('warehouses as w_from', 'w_from.id', '=', 'st.from_warehouse_id')
+            ->join('warehouses as w_to', 'w_to.id', '=', 'st.to_warehouse_id')
+            ->join('users as u_creator', 'u_creator.id', '=', 'st.created_by')
+            ->leftJoin('users as u_sender', 'u_sender.id', '=', 'st.approved_sender_by')
+            ->leftJoin('users as u_receiver', 'u_receiver.id', '=', 'st.approved_receiver_by')
+            ->where('st.id', $id)
+            ->select(
+                'st.*', 'bu.name as business_unit_name',
+                'w_from.name as from_warehouse_name', 'w_from.address as from_warehouse_address',
+                'w_to.name as to_warehouse_name', 'w_to.address as to_warehouse_address',
+                'u_creator.name as creator_name',
+                'u_sender.name as sender_approver_name',
+                'u_receiver.name as receiver_approver_name'
+            )->firstOrFail();
+
+        $items = DB::table('stock_transfer_items as sti')
+            ->join('products as p', 'p.id', '=', 'sti.product_id')
+            ->leftJoin('units as un', 'un.id', '=', 'p.base_unit_id')
+            ->where('sti.stock_transfer_id', $id)
+            ->select('sti.*', 'p.code as product_code', 'p.name as product_name', 'un.name as unit_name')
+            ->get();
+
+        return view('inventori.persediaan.mutasi.print-proof', compact('transfer', 'items'));
+    }
+
+    /**
+     * Export Excel List Mutasi
+     */
+    public function destroy($id)
+    {
+        $transfer = DB::table('stock_transfers')
+            ->where('id', $id)
+            ->whereNull('deleted_at')
+            ->first();
+
+        if (!$transfer) {
+            return redirect()->back()->with('error', 'Mutasi tidak ditemukan.');
+        }
+
+        if ($transfer->status !== 'draft') {
+            return redirect()->back()->with('error', 'Mutasi yang sudah dikirim atau diterima tidak dapat dihapus.');
+        }
+
+        DB::table('stock_transfers')
+            ->where('id', $id)
+            ->update(['deleted_at' => now()]);
+
+        return redirect()->back()->with('success', "Mutasi {$transfer->transfer_no} berhasil dihapus.");
+    }
+
+    public function exportList(Request $request)
+    {
+        return Excel::download(new StockTransferExport($request), 'Laporan_Mutasi_Gudang_' . date('Ymd_His') . '.xlsx');
+    }
+
+    /**
+     * Helper Generator Kode MUT-YYYYMMDD-XXX
+     */
+    private function generateTransferCode()
+    {
+        $dateStr = date('Ymd');
+        $last    = DB::table('stock_transfers')
+            ->where('transfer_no', 'LIKE', "MUT-{$dateStr}-%")
+            ->orderBy('id', 'desc')
+            ->first();
+
+        if ($last) {
+            $lastSeq = (int) substr($last->transfer_no, -3);
+            $nextSeq = $lastSeq + 1;
+        } else {
+            $nextSeq = 1;
+        }
+
+        return 'MUT-' . $dateStr . '-' . str_pad($nextSeq, 3, '0', STR_PAD_LEFT);
+    }
+}

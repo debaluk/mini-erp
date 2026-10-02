@@ -75,9 +75,9 @@
                         <li class="dropdown-submenu">
                             <a class="dropdown-item dropdown-toggle" href="#">PEMBELIAN</a>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{{ route('inventori.pembelian-po') }}">Purchase Order (PO)</a></li>
-                                <li><a class="dropdown-item" href="{{ route('inventori.penerimaan') }}">Penerimaan Barang</a></li>
-                                <li><a class="dropdown-item" href="{{ route('inventori.pembelian') }}">Faktur Pembelian</a></li>
+                                <li><a class="dropdown-item" href="{{ route('inventori.pembelian.po.index') }}">Purchase Order (PO)</a></li>                                
+                                <li><a class="dropdown-item" href="{{ route('inventori.pembelian.index') }}">Faktur Pembelian</a></li>
+								<li><a class="dropdown-item" href="{{ route('inventori.penerimaan') }}">Penerimaan Barang</a></li>
                                 <li><a class="dropdown-item" href="{{ route('inventori.pembelian.retur') }}">Retur Pembelian</a></li>
                             </ul>
                         </li>
@@ -93,9 +93,9 @@
                             <a class="dropdown-item dropdown-toggle" href="#">PERSEDIAAN</a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ route('inventori.initial-setup') }}">Setup Stok Awal</a></li>
-                                <li><a class="dropdown-item" href="{{ route('inventori.transfer') }}">Mutasi Barang</a></li>
-                                <li><a class="dropdown-item" href="{{ route('inventori.adjustment') }}">Penyesuaian Stok</a></li>
-                                <li><a class="dropdown-item" href="{{ route('inventori.stock-opname') }}">Stok Opname</a></li>
+                                <li><a class="dropdown-item" href="{{ route('inventori.transfer.index') }}">Mutasi Barang</a></li>
+                                <li><a class="dropdown-item" href="{{ route('inventori.stock-opname.index') }}">Stok Opname</a></li>
+								<li><a class="dropdown-item" href="{{ route('inventori.penyesuaian.index') }}">Penyesuain Stok</a></li>
                             </ul>
                         </li>
                         <li class="dropdown-submenu">
