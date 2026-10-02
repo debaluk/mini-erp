@@ -57,6 +57,7 @@
     </div>
 
     <!-- TABEL ITEM PO -->
+    @php($grandTotal = 0)
     <table class="table table-bordered table-sm align-middle mb-3">
         <thead class="table-light text-center">
             <tr>
@@ -70,7 +71,6 @@
             </tr>
         </thead>
         <tbody>
-            @php $grandTotal = 0; @endphp
             @foreach($items as $idx => $i)
                 @php $grandTotal += $i->total; @endphp
                 <tr>
