@@ -16,7 +16,7 @@
     </div>
     <div class="card shadow-sm border-0 mb-3"><div class="card-body"><div class="row g-3">
         <div class="col-md-3"><div class="text-muted small">No. Retur</div><strong>{{ $return->return_no }}</strong></div>
-        <div class="col-md-3"><div class="text-muted small">Tanggal</div><strong>{{ CarbonCarbon::parse($return->return_date)->format('d/m/Y') }}</strong></div>
+        <div class="col-md-3"><div class="text-muted small">Tanggal</div><strong>{{ Carbon\Carbon::parse($return->return_date)->format('d/m/Y') }}</strong></div>
         <div class="col-md-3"><div class="text-muted small">Faktur</div><strong>{{ $return->invoice_no }}</strong></div>
         <div class="col-md-3"><div class="text-muted small">Supplier</div><strong>{{ $return->supplier_name }}</strong></div>
         <div class="col-md-3"><div class="text-muted small">Gudang</div><strong>{{ $return->warehouse_name }}</strong></div>
