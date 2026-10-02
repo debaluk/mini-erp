@@ -90,7 +90,7 @@
                     @foreach($purchaseReturns as $retur)
                         <tr>
                             <td class="font-monospace fw-semibold">{{ $retur->return_no }}</td>
-                            <td class="text-center">{{ CarbonCarbon::parse($retur->return_date)->format('d/m/Y') }}</td>
+                            <td class="text-center">{{ Carbon\Carbon::parse($retur->return_date)->format('d/m/Y') }}</td>
                             <td class="text-end">{{ number_format($retur->return_qty, 2, ',', '.') }}</td>
                             <td class="text-end fw-bold">Rp {{ number_format($retur->total, 0, ',', '.') }}</td>
                             <td class="text-center"><span class="badge {{ $retur->status === 'posted' ? 'bg-success' : 'bg-secondary' }}">{{ strtoupper($retur->status) }}</span></td>
