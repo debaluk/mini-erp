@@ -79,7 +79,7 @@ class ProductionController extends Controller
             'good_output_qty' => ['nullable', 'numeric', 'gte:0'],
             'reject_qty' => ['nullable', 'numeric', 'gte:0'],
             'cost_group' => ['nullable', 'array'],
-            'cost_group.*' => ['nullable', 'in:B,U,A,S,O'],
+            'cost_group.*' => ['nullable', 'in:U,A,S,O'],
             'cost_description' => ['nullable', 'array'],
             'cost_description.*' => ['nullable', 'string', 'max:255'],
             'cost_amount' => ['nullable', 'array'],
@@ -127,7 +127,7 @@ class ProductionController extends Controller
                 if ($amount <= 0) {
                     continue;
                 }
-                abort_if(!isset(self::COST_GROUPS[$group]), 422, 'Kelompok biaya produksi tidak valid.');
+                abort_if(!isset(self::COST_GROUPS[$group]) || $group === 'B', 422, 'Bahan (B) dihitung otomatis dari pemakaian material.');
                 $additionalCost += $amount;
             }
 
