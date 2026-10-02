@@ -141,7 +141,7 @@
                     <button type="button" class="btn-close " data-bs-dismiss="modal"></button>
                 </div>
 
-                <div class="modal-body">
+                <div class="modal-body" style="max-height: calc(100vh - 180px); overflow-y: auto;">
                     <div class="mb-4">
                         <div>
                             <div class="row g-3">
@@ -170,7 +170,7 @@
                                     <label class="form-label">Output</label>
                                     <div class="input-group">
                                         <input type="number" name="output_qty" id="bomOutput" class="form-control" min="0.001" step="0.001" required>
-                                        <span class="input-group-text" id="outputUnit">-</span>
+                                        <span class="input-group-text py-2" id="outputUnit">-</span>
                                     </div>
                                 </div>
                             </div>
