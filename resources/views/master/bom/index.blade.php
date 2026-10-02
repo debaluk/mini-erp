@@ -77,7 +77,7 @@
                         <div class="btn-group btn-group-sm" role="group">
                             <button type="button"
                                     class="btn btn-outline-primary btn-edit"
-                                    data-bom="{{ e(json_encode([
+                                    data-bom="{{ base64_encode(json_encode([
                                         'id' => $bom->id,
                                         'product_id' => $bom->product_id,
                                         'code' => $bom->code,
@@ -354,7 +354,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.querySelectorAll('.btn-edit').forEach(button => {
         button.addEventListener('click', function () {
-            const data = JSON.parse(this.dataset.bom);
+            const data = JSON.parse(atob(this.dataset.bom));
 
             form.action = routes.update.replace('__ID__', data.id);
             method.value = 'PUT';
