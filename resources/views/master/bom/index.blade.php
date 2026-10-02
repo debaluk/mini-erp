@@ -169,7 +169,7 @@
                                 <div class="col-lg-2">
                                     <label class="form-label">Output</label>
                                     <div class="input-group">
-                                        <input type="number" name="output_qty" id="bomOutput" class="form-control" min="0.001" step="0.001" required>
+                                        <input type="text" name="output_qty" id="bomOutput" class="form-control qty-input" inputmode="decimal" autocomplete="off" required>
                                         <span class="input-group-text" id="outputUnit">-</span>
                                     </div>
                                 </div>
@@ -238,7 +238,7 @@
             </select>
         </td>
         <td>
-            <input type="number" name="material_qty[]" class="form-control material-qty" min="0.001" step="0.001" placeholder="0,000" required>
+            <input type="text" name="material_qty[]" class="form-control material-qty qty-input" inputmode="decimal" autocomplete="off" placeholder="0,00" required>
         </td>
         <td class="text-end">
             <button type="button" class="btn btn-outline-danger btn-sm remove-material" title="Hapus material">
@@ -289,6 +289,34 @@ document.addEventListener('DOMContentLoaded', function () {
         }[char]));
     }
 
+    function formatQty(value) {
+        const number = Number(String(value ?? '').replace(',', '.'));
+        if (!Number.isFinite(number)) return '';
+
+        return number.toLocaleString('id-ID', {
+            useGrouping: false,
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2,
+        });
+    }
+
+    function normalizeQty(value) {
+        const normalized = String(value ?? '').trim().replace(',', '.');
+        return normalized;
+    }
+
+    function formatQtyInputs() {
+        document.querySelectorAll('.qty-input').forEach(input => {
+            input.value = formatQty(input.value);
+        });
+    }
+
+    function prepareQtyForSubmit() {
+        document.querySelectorAll('.qty-input').forEach(input => {
+            input.value = normalizeQty(input.value);
+        });
+    }
+
     function updateOutputUnit() {
         const option = productSelect.options[productSelect.selectedIndex];
         outputUnit.textContent = option?.dataset.unit || '-';
@@ -304,7 +332,7 @@ document.addEventListener('DOMContentLoaded', function () {
         product.value = item.product_id || '';
         unit.innerHTML = unitOptions(product.value, item.unit_id || '');
         unit.disabled = !product.value;
-        qty.value = item.qty ?? '';
+        qty.value = formatQty(item.qty ?? '');
 
         product.addEventListener('change', function () {
             unit.innerHTML = unitOptions(this.value);
@@ -324,6 +352,23 @@ document.addEventListener('DOMContentLoaded', function () {
         addMaterialRow();
         updateOutputUnit();
     }
+
+    form.addEventListener('submit', function () {
+        prepareQtyForSubmit();
+    });
+
+    document.addEventListener('focusin', function (event) {
+        if (event.target.matches('.qty-input')) {
+            event.target.value = normalizeQty(event.target.value);
+            event.target.select();
+        }
+    });
+
+    document.addEventListener('focusout', function (event) {
+        if (event.target.matches('.qty-input')) {
+            event.target.value = formatQty(event.target.value);
+        }
+    });
 
     document.getElementById('btnAddBom').addEventListener('click', function () {
         resetForm();
@@ -364,7 +409,7 @@ document.addEventListener('DOMContentLoaded', function () {
             productSelect.value = data.product_id;
             document.getElementById('bomCode').value = data.code;
             document.getElementById('bomName').value = data.name;
-            document.getElementById('bomOutput').value = data.output_qty;
+            document.getElementById('bomOutput').value = formatQty(data.output_qty);
             rows.innerHTML = '';
 
             (data.items || []).forEach(item => addMaterialRow(item));
