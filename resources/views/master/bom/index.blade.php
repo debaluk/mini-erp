@@ -1,14 +1,23 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-    <div>
-        <h4 class="mb-1">Master BOM</h4>
-        <div class="text-secondary small">Formula produksi: produk jadi, output standar, dan kebutuhan material.</div>
+<div class="card border-0 shadow-sm mb-4 overflow-hidden">
+    <div class="card-body p-4 text-white" style="background: linear-gradient(120deg, #123b67 0%, #176b87 55%, #238a9b 100%);">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-3 d-flex align-items-center justify-content-center bg-white bg-opacity-25" style="width:56px;height:56px;">
+                    <i class="bi bi-diagram-3-fill fs-2"></i>
+                </div>
+                <div>
+                    <h4 class="mb-1 fw-bold">Master Formula / BOM</h4>
+                    <div class="small text-white-50">Standar resep produksi — produk jadi, output, dan kebutuhan material.</div>
+                </div>
+            </div>
+            <button type="button" class="btn btn-light text-primary fw-semibold shadow-sm" id="btnAddBom">
+                <i class="bi bi-plus-circle-fill me-1"></i> Tambah BOM
+            </button>
+        </div>
     </div>
-    <button type="button" class="btn btn-primary" id="btnAddBom">
-        <i class="bi bi-plus-lg me-1"></i> Tambah BOM
-    </button>
 </div>
 
 @if(session('success'))
@@ -30,14 +39,14 @@
 @endif
 
 <div class="card border-0 shadow-sm">
-    <div class="card-header bg-white d-flex justify-content-between align-items-center">
-        <div class="fw-semibold">Daftar BOM</div>
-        <span class="text-secondary small">{{ $boms->total() }} BOM</span>
+    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
+        <div class="fw-semibold"><i class="bi bi-list-ul me-2 text-info"></i>Daftar Formula Produksi</div>
+        <span class="badge rounded-pill text-bg-info">{{ $boms->total() }} BOM</span>
     </div>
 
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
-            <thead class="table-light">
+            <thead class="table-primary">
                 <tr>
                     <th style="width: 50px;">No</th>
                     <th>Kode</th>
@@ -64,13 +73,13 @@
                         <span class="text-secondary small">{{ $bom->output_unit_code }}</span>
                     </td>
                     <td class="text-center">
-                        <span class="badge text-bg-light border">{{ $bom->items->count() }}</span>
+                        <span class="badge rounded-pill text-bg-info">{{ $bom->items->count() }} bahan</span>
                     </td>
                     <td class="text-center">
                         @if($bom->is_active)
-                            <span class="badge text-bg-success">Aktif</span>
+                            <span class="badge rounded-pill text-bg-success"><i class="bi bi-check-circle-fill me-1"></i>Aktif</span>
                         @else
-                            <span class="badge text-bg-secondary">Nonaktif</span>
+                            <span class="badge rounded-pill text-bg-secondary">Nonaktif</span>
                         @endif
                     </td>
                     <td class="text-end">
@@ -133,16 +142,16 @@
                 @csrf
                 <input type="hidden" name="_method" id="bomMethod" value="POST">
 
-                <div class="modal-header">
+                <div class="modal-header text-white" style="background: linear-gradient(120deg, #123b67, #176b87);">
                     <div>
-                        <h5 class="modal-title mb-1" id="bomModalTitle">Tambah BOM</h5>
-                        <div class="text-secondary small">BOM hanya berisi material/bahan produksi.</div>
+                        <h5 class="modal-title mb-1 fw-bold" id="bomModalTitle"><i class="bi bi-diagram-3-fill me-2"></i>Tambah BOM</h5>
+                        <div class="small text-white-50">BOM hanya berisi material/bahan produksi.</div>
                     </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
 
                 <div class="modal-body">
-                    <div class="card border bg-light-subtle mb-3">
+                    <div class="card border-0 shadow-sm bg-primary bg-opacity-10 mb-3">
                         <div class="card-body">
                             <div class="row g-3">
                                 <div class="col-lg-5">
@@ -178,9 +187,9 @@
                     </div>
 
                     <div class="border rounded-3">
-                        <div class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center">
+                        <div class="px-3 py-3 border-bottom bg-info bg-opacity-10 d-flex justify-content-between align-items-center">
                             <div>
-                                <div class="fw-semibold">Material / Bahan Baku</div>
+                                <div class="fw-semibold text-primary"><i class="bi bi-box-seam-fill me-2"></i>Material / Bahan Baku</div>
                                 <div class="text-secondary small">Satuan mengikuti base unit atau konversi produk.</div>
                             </div>
                             <button type="button" class="btn btn-outline-primary btn-sm" id="addMaterial">
@@ -208,7 +217,7 @@
 
                 <div class="modal-footer">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="btn btn-success px-4">
                         <i class="bi bi-check-lg me-1"></i><span id="bomSubmitText">Simpan BOM</span>
                     </button>
                 </div>
