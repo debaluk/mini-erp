@@ -389,6 +389,7 @@ class PurchaseInvoiceController extends Controller
                     $receiptRequest = Request::create('/inventori/penerimaan', 'POST', [
                         'purchase_id' => $purchase->id,
                         'warehouse_id' => $warehouseId,
+                        'journal' => true,
                         'receipt_date' => $purchase->purchase_date,
                         'memo' => 'Penerimaan langsung dari Faktur '.$purchase->purchase_no,
                         'items' => $items->map(fn ($item) => [
