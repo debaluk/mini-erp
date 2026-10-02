@@ -73,7 +73,7 @@ class PurchaseReturnController extends Controller
 
         $rows = $query
             ->select(
-                'r.id', 'r.return_no', 'r.return_date', 'r.total', 'r.status',
+                'r.id', 'r.return_no', 'r.return_date', 'r.status',
                 DB::raw("(SELECT p.purchase_no FROM purchase_return_items pri JOIN purchase_items pi ON pi.id = pri.purchase_item_id JOIN purchases p ON p.id = pi.purchase_id WHERE pri.purchase_return_id = r.id ORDER BY pri.id LIMIT 1) as invoice_no"),
                 DB::raw("COALESCE(s.name, '-') as supplier_name"),
                 DB::raw("COALESCE(w.name, '-') as warehouse_name"),
