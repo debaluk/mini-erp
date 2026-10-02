@@ -130,8 +130,10 @@ Route::middleware('auth')->group(function () {
     Route::middleware(['auth', 'access:inventori'])->prefix('inventori/pembelian/retur')->name('inventori.pembelian.retur')->group(function () {
         Route::get('/', [PurchaseReturnController::class, 'index'])->name('');
         Route::get('/data', [PurchaseReturnController::class, 'data'])->name('.data');
+        Route::get('/print-list', [PurchaseReturnController::class, 'printList'])->name('.print-list');
         Route::post('/', [PurchaseReturnController::class, 'store'])->name('.store');
         Route::get('/{id}', [PurchaseReturnController::class, 'show'])->name('.show');
+        Route::get('/{id}/print', [PurchaseReturnController::class, 'printDetail'])->name('.print');
         Route::post('/{id}/post', [PurchaseReturnController::class, 'post'])->name('.post');
     });
 
