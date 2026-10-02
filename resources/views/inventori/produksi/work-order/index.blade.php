@@ -181,6 +181,22 @@
 @endsection
 
 @push('styles')
+<style>
+    #createWoModal .modal-dialog {
+        max-height: calc(100vh - 1rem);
+        margin-top: .5rem;
+        margin-bottom: .5rem;
+    }
+
+    #createWoModal .modal-content {
+        max-height: calc(100vh - 1rem);
+    }
+
+    #createWoModal .modal-body {
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+</style>
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
 @endpush
 
