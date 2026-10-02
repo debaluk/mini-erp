@@ -544,7 +544,38 @@ class PurchaseInvoiceController extends Controller
                 ->get();
         }
 
-        return view('inventori.pembelian.faktur.show', compact('p', 'items', 'journals', 'warehouse'));
+        foreach ($items as $item) {
+            $receivedBase = (float) DB::table('receipt_items')
+                ->where('purchase_item_id', $item->id)
+                ->sum('base_qty');
+
+            $returnedBase = (float) DB::table('purchase_return_items as pri')
+                ->join('purchase_returns as pr', 'pr.id', '=', 'pri.purchase_return_id')
+                ->where('pr.purchase_id', $id)
+                ->where('pri.purchase_item_id', $item->id)
+                ->where('pr.status', 'posted')
+                ->sum('pri.base_qty');
+
+            $factor = (float) ($item->conversion_factor ?: 1);
+            $basePerUnit = (float) $item->qty > 0
+                ? (float) ($item->base_qty ?: ($item->qty * $factor)) / (float) $item->qty
+                : $factor;
+
+            $item->returnable_qty = max(0, ($receivedBase - $returnedBase) / max($basePerUnit, 0.0000001));
+        }
+
+        $purchaseReturns = DB::table('purchase_returns as r')
+            ->leftJoin('users as u', 'u.id', '=', 'r.user_id')
+            ->where('r.purchase_id', $id)
+            ->select(
+                'r.id', 'r.return_no', 'r.return_date', 'r.total', 'r.status',
+                DB::raw("COALESCE(u.name, '-') as user_name"),
+                DB::raw("(SELECT COALESCE(SUM(pri.qty), 0) FROM purchase_return_items pri WHERE pri.purchase_return_id = r.id) as return_qty")
+            )
+            ->orderByDesc('r.id')
+            ->get();
+
+        return view('inventori.pembelian.faktur.show', compact('p', 'items', 'journals', 'warehouse', 'purchaseReturns'));
     }
 
     public function destroy($id)
