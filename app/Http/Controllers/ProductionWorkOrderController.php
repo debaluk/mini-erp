@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\ProductionWorkOrderExport;
+use App\Helpers\FormatHelper;
 
 class ProductionWorkOrderController extends Controller
 {
@@ -168,6 +169,11 @@ class ProductionWorkOrderController extends Controller
 
     public function store(Request $request)
     {
+        $request->merge([
+            'worker_amount' => collect($request->input('worker_amount', []))->map(fn ($value) => FormatHelper::parse($value))->all(),
+            'cost_amount' => collect($request->input('cost_amount', []))->map(fn ($value) => FormatHelper::parse($value))->all(),
+        ]);
+
         $data = $request->validate([
             'wo_date' => ['required', 'date'],
             'business_unit_id' => ['required', 'integer'],
