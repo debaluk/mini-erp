@@ -1,23 +1,14 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="card border-0 shadow-sm mb-4 overflow-hidden">
-    <div class="card-body p-4 text-white" style="background: linear-gradient(120deg, #123b67 0%, #176b87 55%, #238a9b 100%);">
-        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-            <div class="d-flex align-items-center gap-3">
-                <div class="rounded-3 d-flex align-items-center justify-content-center bg-white bg-opacity-25" style="width:56px;height:56px;">
-                    <i class="bi bi-diagram-3-fill fs-2"></i>
-                </div>
-                <div>
-                    <h4 class="mb-1 fw-bold">Master Formula / BOM</h4>
-                    <div class="small text-white-50">Standar resep produksi — produk jadi, output, dan kebutuhan material.</div>
-                </div>
-            </div>
-            <button type="button" class="btn btn-light text-primary fw-semibold shadow-sm" id="btnAddBom">
-                <i class="bi bi-plus-circle-fill me-1"></i> Tambah BOM
-            </button>
-        </div>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+        <h4 class="mb-1">Master Formula / BOM</h4>
+        <div class="text-secondary small">Standar resep produksi — produk jadi, output, dan kebutuhan material.</div>
     </div>
+    <button type="button" class="btn btn-primary" id="btnAddBom">
+        <i class="bi bi-plus-lg me-1"></i> Tambah BOM
+    </button>
 </div>
 
 @if(session('success'))
