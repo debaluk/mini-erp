@@ -39,6 +39,12 @@ class ProductionWorkOrderController extends Controller
             ->orderBy('w.name')
             ->get();
 
+        $businessUnits = DB::table('business_units')
+            ->where('entity_id', $entityId)
+            ->where('business_type', 'production')
+            ->orderBy('name')
+            ->get(['id', 'code', 'name']);
+
         $workers = DB::table('workers')
             ->where('entity_id', $entityId)
             ->where('is_active', 1)
@@ -76,6 +82,7 @@ class ProductionWorkOrderController extends Controller
         return view('inventori.produksi.work-order.index', compact(
             'boms',
             'warehouses',
+            'businessUnits',
             'workers',
             'rows',
             'workerCounts'
