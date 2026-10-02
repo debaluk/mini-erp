@@ -190,6 +190,7 @@ class ReceiptController extends Controller
         $data = $request->validate([
             'purchase_id' => ['nullable', 'integer'],
             'po_id' => ['nullable', 'integer'],
+            'journal' => ['nullable', 'boolean'],
             'warehouse_id' => ['required', 'integer'],
             'receipt_date' => ['nullable', 'date'],
             'memo' => ['nullable', 'string'],
@@ -203,8 +204,9 @@ class ReceiptController extends Controller
 
         $entityId = $this->entityId();
         $userId = auth()->id();
+        $createJournal = array_key_exists('journal', $data) ? (bool) $data['journal'] : true;
 
-        DB::transaction(function () use ($data, $entityId, $userId): void {
+        DB::transaction(function () use ($data, $entityId, $userId, $createJournal): void {
             $purchase = null;
             $po = null;
 
@@ -502,38 +504,40 @@ class ReceiptController extends Controller
                 ]);
             }
 
-            $mapping = DB::table('business_unit_account_mappings')
-                ->where('business_unit_id', $purchase->business_unit_id)
-                ->whereIn('mapping_key', ['inventory', 'payable', 'cash', 'bank'])
-                ->pluck('account_id', 'mapping_key');
+            if ($createJournal) {
+                $mapping = DB::table('business_unit_account_mappings')
+                    ->where('business_unit_id', $purchase->business_unit_id)
+                    ->whereIn('mapping_key', ['inventory', 'payable', 'cash', 'bank'])
+                    ->pluck('account_id', 'mapping_key');
 
-            abort_unless(isset($mapping['inventory']), 422, 'Mapping akun inventory belum tersedia.');
+                abort_unless(isset($mapping['inventory']), 422, 'Mapping akun inventory belum tersedia.');
 
-            $creditKey = match (strtolower((string) ($purchase->payment_method ?? 'credit'))) {
-                'cash', 'tunai' => 'cash',
-                'bank', 'transfer', 'qris' => 'bank',
-                default => 'payable',
-            };
+                $creditKey = match (strtolower((string) ($purchase->payment_method ?? 'credit'))) {
+                    'cash', 'tunai' => 'cash',
+                    'bank', 'transfer', 'qris' => 'bank',
+                    default => 'payable',
+                };
 
-            abort_unless(isset($mapping[$creditKey]), 422, 'Mapping akun pembelian belum lengkap.');
+                abort_unless(isset($mapping[$creditKey]), 422, 'Mapping akun pembelian belum lengkap.');
 
-            $journalId = DB::table('journals')->insertGetId([
-                'entity_id' => $entityId,
-                'business_unit_id' => $purchase->business_unit_id,
-                'journal_no' => 'JRN-GRN-'.$receiptId,
-                'journal_date' => $receiptDate,
-                'source_type' => 'receipt',
-                'source_id' => $receiptId,
-                'description' => 'Penerimaan pembelian '.$purchase->purchase_no,
-                'status' => 'posted',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+                $journalId = DB::table('journals')->insertGetId([
+                    'entity_id' => $entityId,
+                    'business_unit_id' => $purchase->business_unit_id,
+                    'journal_no' => 'JRN-GRN-'.$receiptId,
+                    'journal_date' => $receiptDate,
+                    'source_type' => 'receipt',
+                    'source_id' => $receiptId,
+                    'description' => 'Penerimaan pembelian '.$purchase->purchase_no,
+                    'status' => 'posted',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
 
-            DB::table('journal_entries')->insert([
-                ['journal_id' => $journalId, 'account_id' => $mapping['inventory'], 'debit' => round($totalReceivedValue, 2), 'credit' => 0, 'created_at' => now(), 'updated_at' => now()],
-                ['journal_id' => $journalId, 'account_id' => $mapping[$creditKey], 'debit' => 0, 'credit' => round($totalReceivedValue, 2), 'created_at' => now(), 'updated_at' => now()],
-            ]);
+                DB::table('journal_entries')->insert([
+                    ['journal_id' => $journalId, 'account_id' => $mapping['inventory'], 'debit' => round($totalReceivedValue, 2), 'credit' => 0, 'created_at' => now(), 'updated_at' => now()],
+                    ['journal_id' => $journalId, 'account_id' => $mapping[$creditKey], 'debit' => 0, 'credit' => round($totalReceivedValue, 2), 'created_at' => now(), 'updated_at' => now()],
+                ]);
+            }
 
             $totalBasePurchased = DB::table('receipt_items')->where('receipt_id', $receiptId)->sum('base_qty');
             $totalBaseExpected = DB::table('purchase_items')
