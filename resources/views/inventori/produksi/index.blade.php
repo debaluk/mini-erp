@@ -68,7 +68,7 @@
             <hr class="my-4">
 
             <div class="d-flex justify-content-between align-items-center mb-2">
-                <div class="fw-semibold">BUASO — Biaya Aktual Produksi</div>
+                <div class="fw-semibold">BUASO — Biaya Aktual Produksi <span class="text-secondary small fw-normal">(Bahan/B dihitung otomatis dari pemakaian material)</span></div>
                 <button type="button" class="btn btn-outline-secondary btn-sm" id="add-cost">+ Tambah Biaya</button>
             </div>
             <div id="cost-rows">
@@ -76,7 +76,7 @@
                     <div class="col-md-2">
                         <select name="cost_group[]" class="form-select">
                             @foreach($costGroups as $key => $label)
-                                <option value="{{ $key }}">{{ $key }} — {{ $label }}</option>
+                                @if($key !== 'B')<option value="{{ $key }}">{{ $key }} — {{ $label }}</option>@endif
                             @endforeach
                         </select>
                     </div>
