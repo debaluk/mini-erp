@@ -127,23 +127,23 @@
 </div>
 
 <div class="modal fade" id="bomModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable modal-fullscreen-md-down">
         <div class="modal-content">
             <form method="POST" id="bomForm">
                 @csrf
                 <input type="hidden" name="_method" id="bomMethod" value="POST">
 
-                <div class="modal-header text-white" style="background: linear-gradient(120deg, #123b67, #176b87);">
+                <div class="modal-header">
                     <div>
-                        <h5 class="modal-title mb-1 fw-bold" id="bomModalTitle"><i class="bi bi-diagram-3-fill me-2"></i>Tambah BOM</h5>
-                        <div class="small text-white-50">BOM hanya berisi material/bahan produksi.</div>
+                        <h5 class="modal-title mb-1" id="bomModalTitle">Tambah BOM</h5>
+                        <div class="text-secondary small">BOM hanya berisi material/bahan produksi.</div>
                     </div>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close " data-bs-dismiss="modal"></button>
                 </div>
 
                 <div class="modal-body">
-                    <div class="card border-0 shadow-sm bg-primary bg-opacity-10 mb-3">
-                        <div class="card-body">
+                    <div class="mb-4">
+                        <div>
                             <div class="row g-3">
                                 <div class="col-lg-5">
                                     <label class="form-label">Produk Jadi</label>
@@ -177,10 +177,10 @@
                         </div>
                     </div>
 
-                    <div class="border rounded-3">
-                        <div class="px-3 py-3 border-bottom bg-info bg-opacity-10 d-flex justify-content-between align-items-center">
+                    <div class="border-top pt-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
                             <div>
-                                <div class="fw-semibold text-primary"><i class="bi bi-box-seam-fill me-2"></i>Material / Bahan Baku</div>
+                                <div class="fw-semibold">Material / Bahan Baku</div>
                                 <div class="text-secondary small">Satuan mengikuti base unit atau konversi produk.</div>
                             </div>
                             <button type="button" class="btn btn-outline-primary btn-sm" id="addMaterial">
@@ -188,7 +188,7 @@
                             </button>
                         </div>
 
-                        <div class="p-3">
+                        <div>
                             <div class="table-responsive">
                                 <table class="table table-sm align-middle mb-0">
                                     <thead class="table-light">
@@ -206,7 +206,7 @@
                     </div>
                 </div>
 
-                <div class="modal-footer">
+                <div class="modal-footer bg-light">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
                     <button type="submit" class="btn btn-success px-4">
                         <i class="bi bi-check-lg me-1"></i><span id="bomSubmitText">Simpan BOM</span>
