@@ -37,7 +37,7 @@ return new class extends Migration
             $table->text('notes')->nullable();
             $table->timestamps();
 
-            $table->unique(['production_work_order_id', 'worker_id']);
+            $table->unique(['production_work_order_id', 'worker_id'], 'pwo_workers_unique');
             $table->index(['worker_id']);
         });
     }
