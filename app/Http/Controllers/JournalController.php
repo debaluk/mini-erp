@@ -101,6 +101,9 @@ class JournalController extends Controller
             'stock_adjustment_loss', 'stock_adjustment_gain' => DB::table('stock_adjustments')
                 ->where('id', $journal->source_id)
                 ->value('adjustment_no'),
+            'cash_in' => DB::table('cash_bank_transactions')
+                ->where('id', $journal->source_id)
+                ->value('transaction_no'),
             default => null,
         };
 
