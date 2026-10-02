@@ -551,7 +551,8 @@ class PurchaseInvoiceController extends Controller
 
             $returnedBase = (float) DB::table('purchase_return_items as pri')
                 ->join('purchase_returns as pr', 'pr.id', '=', 'pri.purchase_return_id')
-                ->where('pr.purchase_id', $id)
+                ->join('purchase_items as rpi', 'rpi.id', '=', 'pri.purchase_item_id')
+                ->where('rpi.purchase_id', $id)
                 ->where('pri.purchase_item_id', $item->id)
                 ->where('pr.status', 'posted')
                 ->sum('pri.base_qty');
