@@ -30,9 +30,9 @@
 @endif
 
 <div class="card border-0 shadow-sm">
-    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
-        <div class="fw-semibold"><i class="bi bi-list-ul me-2 text-info"></i>Daftar Formula Produksi</div>
-        <span class="badge rounded-pill text-bg-info">{{ $boms->total() }} BOM</span>
+    <div class="card-header bg-primary bg-opacity-10 text-primary border-bottom d-flex justify-content-between align-items-center py-3">
+        <div class="fw-semibold"><i class="bi bi-list-ul me-2"></i>Daftar Formula Produksi</div>
+        <span class="badge rounded-pill bg-white text-primary border border-primary-subtle">{{ $boms->total() }} BOM</span>
     </div>
 
     <div class="table-responsive">
@@ -120,7 +120,7 @@
     </div>
 
     @if($boms->hasPages())
-        <div class="card-footer bg-white d-flex justify-content-end">
+        <div class="card-footer bg-light d-flex justify-content-end">
             {{ $boms->links() }}
         </div>
     @endif
