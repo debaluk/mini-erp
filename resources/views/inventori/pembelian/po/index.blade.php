@@ -222,6 +222,21 @@
     </div>
 </div>
 
+<!-- MODAL PENERIMAAN BARANG -->
+<div class="modal fade" id="modal-penerimaan-po" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-success text-white py-2">
+                <h5 class="modal-title fw-bold"><i class="bi bi-box-arrow-in-down me-2"></i> Penerimaan Barang</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4" id="penerimaan-po-body">
+                <div class="text-center py-5 text-muted"><div class="spinner-border spinner-border-sm me-2"></div> Memuat penerimaan...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- SweetAlert2 & DataTables JS -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
@@ -271,7 +286,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     // Tombol Penerimaan Barang (Trigger jika status Approved / Partial)
                     if (['approved', 'partial'].includes(row.status)) {
-                        actions += `<a href="{{ url('/inventori/penerimaan/create') }}?po_id=${row.id}" class="btn btn-success" title="Terima Barang"><i class="bi bi-box-arrow-in-down"></i> Penerimaan</a>`;
+                        actions += `<button type="button" class="btn btn-success btn-penerimaan-po" data-id="${row.id}" data-no="${row.po_no}" title="Terima Barang"><i class="bi bi-box-arrow-in-down"></i> Penerimaan</button>`;
                     }
 
                     // Tombol Approve (Hanya Draft)
@@ -433,6 +448,77 @@ document.addEventListener('DOMContentLoaded', function () {
             error: function (xhr) {
                 Swal.fire({ icon: 'error', title: 'Gagal!', text: xhr.responseJSON?.message || 'Terjadi kesalahan sistem' });
             }
+        });
+    });
+
+    // Action Penerimaan Barang - buka sebagai modal, bukan halaman detail
+    $(document).on('click', '.btn-penerimaan-po', function () {
+        const id = $(this).data('id');
+        const no = $(this).data('no');
+        const modalEl = document.getElementById('modal-penerimaan-po');
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        const body = $('#penerimaan-po-body');
+
+        body.html('<div class="text-center py-5 text-muted"><div class="spinner-border spinner-border-sm me-2"></div> Memuat penerimaan...</div>');
+        modal.show();
+
+        fetch(`{{ url('/inventori/penerimaan/create') }}?po_id=${id}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(response => response.text())
+            .then(html => {
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                const form = doc.querySelector('#receiptForm');
+                const error = doc.querySelector('.alert-danger');
+
+                if (!form) {
+                    throw new Error('Form Penerimaan tidak ditemukan.');
+                }
+
+                body.html(form.outerHTML);
+
+                if (error) {
+                    Swal.fire({ icon: 'error', title: 'Gagal', text: error.textContent.trim() });
+                }
+            })
+            .catch(error => {
+                body.html('<div class="alert alert-danger mb-0">Gagal memuat form penerimaan.</div>');
+                Swal.fire({ icon: 'error', title: 'Gagal', text: error.message });
+            });
+    });
+
+    // Submit Penerimaan dari modal
+    $(document).on('submit', '#penerimaan-po-body #receiptForm', function (e) {
+        e.preventDefault();
+        const form = this;
+        const button = form.querySelector('#saveReceipt');
+        if (button) button.disabled = true;
+
+        fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(response => response.text())
+        .then(html => {
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const updatedForm = doc.querySelector('#receiptForm');
+            const error = doc.querySelector('.alert-danger');
+
+            if (updatedForm) {
+                body = $('#penerimaan-po-body');
+                body.html(updatedForm.outerHTML);
+                if (error) {
+                    Swal.fire({ icon: 'error', title: 'Gagal', text: error.textContent.trim() });
+                }
+                return;
+            }
+
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modal-penerimaan-po')).hide();
+            table.ajax.reload(null, false);
+            Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Penerimaan berhasil diposting.', timer: 1800, showConfirmButton: false });
+        })
+        .catch(error => {
+            if (button) button.disabled = false;
+            Swal.fire({ icon: 'error', title: 'Gagal', text: error.message || 'Penerimaan gagal diproses.' });
         });
     });
 
