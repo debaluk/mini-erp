@@ -43,12 +43,10 @@ class PurchaseReturnController extends Controller
         $end = $request->input('end_date', now()->endOfMonth()->toDateString());
 
         $query = DB::table('purchase_returns as r')
-            ->join('purchases as p', 'p.id', '=', 'r.purchase_id')
             ->leftJoin('suppliers as s', 's.id', '=', 'r.supplier_id')
             ->leftJoin('warehouses as w', 'w.id', '=', 'r.warehouse_id')
             ->leftJoin('users as u', 'u.id', '=', 'r.user_id')
             ->where('r.entity_id', $entity)
-            ->whereNull('p.deleted_at')
             ->whereBetween('r.return_date', [$start.' 00:00:00', $end.' 23:59:59']);
 
         $recordsTotal = (clone $query)->count('r.id');
@@ -58,9 +56,16 @@ class PurchaseReturnController extends Controller
             $query->where(function ($q) use ($search) {
                 $like = '%'.$search.'%';
                 $q->where('r.return_no', 'like', $like)
-                    ->orWhere('p.purchase_no', 'like', $like)
                     ->orWhere('s.name', 'like', $like)
-                    ->orWhere('w.name', 'like', $like);
+                    ->orWhere('w.name', 'like', $like)
+                    ->orWhereExists(function ($sub) use ($like) {
+                        $sub->select(DB::raw(1))
+                            ->from('purchase_return_items as pri')
+                            ->join('purchase_items as pi', 'pi.id', '=', 'pri.purchase_item_id')
+                            ->join('purchases as p', 'p.id', '=', 'pi.purchase_id')
+                            ->whereColumn('pri.purchase_return_id', 'r.id')
+                            ->where('p.purchase_no', 'like', $like);
+                    });
             });
         }
 
@@ -69,7 +74,7 @@ class PurchaseReturnController extends Controller
         $rows = $query
             ->select(
                 'r.id', 'r.return_no', 'r.return_date', 'r.total', 'r.status',
-                'p.purchase_no as invoice_no',
+                DB::raw("(SELECT p.purchase_no FROM purchase_return_items pri JOIN purchase_items pi ON pi.id = pri.purchase_item_id JOIN purchases p ON p.id = pi.purchase_id WHERE pri.purchase_return_id = r.id ORDER BY pri.id LIMIT 1) as invoice_no"),
                 DB::raw("COALESCE(s.name, '-') as supplier_name"),
                 DB::raw("COALESCE(w.name, '-') as warehouse_name"),
                 DB::raw("COALESCE(u.name, '-') as user_name"),
@@ -103,7 +108,7 @@ class PurchaseReturnController extends Controller
 
         $entity = $this->entityId();
 
-        $returnId = DB::transaction(function () use ($data, $entity) {
+        DB::transaction(function () use ($data, $entity) {
             $purchase = DB::table('purchases')
                 ->where('entity_id', $entity)
                 ->where('id', $data['purchase_id'])
@@ -115,23 +120,37 @@ class PurchaseReturnController extends Controller
             abort_unless($purchase->status === 'posted', 422, 'Retur hanya dapat dibuat dari Faktur POSTED.');
             abort_unless((int) $purchase->goods_received === 1, 422, 'Barang pada faktur belum diterima di gudang.');
 
-            $warehouse = DB::table('receipts as r')
-                ->join('warehouses as w', 'w.id', '=', 'r.warehouse_id')
-                ->where('r.entity_id', $entity)
-                ->where('r.purchase_id', $purchase->id)
-                ->where('r.status', 'posted')
-                ->orderBy('r.id')
-                ->first(['w.id', 'w.business_unit_id']);
+            $warehouse = DB::table('receipts')
+                ->where('entity_id', $entity)
+                ->where('purchase_id', $purchase->id)
+                ->where('status', 'posted')
+                ->orderBy('id')
+                ->first(['warehouse_id']);
 
             abort_unless($warehouse, 422, 'Gudang penerimaan faktur tidak ditemukan.');
-            abort_unless((int) $warehouse->business_unit_id === (int) $purchase->business_unit_id, 422, 'Gudang tidak sesuai dengan Business Unit faktur.');
+
+            $returnNo = 'PRT-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4));
+
+            $returnId = DB::table('purchase_returns')->insertGetId([
+                'entity_id' => $entity,
+                'business_unit_id' => $purchase->business_unit_id,
+                'warehouse_id' => $warehouse->warehouse_id,
+                'supplier_id' => $purchase->supplier_id,
+                'user_id' => auth()->id(),
+                'return_no' => $returnNo,
+                'return_date' => $data['return_date'],
+                'reason' => $data['reason'] ?? null,
+                'status' => 'draft',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
 
             $purchaseItems = DB::table('purchase_items')
                 ->where('purchase_id', $purchase->id)
                 ->get()
                 ->keyBy('id');
 
-            $prepared = [];
+            $inserted = 0;
 
             foreach ($data['items'] as $input) {
                 if ($input['qty'] === null || $input['qty'] === '') {
@@ -141,75 +160,65 @@ class PurchaseReturnController extends Controller
                 $item = $purchaseItems->get((int) $input['purchase_item_id']);
                 abort_unless($item, 422, 'Item faktur tidak valid.');
 
+                $qtyRequested = (float) $input['qty'];
                 $factor = (float) ($item->conversion_factor ?: 1);
                 $basePerUnit = (float) $item->qty > 0
                     ? (float) ($item->base_qty ?: ($item->qty * $factor)) / (float) $item->qty
                     : $factor;
-                $qty = (float) $input['qty'];
-                $baseQty = round($qty * $basePerUnit, 6);
+                $requestedBase = round($qtyRequested * $basePerUnit, 6);
 
-                $receivedBase = (float) DB::table('receipt_items')
+                $receiptItems = DB::table('receipt_items')
                     ->where('purchase_item_id', $item->id)
-                    ->sum('base_qty');
+                    ->orderBy('id')
+                    ->get();
 
-                $returnedBase = (float) DB::table('purchase_return_items as pri')
-                    ->join('purchase_returns as pr', 'pr.id', '=', 'pri.purchase_return_id')
-                    ->where('pr.purchase_id', $purchase->id)
-                    ->where('pri.purchase_item_id', $item->id)
-                    ->where('pr.status', 'posted')
-                    ->sum('pri.base_qty');
+                $remaining = $requestedBase;
 
-                abort_if($baseQty > max(0, $receivedBase - $returnedBase) + 0.0000001, 422, 'Qty retur melebihi qty yang sudah diterima dan belum diretur.');
+                foreach ($receiptItems as $receiptItem) {
+                    if ($remaining <= 0.0000001) {
+                        break;
+                    }
 
-                $prepared[] = [
-                    'item' => $item,
-                    'qty' => $qty,
-                    'factor' => $basePerUnit,
-                    'base_qty' => $baseQty,
-                    'condition' => $input['condition'],
-                ];
+                    $alreadyReturned = (float) DB::table('purchase_return_items as pri')
+                        ->join('purchase_returns as pr', 'pr.id', '=', 'pri.purchase_return_id')
+                        ->where('pri.receipt_item_id', $receiptItem->id)
+                        ->where('pr.status', 'posted')
+                        ->sum('pri.base_qty');
+
+                    $available = max(0, (float) $receiptItem->base_qty - $alreadyReturned);
+                    if ($available <= 0.0000001) {
+                        continue;
+                    }
+
+                    $baseQty = min($remaining, $available);
+                    $receiptFactor = (float) ($receiptItem->conversion_factor ?: $factor);
+                    $qty = $receiptFactor > 0 ? $baseQty / $receiptFactor : $baseQty;
+
+                    DB::table('purchase_return_items')->insert([
+                        'purchase_return_id' => $returnId,
+                        'receipt_item_id' => $receiptItem->id,
+                        'purchase_item_id' => $item->id,
+                        'product_id' => $item->product_id,
+                        'unit_id' => $receiptItem->unit_id ?: $item->unit_id,
+                        'qty' => $qty,
+                        'conversion_factor' => $receiptFactor,
+                        'base_qty' => $baseQty,
+                        'unit_value' => 0,
+                        'return_value' => 0,
+                        'tax_amount' => 0,
+                        'condition' => $input['condition'] ?? 'good',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+
+                    $inserted++;
+                    $remaining -= $baseQty;
+                }
+
+                abort_if($remaining > 0.0000001, 422, 'Qty retur melebihi qty yang sudah diterima dan belum diretur.');
             }
 
-            abort_if(empty($prepared), 422, 'Minimal satu item retur harus diisi.');
-
-            $returnNo = 'PRT-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4));
-
-            $returnId = DB::table('purchase_returns')->insertGetId([
-                'entity_id' => $entity,
-                'business_unit_id' => $purchase->business_unit_id,
-                'purchase_id' => $purchase->id,
-                'supplier_id' => $purchase->supplier_id,
-                'warehouse_id' => $warehouse->id,
-                'user_id' => auth()->id(),
-                'return_no' => $returnNo,
-                'return_date' => $data['return_date'],
-                'total' => 0,
-                'reason' => $data['reason'] ?? null,
-                'status' => 'draft',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            foreach ($prepared as $p) {
-                $item = $p['item'];
-
-                DB::table('purchase_return_items')->insert([
-                    'purchase_return_id' => $returnId,
-                    'purchase_item_id' => $item->id,
-                    'product_id' => $item->product_id,
-                    'unit_id' => $item->unit_id,
-                    'qty' => $p['qty'],
-                    'conversion_factor' => $p['factor'],
-                    'base_qty' => $p['base_qty'],
-                    'unit_cost' => 0,
-                    'total' => 0,
-                    'condition' => $p['condition'],
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-            }
-
-            return $returnId;
+            abort_if($inserted === 0, 422, 'Minimal satu item retur harus diisi.');
         });
 
         return redirect()
@@ -231,9 +240,16 @@ class PurchaseReturnController extends Controller
             abort_unless($return, 404, 'Retur pembelian tidak ditemukan.');
             abort_unless($return->status === 'draft', 422, 'Retur sudah diposting.');
 
+            $purchaseId = DB::table('purchase_return_items as pri')
+                ->join('purchase_items as pi', 'pi.id', '=', 'pri.purchase_item_id')
+                ->where('pri.purchase_return_id', $return->id)
+                ->value('pi.purchase_id');
+
+            abort_unless($purchaseId, 422, 'Faktur sumber retur tidak ditemukan.');
+
             $purchase = DB::table('purchases')
                 ->where('entity_id', $entity)
-                ->where('id', $return->purchase_id)
+                ->where('id', $purchaseId)
                 ->whereNull('deleted_at')
                 ->lockForUpdate()
                 ->first();
@@ -250,18 +266,18 @@ class PurchaseReturnController extends Controller
             $totalValue = 0.0;
 
             foreach ($items as $item) {
-                $receivedBase = (float) DB::table('receipt_items')
-                    ->where('purchase_item_id', $item->purchase_item_id)
-                    ->sum('base_qty');
-
-                $returnedBase = (float) DB::table('purchase_return_items as pri')
+                $alreadyReturned = (float) DB::table('purchase_return_items as pri')
                     ->join('purchase_returns as pr', 'pr.id', '=', 'pri.purchase_return_id')
-                    ->where('pr.purchase_id', $purchase->id)
-                    ->where('pri.purchase_item_id', $item->purchase_item_id)
+                    ->where('pri.receipt_item_id', $item->receipt_item_id)
                     ->where('pr.status', 'posted')
+                    ->where('pri.id', '<>', $item->id)
                     ->sum('pri.base_qty');
 
-                abort_if((float) $item->base_qty > max(0, $receivedBase - $returnedBase) + 0.0000001, 422, 'Qty retur sudah tidak tersedia.');
+                $receivedBase = (float) DB::table('receipt_items')
+                    ->where('id', $item->receipt_item_id)
+                    ->value('base_qty');
+
+                abort_if((float) $item->base_qty > max(0, $receivedBase - $alreadyReturned) + 0.0000001, 422, 'Qty retur sudah tidak tersedia.');
 
                 $stock = DB::table('warehouses_stocks')
                     ->where('entity_id', $entity)
@@ -275,16 +291,15 @@ class PurchaseReturnController extends Controller
 
                 $unitCost = (float) $stock->avg_cost;
                 $value = round((float) $item->base_qty * $unitCost, 2);
-                $newQty = (float) $stock->qty - (float) $item->base_qty;
 
                 DB::table('warehouses_stocks')->where('id', $stock->id)->update([
-                    'qty' => $newQty,
+                    'qty' => (float) $stock->qty - (float) $item->base_qty,
                     'updated_at' => now(),
                 ]);
 
                 DB::table('purchase_return_items')->where('id', $item->id)->update([
-                    'unit_cost' => $unitCost,
-                    'total' => $value,
+                    'unit_value' => $unitCost,
+                    'return_value' => $value,
                     'updated_at' => now(),
                 ]);
 
@@ -293,9 +308,6 @@ class PurchaseReturnController extends Controller
                     'business_unit_id' => $purchase->business_unit_id,
                     'warehouse_id' => $return->warehouse_id,
                     'product_id' => $item->product_id,
-                    'unit_id' => $item->unit_id,
-                    'transaction_qty' => $item->qty,
-                    'conversion_factor' => $item->conversion_factor,
                     'movement_type' => 'purchase_return',
                     'qty' => -abs((float) $item->base_qty),
                     'unit_cost' => $unitCost,
@@ -355,7 +367,6 @@ class PurchaseReturnController extends Controller
             ]);
 
             DB::table('purchase_returns')->where('id', $return->id)->update([
-                'total' => round($totalValue, 2),
                 'status' => 'posted',
                 'posted_at' => now(),
                 'posted_by' => auth()->id(),
@@ -372,16 +383,33 @@ class PurchaseReturnController extends Controller
     {
         $entity = $this->entityId();
 
+        $purchaseId = DB::table('purchase_return_items as pri')
+            ->join('purchase_items as pi', 'pi.id', '=', 'pri.purchase_item_id')
+            ->join('purchase_returns as pr', 'pr.id', '=', 'pri.purchase_return_id')
+            ->where('pr.entity_id', $entity)
+            ->where('pr.id', $id)
+            ->value('pi.purchase_id');
+
+        abort_unless($purchaseId, 404, 'Retur pembelian tidak ditemukan.');
+
         $return = DB::table('purchase_returns as r')
-            ->join('purchases as p', 'p.id', '=', 'r.purchase_id')
             ->leftJoin('suppliers as s', 's.id', '=', 'r.supplier_id')
             ->leftJoin('warehouses as w', 'w.id', '=', 'r.warehouse_id')
             ->where('r.entity_id', $entity)
             ->where('r.id', $id)
-            ->select('r.*', 'p.purchase_no as invoice_no', 's.name as supplier_name', 'w.name as warehouse_name')
+            ->select(
+                'r.*',
+                DB::raw("(SELECT p.purchase_no FROM purchase_return_items pri JOIN purchase_items pi ON pi.id = pri.purchase_item_id JOIN purchases p ON p.id = pi.purchase_id WHERE pri.purchase_return_id = r.id ORDER BY pri.id LIMIT 1) as invoice_no"),
+                's.name as supplier_name',
+                'w.name as warehouse_name'
+            )
             ->first();
 
         abort_unless($return, 404, 'Retur pembelian tidak ditemukan.');
+
+        $return->total = (float) DB::table('purchase_return_items')
+            ->where('purchase_return_id', $id)
+            ->sum('return_value');
 
         $items = DB::table('purchase_return_items as ri')
             ->join('products as p', 'p.id', '=', 'ri.product_id')
