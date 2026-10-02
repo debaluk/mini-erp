@@ -98,6 +98,9 @@ class JournalController extends Controller
             'purchase', 'po' => DB::table('purchases')->where('id', $journal->source_id)->value('purchase_no'),
             'receipt' => DB::table('receipts')->where('id', $journal->source_id)->value('receipt_no'),
             'purchase_return' => DB::table('purchase_returns')->where('id', $journal->source_id)->value('return_no'),
+            'stock_adjustment_loss', 'stock_adjustment_gain' => DB::table('stock_adjustments')
+                ->where('id', $journal->source_id)
+                ->value('adjustment_no'),
             default => null,
         };
 
