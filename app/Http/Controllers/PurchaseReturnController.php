@@ -58,7 +58,7 @@ class PurchaseReturnController extends Controller
             ->leftJoin('suppliers as s', 's.id', '=', 'r.supplier_id')
             ->leftJoin('warehouses as w', 'w.id', '=', 'r.warehouse_id')
             ->leftJoin('users as u', 'u.id', '=', 'r.user_id')
-            ->where('r.entity_id', $entityId)
+            ->where('r.entity_id', $entity)
             ->whereBetween('r.return_date', [$start.' 00:00:00', $end.' 23:59:59']);
 
         if ($businessUnitId) $query->where('r.business_unit_id', $businessUnitId);
