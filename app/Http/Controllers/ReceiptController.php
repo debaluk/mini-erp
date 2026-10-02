@@ -324,7 +324,9 @@ class ReceiptController extends Controller
                 ->first();
 
             abort_unless($warehouse, 422, 'Gudang tidak valid.');
-            abort_unless((int) $warehouse->business_unit_id === (int) $purchase->business_unit_id, 422, 'Gudang harus berada pada unit bisnis pembelian.');
+            if ((int) $warehouse->business_unit_id !== (int) $purchase->business_unit_id) {
+                return back()->withInput()->with('error', 'Gudang harus berada pada unit bisnis pembelian.');
+            }
 
             $receiptNo = 'GRN-'.now()->format('YmdHis').'-'.str()->upper(str()->random(3));
             $receiptDate = CarbonCarbon::parse($data['receipt_date'] ?? now()->toDateString())->format('Y-m-d H:i:s');
