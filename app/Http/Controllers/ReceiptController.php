@@ -175,7 +175,7 @@ class ReceiptController extends Controller
                     DB::raw('COALESCE(ri.received_qty, 0) as received_qty'),
                     DB::raw('(poi.qty - COALESCE(ri.received_qty, 0)) as remaining_qty')
                 )
-                ->havingRaw('(poi.qty - COALESCE(ri.received_qty, 0)) > 0')
+                ->whereRaw('(poi.qty - COALESCE(ri.received_qty, 0)) > 0')
                 ->orderBy('poi.id')
                 ->get();
         }
