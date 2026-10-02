@@ -48,7 +48,7 @@
         <div class="col-6">
             <div class="p-2 border rounded">
                 <table class="table table-borderless table-sm mb-0">
-                    <tr><td style="width: 130px;">Tanggal PO</td><td>: {{ \Carbon\Carbon::parse($po->po_date)->format('d/m/Y') }}</td></tr>
+                    <tr><td style="width: 130px;">Tanggal PO</td><td>: {{ CarbonCarbon::parse($po->po_date)->format('d/m/Y') }}</td></tr>
                     <tr><td>Gudang Tujuan</td><td>: <strong>{{ $po->warehouse_name }}</strong></td></tr>
                     <tr><td>Status PO</td><td>: <strong class="text-uppercase">{{ $po->status }}</strong></td></tr>
                 </table>
@@ -72,7 +72,7 @@
         </thead>
         <tbody>
             @foreach($items as $idx => $i)
-                @php $grandTotal += $i->total; @endphp
+                @php($grandTotal += (float) $i->total)
                 <tr>
                     <td class="text-center">{{ $idx + 1 }}</td>
                     <td class="font-monospace text-center">{{ $i->product_code }}</td>
@@ -93,7 +93,7 @@
     </table>
 
     <div class="mb-4">
-        <div class="small fw-bold">Catatan / Instuksi Pengiriman:</div>
+        <div class="small fw-bold">Catatan / Instruksi Pengiriman:</div>
         <div class="p-2 border bg-light small">{{ $po->memo ?? 'Harap melampirkan Surat Jalan resmi saat pengiriman barang ke gudang tujuan.' }}</div>
     </div>
 
@@ -108,7 +108,7 @@
             <p class="fw-bold text-decoration-underline">( .................... )</p>
         </div>
         <div class="col-4">
-            <p class="mb-5">Konfirmasi Konfirmasi Vendor,</p>
+            <p class="mb-5">Konfirmasi Vendor,</p>
             <p class="fw-bold text-decoration-underline">( {{ $po->supplier_name }} )</p>
         </div>
     </div>
