@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use App\Models\BusinessUnit;
+use App\Models\Warehouse;
 
 class PurchaseReturnController extends Controller
 {
@@ -31,9 +33,16 @@ class PurchaseReturnController extends Controller
         return (int) $account->id;
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        return view('inventori.pembelian.retur.index');
+        $startDate = $request->query('start_date', now()->startOfMonth()->toDateString());
+        $endDate = $request->query('end_date', now()->endOfMonth()->toDateString());
+        $businessUnitId = $request->query('business_unit_id');
+        $warehouseId = $request->query('warehouse_id');
+        $businessUnits = BusinessUnit::where('is_active', 1)->orderBy('code')->get();
+        $warehouses = Warehouse::where('is_active', 1)->orderBy('name')->get();
+
+        return view('inventori.pembelian.retur.index', compact('businessUnits', 'warehouses', 'startDate', 'endDate', 'businessUnitId', 'warehouseId'));
     }
 
     public function data(Request $request)
@@ -41,13 +50,19 @@ class PurchaseReturnController extends Controller
         $entity = $this->entityId();
         $start = $request->input('start_date', now()->startOfMonth()->toDateString());
         $end = $request->input('end_date', now()->endOfMonth()->toDateString());
+        $businessUnitId = $request->input('business_unit_id');
+        $warehouseId = $request->input('warehouse_id');
 
         $query = DB::table('purchase_returns as r')
+            ->leftJoin('business_units as bu', 'bu.id', '=', 'r.business_unit_id')
             ->leftJoin('suppliers as s', 's.id', '=', 'r.supplier_id')
             ->leftJoin('warehouses as w', 'w.id', '=', 'r.warehouse_id')
             ->leftJoin('users as u', 'u.id', '=', 'r.user_id')
             ->where('r.entity_id', $entity)
             ->whereBetween('r.return_date', [$start.' 00:00:00', $end.' 23:59:59']);
+
+        if ($businessUnitId) $query->where('r.business_unit_id', $businessUnitId);
+        if ($warehouseId) $query->where('r.warehouse_id', $warehouseId);
 
         $recordsTotal = (clone $query)->count('r.id');
 
@@ -75,11 +90,13 @@ class PurchaseReturnController extends Controller
             ->select(
                 'r.id', 'r.return_no', 'r.return_date', 'r.status',
                 DB::raw("(SELECT p.purchase_no FROM purchase_return_items pri JOIN purchase_items pi ON pi.id = pri.purchase_item_id JOIN purchases p ON p.id = pi.purchase_id WHERE pri.purchase_return_id = r.id ORDER BY pri.id LIMIT 1) as invoice_no"),
+                DB::raw("COALESCE(bu.name, '-') as business_unit_name"),
                 DB::raw("COALESCE(s.name, '-') as supplier_name"),
                 DB::raw("COALESCE(w.name, '-') as warehouse_name"),
                 DB::raw("COALESCE(u.name, '-') as user_name"),
                 DB::raw("(SELECT GROUP_CONCAT(DISTINCT pr.name ORDER BY pr.name SEPARATOR ', ') FROM purchase_return_items pri JOIN products pr ON pr.id = pri.product_id WHERE pri.purchase_return_id = r.id) as product_names"),
-                DB::raw("(SELECT COALESCE(SUM(pri.qty), 0) FROM purchase_return_items pri WHERE pri.purchase_return_id = r.id) as return_qty")
+                DB::raw("(SELECT COALESCE(SUM(pri.qty), 0) FROM purchase_return_items pri WHERE pri.purchase_return_id = r.id) as return_qty"),
+                DB::raw("(SELECT COALESCE(SUM(pri.return_value), 0) FROM purchase_return_items pri WHERE pri.purchase_return_id = r.id) as total")
             )
             ->orderByDesc('r.return_date')
             ->skip(max(0, (int) $request->input('start', 0)))
@@ -377,6 +394,61 @@ class PurchaseReturnController extends Controller
         return redirect()
             ->route('inventori.pembelian.retur')
             ->with('swal_success', 'Retur Pembelian berhasil diposting.');
+    }
+
+    public function printList(Request $request)
+    {
+        $entity = DB::table('entities')->where('id', $this->entityId())->first();
+        $startDate = $request->query('start_date', now()->startOfMonth()->toDateString());
+        $endDate = $request->query('end_date', now()->endOfMonth()->toDateString());
+        $businessUnitId = $request->query('business_unit_id');
+        $warehouseId = $request->query('warehouse_id');
+
+        $query = DB::table('purchase_returns as r')
+            ->leftJoin('business_units as bu', 'bu.id', '=', 'r.business_unit_id')
+            ->leftJoin('suppliers as s', 's.id', '=', 'r.supplier_id')
+            ->leftJoin('warehouses as w', 'w.id', '=', 'r.warehouse_id')
+            ->leftJoin('users as u', 'u.id', '=', 'r.user_id')
+            ->where('r.entity_id', $entity)
+            ->whereBetween('r.return_date', [$startDate.' 00:00:00', $endDate.' 23:59:59']);
+
+        if ($businessUnitId) $query->where('r.business_unit_id', $businessUnitId);
+        if ($warehouseId) $query->where('r.warehouse_id', $warehouseId);
+
+        $returns = $query->select(
+            'r.*', 'bu.name as business_unit_name', 's.name as supplier_name',
+            'w.name as warehouse_name', 'u.name as user_name',
+            DB::raw("(SELECT p.purchase_no FROM purchase_return_items pri JOIN purchase_items pi ON pi.id = pri.purchase_item_id JOIN purchases p ON p.id = pi.purchase_id WHERE pri.purchase_return_id = r.id ORDER BY pri.id LIMIT 1) as invoice_no"),
+            DB::raw("(SELECT COALESCE(SUM(pri.qty), 0) FROM purchase_return_items pri WHERE pri.purchase_return_id = r.id) as return_qty"),
+            DB::raw("(SELECT COALESCE(SUM(pri.return_value), 0) FROM purchase_return_items pri WHERE pri.purchase_return_id = r.id) as total")
+        )->orderByDesc('r.return_date')->orderByDesc('r.id')->get();
+
+        return view('inventori.pembelian.retur.print-list', compact('entity', 'returns', 'startDate', 'endDate', 'businessUnitId', 'warehouseId'));
+    }
+
+    public function printDetail(int $id)
+    {
+        $entity = DB::table('entities')->where('id', $this->entityId())->first();
+        $return = DB::table('purchase_returns as r')
+            ->leftJoin('business_units as bu', 'bu.id', '=', 'r.business_unit_id')
+            ->leftJoin('suppliers as s', 's.id', '=', 'r.supplier_id')
+            ->leftJoin('warehouses as w', 'w.id', '=', 'r.warehouse_id')
+            ->leftJoin('users as u', 'u.id', '=', 'r.user_id')
+            ->where('r.entity_id', $entity->id)->where('r.id', $id)
+            ->select('r.*', 'bu.name as business_unit_name', 's.name as supplier_name', 's.address as supplier_address', 's.phone as supplier_phone', 'w.name as warehouse_name', 'u.name as user_name',
+                DB::raw("(SELECT p.purchase_no FROM purchase_return_items pri JOIN purchase_items pi ON pi.id = pri.purchase_item_id JOIN purchases p ON p.id = pi.purchase_id WHERE pri.purchase_return_id = r.id ORDER BY pri.id LIMIT 1) as invoice_no"))
+            ->firstOrFail();
+
+        $items = DB::table('purchase_return_items as ri')
+            ->join('products as p', 'p.id', '=', 'ri.product_id')
+            ->leftJoin('units as u', 'u.id', '=', 'ri.unit_id')
+            ->where('ri.purchase_return_id', $id)
+            ->select('ri.*', 'p.code as product_code', 'p.name as product_name', 'u.name as unit_name')
+            ->orderBy('ri.id')->get();
+
+        $return->total = (float) $items->sum('return_value');
+
+        return view('inventori.pembelian.retur.print-detail', compact('entity', 'return', 'items'));
     }
 
     public function show(int $id)
