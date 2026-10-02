@@ -127,12 +127,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/inventori/penjualan/{id}', [SalesController::class, 'show'])->middleware('access:inventori')->name('inventori.penjualan.show');
     Route::get('/inventori/penjualan/{id}/print', [SalesController::class, 'print'])->middleware('access:inventori')->name('inventori.penjualan.print');
 
-    Route::middleware(['auth', 'access:inventori'])->prefix('inventori/pembelian/retur')->name('inventori.pembelian.retur.')->group(function () {
-        Route::get('/', [PurchaseReturnController::class, 'index'])->name('index');
-        Route::get('/data', [PurchaseReturnController::class, 'data'])->name('data');
-        Route::post('/', [PurchaseReturnController::class, 'store'])->name('store');
-        Route::get('/{id}', [PurchaseReturnController::class, 'show'])->name('show');
-        Route::post('/{id}/post', [PurchaseReturnController::class, 'post'])->name('post');
+    Route::middleware(['auth', 'access:inventori'])->prefix('inventori/pembelian/retur')->name('inventori.pembelian.retur')->group(function () {
+        Route::get('/', [PurchaseReturnController::class, 'index'])->name('');
+        Route::get('/data', [PurchaseReturnController::class, 'data'])->name('.data');
+        Route::post('/', [PurchaseReturnController::class, 'store'])->name('.store');
+        Route::get('/{id}', [PurchaseReturnController::class, 'show'])->name('.show');
+        Route::post('/{id}/post', [PurchaseReturnController::class, 'post'])->name('.post');
     });
 
     //Route::get('/inventori/pembelian', [PurchaseController::class, 'index'])->middleware('access:inventori')->name('inventori.pembelian');
