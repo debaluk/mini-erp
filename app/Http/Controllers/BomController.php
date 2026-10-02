@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\FormatHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -167,9 +168,9 @@ class BomController extends Controller
     private function validateAndBuild(Request $request): array
     {
         $request->merge([
-            'output_qty' => parse_id_number($request->input('output_qty')),
+            'output_qty' => FormatHelper::parse($request->input('output_qty')),
             'material_qty' => collect($request->input('material_qty', []))
-                ->map(fn ($value) => parse_id_number($value))
+                ->map(fn ($value) => FormatHelper::parse($value))
                 ->all(),
         ]);
 
