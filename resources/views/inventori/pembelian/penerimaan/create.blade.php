@@ -15,6 +15,13 @@
         Penerimaan Barang dibuat dari <strong>Purchase Order</strong>. Buka PO berstatus APPROVED/PARTIAL lalu klik <strong>Penerimaan</strong>.
     </div>
 @else
+@if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle me-1"></i>{{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    <script>alert(@json(session('error')));</script>
+@endif
 <form method="POST" action="{{ route('inventori.penerimaan.store') }}" id="receiptForm">
     @csrf
     <input type="hidden" name="po_id" value="{{ $po->id }}">
