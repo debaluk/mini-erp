@@ -20,9 +20,6 @@
 @endif
 
 <div class="card border-0 shadow-sm mb-3">
-    <div class="card-header bg-primary bg-opacity-10 text-primary border-bottom py-3">
-        <div class="fw-semibold"><i class="bi bi-funnel me-2"></i>Filter Work Order / SPK</div>
-    </div>
     <div class="card-body">
         <form class="row g-2 align-items-end" method="GET">
             <div class="col-md-2"><label class="form-label small">Dari</label><input type="date" name="date_from" class="form-control" value="{{ request('date_from') }}"></div>
@@ -78,104 +75,6 @@
     </div>
 </div>
 
-<div class="modal fade" id="createWoModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
-<div class="modal-dialog modal-xl modal-dialog-scrollable"><div class="modal-content">
-<form method="POST" action="{{ route('produksi.work-order.store') }}">
-@csrf
-<input type="hidden" name="batch_qty" value="1">
-<div class="modal-header bg-primary bg-opacity-10">
-    <div><h5 class="modal-title text-primary"><i class="bi bi-clipboard-plus me-2"></i>Buat Work Order / SPK</h5><div class="small text-secondary">Pilih BOM, cek target, lalu isi biaya produksi.</div></div>
-    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-</div>
-<div class="modal-body">
-    <div class="card border-0 bg-light mb-3">
-        <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-3"><label class="form-label">Tanggal SPK</label><input type="date" name="wo_date" class="form-control" value="{{ old('wo_date',date('Y-m-d')) }}" required></div>
-                <div class="col-md-4"><label class="form-label">Business Unit</label>
-                    <select name="business_unit_id" id="wo_bu" class="form-select" required><option value="">Pilih BU</option>
-                        @foreach($businessUnits as $bu)<option value="{{ $bu->id }}" @selected(old('business_unit_id') == $bu->id)>{{ $bu->code }} — {{ $bu->name }}</option>@endforeach
-                    </select>
-                </div>
-                <div class="col-md-5"><label class="form-label">Gudang Produksi</label>
-                    <select name="warehouse_id" id="wo_warehouse" class="form-select" required><option value="">Pilih gudang</option>
-                        @foreach($warehouses as $warehouse)<option value="{{ $warehouse->id }}" data-bu="{{ $warehouse->business_unit_id }}">{{ $warehouse->code }} — {{ $warehouse->name }}</option>@endforeach
-                    </select>
-                </div>
-                <div class="col-12"><label class="form-label">BOM / Formula</label>
-                    <select name="bom_id" id="wo_bom" class="form-select" required><option value="">Pilih BOM</option>
-                        @foreach($boms as $bom)<option value="{{ $bom->id }}" data-bu="{{ $bom->business_unit_id }}">{{ $bom->code }} — {{ $bom->name }} ({{ $bom->product_name }})</option>@endforeach
-                    </select>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="bom-info" class="card border-primary mb-4 d-none">
-        <div class="card-header bg-primary bg-opacity-10 text-primary fw-semibold"><i class="bi bi-info-circle me-2"></i>Informasi BOM</div>
-        <div class="card-body">
-            <div class="row g-3 mb-3">
-                <div class="col-md-3"><div class="small text-secondary">Produk</div><div class="fw-semibold" id="bom-product">-</div></div>
-                <div class="col-md-3"><div class="small text-secondary">Kode BOM</div><div class="fw-semibold" id="bom-code">-</div></div>
-                <div class="col-md-3"><div class="small text-secondary">Target Produksi</div><div class="fw-bold text-primary fs-5" id="bom-target">0</div></div>
-                <div class="col-md-3"><div class="small text-secondary">Estimasi Material</div><div class="fw-bold text-success fs-5" id="material-total">Rp 0</div></div>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-sm table-hover align-middle mb-0">
-                    <thead><tr><th>Material</th><th class="text-end">Qty</th><th>Satuan</th><th class="text-end">Harga</th><th class="text-end">Subtotal</th></tr></thead>
-                    <tbody id="bom-material-rows"><tr><td colspan="5" class="text-center text-secondary">Pilih BOM.</td></tr></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <div class="card border-0 shadow-sm mb-3">
-        <div class="card-header bg-primary bg-opacity-10 text-primary d-flex justify-content-between align-items-center">
-            <div><div class="fw-semibold"><i class="bi bi-person-workspace me-2"></i>Tenaga</div><div class="small text-secondary">Pilih pekerja dan isi biaya tenaga.</div></div>
-            <button type="button" class="btn btn-outline-primary btn-sm" id="add-worker"><i class="bi bi-plus-lg me-1"></i>Tambah</button>
-        </div>
-        <div class="card-body" id="worker-rows">
-            <div class="row g-2 mb-2 worker-row">
-                <div class="col-md-7"><select name="worker_id[]" class="form-select worker-select" required><option value="">Pilih pekerja</option>
-                    @foreach($workers as $worker)<option value="{{ $worker->id }}">{{ $worker->code }} — {{ $worker->name }}</option>@endforeach
-                </select></div>
-                <div class="col-md-3"><input type="text" name="worker_amount[]" class="form-control cost-input text-end" inputmode="decimal" placeholder="Biaya" required></div>
-                <div class="col-md-2"><button type="button" class="btn btn-outline-danger w-100 remove-worker"><i class="bi bi-trash"></i></button></div>
-            </div>
-        </div>
-    </div>
-
-    @foreach(['A'=>['Alat','Equipment'],'S'=>['Sewa','Rent'],'O'=>['Overhead','Overhead']] as $group => [$title,$label])
-    <div class="card border-0 shadow-sm mb-3 cost-section" data-group="{{ $group }}">
-        <div class="card-header bg-light d-flex justify-content-between align-items-center">
-            <div class="fw-semibold">{{ $title }} <span class="text-secondary fw-normal">({{ $label }})</span></div>
-            <button type="button" class="btn btn-outline-secondary btn-sm add-cost"><i class="bi bi-plus-lg me-1"></i>Tambah</button>
-        </div>
-        <div class="card-body cost-rows">
-            <div class="row g-2 mb-2 cost-row">
-                <div class="col-md-7"><input type="text" name="cost_description[]" class="form-control" placeholder="Nama {{ strtolower($title) }}"></div>
-                <div class="col-md-3"><input type="text" name="cost_amount[]" class="form-control cost-input text-end" inputmode="decimal" placeholder="Biaya"></div>
-                <div class="col-md-2"><button type="button" class="btn btn-outline-danger w-100 remove-cost"><i class="bi bi-trash"></i></button></div>
-                <input type="hidden" name="cost_group[]" value="{{ $group }}">
-            </div>
-        </div>
-    </div>
-    @endforeach
-
-    <div class="card border-success">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-                <div><div class="small text-secondary">TOTAL BIAYA WO/SPK</div><div class="small text-secondary">Material + Tenaga + Equipment + Rent + Overhead</div></div>
-                <div class="fw-bold text-success fs-4" id="wo-total">Rp 0</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="mt-3"><label class="form-label">Catatan SPK</label><textarea name="notes" class="form-control" rows="3" placeholder="Instruksi atau catatan produksi...">{{ old('notes') }}</textarea></div>
-</div>
-<div class="modal-footer bg-light"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary"><i class="bi bi-check2-circle me-1"></i>Simpan & Terbitkan SPK</button></div>
-</form>
-</div></div></div>
 @endsection
 
 @push('styles')
