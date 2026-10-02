@@ -401,6 +401,66 @@ class PurchaseInvoiceController extends Controller
                     app(ReceiptController::class)->store($receiptRequest);
                 }
 
+                // PO receipt already handled stock/HPP with journal=false.
+                // Posting the PO invoice must only recognize the financial side.
+                if ($purchase->source_type === 'po') {
+                    $mapping = DB::table('business_unit_account_mappings')
+                        ->where('business_unit_id', $purchase->business_unit_id)
+                        ->whereIn('mapping_key', ['inventory', 'payable', 'cash', 'bank'])
+                        ->pluck('account_id', 'mapping_key');
+
+                    abort_unless(isset($mapping['inventory']), 422, 'Mapping akun inventory belum tersedia.');
+
+                    $creditKey = match (strtolower((string) ($purchase->payment_method ?? 'credit'))) {
+                        'cash', 'tunai' => 'cash',
+                        'bank', 'transfer', 'qris' => 'bank',
+                        default => 'payable',
+                    };
+
+                    abort_unless(isset($mapping[$creditKey]), 422, 'Mapping akun pembelian belum lengkap.');
+
+                    $journalExists = DB::table('journals')
+                        ->where('source_type', 'purchase_invoice')
+                        ->where('source_id', $purchase->id)
+                        ->exists();
+
+                    if (!$journalExists) {
+                        $journalId = DB::table('journals')->insertGetId([
+                            'entity_id' => $purchase->entity_id,
+                            'business_unit_id' => $purchase->business_unit_id,
+                            'journal_no' => 'JRN-INV-'.$purchase->id,
+                            'journal_date' => $purchase->purchase_date,
+                            'source_type' => 'purchase_invoice',
+                            'source_id' => $purchase->id,
+                            'description' => 'Faktur pembelian '.$purchase->purchase_no,
+                            'status' => 'posted',
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+
+                        $journalValue = round((float) $purchase->total, 2);
+
+                        DB::table('journal_entries')->insert([
+                            [
+                                'journal_id' => $journalId,
+                                'account_id' => $mapping['inventory'],
+                                'debit' => $journalValue,
+                                'credit' => 0,
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ],
+                            [
+                                'journal_id' => $journalId,
+                                'account_id' => $mapping[$creditKey],
+                                'debit' => 0,
+                                'credit' => $journalValue,
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ],
+                        ]);
+                    }
+                }
+
                 DB::table('purchases')->where('id', $id)->update([
                     'status' => 'posted',
                     'posting_status' => 'posted',
