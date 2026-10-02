@@ -97,8 +97,8 @@ class PurchaseReturnController extends Controller
             'reason' => ['nullable', 'string', 'max:1000'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.purchase_item_id' => ['required', 'integer'],
-            'items.*.qty' => ['required', 'numeric', 'gt:0'],
-            'items.*.condition' => ['required', 'in:good,reject'],
+            'items.*.qty' => ['nullable', 'numeric', 'gt:0'],
+            'items.*.condition' => ['nullable', 'in:good,reject'],
         ]);
 
         $entity = $this->entityId();
@@ -134,6 +134,10 @@ class PurchaseReturnController extends Controller
             $prepared = [];
 
             foreach ($data['items'] as $input) {
+                if ($input['qty'] === null || $input['qty'] === '') {
+                    continue;
+                }
+
                 $item = $purchaseItems->get((int) $input['purchase_item_id']);
                 abort_unless($item, 422, 'Item faktur tidak valid.');
 
@@ -165,6 +169,8 @@ class PurchaseReturnController extends Controller
                     'condition' => $input['condition'],
                 ];
             }
+
+            abort_if(empty($prepared), 422, 'Minimal satu item retur harus diisi.');
 
             $returnNo = 'PRT-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4));
 
