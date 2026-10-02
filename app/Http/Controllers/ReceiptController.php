@@ -450,7 +450,7 @@ class ReceiptController extends Controller
                     'entity_id' => $entityId,
                     'business_unit_id' => $purchase->business_unit_id,
                     'warehouse_id' => $warehouse->id,
-                    'product_id' => $purchaseItem->base_unit_id,
+                    'product_id' => $purchaseItem->product_id,
                     'unit_id' => $purchaseItem->base_unit_id,
                     'transaction_qty' => $qty,
                     'conversion_factor' => $baseQtyPerTransaction,
