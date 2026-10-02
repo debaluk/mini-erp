@@ -10,9 +10,7 @@
         <a href="{{ route('produksi.work-order.export', request()->query()) }}" class="btn btn-outline-success">
             <i class="bi bi-file-earmark-excel me-1"></i> Export Excel
         </a>
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createWoModal">
-            <i class="bi bi-plus-lg me-1"></i> Buat SPK
-        </button>
+        <a href="{{ route('produksi.work-order.create') }}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i> Buat SPK</a>
     </div>
 </div>
 
@@ -181,22 +179,6 @@
 @endsection
 
 @push('styles')
-<style>
-    #createWoModal .modal-dialog {
-        max-height: calc(100vh - 1rem);
-        margin-top: .5rem;
-        margin-bottom: .5rem;
-    }
-
-    #createWoModal .modal-content {
-        max-height: calc(100vh - 1rem);
-    }
-
-    #createWoModal .modal-body {
-        overflow-y: auto;
-        overscroll-behavior: contain;
-    }
-</style>
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
 @endpush
 
@@ -205,84 +187,13 @@
 <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const table = window.jQuery ? $('#workOrderTable').DataTable({
+    if (window.jQuery) $('#workOrderTable').DataTable({
         pageLength: 15,
         lengthMenu: [[15,25,50,100],[15,25,50,100]],
         order: [[1,'desc']],
         language: { search: 'Cari:', lengthMenu: 'Tampil _MENU_', info: 'Menampilkan _START_–_END_ dari _TOTAL_ SPK', infoEmpty: 'Tidak ada SPK', zeroRecords: 'Data tidak ditemukan', paginate: { previous: '‹', next: '›' } },
         columnDefs: [{ targets: [5,6,8], orderable: false }]
-    }) : null;
-
-    const bu=document.getElementById('wo_bu');
-    const warehouse=document.getElementById('wo_warehouse');
-    const bom=document.getElementById('wo_bom');
-    const info=document.getElementById('bom-info');
-    const materialRows=document.getElementById('bom-material-rows');
-    const materialTotal=document.getElementById('material-total');
-    const target=document.getElementById('bom-target');
-    const total=document.getElementById('wo-total');
-    const workerRows=document.getElementById('worker-rows');
-
-    const money = value => 'Rp ' + Number(value || 0).toLocaleString('id-ID',{minimumFractionDigits:2,maximumFractionDigits:2});
-    const parseMoney = value => {
-        const raw=String(value ?? '').trim().replace(/[^0-9,.-]/g,'');
-        if(!raw) return 0;
-        return raw.includes(',') ? Number(raw.replace(/\./g,'').replace(',','.')) || 0 : Number(raw) || 0;
-    };
-    const formatMoneyInput = input => {
-        const value=parseMoney(input.value);
-        if(value>0) input.value=value.toLocaleString('id-ID',{minimumFractionDigits:2,maximumFractionDigits:2});
-    };
-    const recalcTotal = () => {
-        let sum=parseMoney(materialTotal.dataset.value || 0);
-        document.querySelectorAll('.cost-input').forEach(input=>sum+=parseMoney(input.value));
-        total.textContent=money(sum);
-    };
-    const filterByBu = (select,id) => {
-        [...select.options].forEach(o=>{if(o.value)o.hidden=!!id&&o.dataset.bu!==id;});
-        if(select.selectedOptions[0]?.hidden) select.value='';
-    };
-
-    async function loadBomInfo() {
-        if(!bom.value){ info.classList.add('d-none'); materialTotal.dataset.value=0; materialTotal.textContent='Rp 0'; target.textContent='0'; materialRows.innerHTML='<tr><td colspan="5" class="text-center text-secondary">Pilih BOM.</td></tr>'; recalcTotal(); return; }
-        const params=new URLSearchParams({warehouse_id:warehouse.value,batch_qty:1});
-        const response=await fetch('{{ url('/produksi/work-order/bom') }}/'+bom.value+'/info?'+params.toString(),{headers:{'Accept':'application/json'}});
-        if(!response.ok) return;
-        const data=await response.json();
-        info.classList.remove('d-none');
-        document.getElementById('bom-product').textContent=(data.bom.product_sku ? data.bom.product_sku+' — ' : '')+data.bom.product_name;
-        document.getElementById('bom-code').textContent=data.bom.code+' — '+data.bom.name;
-        target.textContent=Number(data.bom.target_output_qty||0).toLocaleString('id-ID',{maximumFractionDigits:3})+' '+(data.bom.output_unit||'');
-        materialTotal.dataset.value=data.material_cost||0;
-        materialTotal.textContent=money(data.material_cost);
-        materialRows.innerHTML=(data.materials||[]).map(item=>'<tr><td>'+item.sku+' — '+item.name+'</td><td class="text-end">'+Number(item.base_qty||0).toLocaleString('id-ID',{maximumFractionDigits:3})+'</td><td>'+item.unit+'</td><td class="text-end">'+money(item.unit_cost)+'</td><td class="text-end">'+money(item.line_cost)+'</td></tr>').join('') || '<tr><td colspan="5" class="text-center text-secondary">BOM belum memiliki material.</td></tr>';
-        recalcTotal();
-    }
-
-    bu.addEventListener('change',()=>{filterByBu(warehouse,bu.value);filterByBu(bom,bu.value);loadBomInfo();});
-    warehouse.addEventListener('change',loadBomInfo);
-    bom.addEventListener('change',loadBomInfo);
-
-    document.getElementById('add-worker').addEventListener('click',()=>{
-        const row=workerRows.querySelector('.worker-row').cloneNode(true);
-        row.querySelector('.worker-select').value='';
-        row.querySelector('input').value='';
-        workerRows.appendChild(row);
     });
-    workerRows.addEventListener('click',e=>{if(e.target.closest('.remove-worker')&&workerRows.querySelectorAll('.worker-row').length>1)e.target.closest('.worker-row').remove();recalcTotal();});
-
-    document.querySelectorAll('.add-cost').forEach(button=>button.addEventListener('click',()=>{
-        const section=button.closest('.cost-section');
-        const template=section.querySelector('.cost-row');
-        const row=template.cloneNode(true);
-        row.querySelectorAll('input:not([type="hidden"])').forEach(input=>input.value='');
-        section.querySelector('.cost-rows').appendChild(row);
-    }));
-    document.addEventListener('click',e=>{if(e.target.closest('.remove-cost')){const rows=e.target.closest('.cost-rows');if(rows.querySelectorAll('.cost-row').length>1)e.target.closest('.cost-row').remove();recalcTotal();}});
-    document.addEventListener('input',e=>{if(e.target.classList.contains('cost-input'))recalcTotal();});
-    document.addEventListener('blur',e=>{if(e.target.classList.contains('cost-input'))formatMoneyInput(e.target);},true);
-
-    @if($errors->any()) new bootstrap.Modal(document.getElementById('createWoModal')).show(); @endif
 });
 </script>
 @endpush
