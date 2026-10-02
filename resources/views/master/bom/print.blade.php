@@ -57,7 +57,7 @@
     <div class="label">Produk Jadi</div>
     <div>{{ $bom->product_sku }} — {{ $bom->product_name }}</div>
     <div class="label">Output Standar</div>
-    <div>{{ number_format((float) $bom->output_qty, 3, ',', '.') }} {{ $bom->output_unit_code }}</div>
+    <div>{{ FormatIndo::indo($bom->output_qty, 2) }} {{ $bom->output_unit_code }}</div>
 </div>
 
 <table>
@@ -77,7 +77,7 @@
                 <td>{{ $item->sku }}</td>
                 <td>{{ $item->product_name }}</td>
                 <td>{{ $item->unit_code }} — {{ $item->unit_name }}</td>
-                <td class="text-right">{{ number_format((float) $item->qty, 3, ',', '.') }}</td>
+                <td class="text-right">{{ FormatIndo::indo($item->qty, 2) }}</td>
             </tr>
         @empty
             <tr>
