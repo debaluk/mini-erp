@@ -363,10 +363,12 @@ class ReceiptController extends Controller
 
                     abort_unless($poi, 422, 'Item PO tidak valid.');
 
-                    $purchaseItem = DB::table('purchase_items')
-                        ->where('purchase_id', $purchase->id)
-                        ->where('product_id', $poi->product_id)
-                        ->orderBy('id')
+                    $purchaseItem = DB::table('purchase_items as pi')
+                        ->join('products as p', 'p.id', '=', 'pi.product_id')
+                        ->where('pi.purchase_id', $purchase->id)
+                        ->where('pi.product_id', $poi->product_id)
+                        ->orderBy('pi.id')
+                        ->select('pi.*', 'p.base_unit_id')
                         ->first();
 
                     abort_unless($purchaseItem, 422, 'Item pembelian untuk PO tidak ditemukan.');
