@@ -75,9 +75,9 @@
                         <li class="dropdown-submenu">
                             <a class="dropdown-item dropdown-toggle" href="#">PEMBELIAN</a>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{{ route('inventori.pembelian.po.index') }}">Purchase Order (PO)</a></li>
-                                <li><a class="dropdown-item" href="{{ route('inventori.penerimaan') }}">Penerimaan Barang</a></li>
+                                <li><a class="dropdown-item" href="{{ route('inventori.pembelian.po.index') }}">Purchase Order (PO)</a></li>                                
                                 <li><a class="dropdown-item" href="{{ route('inventori.pembelian.index') }}">Faktur Pembelian</a></li>
+								<li><a class="dropdown-item" href="{{ route('inventori.penerimaan') }}">Penerimaan Barang</a></li>
                                 <li><a class="dropdown-item" href="{{ route('inventori.pembelian.retur') }}">Retur Pembelian</a></li>
                             </ul>
                         </li>

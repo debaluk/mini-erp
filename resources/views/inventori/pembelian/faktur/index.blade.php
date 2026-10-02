@@ -1,20 +1,20 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid px-4 py-3">
+<div class="container-fluid px-0 py-0">
 
     <!-- Header & Actions -->
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <h3 class="mb-1 fw-bold text-dark"><i class="bi bi-receipt me-2 text-primary"></i> Faktur Pembelian</h3>
-            <div class="text-secondary small">Pencatatan Tagihan Supplier, Pengakuan Hutang Usaha</div>
+            <h3 class="mb-1 fw-bold text-dark"><i class="bi bi-receipt me-2 text-primary"></i>Faktur Pembelian</h3>
+            <div class="text-secondary small">Pencatatan Pembelian Barang, Pengakuan Hutang Usaha</div>
         </div>
         <div class="d-flex gap-2">
             <a href="{{ route('inventori.pembelian.create') }}" class="btn btn-primary btn-sm px-3 fw-semibold shadow-sm">
-                <i class="bi bi-plus-circle me-1"></i> + Buat Faktur Pembelian
+                <i class="bi bi-plus-circle me-1"></i> + Buat Faktur
             </a>
             <a href="{{ route('inventori.pembelian.export-excel', request()->all()) }}" class="btn btn-success btn-sm px-3 fw-semibold shadow-sm">
-                <i class="bi bi-file-earmark-excel me-1"></i> Export Excel
+                <i class="bi bi-file-earmark-excel me-1"></i> Export
             </a>
         </div>
     </div>
@@ -58,7 +58,7 @@
                     </select>
                 </div>
                 <div class="col-md-2 d-flex gap-1">
-                    <button type="button" id="btn-apply-filter" class="btn btn-primary btn-sm w-100"><i class="bi bi-search me-1"></i> Filter</button>
+                    <button type="button" id="btn-apply-filter" class="btn btn-primary btn-sm w-100"><i class="bi bi-search me-1"></i> Tampil</button>
                     <button type="button" id="btn-reset-filter" class="btn btn-outline-secondary btn-sm">Reset</button>
                 </div>
             </form>

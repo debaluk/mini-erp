@@ -143,11 +143,6 @@
                 <i class="bi bi-card-checklist me-1"></i> Kartu Hutang per Supplier
             </button>
         </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link fw-semibold" id="tab-reconcile" data-bs-toggle="tab" data-bs-target="#content-reconcile" type="button" role="tab">
-                <i class="bi bi-check2-circle me-1"></i> Rekonsiliasi COA (2000101)
-            </button>
-        </li>
     </ul>
 
     <div class="tab-content" id="apTabsContent">
@@ -278,43 +273,6 @@
             </div>
         </div>
 
-        <!-- TAB 3: REKONSILIASI COA 2000101 -->
-        <div class="tab-pane fade" id="content-reconcile" role="tabpanel">
-            <div class="card shadow-sm border-0">
-                <div class="card-body p-4">
-                    <h5 class="fw-bold text-dark mb-3"><i class="bi bi-shield-check text-primary me-1"></i> Pengecekan Rekonsiliasi Akun Kontrol Hutang (COA 2000101)</h5>
-                    <p class="text-muted small">Membandingkan Total Sisa Hutang Sub-Ledger dengan Saldo Buku Besar COA `2000101 Hutang Usaha` pada Neraca Keuangan per tanggal {{ \Carbon\Carbon::parse($endDate)->format('d/m/Y') }}.</p>
-
-                    <div class="row g-3 my-2">
-                        <div class="col-md-4">
-                            <div class="p-3 border rounded bg-light">
-                                <div class="text-muted small">Total Sub-Ledger Hutang (Faktur Sisa)</div>
-                                <div class="fs-5 fw-bold text-purple" style="color: #7e22ce;">Rp {{ number_format($totalApAmount, 2, ',', '.') }}</div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="p-3 border rounded bg-light">
-                                <div class="text-muted small">Saldo Buku Besar COA 2000101</div>
-                                <div class="fs-5 fw-bold text-dark">Rp {{ number_format($coaBalance, 2, ',', '.') }}</div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="p-3 border rounded {{ abs($reconciliationDifference) < 0.01 ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger' }}">
-                                <div class="small fw-semibold">Status Selisih (Difference)</div>
-                                <div class="fs-5 fw-bold">Rp {{ number_format($reconciliationDifference, 2, ',', '.') }}</div>
-                                <div class="small mt-1">
-                                    @if(abs($reconciliationDifference) < 0.01)
-                                        <i class="bi bi-check-circle-fill me-1"></i> 100% RECONCILED (KLOP)
-                                    @else
-                                        <i class="bi bi-exclamation-triangle-fill me-1"></i> Terdapat Selisih Jurnal!
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
     </div>
 

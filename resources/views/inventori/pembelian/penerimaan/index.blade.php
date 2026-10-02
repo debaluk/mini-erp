@@ -1,13 +1,13 @@
 @extends('layouts.app')
 @section('content')
-<div class="container-fluid px-4 py-3">
+<div class="container-fluid px-0 py-0">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <h3 class="mb-1 fw-bold text-dark">Penerimaan Barang</h3>
-            <div class="text-secondary small">Daftar penerimaan barang dari Purchase Order</div>
+            <h3 class="mb-1 fw-bold text-dark"><i class="bi bi-receipt me-2 text-primary"></i>Penerimaan Barang</h3>
+            <div class="text-secondary small">Daftar Penerimaan Barang</div>
         </div>
         <a href="{{ route('inventori.penerimaan.export', request()->all()) }}" class="btn btn-success btn-sm px-3 fw-semibold shadow-sm">
-            <i class="bi bi-file-earmark-excel me-1"></i> Export List Penerimaan
+            <i class="bi bi-file-earmark-excel me-1"></i> Export
         </a>
     </div>
 
@@ -31,15 +31,6 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label small fw-semibold">Supplier</label>
-                    <select id="filter-supplier" class="form-select form-select-sm">
-                        <option value="">Semua Supplier</option>
-                        @foreach($suppliers as $s)
-                            <option value="{{ $s->id }}">{{ $s->code }} - {{ $s->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
                 <div class="col-md-2">
                     <label class="form-label small fw-semibold">Gudang</label>
                     <select id="filter-wh" class="form-select form-select-sm">
@@ -57,9 +48,9 @@
                         <option value="draft">Draft</option>
                     </select>
                 </div>
-                <div class="col-12 d-flex gap-2 mt-2">
+                <div class="col-md-3 d-flex align-items-end gap-2">
                     <button type="button" id="btn-apply-filter" class="btn btn-primary btn-sm px-3">
-                        <i class="bi bi-funnel me-1"></i> Filter
+                        <i class="bi bi-funnel me-1"></i> Tampilkan
                     </button>
                     <button type="button" id="btn-reset-filter" class="btn btn-outline-secondary btn-sm px-3">
                         <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
@@ -120,7 +111,6 @@ $(function () {
                 d.start_date = $('#filter-start-date').val();
                 d.end_date = $('#filter-end-date').val();
                 d.business_unit_id = $('#filter-bu').val();
-                d.supplier_id = $('#filter-supplier').val();
                 d.warehouse_id = $('#filter-wh').val();
                 d.status = $('#filter-status').val();
             }

@@ -49,8 +49,7 @@ class ReceiptController extends Controller
             ->where('r.entity_id', $this->entityId())
             ->whereDate('r.receipt_date', '>=', $startDate)
             ->whereDate('r.receipt_date', '<=', $endDate)
-            ->whereNull('r.deleted_at');
-
+;
         if ($request->filled('business_unit_id')) $query->where('r.business_unit_id', $request->business_unit_id);
         if ($request->filled('supplier_id')) $query->where('r.supplier_id', $request->supplier_id);
         if ($request->filled('warehouse_id')) $query->where('r.warehouse_id', $request->warehouse_id);
@@ -63,7 +62,7 @@ class ReceiptController extends Controller
         )->orderByDesc('r.receipt_date')->orderByDesc('r.id')->get();
 
         foreach ($data as $row) {
-            $row->formatted_date = CarbonCarbon::parse($row->receipt_date)->format('d/m/Y H:i');
+            $row->formatted_date = \Carbon\Carbon::parse($row->receipt_date)->format('d/m/Y H:i');
         }
 
         return response()->json(['data' => $data]);
@@ -79,7 +78,6 @@ class ReceiptController extends Controller
             ->leftJoin('business_units as bu', 'bu.id', '=', 'r.business_unit_id')
             ->where('r.entity_id', $this->entityId())
             ->where('r.id', $id)
-            ->whereNull('r.deleted_at')
             ->select('r.*', 'po.po_no', 's.name as supplier_name', 'w.name as warehouse_name', 'bu.name as business_unit_name')
             ->firstOrFail();
 
@@ -95,7 +93,7 @@ class ReceiptController extends Controller
             $item->line_value = (float) $item->base_qty * (float) $item->base_unit_cost;
         }
 
-        $receipt->formatted_date = CarbonCarbon::parse($receipt->receipt_date)->format('d/m/Y H:i');
+        $receipt->formatted_date = \Carbon\Carbon::parse($receipt->receipt_date)->format('d/m/Y H:i');
 
         return response()->json(['success' => true, 'receipt' => $receipt, 'items' => $items]);
     }

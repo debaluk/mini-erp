@@ -1,12 +1,12 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid px-4 py-3"> 
+<div class="container-fluid px-0 py-0"> 
 
     <!-- Header & Action Buttons -->
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <h3 class="mb-1 fw-bold text-dark">Purchase Order (PO)</h3>
+            <h3 class="mb-1 fw-bold text-dark"><i class="bi bi-receipt me-2 text-primary"></i>Purchase Order (PO)</h3>
             <div class="text-secondary small">Pengelolaan Pesanan Pembelian Barang Ke Supplier</div>
         </div>
         <div class="d-flex gap-2">
@@ -59,8 +59,9 @@
                     </select>
                 </div>
                 <div class="col-md-2 d-flex gap-1">
-                    <button type="button" id="btn-apply-filter" class="btn btn-primary btn-sm w-100"><i class="bi bi-search me-1"></i> Filter</button>
+                    <button type="button" id="btn-apply-filter" class="btn btn-primary btn-sm w-100"><i class="bi bi-search me-1"></i>Tampilkan</button>
                     <button type="button" id="btn-reset-filter" class="btn btn-outline-secondary btn-sm">Reset</button>
+					
                 </div>
             </form>
         </div>
@@ -70,12 +71,12 @@
     <div class="card shadow-sm border-0">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table id="table-po" class="table table-hover table-striped align-middle w-100" style="font-size: 0.88rem;">
+                <table id="table-po" class="table table-hover table-striped align-middle w-100 mb-0" style="font-size:.88rem">
                     <thead class="table-dark text-center">
                         <tr>
                             <th style="width: 85px;">Tanggal</th>
                             <th style="width: 140px;">No. PO</th>
-                            <th>Supplier / Vendor</th>
+                            <th>Supplier</th>
                             <th style="width: 130px;">Gudang</th>
                             <th style="width: 120px;">Unit Bisnis</th>
                             <th style="width: 120px;">Total PO</th>
@@ -270,7 +271,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     // Tombol Penerimaan Barang (Trigger jika status Approved / Partial)
                     if (['approved', 'partial'].includes(row.status)) {
-                        actions += `<a href="{{ url('/inventori/pembelian/penerimaan/create') }}?po_id=${row.id}" class="btn btn-success" title="Terima Barang"><i class="bi bi-box-arrow-in-down"></i> Penerimaan</a>`;
+                        actions += `<a href="{{ url('/inventori/penerimaan/create') }}?po_id=${row.id}" class="btn btn-success" title="Terima Barang"><i class="bi bi-box-arrow-in-down"></i> Penerimaan</a>`;
                     }
 
                     // Tombol Approve (Hanya Draft)
@@ -310,7 +311,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (res.success) {
                      $('#info-supplier-name').text(res.data.name);
                      $('#info-supplier-address').text('Alamat: ' + res.data.address);
-                     $('#info-supplier-phone').text('Telp: ' + res.data.phone + ' | NPWP: ' + res.data.npwp);
+                     $('#info-supplier-phone').text('Telp: ' + res.data.phone);
                 }
             });
         } else {
@@ -346,7 +347,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     <input type="text" class="form-control form-control-sm text-center input-unit" value="" readonly>
                 </td>
                 <td><input type="number" name="qty[]" class="form-control form-control-sm text-center input-qty" step="0.01" value="${qty}" required></td>
-                <td><input type="number" name="unit_price[]" class="form-control form-control-sm text-end input-price" step="0.01" value="${price}" required></td>
+                <td><input type="number" name="unit_price[]" class="form-control form-control-sm text-end input-price" step="1" value="${price}" required></td>
                 <td><input type="number" name="discount[]" class="form-control form-control-sm text-end input-discount" step="0.01" value="${discount}"></td>
                 <td class="text-end font-monospace fw-bold cell-subtotal">Rp 0</td>
                 <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger btn-remove-row"><i class="bi bi-x"></i></button></td>

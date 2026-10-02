@@ -18,7 +18,7 @@ class ReceiptExport implements FromCollection, WithHeadings, WithMapping
         $this->request = $request;
     }
 
-    public function collection()
+    public function collection(): \Illuminate\Support\Enumerable
     {
         $startDate = $this->request->query('start_date', now()->startOfMonth()->toDateString());
         $endDate = $this->request->query('end_date', now()->endOfMonth()->toDateString());
@@ -32,11 +32,9 @@ class ReceiptExport implements FromCollection, WithHeadings, WithMapping
             ->leftJoin(DB::raw('(SELECT receipt_id, COUNT(*) as total_items FROM receipt_items GROUP BY receipt_id) ri'), 'ri.receipt_id', '=', 'r.id')
             ->where('r.entity_id', DB::table('entities')->value('id') ?? 1)
             ->whereDate('r.receipt_date', '>=', $startDate)
-            ->whereDate('r.receipt_date', '<=', $endDate)
-            ->whereNull('r.deleted_at');
+            ->whereDate('r.receipt_date', '<=', $endDate);
 
         if ($this->request->filled('business_unit_id')) $query->where('r.business_unit_id', $this->request->business_unit_id);
-        if ($this->request->filled('supplier_id')) $query->where('r.supplier_id', $this->request->supplier_id);
         if ($this->request->filled('warehouse_id')) $query->where('r.warehouse_id', $this->request->warehouse_id);
         if ($this->request->filled('status')) $query->where('r.status', $this->request->status);
 
