@@ -9,6 +9,7 @@ use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\PurchaseController;		//tidak terpakai
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\PurchaseInvoiceController;
+use App\Http\Controllers\PurchaseReturnController;
 use App\Http\Controllers\HppController;
 use App\Http\Controllers\PurchaseReportController;
 use App\Http\Controllers\ReceiptController;
@@ -126,9 +127,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/inventori/penjualan/{id}', [SalesController::class, 'show'])->middleware('access:inventori')->name('inventori.penjualan.show');
     Route::get('/inventori/penjualan/{id}/print', [SalesController::class, 'print'])->middleware('access:inventori')->name('inventori.penjualan.print');
 
-    Route::get('/inventori/pembelian/retur', fn () => view('inventori.pembelian.retur.index'))
-        ->middleware('access:inventori')
-        ->name('inventori.pembelian.retur');
+    Route::middleware(['auth', 'access:inventori'])->prefix('inventori/pembelian/retur')->name('inventori.pembelian.retur.')->group(function () {
+        Route::get('/', [PurchaseReturnController::class, 'index'])->name('index');
+        Route::get('/data', [PurchaseReturnController::class, 'data'])->name('data');
+        Route::post('/', [PurchaseReturnController::class, 'store'])->name('store');
+        Route::get('/{id}', [PurchaseReturnController::class, 'show'])->name('show');
+        Route::post('/{id}/post', [PurchaseReturnController::class, 'post'])->name('post');
+    });
 
     //Route::get('/inventori/pembelian', [PurchaseController::class, 'index'])->middleware('access:inventori')->name('inventori.pembelian');
     //Route::get('/inventori/pembelian/create', [PurchaseController::class, 'create'])->middleware('access:inventori')->name('inventori.pembelian.create');
