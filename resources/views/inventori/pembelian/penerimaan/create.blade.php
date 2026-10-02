@@ -25,6 +25,7 @@
 <form method="POST" action="{{ route('inventori.penerimaan.store') }}" id="receiptForm">
     @csrf
     <input type="hidden" name="po_id" value="{{ $po->id }}">
+    <input type="hidden" name="journal" value="0">
 
     <div class="card shadow-sm mb-3">
         <div class="card-header fw-semibold">Informasi Penerimaan</div>
