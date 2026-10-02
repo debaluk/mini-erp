@@ -12,6 +12,7 @@ use App\Http\Controllers\PurchaseInvoiceController;
 use App\Http\Controllers\PurchaseReturnController;
 use App\Http\Controllers\HppController;
 use App\Http\Controllers\ProductionController;
+use App\Http\Controllers\ProductionWorkOrderController;
 use App\Http\Controllers\PurchaseReportController;
 use App\Http\Controllers\ReceiptController;
 use App\Http\Controllers\SalesReturnController;
@@ -258,8 +259,10 @@ Route::middleware(['auth', 'access:inventori'])->prefix('inventori/penyesuaian')
     Route::get('/produksi/reject', fn () => app(ModuleController::class)->show('production-results'))->middleware('access:inventori')->name('produksi.reject');
     Route::get('/produksi/hpp', [HppController::class, 'index'])->middleware('access:inventori')->name('produksi.hpp');
 
-    Route::get('/produksi/work-order', fn () => view('inventori.produksi.work-order.index'))
-        ->name('produksi.work-order');
+    Route::get('/produksi/work-order', [ProductionWorkOrderController::class, 'index'])->middleware('access:inventori')->name('produksi.work-order');
+    Route::post('/produksi/work-order', [ProductionWorkOrderController::class, 'store'])->middleware('access:inventori')->name('produksi.work-order.store');
+    Route::get('/produksi/work-order/{id}/print', [ProductionWorkOrderController::class, 'print'])->middleware('access:inventori')->name('produksi.work-order.print');
+    Route::get('/produksi/work-order/export', [ProductionWorkOrderController::class, 'export'])->middleware('access:inventori')->name('produksi.work-order.export');
 
     // ============================================================
     // KEUANGAN & AKUNTANSI
