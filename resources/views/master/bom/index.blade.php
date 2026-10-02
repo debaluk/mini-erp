@@ -306,7 +306,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (!raw) return '';
 
-        const number = Number(raw);
+        const normalized = normalizeQty(raw);
+        const number = Number(normalized);
 
         if (!Number.isFinite(number)) return '';
 
