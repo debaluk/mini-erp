@@ -158,7 +158,18 @@ class ProductionController extends Controller
                     ->first();
                 abort_unless($material, 422, 'Bahan BOM tidak valid.');
 
-                $need = round((float) $item->qty * (float) $data['qty'], 3);
+                $conversionFactor = 1.0;
+                if ((int) $item->unit_id !== (int) $material->base_unit_id) {
+                    $conversionFactor = (float) DB::table('product_unit_conversions')
+                        ->where('product_id', $item->product_id)
+                        ->where('unit_id', $item->unit_id)
+                        ->where('is_active', 1)
+                        ->value('conversion_factor');
+
+                    abort_if($conversionFactor <= 0, 422, 'Konversi satuan bahan BOM tidak valid.');
+                }
+
+                $need = round((float) $item->qty * $conversionFactor * (float) $data['qty'], 3);
 
                 $stock = DB::table('warehouses_stocks')
                     ->where('entity_id', $entityId)
