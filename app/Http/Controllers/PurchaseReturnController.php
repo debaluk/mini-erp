@@ -58,7 +58,7 @@ class PurchaseReturnController extends Controller
             ->leftJoin('suppliers as s', 's.id', '=', 'r.supplier_id')
             ->leftJoin('warehouses as w', 'w.id', '=', 'r.warehouse_id')
             ->leftJoin('users as u', 'u.id', '=', 'r.user_id')
-            ->where('r.entity_id', $entity)
+            ->where('r.entity_id', $entityId)
             ->whereBetween('r.return_date', [$start.' 00:00:00', $end.' 23:59:59']);
 
         if ($businessUnitId) $query->where('r.business_unit_id', $businessUnitId);
@@ -398,7 +398,8 @@ class PurchaseReturnController extends Controller
 
     public function printList(Request $request)
     {
-        $entity = DB::table('entities')->where('id', $this->entityId())->first();
+        $entityId = $this->entityId();
+        $entity = DB::table('entities')->where('id', $entityId)->first();
         $startDate = $request->query('start_date', now()->startOfMonth()->toDateString());
         $endDate = $request->query('end_date', now()->endOfMonth()->toDateString());
         $businessUnitId = $request->query('business_unit_id');
