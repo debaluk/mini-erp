@@ -77,18 +77,18 @@
                         <div class="btn-group btn-group-sm" role="group">
                             <button type="button"
                                     class="btn btn-outline-primary btn-edit"
-                                    data-bom='@json([
-                                        "id" => $bom->id,
-                                        "product_id" => $bom->product_id,
-                                        "code" => $bom->code,
-                                        "name" => $bom->name,
-                                        "output_qty" => $bom->output_qty,
-                                        "items" => $bom->items->map(fn($item) => [
-                                            "product_id" => $item->product_id,
-                                            "unit_id" => $item->unit_id,
-                                            "qty" => $item->qty,
+                                    data-bom="{{ e(json_encode([
+                                        'id' => $bom->id,
+                                        'product_id' => $bom->product_id,
+                                        'code' => $bom->code,
+                                        'name' => $bom->name,
+                                        'output_qty' => $bom->output_qty,
+                                        'items' => $bom->items->map(fn($item) => [
+                                            'product_id' => $item->product_id,
+                                            'unit_id' => $item->unit_id,
+                                            'qty' => $item->qty,
                                         ])->values(),
-                                    ])'
+                                    ])) }}"
                                     title="Edit">
                                 <i class="bi bi-pencil-square"></i>
                             </button>
