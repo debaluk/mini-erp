@@ -270,6 +270,7 @@ Route::middleware(['auth', 'access:inventori'])->prefix('inventori/penyesuaian')
 
     Route::get('/produksi/work-order', [ProductionWorkOrderController::class, 'index'])->middleware('access:inventori')->name('produksi.work-order');
     Route::post('/produksi/work-order', [ProductionWorkOrderController::class, 'store'])->middleware('access:inventori')->name('produksi.work-order.store');
+    Route::get('/produksi/work-order/bom/{bomId}/info', [ProductionWorkOrderController::class, 'bomInfo'])->middleware('access:inventori')->name('produksi.work-order.bom-info');
     Route::get('/produksi/work-order/{id}/print', [ProductionWorkOrderController::class, 'print'])->middleware('access:inventori')->name('produksi.work-order.print');
     Route::get('/produksi/work-order/export', [ProductionWorkOrderController::class, 'export'])->middleware('access:inventori')->name('produksi.work-order.export');
 
