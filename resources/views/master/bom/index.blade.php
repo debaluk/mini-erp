@@ -127,7 +127,7 @@
 </div>
 
 <div class="modal fade" id="bomModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable modal-fullscreen-md-down">
+    <div class="modal-dialog modal-xl modal-fullscreen-md-down">
         <div class="modal-content">
             <form method="POST" id="bomForm">
                 @csrf
@@ -141,7 +141,7 @@
                     <button type="button" class="btn-close " data-bs-dismiss="modal"></button>
                 </div>
 
-                <div class="modal-body overflow-auto" style="max-height: calc(100vh - 180px);">
+                <div class="modal-body overflow-auto" style="max-height: calc(100vh - 180px); min-height: 0;">
                     <div class="mb-4">
                         <div>
                             <div class="row g-3">
