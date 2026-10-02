@@ -515,7 +515,26 @@ class PurchaseInvoiceController extends Controller
             ->select('w.name as warehouse_name')
             ->first();
 
-        $journals = DB::table('journals')->where('source_id', $id)->where('source_type', 'receipt')->get();
+        $receiptIds = DB::table('receipts')
+            ->where('purchase_id', $id)
+            ->pluck('id');
+
+        $journals = DB::table('journals')
+            ->where(function ($query) use ($id, $receiptIds) {
+                $query->where(function ($q) use ($id) {
+                    $q->where('source_type', 'purchase_invoice')
+                        ->where('source_id', $id);
+                });
+
+                if ($receiptIds->isNotEmpty()) {
+                    $query->orWhere(function ($q) use ($receiptIds) {
+                        $q->where('source_type', 'receipt')
+                            ->whereIn('source_id', $receiptIds);
+                    });
+                }
+            })
+            ->orderBy('id')
+            ->get();
 
         foreach ($journals as $j) {
             $j->entries = DB::table('journal_entries as je')
