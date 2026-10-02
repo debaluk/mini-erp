@@ -325,7 +325,7 @@ class ReceiptController extends Controller
 
             abort_unless($warehouse, 422, 'Gudang tidak valid.');
             if ((int) $warehouse->business_unit_id !== (int) $purchase->business_unit_id) {
-                return back()->withInput()->with('error', 'Gudang harus berada pada unit bisnis pembelian.');
+                back()->withInput()->with('error', 'Gudang harus berada pada unit bisnis pembelian.')->throwResponse();
             }
 
             $receiptNo = 'GRN-'.now()->format('YmdHis').'-'.str()->upper(str()->random(3));
