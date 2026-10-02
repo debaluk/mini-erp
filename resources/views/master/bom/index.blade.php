@@ -289,20 +289,22 @@ document.addEventListener('DOMContentLoaded', function () {
         }[char]));
     }
 
+    function normalizeQty(value) {
+        return String(value ?? '')
+            .trim()
+            .replace(/\./g, '')
+            .replace(',', '.');
+    }
+
     function formatQty(value) {
-        const number = Number(String(value ?? '').replace(',', '.'));
+        const number = Number(normalizeQty(value));
         if (!Number.isFinite(number)) return '';
 
         return number.toLocaleString('id-ID', {
-            useGrouping: false,
+            useGrouping: true,
             minimumFractionDigits: 0,
             maximumFractionDigits: 2,
         });
-    }
-
-    function normalizeQty(value) {
-        const normalized = String(value ?? '').trim().replace(',', '.');
-        return normalized;
     }
 
     function formatQtyInputs() {
@@ -359,7 +361,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.addEventListener('focusin', function (event) {
         if (event.target.matches('.qty-input')) {
-            event.target.value = normalizeQty(event.target.value);
             event.target.select();
         }
     });
