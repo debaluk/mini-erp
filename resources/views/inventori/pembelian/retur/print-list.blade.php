@@ -28,7 +28,7 @@
 
     <div class="center">
         <h2 style="margin:0 0 8px;">LAPORAN RETUR PEMBELIAN</h2>
-        <div>Unit Bisnis: <strong>{{ $businessUnitId ? optional($returns->first())->business_unit_name : 'Semua Unit Bisnis' }}</strong></div>
+        <div>Unit Bisnis: <strong>{{ $businessUnitName ?: 'Semua Unit Bisnis' }}</strong></div>
         <div>Periode: {{ date('d/m/Y', strtotime($startDate)) }} s/d {{ date('d/m/Y', strtotime($endDate)) }}</div>
         <div>Tanggal Cetak: {{ date('d/m/Y H:i') }}</div>
     </div>
