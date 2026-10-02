@@ -34,7 +34,7 @@
         <div class="fw-semibold">
             <i class="bi bi-truck me-2"></i>Daftar Supplier
         </div>
-        <span class="badge rounded-pill bg-white text-primary border border-primary-subtle">Data supplier</span>
+        <span class="badge rounded-pill bg-white text-primary border border-primary-subtle" id="supplierCount">Data supplier</span>
     </div>
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0" id="masterDataTable" style="width:100%">
@@ -51,7 +51,7 @@
     </div>
 </div>
 
-<div class="modal fade" id="masterModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="masterModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
             <form id="masterForm" novalidate>
@@ -124,6 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('masterForm');
     const title = document.getElementById('masterModalTitle');
     const submitButton = document.getElementById('masterSubmit');
+    const countBadge = document.getElementById('supplierCount');
     const baseUrl = @json(url('/master/suppliers'));
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content || @json(csrf_token());
 
@@ -155,7 +156,10 @@ document.addEventListener('DOMContentLoaded', () => {
         ajax: {
             url: baseUrl,
             type: 'GET',
-            dataSrc: 'data'
+            dataSrc: json => {
+                countBadge.textContent = (json.recordsFiltered ?? json.recordsTotal ?? 0) + ' supplier';
+                return json.data || [];
+            }
         },
         columns: [
             @foreach($config['columns'] as $column)
