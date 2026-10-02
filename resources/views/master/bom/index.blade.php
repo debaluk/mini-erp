@@ -141,7 +141,7 @@
                     <button type="button" class="btn-close " data-bs-dismiss="modal"></button>
                 </div>
 
-                <div class="modal-body" style="max-height: calc(100vh - 180px); overflow-y: auto;">
+                <div class="modal-body overflow-auto" style="max-height: calc(100vh - 180px);">
                     <div class="mb-4">
                         <div>
                             <div class="row g-3">
