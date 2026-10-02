@@ -112,6 +112,22 @@ class BomController extends Controller
             ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
             ->where('b.entity_id', $entity)
             ->orderByDesc('b.id')
+            ->select([
+                'b.id',
+                'b.entity_id',
+                'b.business_unit_id',
+                'b.product_id',
+                'b.code',
+                'b.name',
+                'b.output_qty',
+                'b.is_active',
+                'b.created_at',
+                'b.updated_at',
+                'p.sku as product_sku',
+                'p.name as product_name',
+                'u.code as output_unit_code',
+                'u.name as output_unit_name',
+            ])
             ->paginate(15)
             ->withQueryString();
 
