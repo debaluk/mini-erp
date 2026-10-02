@@ -290,19 +290,29 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function normalizeQty(value) {
-        return String(value ?? '')
-            .trim()
-            .replace(/\./g, '')
-            .replace(',', '.');
+        const raw = String(value ?? '').trim();
+
+        if (!raw) return '';
+
+        if (raw.includes(',')) {
+            return raw.replace(/\./g, '').replace(',', '.');
+        }
+
+        return raw;
     }
 
     function formatQty(value) {
-        const number = Number(normalizeQty(value));
+        const raw = String(value ?? '').trim();
+
+        if (!raw) return '';
+
+        const number = Number(raw);
+
         if (!Number.isFinite(number)) return '';
 
         return number.toLocaleString('id-ID', {
             useGrouping: true,
-            minimumFractionDigits: 0,
+            minimumFractionDigits: 2,
             maximumFractionDigits: 2,
         });
     }
@@ -334,7 +344,14 @@ document.addEventListener('DOMContentLoaded', function () {
         product.value = item.product_id || '';
         unit.innerHTML = unitOptions(product.value, item.unit_id || '');
         unit.disabled = !product.value;
-        qty.value = formatQty(item.qty ?? '');
+        const itemQty = Number(item.qty);
+        qty.value = Number.isFinite(itemQty)
+            ? itemQty.toLocaleString('id-ID', {
+                useGrouping: true,
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            })
+            : '';
 
         product.addEventListener('change', function () {
             unit.innerHTML = unitOptions(this.value);
@@ -410,7 +427,11 @@ document.addEventListener('DOMContentLoaded', function () {
             productSelect.value = data.product_id;
             document.getElementById('bomCode').value = data.code;
             document.getElementById('bomName').value = data.name;
-            document.getElementById('bomOutput').value = formatQty(data.output_qty);
+            document.getElementById('bomOutput').value = Number(data.output_qty).toLocaleString('id-ID', {
+                useGrouping: true,
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            });
             rows.innerHTML = '';
 
             (data.items || []).forEach(item => addMaterialRow(item));
