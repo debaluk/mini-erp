@@ -102,6 +102,9 @@
             </div>
         </div>
 
+        <form method="POST" action="{{ route('produksi.work-order.hasil-produksi', $wo->id) }}" id="production-result-form">
+            @csrf
+
         {{-- 3. Informasi Upah Tenaga Kerja --}}
         <div class="card border mb-4">
             <div class="card-header bg-light fw-semibold">
@@ -124,18 +127,18 @@
                         @forelse($workers as $worker)
                             <tr>
                                 <td>{{ $loop->iteration }}</td>
-                                <td>{{ $worker->name }}</td>
+                                <td>{{ $worker->name }}<input type="hidden" name="worker_id[]" value="{{ $worker->worker_id }}"></td>
                                 <td>
-                                    <select class="form-select form-select-sm labor-basis">
+                                    <select name="labor_basis[]" class="form-select form-select-sm labor-basis">
                                         <option value="BIJI">Biji</option>
                                         <option value="BORONGAN">Borongan</option>
                                     </select>
                                 </td>
                                 <td>
-                                    <input type="number" class="form-control form-control-sm text-end labor-rate" min="0" step="0.01" placeholder="0">
+                                    <input type="number" name="labor_rate[]" class="form-control form-control-sm text-end labor-rate" min="0" step="0.01" placeholder="0">
                                 </td>
                                 <td>
-                                    <input type="number" class="form-control form-control-sm text-end labor-qty" min="0" step="0.01" value="1">
+                                    <input type="number" name="labor_qty[]" class="form-control form-control-sm text-end labor-qty" min="0" step="0.01" value="1">
                                 </td>
                                 <td class="text-end labor-total">Rp 0,00</td>
                             </tr>
@@ -174,7 +177,7 @@
                     <div class="col-md-3">
                         <label class="form-label">Hasil Bagus Lulus QC</label>
                         <div class="input-group">
-                            <input type="number" id="good-output" class="form-control text-end" min="0" step="0.01" placeholder="0">
+                            <input type="number" name="good_output_qty" id="good-output" class="form-control text-end" min="0" step="0.01" placeholder="0">
                             <span class="input-group-text">Biji</span>
                         </div>
                         <div class="form-text">Dapat diisi manual atau mengikuti total Qty Real pekerja berbasis biji.</div>
@@ -183,7 +186,7 @@
                     <div class="col-md-3">
                         <label class="form-label">Hasil Afkir / Cacat (Reject)</label>
                         <div class="input-group">
-                            <input type="number" id="reject-output" class="form-control text-end" min="0" step="0.01" placeholder="0">
+                            <input type="number" name="reject_qty" id="reject-output" class="form-control text-end" min="0" step="0.01" placeholder="0">
                             <span class="input-group-text">Biji</span>
                         </div>
                         <div class="form-text">Default dihitung Target - Hasil Bagus, tetapi dapat disesuaikan.</div>
@@ -195,13 +198,14 @@
                     </div>
 
                     <div class="col-12">
-                        <button type="button" class="btn btn-primary" disabled>
-                            <i class="bi bi-check-lg me-1"></i> Simpan Hasil Produksi
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i> Posting Hasil Produksi
                         </button>
                     </div>
                 </div>
             </div>
         </div>
+        </form>
 
 @push('scripts')
 <script>
