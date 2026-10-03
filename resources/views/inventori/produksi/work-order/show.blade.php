@@ -7,11 +7,6 @@
         <div class="text-secondary small">{{ $wo->wo_no }}</div>
     </div>
     <div class="d-flex gap-2">
-        @if($wo->status === 'in_progress')
-        <a href="{{ route('produksi.pemakaian-bahan.create', $wo->id) }}" class="btn btn-primary">
-            <i class="bi bi-box-arrow-right me-1"></i> Pemakaian Bahan
-        </a>
-        @endif
         <a href="{{ route('produksi.work-order.print', $wo->id) }}" target="_blank" class="btn btn-outline-dark">
             <i class="bi bi-printer me-1"></i> Print SPK
         </a>
@@ -42,6 +37,53 @@
             <div class="col-md-4"><div class="text-secondary small">Gudang</div><div>{{ $wo->warehouse_name }}</div></div>
             <div class="col-md-4"><div class="text-secondary small">Target</div><div>{{ \App\Helpers\FormatHelper::indo((float) $wo->target_output_qty, 2) }}</div></div>
             <div class="col-md-8"><div class="text-secondary small">Pekerja</div><div>{{ $workers->pluck('name')->join(', ') ?: '-' }}</div></div>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-primary bg-opacity-10 text-primary fw-semibold">Detail Pekerja dan Estimasi Biaya SPK</div>
+    <div class="card-body">
+        <h6 class="fw-semibold mb-2">Daftar Pekerja</h6>
+        <div class="table-responsive mb-4">
+            <table class="table table-sm table-bordered align-middle mb-0">
+                <thead class="table-light"><tr><th style="width:60px">No.</th><th>Kode</th><th>Nama Pekerja</th><th class="text-end">Estimasi Biaya</th></tr></thead>
+                <tbody>
+                @forelse($workers as $worker)
+                    <tr><td>{{ $loop->iteration }}</td><td>{{ $worker->code ?: '-' }}</td><td>{{ $worker->name }}</td><td class="text-end">{{ \\App\\Helpers\\FormatHelper::indo((float) ($worker->estimated_cost ?? 0), 2) }}</td></tr>
+                @empty
+                    <tr><td colspan="4" class="text-center text-muted py-3">Belum ada pekerja pada SPK ini.</td></tr>
+                @endforelse
+                </tbody>
+            </table>
+        </div>
+        <h6 class="fw-semibold mb-2">Estimasi Material</h6>
+        <div class="table-responsive mb-4">
+            <table class="table table-sm table-bordered align-middle mb-0">
+                <thead class="table-light"><tr><th>Material</th><th class="text-end">Qty Rencana</th><th>Satuan</th><th class="text-end">Harga Satuan</th><th class="text-end">Estimasi Biaya</th></tr></thead>
+                <tbody>
+                @forelse($materials as $material)
+                    <tr><td>{{ $material['name'] }}</td><td class="text-end">{{ \\App\\Helpers\\FormatHelper::indo($material['qty'], 2) }}</td><td>{{ $material['unit'] }}</td><td class="text-end">{{ \\App\\Helpers\\FormatHelper::indo($material['unit_cost'], 2) }}</td><td class="text-end">{{ \\App\\Helpers\\FormatHelper::indo($material['line_cost'], 2) }}</td></tr>
+                @empty
+                    <tr><td colspan="5" class="text-center text-muted py-3">BOM belum memiliki material.</td></tr>
+                @endforelse
+                </tbody>
+                <tfoot><tr class="table-light fw-semibold"><td colspan="4" class="text-end">Total Estimasi Material</td><td class="text-end">{{ \\App\\Helpers\\FormatHelper::indo($materialTotal, 2) }}</td></tr></tfoot>
+            </table>
+        </div>
+        <h6 class="fw-semibold mb-2">Estimasi Biaya Lainnya</h6>
+        <div class="table-responsive">
+            <table class="table table-sm table-bordered align-middle mb-0">
+                <thead class="table-light"><tr><th>Kelompok Biaya</th><th>Keterangan / Pekerja</th><th class="text-end">Estimasi (Rp)</th></tr></thead>
+                <tbody>
+                @forelse($woCosts as $cost)
+                    <tr><td>{{ ['U' => 'Tenaga Kerja', 'A' => 'Equipment', 'S' => 'Rent', 'O' => 'Overhead'][$cost->cost_group] ?? $cost->cost_group }}</td><td>{{ $cost->worker_name ?: ($cost->description ?: '-') }}</td><td class="text-end">{{ \\App\\Helpers\\FormatHelper::indo((float) $cost->amount, 2) }}</td></tr>
+                @empty
+                    <tr><td colspan="3" class="text-center text-muted py-3">Belum ada estimasi biaya tenaga, equipment, rent, atau overhead.</td></tr>
+                @endforelse
+                </tbody>
+                <tfoot><tr class="table-light fw-semibold"><td colspan="2" class="text-end">Total Estimasi Biaya SPK</td><td class="text-end">{{ \\App\\Helpers\\FormatHelper::indo($estimatedTotal, 2) }}</td></tr></tfoot>
+            </table>
         </div>
     </div>
 </div>
