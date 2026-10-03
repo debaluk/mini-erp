@@ -22,18 +22,18 @@
 <div class="card border-0 shadow-sm mb-3">
     <div class="card-body">
         <form class="row g-2 align-items-end" method="GET">
-            <div class="col-md-2"><label class="form-label small">Dari</label><input type="date" name="date_from" class="form-control" value="{{ request('date_from') }}"></div>
-            <div class="col-md-2"><label class="form-label small">Sampai</label><input type="date" name="date_to" class="form-control" value="{{ request('date_to') }}"></div>
+            <div class="col-md-2"><label class="form-label small">Dari</label><input type="date" name="date_from" class="form-control" value="{{ $dateFrom }}"></div>
+            <div class="col-md-2"><label class="form-label small">Sampai</label><input type="date" name="date_to" class="form-control" value="{{ $dateTo }}"></div>
             <div class="col-md-2">
                 <label class="form-label small">Status</label>
                 <select name="status" class="form-select">
                     <option value="">Semua</option>
-                    @foreach(['draft'=>'Draft','open'=>'Open','in_progress'=>'Proses','completed'=>'Selesai','cancelled'=>'Batal'] as $key => $label)
+                    @foreach(['draft'=>'Draft','open'=>'Disetujui','in_progress'=>'Proses','completed'=>'Selesai','cancelled'=>'Batal'] as $key => $label)
                         <option value="{{ $key }}" @selected(request('status') === $key)>{{ $label }}</option>
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-auto"><button class="btn btn-outline-primary">Terapkan</button> <a href="{{ route('produksi.work-order') }}" class="btn btn-outline-secondary">Reset</a></div>
+            <div class="col-md-auto"><button class="btn btn-primary">Tampilkan</button> <a href="{{ route('produksi.work-order') }}" class="btn btn-outline-secondary">Reset</a></div>
         </form>
     </div>
 </div>
@@ -54,7 +54,7 @@
                 <tbody>
                 @foreach($rows as $row)
                     @php
-                        $statusLabels=['draft'=>'Draft','open'=>'Open','in_progress'=>'Proses','completed'=>'Selesai','cancelled'=>'Batal'];
+                        $statusLabels=['draft'=>'Draft','open'=>'Disetujui','in_progress'=>'Proses','completed'=>'Selesai','cancelled'=>'Batal'];
                         $statusClasses=['draft'=>'secondary','open'=>'primary','in_progress'=>'warning','completed'=>'success','cancelled'=>'danger'];
                     @endphp
                     <tr>
@@ -87,10 +87,11 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     if (window.jQuery) $('#workOrderTable').DataTable({
+        dom: '<"row align-items-center px-3 py-3"<"col-sm-6"l><"col-sm-6 d-flex justify-content-end"f>>t<"row align-items-center px-3 py-3"<"col-sm-5"i><"col-sm-7 d-flex justify-content-end"p>>',
         pageLength: 15,
         lengthMenu: [[15,25,50,100],[15,25,50,100]],
         order: [[1,'desc']],
-        language: { search: 'Cari:', lengthMenu: 'Tampil _MENU_', info: 'Menampilkan _START_–_END_ dari _TOTAL_ SPK', infoEmpty: 'Tidak ada SPK', zeroRecords: 'Data tidak ditemukan', paginate: { previous: '‹', next: '›' } },
+        language: { search: 'Cari:', lengthMenu: 'Tampilkan _MENU_ baris', info: 'Menampilkan _START_–_END_ dari _TOTAL_ SPK', infoEmpty: 'Tidak ada SPK', zeroRecords: 'Data tidak ditemukan', paginate: { previous: '‹', next: '›' } },
         columnDefs: [{ targets: [5,6,8], orderable: false }]
     });
 });
