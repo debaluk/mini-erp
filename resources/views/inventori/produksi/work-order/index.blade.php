@@ -67,7 +67,7 @@
                     @endphp
                     <tr id="wo-row-{{ $row->id }}">
                         <td class="fw-semibold">{{ $row->wo_no }}</td>
-                        <td data-order="{{ $row->wo_date }}-{{ str_pad($row->id, 10, '0', STR_PAD_LEFT) }}">{{ \Carbon\Carbon::parse($row->wo_date)->format('d/m/Y') }}</td>
+                        <td data-order="{{ $row->wo_date }}">{{ \Carbon\Carbon::parse($row->wo_date)->format('d/m/Y') }}</td>
                         <td>{{ $row->product_name }}</td>
                         <td><span class="badge text-bg-light border">{{ $row->bom_code }}</span></td>
                         <td>{{ $row->warehouse_name }}</td>
@@ -473,7 +473,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const cells = [
             '<span class="fw-semibold">'+row.wo_no+'</span>',
-            '<span data-order="'+row.wo_date+'-'+String(row.id).padStart(10,'0')+'">'+row.wo_date_display+'</span>',
+            '<span data-order="'+row.wo_date+'">'+row.wo_date_display+'</span>',
             row.product_name,
             '<span class="badge text-bg-light border">'+row.bom_code+'</span>',
             row.warehouse_name,
