@@ -16,11 +16,11 @@
     <div class="card-body">
         <div class="row g-3">
             <div class="col-md-3"><div class="text-secondary small">No. SPK</div><div class="fw-semibold">{{ $wo->wo_no }}</div></div>
-            <div class="col-md-3"><div class="text-secondary small">Tanggal SPK</div><div>{{ CarbonCarbon::parse($wo->wo_date)->format('d/m/Y') }}</div></div>
+            <div class="col-md-3"><div class="text-secondary small">Tanggal SPK</div><div>{{ \Carbon\Carbon::parse($wo->wo_date)->format('d/m/Y') }}</div></div>
             <div class="col-md-3"><div class="text-secondary small">Produk</div><div class="fw-semibold">{{ $wo->product_name }}</div></div>
             <div class="col-md-3"><div class="text-secondary small">Gudang</div><div>{{ $wo->warehouse_name }}</div></div>
             <div class="col-md-3"><div class="text-secondary small">BOM</div><div>{{ $wo->bom_code }}</div></div>
-            <div class="col-md-3"><div class="text-secondary small">Target Produksi</div><div>{{ AppHelpersFormatHelper::indo((float) $wo->target_output_qty, 2) }}</div></div>
+            <div class="col-md-3"><div class="text-secondary small">Target Produksi</div><div>{{ number_format((float) $wo->target_output_qty, 2, ',', '.') }}</div></div>
             <div class="col-md-3">
                 <label class="form-label">Tanggal Pemakaian</label>
                 <input type="date" name="usage_date" class="form-control" value="{{ old('usage_date', now()->toDateString()) }}" required>
@@ -49,7 +49,7 @@
                     <tr>
                         <td>{{ $item['sku'] }}</td>
                         <td>{{ $item['name'] }}</td>
-                        <td class="text-end">{{ AppHelpersFormatHelper::indo($item['planned_qty'], 3) }}</td>
+                        <td class="text-end">{{ number_format($item['planned_qty'], 3, ',', '.') }}</td>
                         <td>{{ $item['unit'] }}</td>
                         <td>
                             <input type="hidden" name="product_id[]" value="{{ $item['product_id'] }}">
