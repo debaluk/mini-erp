@@ -72,11 +72,11 @@
                     @endphp
                     <tr>
                         <td class="fw-semibold">{{ $row->wo_no }}</td>
-                        <td data-order="{{ $row->wo_date }}">{{ CarbonCarbon::parse($row->wo_date)->format('d/m/Y') }}</td>
+                        <td data-order="{{ $row->wo_date }}">{{ \Carbon\Carbon::parse($row->wo_date)->format('d/m/Y') }}</td>
                         <td>{{ $row->product_name }}</td>
                         <td><span class="badge text-bg-light border">{{ $row->bom_code }}</span></td>
                         <td>{{ $row->warehouse_name }}</td>
-                        <td class="text-end">{{ AppHelpersFormatHelper::indo((float) $row->target_output_qty, 2) }}</td>
+                        <td class="text-end">{{ \App\Helpers\FormatHelper::indo((float) $row->target_output_qty, 2) }}</td>
                         <td class="text-center">{{ $workerCounts[$row->id] ?? 0 }}</td>
                         <td><span class="badge text-bg-{{ $statusClasses[$row->status] ?? 'secondary' }}">{{ $statusLabels[$row->status] ?? $row->status }}</span></td>
                         <td class="text-end text-nowrap">
@@ -114,11 +114,8 @@
                             <label class="form-label">Tanggal SPK</label>
                             <input type="date" name="wo_date" id="woDate" class="form-control" value="{{ now()->toDateString() }}" required>
                         </div>
-                        <div class="col-md-3" id="woBatchWrap">
-                            <label class="form-label">Jumlah Batch</label>
-                            <input type="number" step="0.001" min="0.001" id="woBatchDisplay" class="form-control" value="1" required>
-                        </div>
                         <div class="col-md-3">
+
                             <label class="form-label">Business Unit</label>
                             <select name="business_unit_id" id="woModalBu" class="form-select" required>
                                 <option value="">Pilih BU</option>
@@ -262,7 +259,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const rows=@json($rows->keyBy('id'));
     const money=v=>'Rp '+Number(v||0).toLocaleString('id-ID',{minimumFractionDigits:2,maximumFractionDigits:2});
     const parseMoney=v=>{const r=String(v??'').trim().replace(/[^0-9,.-]/g,'');if(!r)return 0;return r.includes(',')?Number(r.replace(/./g,'').replace(',','.'))||0:Number(r)||0};
-    const fields={bu:document.getElementById('woModalBu'),warehouse:document.getElementById('woModalWarehouse'),bom:document.getElementById('woModalBom'),date:document.getElementById('woDate'),batch:document.getElementById('woBatchQty'),batchDisplay:document.getElementById('woBatchDisplay'),notes:document.getElementById('woNotes'),total:document.getElementById('woModalTotal'),material:document.getElementById('woMaterialTotal'),bomRows:document.getElementById('woBomRows')};
+    const fields={bu:document.getElementById('woModalBu'),warehouse:document.getElementById('woModalWarehouse'),bom:document.getElementById('woModalBom'),date:document.getElementById('woDate'),batch:document.getElementById('woBatchQty'),notes:document.getElementById('woNotes'),total:document.getElementById('woModalTotal'),material:document.getElementById('woMaterialTotal'),bomRows:document.getElementById('woBomRows')};
 
     const filterSelect=(select,bu)=>{[...select.options].forEach(o=>{if(o.value)o.hidden=!!bu&&o.dataset.bu!==String(bu)});if(select.selectedOptions[0]?.hidden)select.value=''};
 
@@ -329,8 +326,7 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('woSubmitText').textContent='Simpan Draft WO';
         fields.date.value='{{ now()->toDateString() }}';
         fields.batch.value='1';
-        fields.batchDisplay.value='1';
-        fields.bu.value='';
+                fields.bu.value='';
         fields.warehouse.value='';
         fields.bom.value='';
         fields.notes.value='';
@@ -351,8 +347,7 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('woSubmitText').textContent='Simpan Perubahan';
         fields.date.value=row.wo_date;
         fields.batch.value=row.batch_qty;
-        fields.batchDisplay.value=row.batch_qty;
-        fields.bu.value=row.business_unit_id;
+                fields.bu.value=row.business_unit_id;
         filterSelect(fields.warehouse,row.business_unit_id);
         filterSelect(fields.bom,row.business_unit_id);
         fields.warehouse.value=row.warehouse_id;
@@ -370,7 +365,6 @@ document.addEventListener('DOMContentLoaded', function () {
     fields.bu.addEventListener('change',()=>{filterSelect(fields.warehouse,fields.bu.value);filterSelect(fields.bom,fields.bu.value);loadBom()});
     fields.warehouse.addEventListener('change',loadBom);
     fields.bom.addEventListener('change',loadBom);
-    fields.batchDisplay.addEventListener('input',()=>{fields.batch.value=fields.batchDisplay.value||1;loadBom()});
 
     document.addEventListener('click',function(e){
         const add=e.target.closest('#workOrderModal .add-modal-cost');
