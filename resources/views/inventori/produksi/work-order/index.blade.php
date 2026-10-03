@@ -42,7 +42,11 @@
     <div class="card-header bg-primary bg-opacity-10 text-primary border-bottom d-flex justify-content-between align-items-center py-3">
         <div class="fw-semibold"><i class="bi bi-clipboard-check me-2"></i>Daftar Work Order / SPK</div>
     </div>
-    <div class="card-body p-0">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center gap-3 mb-3" id="workOrderControls">
+            <div id="workOrderLength"></div>
+            <div id="workOrderSearch"></div>
+        </div>
         <div class="table-responsive">
             <table id="workOrderTable" class="table table-hover align-middle mb-0 w-100">
                 <thead class="table-primary">
@@ -63,7 +67,7 @@
                         <td>{{ $row->product_name }}</td>
                         <td><span class="badge text-bg-light border">{{ $row->bom_code }}</span></td>
                         <td>{{ $row->warehouse_name }}</td>
-                        <td class="text-end">{{ \App\Helpers\FormatHelper::indo((float) $row->target_output_qty, 3) }}</td>
+                        <td class="text-end">{{ \App\Helpers\FormatHelper::indo((float) $row->target_output_qty, 2) }}</td>
                         <td class="text-center">{{ $workerCounts[$row->id] ?? 0 }}</td>
                         <td><span class="badge text-bg-{{ $statusClasses[$row->status] ?? 'secondary' }}">{{ $statusLabels[$row->status] ?? $row->status }}</span></td>
                         <td class="text-end text-nowrap">
@@ -91,12 +95,13 @@
 @push('styles')
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
 <style>
-    #workOrderTable_wrapper > .d-flex:first-child { display:flex !important; flex-wrap:nowrap !important; align-items:center !important; justify-content:space-between !important; gap:1rem; }
-    #workOrderTable_wrapper .dataTables_length,
-    #workOrderTable_wrapper .dataTables_filter { float:none !important; width:auto !important; margin:0 !important; white-space:nowrap !important; }
-    #workOrderTable_wrapper .dataTables_filter { display:flex !important; align-items:center !important; justify-content:flex-end !important; flex:0 0 auto !important; }
-    #workOrderTable_wrapper .dataTables_filter label { margin:0 !important; display:flex !important; align-items:center !important; gap:.5rem !important; }
-    #workOrderTable_wrapper .dataTables_filter input { margin:0 !important; width:240px !important; }
+    #workOrderControls { flex-wrap: nowrap !important; }
+    #workOrderControls .dataTables_length,
+    #workOrderControls .dataTables_filter { margin:0 !important; white-space:nowrap !important; }
+    #workOrderControls .dataTables_filter { margin-left:auto !important; }
+    #workOrderControls .dataTables_filter label { margin:0 !important; display:flex !important; align-items:center !important; gap:.5rem !important; }
+    #workOrderControls .dataTables_filter input { margin:0 !important; width:240px !important; }
+    #workOrderControls .dataTables_length label { margin:0 !important; display:flex !important; align-items:center !important; gap:.5rem !important; }
 </style>
 @endpush
 
@@ -105,8 +110,8 @@
 <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    if (window.jQuery) $('#workOrderTable').DataTable({
-        dom: '<"d-flex justify-content-between align-items-center flex-nowrap px-3 py-3"l f>t<"d-flex justify-content-between align-items-center px-3 py-3"i p>',
+    if (window.jQuery) { const table = $('#workOrderTable').DataTable({
+        dom: 't<"d-flex justify-content-between align-items-center px-3 py-3"i p>',
         pageLength: 15,
         lengthMenu: [[15,25,50,100],[15,25,50,100]],
         autoWidth: false,
@@ -114,6 +119,9 @@ document.addEventListener('DOMContentLoaded', function () {
         language: { search: 'Cari:', lengthMenu: 'Tampilkan _MENU_ baris', info: 'Menampilkan _START_–_END_ dari _TOTAL_ SPK', infoEmpty: 'Tidak ada SPK', zeroRecords: 'Data tidak ditemukan', paginate: { previous: '‹', next: '›' } },
         columnDefs: [{ targets: [5,6,8], orderable: false }]
     });
+    $('#workOrderControls #workOrderLength').append($('#workOrderTable_length'));
+    $('#workOrderControls #workOrderSearch').append($('#workOrderTable_filter'));
+    }
 });
 </script>
 @endpush
