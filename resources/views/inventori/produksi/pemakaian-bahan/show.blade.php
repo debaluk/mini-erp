@@ -15,6 +15,16 @@
 @if(session('error'))
 <div class="alert alert-danger">{{ session('error') }}</div>
 @endif
+@if($errors->any())
+<div class="alert alert-danger">
+    <div class="fw-semibold mb-1">Pemakaian bahan belum dapat disetujui</div>
+    <ul class="mb-0 ps-3">
+        @foreach($errors->all() as $error)
+            <li>{{ $error }}</li>
+        @endforeach
+    </ul>
+</div>
+@endif
 
 <div class="card border-0 shadow-sm mb-3">
     <div class="card-header d-flex justify-content-between align-items-center">
