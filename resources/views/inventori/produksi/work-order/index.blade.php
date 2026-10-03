@@ -300,6 +300,10 @@
 document.addEventListener('DOMContentLoaded', function () {
     const modal=bootstrap.Modal.getOrCreateInstance(document.getElementById('workOrderModal'),{backdrop:'static',keyboard:false});
     const msgPopup=document.getElementById('woMessagePopup');
+    // Lepaskan popup dari container halaman/modal agar position:fixed benar-benar relatif ke viewport.
+    if (msgPopup && msgPopup.parentElement !== document.body) {
+        document.body.appendChild(msgPopup);
+    }
     const closeMessage=function(){
         msgPopup.classList.remove('show');
         msgPopup.setAttribute('aria-hidden','true');
