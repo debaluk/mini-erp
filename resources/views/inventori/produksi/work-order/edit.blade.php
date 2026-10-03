@@ -118,6 +118,8 @@
 </div>
 @endforeach
 
+<div class="card border-success mb-3"><div class="card-body d-flex justify-content-between align-items-center"><div><div class="small text-secondary">TOTAL ESTIMASI BIAYA WO/SPK</div><div class="small text-secondary">Material + Tenaga + Equipment + Rent + Overhead</div></div><div class="fw-bold text-success fs-4" id="wo-total">Rp 0</div></div></div>
+
 <div class="card border-0 shadow-sm mb-3"><div class="card-header bg-light fw-semibold">Catatan SPK</div><div class="card-body"><textarea name="notes" class="form-control" rows="4" placeholder="Instruksi atau catatan produksi...">{{ old('notes', $wo->notes) }}</textarea></div></div>
 
 <div class="d-flex justify-content-end gap-2">
@@ -132,10 +134,11 @@
 document.addEventListener('DOMContentLoaded', function () {
     const bu=document.getElementById('wo_bu'), warehouse=document.getElementById('wo_warehouse'), bom=document.getElementById('wo_bom');
     const batch=document.getElementById('batch_display'), batchHidden=document.getElementById('batch_qty');
-    const mt=document.getElementById('material-total'), target=document.getElementById('bom-target'), rows=document.getElementById('bom-material-rows');
+    const mt=document.getElementById('material-total'), target=document.getElementById('bom-target'), rows=document.getElementById('bom-material-rows'), total=document.getElementById('wo-total');
     const money=v=>'Rp '+Number(v||0).toLocaleString('id-ID',{minimumFractionDigits:2,maximumFractionDigits:2});
     const parseMoney=v=>{const r=String(v??'').trim().replace(/[^0-9,.-]/g,'');if(!r)return 0;return r.includes(',')?Number(r.replace(/\./g,'').replace(',','.'))||0:Number(r)||0};
     const syncBatch=()=>{batchHidden.value=batch.value||1};
+    const recalc=()=>{let s=parseMoney(mt.dataset.value||0);document.querySelectorAll('.cost-input').forEach(i=>s+=parseMoney(i.value));total.textContent=money(s)};
     const filter=(select,id)=>{[...select.options].forEach(o=>{if(o.value)o.hidden=!!id&&o.dataset.bu!==id});if(select.selectedOptions[0]?.hidden)select.value=''};
     const load=async()=>{
         syncBatch();
@@ -147,14 +150,15 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('bom-product').textContent=(d.bom.product_sku?d.bom.product_sku+' — ':'')+d.bom.product_name;
         document.getElementById('bom-code').textContent=d.bom.code+' — '+d.bom.name;
         target.textContent=Number(d.bom.target_output_qty||0).toLocaleString('id-ID',{maximumFractionDigits:3})+' '+(d.bom.output_unit||'');
-        mt.textContent=money(d.material_cost);
+        mt.dataset.value=d.material_cost||0; mt.textContent=money(d.material_cost);
         rows.innerHTML=(d.materials||[]).map(i=>'<tr><td>'+i.sku+' — '+i.name+'</td><td class="text-end">'+Number(i.base_qty||0).toLocaleString('id-ID',{maximumFractionDigits:3})+'</td><td>'+i.unit+'</td><td class="text-end">'+money(i.unit_cost)+'</td><td class="text-end">'+money(i.line_cost)+'</td></tr>').join('')||'<tr><td colspan="5" class="text-center text-secondary">BOM belum memiliki material.</td></tr>';
     };
     bu.addEventListener('change',()=>{filter(warehouse,bu.value);filter(bom,bu.value);load()});
     warehouse.addEventListener('change',load); bom.addEventListener('change',load); batch.addEventListener('input',load);
     document.querySelectorAll('.add-row').forEach(b=>b.addEventListener('click',()=>{const sec=b.closest('.cost-section'), row=sec.querySelector('.cost-row'), n=row.cloneNode(true);n.querySelectorAll('input:not([type="hidden"])').forEach(i=>i.value='');n.querySelectorAll('select').forEach(s=>s.value='');sec.querySelector('.rows').appendChild(n)}));
-    document.addEventListener('click',e=>{const btn=e.target.closest('.remove-row');if(!btn)return;const sec=btn.closest('.cost-section');if(sec.querySelectorAll('.cost-row').length>1)btn.closest('.cost-row').remove()});
-    filter(warehouse,bu.value); filter(bom,bu.value); load();
+    document.addEventListener('click',e=>{const btn=e.target.closest('.remove-row');if(!btn)return;const sec=btn.closest('.cost-section');if(sec.querySelectorAll('.cost-row').length>1)btn.closest('.cost-row').remove();recalc()});
+    document.addEventListener('input',e=>{if(e.target.classList.contains('cost-input'))recalc()});
+    filter(warehouse,bu.value); filter(bom,bu.value); load(); recalc();
 });
 </script>
 @endpush
