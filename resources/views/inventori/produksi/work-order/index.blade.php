@@ -65,7 +65,7 @@
                         $statusLabels=['open'=>'Open','in_progress'=>'On Progress','completed'=>'Selesai'];
                         $statusClasses=['open'=>'primary','in_progress'=>'warning','completed'=>'success'];
                     @endphp
-                    <tr>
+                    <tr id="wo-row-{{ $row->id }}">
                         <td class="fw-semibold">{{ $row->wo_no }}</td>
                         <td data-order="{{ $row->wo_date }}">{{ \Carbon\Carbon::parse($row->wo_date)->format('d/m/Y') }}</td>
                         <td>{{ $row->product_name }}</td>
@@ -465,6 +465,37 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    function upsertWorkOrderRow(row) {
+        const statusLabels = {open: 'Open', in_progress: 'On Progress', completed: 'Selesai'};
+        const statusClasses = {open: 'primary', in_progress: 'warning', completed: 'success'};
+        const statusLabel = statusLabels[row.status] || row.status;
+        const statusClass = statusClasses[row.status] || 'secondary';
+
+        const cells = [
+            '<span class="fw-semibold">'+row.wo_no+'</span>',
+            '<span data-order="'+row.wo_date+'">'+row.wo_date_display+'</span>',
+            row.product_name,
+            '<span class="badge text-bg-light border">'+row.bom_code+'</span>',
+            row.warehouse_name,
+            '<span class="d-block text-end">'+Number(row.target_output_qty || 0).toLocaleString('id-ID',{minimumFractionDigits:0,maximumFractionDigits:2})+'</span>',
+            '<span class="d-block text-center">'+row.worker_count+'</span>',
+            '<span class="badge text-bg-'+statusClass+'">'+statusLabel+'</span>',
+            row.status === 'open'
+                ? '<div class="text-end text-nowrap"><button type="button" class="btn btn-sm btn-outline-primary btn-edit-wo" title="Edit" data-id="'+row.id+'"><i class="bi bi-pencil"></i></button> <button type="button" class="btn btn-sm btn-outline-danger btn-delete-wo" title="Hapus" data-id="'+row.id+'" data-no="'+row.wo_no+'"><i class="bi bi-trash"></i></button> <a href="'+row.print_url+'" target="_blank" class="btn btn-sm btn-outline-secondary" title="Cetak SPK"><i class="bi bi-printer"></i></a></div>'
+                : '<div class="text-end text-nowrap"><a href="'+row.show_url+'" class="btn btn-sm btn-outline-dark" title="View"><i class="bi bi-eye"></i></a></div>'
+        ];
+
+        const existing = document.getElementById('wo-row-'+row.id);
+        if (existing) {
+            table.row(existing).data(cells).draw(false);
+        } else {
+            const tr = document.createElement('tr');
+            tr.id = 'wo-row-'+row.id;
+            table.row.add(tr);
+            table.row(tr).data(cells).draw(false);
+        }
+    }
+
     $('#workOrderForm').on('submit', function (e) {
         e.preventDefault();
 
@@ -481,8 +512,7 @@ document.addEventListener('DOMContentLoaded', function () {
             success: function (res) {
                 if (res.success) {
                     modal.hide();
-                    await new Promise(resolve => setTimeout(resolve, 250));
-                    window.location.reload();
+                    upsertWorkOrderRow(res.row);
                     Swal.fire({
                         icon: 'success',
                         title: 'Berhasil!',
