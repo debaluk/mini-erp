@@ -430,6 +430,40 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.addEventListener('input',e=>{if(e.target.classList.contains('cost-input'))recalc()});
 
+    $('#woDeleteForm').on('submit', function (e) {
+        e.preventDefault();
+
+        const deleteForm = this;
+
+        $.ajax({
+            url: deleteForm.action,
+            type: 'POST',
+            data: $(deleteForm).serialize(),
+            headers: { 'Accept': 'application/json' },
+            success: function (res) {
+                if (res.success) {
+                    deleteModal.hide();
+                    window.location.reload();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil!',
+                        text: res.message,
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                }
+            },
+            error: function (xhr) {
+                const response = xhr.responseJSON || {};
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal!',
+                    text: response.message || 'Gagal menghapus SPK.'
+                });
+            }
+        });
+    });
+
     $('#workOrderForm').on('submit', function (e) {
         e.preventDefault();
 
