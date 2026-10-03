@@ -190,39 +190,34 @@
             </div>
             <div class="card-body">
                 <div class="row g-3">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="form-label">Target Produksi</label>
                         <div class="form-control bg-light">
                             {{ \App\Helpers\FormatHelper::indo((float) $wo->target_output_qty, 2) }} Biji
                         </div>
                     </div>
 
-                    <div class="col-md-4">
-                        <label class="form-label">Pekerja</label>
-                        <select class="form-select" disabled>
-                            @forelse($workers as $worker)
-                                <option>{{ $worker->name }}</option>
-                            @empty
-                                <option>Belum ada pekerja</option>
-                            @endforelse
-                        </select>
-                        <div class="form-text">Pekerja yang melakukan input hasil produksi.</div>
-                    </div>
-
-                    <div class="col-md-4">
-                        <label class="form-label">Hasil Produksi</label>
+                    <div class="col-md-3">
+                        <label class="form-label">Hasil Bagus Lulus QC</label>
                         <div class="input-group">
-                            <input type="number" class="form-control" min="0" step="0.01" placeholder="0" disabled>
+                            <input type="number" id="good-output" class="form-control text-end" min="0" step="0.01" placeholder="0">
                             <span class="input-group-text">Biji</span>
                         </div>
+                        <div class="form-text">Dapat diisi manual atau mengikuti total Qty Real pekerja berbasis biji.</div>
                     </div>
 
-                    <div class="col-md-4">
-                        <label class="form-label">Reject</label>
+                    <div class="col-md-3">
+                        <label class="form-label">Hasil Afkir / Cacat (Reject)</label>
                         <div class="input-group">
-                            <input type="number" class="form-control" min="0" step="0.01" placeholder="0" disabled>
+                            <input type="number" id="reject-output" class="form-control text-end" min="0" step="0.01" placeholder="0">
                             <span class="input-group-text">Biji</span>
                         </div>
+                        <div class="form-text">Default dihitung Target - Hasil Bagus, tetapi dapat disesuaikan.</div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Persentase Reject</label>
+                        <div class="form-control bg-light text-end fw-semibold" id="reject-percentage">0,00%</div>
                     </div>
 
                     <div class="col-12">
@@ -260,6 +255,76 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     table.addEventListener('input', calculateLabor);
+    calculateLabor();
+});
+</script>
+@endpush
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const table = document.getElementById('labor-table');
+    if (!table) return;
+
+    const formatRupiah = (value) => 'Rp ' + new Intl.NumberFormat('id-ID', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(value || 0);
+
+    const calculateLabor = () => {
+        let grandTotal = 0;
+        let workerQtyTotal = 0;
+        table.querySelectorAll('tbody tr').forEach(row => {
+            const rate = parseFloat(row.querySelector('.labor-rate')?.value || 0);
+            const qty = parseFloat(row.querySelector('.labor-qty')?.value || 0);
+            const basis = row.querySelector('.labor-basis')?.value || 'BIJI';
+            const total = rate * qty;
+            grandTotal += total;
+            if (basis === 'BIJI') workerQtyTotal += qty;
+            const output = row.querySelector('.labor-total');
+            if (output) output.textContent = formatRupiah(total);
+        });
+        const grand = document.getElementById('labor-grand-total');
+        if (grand) grand.textContent = formatRupiah(grandTotal);
+
+        const good = document.getElementById('good-output');
+        const reject = document.getElementById('reject-output');
+        if (good && !good.dataset.manual) good.value = workerQtyTotal || '';
+        calculateProduction();
+    };
+
+    const calculateProduction = () => {
+        const target = parseFloat(document.querySelector('[data-production-target]')?.dataset.productionTarget || 0);
+        const good = parseFloat(document.getElementById('good-output')?.value || 0);
+        const reject = document.getElementById('reject-output');
+        const percentage = document.getElementById('reject-percentage');
+
+        if (reject && !reject.dataset.manual) {
+            reject.value = Math.max(target - good, 0);
+        }
+
+        const rejectQty = parseFloat(reject?.value || 0);
+        const percent = target > 0 ? (rejectQty / target) * 100 : 0;
+        if (percentage) percentage.textContent = new Intl.NumberFormat('id-ID', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(percent) + '%';
+    };
+
+    const good = document.getElementById('good-output');
+    const reject = document.getElementById('reject-output');
+    if (good) {
+        good.addEventListener('input', function () {
+            this.dataset.manual = '1';
+            calculateProduction();
+        });
+    }
+    if (reject) {
+        reject.addEventListener('input', function () {
+            this.dataset.manual = '1';
+            calculateProduction();
+        });
+    }
+    table.addEventListener('input', calculateLabor);
+    table.addEventListener('change', calculateLabor);
     calculateLabor();
 });
 </script>
