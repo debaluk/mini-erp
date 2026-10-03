@@ -253,20 +253,26 @@
     }
     #woMessagePopup {
         display:none;
-        position:fixed;
-        inset:0;
-        z-index:1090;
+        position:fixed !important;
+        inset:0 !important;
+        z-index:2000 !important;
+        width:100vw !important;
+        height:100vh !important;
+        margin:0 !important;
+        padding:1rem !important;
         background:rgba(0,0,0,.5);
         align-items:center;
         justify-content:center;
     }
-    #woMessagePopup.show { display:flex; }
+    #woMessagePopup.show { display:flex !important; }
     #woMessagePopup .wo-message-box {
         width:min(400px,calc(100vw - 30px));
+        max-height:calc(100vh - 30px);
         background:#fff;
         border-radius:.5rem;
         box-shadow:0 .5rem 1rem rgba(0,0,0,.25);
         overflow:hidden;
+        flex:0 0 auto;
     }
     #woMessagePopup .wo-message-header,
     #woMessagePopup .wo-message-footer { padding:.75rem 1rem; }
