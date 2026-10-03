@@ -236,11 +236,16 @@
         min-height: 0;
     }
     #workOrderModal .modal-body {
-        flex: 1 1 auto;
+        height: calc(100vh - 180px);
+        flex: 0 0 calc(100vh - 180px);
         min-height: 0;
         overflow-y: auto !important;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
+    }
+    #workOrderModal .modal-footer {
+        flex: 0 0 auto;
+        background: #fff;
     }
     #workOrderControls { width:100%; }
     #workOrderControls > div { min-width:0; }
