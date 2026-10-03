@@ -507,9 +507,47 @@ class ProductionWorkOrderController extends Controller
             ->orderBy('id')
             ->get();
 
+        $materialCost = 0.0;
+        $bomItems = DB::table('bom_items as bi')
+            ->join('products as p', 'p.id', '=', 'bi.product_id')
+            ->where('bi.bom_id', $wo->bom_id)
+            ->get(['bi.product_id', 'bi.unit_id', 'bi.qty', 'p.base_unit_id']);
+
+        foreach ($bomItems as $item) {
+            $factor = 1.0;
+            if ((int) $item->unit_id !== (int) $item->base_unit_id) {
+                $factor = (float) DB::table('product_unit_conversions')
+                    ->where('product_id', $item->product_id)
+                    ->where('unit_id', $item->unit_id)
+                    ->where('is_active', 1)
+                    ->value('conversion_factor');
+            }
+
+            $stock = DB::table('warehouses_stocks')
+                ->where('entity_id', $entityId)
+                ->where('warehouse_id', $wo->warehouse_id)
+                ->where('product_id', $item->product_id)
+                ->first(['avg_cost']);
+
+            $unitCost = $stock
+                ? (float) $stock->avg_cost
+                : (float) (DB::table('warehouses_stocks')
+                    ->where('entity_id', $entityId)
+                    ->where('product_id', $item->product_id)
+                    ->where('qty', '>', 0)
+                    ->avg('avg_cost') ?? 0);
+
+            $materialCost += round((float) $item->qty * $factor * (float) $wo->batch_qty, 3) * $unitCost;
+        }
+        $materialCost = round($materialCost, 2);
+        $otherCost = round((float) $costs->sum('amount'), 2);
+        $totalEstimatedCost = round($materialCost + $otherCost, 2);
+
         $entity = DB::table('entities')->where('id', $entityId)->first();
 
-        return view('inventori.produksi.work-order.print', compact('wo', 'workers', 'costs', 'entity'));
+        return view('inventori.produksi.work-order.print', compact(
+            'wo', 'workers', 'costs', 'entity', 'materialCost', 'totalEstimatedCost'
+        ));
     }
 
     public function export(Request $request)
