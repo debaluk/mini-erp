@@ -68,9 +68,9 @@
                     <tr>
                         <td>{{ $item->sku }}</td>
                         <td>{{ $item->product_name }}</td>
-                        <td class="text-end">{{ number_format((float) $item->planned_qty, 3, ',', '.') }}</td>
+                        <td class="text-end">{{ \App\Helpers\FormatHelper::indo((float) $item->planned_qty, 2) }}</td>
                         <td>{{ $item->unit_code ?: $item->unit_name }}</td>
-                        <td class="text-end">{{ number_format((float) $item->actual_qty, 3, ',', '.') }}</td>
+                        <td class="text-end">{{ \App\Helpers\FormatHelper::indo((float) $item->actual_qty, 2) }}</td>
                     </tr>
                 @endforeach
                 </tbody>
