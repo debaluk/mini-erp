@@ -383,6 +383,28 @@ class ProductionWorkOrderController extends Controller
 
         $entityId = $this->entityId();
 
+        $mappingKeys = [
+            'direct_labor',
+            'salary_payable',
+            'inventory_finished_goods',
+            'inventory_damage_loss',
+        ];
+        $productionMappings = DB::table('business_unit_account_mappings')
+            ->where('entity_id', $entityId)
+            ->where('business_unit_id', function ($query) use ($entityId, $id) {
+                $query->from('production_work_orders')
+                    ->select('business_unit_id')
+                    ->where('entity_id', $entityId)
+                    ->where('id', $id)
+                    ->limit(1);
+            })
+            ->whereIn('mapping_key', $mappingKeys)
+            ->pluck('account_id', 'mapping_key');
+
+        if ($productionMappings->count() !== count($mappingKeys) || $productionMappings->contains(fn ($accountId) => empty($accountId))) {
+            return redirect()->back()->with('error', 'Mapping akun produksi belum lengkap. Silakan lengkapi mapping akun produksi terlebih dahulu.');
+        }
+
         DB::transaction(function () use ($data, $entityId, $id): void {
             $wo = DB::table('production_work_orders')
                 ->where('entity_id', $entityId)->where('id', $id)->where('status', 'open')->first();
@@ -834,8 +856,6 @@ class ProductionWorkOrderController extends Controller
             $damageAccount = DB::table('business_unit_account_mappings')
                 ->where('entity_id', $entityId)->where('business_unit_id', $wo->business_unit_id)
                 ->where('mapping_key', 'inventory_damage_loss')->value('account_id');
-
-            abort_unless($directLaborAccount && $salaryPayableAccount && $finishedInventoryAccount && $damageAccount, 422, 'Mapping akun produksi belum lengkap.');
 
             $laborJournalId = DB::table('journals')->insertGetId([
                 'entity_id' => $entityId,
