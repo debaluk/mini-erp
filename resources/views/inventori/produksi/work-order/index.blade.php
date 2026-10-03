@@ -90,10 +90,7 @@
                                     @method('DELETE')
                                     <button class="btn btn-sm btn-outline-danger" title="Hapus"><i class="bi bi-trash"></i></button>
                                 </form>
-                                <form method="POST" action="{{ route('produksi.work-order.start', $row->id) }}" class="d-inline" onsubmit="return confirm('Mulai kerja SPK {{ $row->wo_no }} sekarang?')">
-                                    @csrf
-                                    <button class="btn btn-sm btn-success" title="Mulai Kerja"><i class="bi bi-play-fill me-1"></i>Mulai Kerja</button>
-                                </form>
+                                <a href="{{ route('produksi.work-order.print', $row->id) }}" target="_blank" class="btn btn-sm btn-outline-secondary" title="Cetak SPK"><i class="bi bi-printer"></i></a>
                             @else
                                 <a href="{{ route('produksi.work-order.show',$row->id) }}" class="btn btn-sm btn-outline-dark" title="View"><i class="bi bi-eye"></i></a>
                             @endif
