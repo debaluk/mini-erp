@@ -63,9 +63,9 @@
                     <tr>
                         <td>{{ $material['sku'] }}</td>
                         <td>{{ $material['name'] }}</td>
-                        <td class="text-end">{{ \App\Helpers\FormatHelper::indo($material['qty'], 3) }}</td>
+                        <td class="text-end">{{ \App\Helpers\FormatHelper::indo($material['qty'], 2) }}</td>
                         <td>{{ $material['unit'] }}</td>
-                        <td class="text-end">{{ \App\Helpers\FormatHelper::indo($material['base_qty'], 3) }}</td>
+                        <td class="text-end">{{ \App\Helpers\FormatHelper::indo($material['base_qty'], 2) }}</td>
                     </tr>
                 @empty
                     <tr><td colspan="5" class="text-center text-muted py-3">BOM belum memiliki bahan.</td></tr>
