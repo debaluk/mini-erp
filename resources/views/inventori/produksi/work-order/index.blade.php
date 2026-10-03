@@ -107,10 +107,9 @@
                 <input type="hidden" name="batch_qty" id="woBatchQty" value="1">
                 <div class="modal-header">
                     <h5 class="modal-title" id="workOrderModalTitle">Buat Work Order / SPK</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                    <button type="button" class="btn-close" aria-label="Tutup" onclick="return false;" disabled></button>
                 </div>
                 <div class="modal-body">
-                    <div class="alert alert-info small" id="woModalHint">SPK adalah master/referensi pekerjaan produksi.</div>
                     <div class="row g-3">
                         <div class="col-md-3">
                             <label class="form-label">Tanggal SPK</label>
@@ -150,7 +149,6 @@
                     </div>
 
                     <div id="woBomInfo" class="card border-primary mt-3">
-                        <div class="card-header bg-primary bg-opacity-10 text-primary fw-semibold"><i class="bi bi-info-circle me-2"></i>Informasi BOM</div>
                         <div class="card-body">
                             <div class="row g-3 mb-3">
                                 <div class="col-md-3"><div class="small text-secondary">Produk</div><div class="fw-semibold" id="woBomProduct">-</div></div>
@@ -225,6 +223,9 @@
 @push('styles')
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
 <style>
+    #workOrderModal .modal-body { max-height: calc(100vh - 180px); overflow-y: auto; }
+    #workOrderModal .modal-content { max-height: calc(100vh - 30px); }
+    #workOrderModal .modal-dialog { height: calc(100vh - 30px); margin-top: 15px; margin-bottom: 15px; }
     #workOrderControls { width:100%; }
     #workOrderControls > div { min-width:0; }
     #workOrderTable_wrapper .dataTables_filter,
@@ -237,7 +238,7 @@
 <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const modal=bootstrap.Modal.getOrCreateInstance(document.getElementById('workOrderModal'));
+    const modal=bootstrap.Modal.getOrCreateInstance(document.getElementById('workOrderModal'),{backdrop:'static',keyboard:false});
     const msgModal=bootstrap.Modal.getOrCreateInstance(document.getElementById('woMessageModal'));
     const deleteModal=bootstrap.Modal.getOrCreateInstance(document.getElementById('woDeleteModal'));
     const form=document.getElementById('workOrderForm');
@@ -311,8 +312,7 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('woMethod').value='';
         document.getElementById('workOrderModalTitle').textContent='Buat Work Order / SPK';
         document.getElementById('woSubmitText').textContent='Simpan Draft WO';
-        document.getElementById('woModalHint').textContent='SPK adalah master/referensi pekerjaan produksi.';
-        fields.date.value='{{ now()->toDateString() }}';
+                fields.date.value='{{ now()->toDateString() }}';
         fields.batch.value='1';
         fields.batchDisplay.value='1';
         fields.bu.value='';
@@ -334,8 +334,7 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('woMethod').value='PUT';
         document.getElementById('workOrderModalTitle').textContent='Edit Work Order / SPK';
         document.getElementById('woSubmitText').textContent='Simpan Perubahan';
-        document.getElementById('woModalHint').textContent='Perubahan hanya dapat dilakukan selama SPK masih Open.';
-        fields.date.value=row.wo_date;
+                fields.date.value=row.wo_date;
         fields.batch.value=row.batch_qty;
         fields.batchDisplay.value=row.batch_qty;
         fields.bu.value=row.business_unit_id;
@@ -358,18 +357,25 @@ document.addEventListener('DOMContentLoaded', function () {
     fields.bom.addEventListener('change',loadBom);
     fields.batchDisplay.addEventListener('input',()=>{fields.batch.value=fields.batchDisplay.value||1;loadBom()});
 
-    document.addEventListener('click',e=>{
-        const add=e.target.closest('.add-modal-cost');
+    document.addEventListener('click',function(e){
+        const add=e.target.closest('#workOrderModal .add-modal-cost');
         if(add){
+            e.preventDefault();
             const sec=add.closest('.cost-section-modal');
-            sec.querySelector('.modal-cost-rows').appendChild(costRow(sec.dataset.group));
-            recalc();
+            if(sec){
+                const box=sec.querySelector('.modal-cost-rows');
+                box.appendChild(costRow(sec.dataset.group));
+                recalc();
+            }
+            return;
         }
-        const rm=e.target.closest('.remove-modal-cost');
+        const rm=e.target.closest('#workOrderModal .remove-modal-cost');
         if(rm){
+            e.preventDefault();
             const box=rm.closest('.modal-cost-rows');
-            if(box.querySelectorAll('.modal-cost-row').length>1)rm.closest('.modal-cost-row').remove();
+            if(box && box.querySelectorAll('.modal-cost-row').length>1)rm.closest('.modal-cost-row').remove();
             recalc();
+            return;
         }
         const del=e.target.closest('.btn-delete-wo');
         if(del){
