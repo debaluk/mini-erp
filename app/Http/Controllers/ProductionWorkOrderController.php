@@ -270,7 +270,7 @@ class ProductionWorkOrderController extends Controller
                 'wo_date' => $data['wo_date'],
                 'batch_qty' => $data['batch_qty'],
                 'target_output_qty' => $targetOutput,
-                'status' => 'draft',
+                'status' => 'open',
                 'notes' => $data['notes'] ?? null,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -324,10 +324,10 @@ class ProductionWorkOrderController extends Controller
         $wo = DB::table('production_work_orders')
             ->where('entity_id', $entityId)
             ->where('id', $id)
-            ->where('status', 'draft')
+            ->where('status', 'open')
             ->first();
 
-        abort_unless($wo, 404, 'WO Draft tidak ditemukan.');
+        abort_unless($wo, 404, 'SPK Open tidak ditemukan.');
 
         $boms = DB::table('boms as b')
             ->join('products as p', 'p.id', '=', 'b.product_id')
@@ -385,8 +385,8 @@ class ProductionWorkOrderController extends Controller
 
         DB::transaction(function () use ($data, $entityId, $id): void {
             $wo = DB::table('production_work_orders')
-                ->where('entity_id', $entityId)->where('id', $id)->where('status', 'draft')->first();
-            abort_unless($wo, 422, 'Hanya WO Draft yang dapat diedit.');
+                ->where('entity_id', $entityId)->where('id', $id)->where('status', 'open')->first();
+            abort_unless($wo, 422, 'Hanya SPK Open yang dapat diedit.');
 
             $warehouse = DB::table('warehouses')
                 ->where('entity_id', $entityId)->where('is_active', 1)->where('id', $data['warehouse_id'])->first();
@@ -461,10 +461,10 @@ class ProductionWorkOrderController extends Controller
         $updated = DB::table('production_work_orders')
             ->where('entity_id', $entityId)
             ->where('id', $id)
-            ->where('status', 'draft')
+            ->where('status', 'open')
             ->update(['status' => 'open', 'updated_at' => now()]);
 
-        abort_unless($updated, 422, 'WO tidak ditemukan atau statusnya bukan Draft.');
+        abort_unless($updated, 422, 'SPK tidak ditemukan atau statusnya bukan Open.');
 
         return redirect()->route('produksi.work-order')->with('success', 'WO berhasil disetujui.');
     }
@@ -475,18 +475,18 @@ class ProductionWorkOrderController extends Controller
         $wo = DB::table('production_work_orders')
             ->where('entity_id', $entityId)
             ->where('id', $id)
-            ->where('status', 'draft')
+            ->where('status', 'open')
             ->first();
 
-        abort_unless($wo, 422, 'Hanya WO Draft yang dapat dihapus.');
+        abort_unless($wo, 422, 'Hanya SPK Open yang dapat dihapus.');
 
         DB::transaction(function () use ($id): void {
             DB::table('production_work_order_costs')->where('production_work_order_id', $id)->delete();
             DB::table('production_work_order_workers')->where('production_work_order_id', $id)->delete();
-            DB::table('production_work_orders')->where('id', $id)->where('status', 'draft')->delete();
+            DB::table('production_work_orders')->where('id', $id)->where('status', 'open')->delete();
         });
 
-        return redirect()->route('produksi.work-order')->with('success', 'WO Draft berhasil dihapus.');
+        return redirect()->route('produksi.work-order')->with('success', 'SPK Open berhasil dihapus.');
     }
 
     public function print(int $id)
