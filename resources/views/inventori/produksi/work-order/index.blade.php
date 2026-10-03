@@ -446,7 +446,7 @@ document.addEventListener('DOMContentLoaded', function () {
             success: function (res) {
                 if (res.success) {
                     modal.hide();
-                    table.ajax ? table.ajax.reload() : table.draw(false);
+                    table.draw(false);
                     Swal.fire({
                         icon: 'success',
                         title: 'Berhasil!',
