@@ -212,7 +212,6 @@
 @endsection
 
 @push('styles')
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
 <style>
     #workOrderModal .modal-dialog {
         width: min(1140px, calc(100vw - 30px));
@@ -255,18 +254,18 @@
 @endpush
 
 @push('scripts')
-<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const modal=bootstrap.Modal.getOrCreateInstance(document.getElementById('workOrderModal'),{backdrop:'static',keyboard:false});
-    const msgModal=bootstrap.Modal.getOrCreateInstance(document.getElementById('woMessageModal'));
+    const msgElement=document.getElementById('woMessageModal');
+    const msgModal=bootstrap.Modal.getOrCreateInstance(msgElement,{backdrop:true,keyboard:true});
     const deleteModal=bootstrap.Modal.getOrCreateInstance(document.getElementById('woDeleteModal'));
-    const messageOk=document.getElementById('woMessageOk');
-    messageOk.addEventListener('click',function(e){
-        e.preventDefault();
-        e.stopPropagation();
+    document.getElementById('woMessageOk').addEventListener('click',function(){
         msgModal.hide();
+    });
+    msgElement.addEventListener('hidden.bs.modal',function(){
+        document.querySelectorAll('.modal-backdrop').forEach(function(backdrop){backdrop.remove();});
+        if(!document.querySelector('.modal.show'))document.body.classList.remove('modal-open');
     });
     const form=document.getElementById('workOrderForm');
     const workers=@json($workers);
@@ -417,19 +416,17 @@ document.addEventListener('DOMContentLoaded', function () {
         msgModal.show();
     @endif
 
-    if(window.jQuery){
-        const table=$('#workOrderTable').DataTable({
-            dom:'t<"d-flex justify-content-between align-items-center px-3 py-3"i p>',
-            pageLength:15,
-            lengthMenu:[[15,25,50,100],[15,25,50,100]],
-            autoWidth:false,
-            order:[[1,'desc']],
-            language:{info:'Menampilkan _START_–_END_ dari _TOTAL_ SPK',infoEmpty:'Tidak ada SPK',zeroRecords:'Data tidak ditemukan',paginate:{previous:'‹',next:'›'}},
-            columnDefs:[{targets:[5,6,8],orderable:false}]
-        });
-        $('#workOrderPageLength').on('change',function(){table.page.len(this.value).draw()});
-        $('#workOrderSearch').on('input',function(){table.search(this.value).draw()});
-    }
+    const table=new DataTable('#workOrderTable',{
+        dom:'t<"d-flex justify-content-between align-items-center px-3 py-3"i p>',
+        pageLength:15,
+        lengthMenu:[[15,25,50,100],[15,25,50,100]],
+        autoWidth:false,
+        order:[[1,'desc']],
+        language:{info:'Menampilkan _START_–_END_ dari _TOTAL_ SPK',infoEmpty:'Tidak ada SPK',zeroRecords:'Data tidak ditemukan',paginate:{previous:'‹',next:'›'}},
+        columnDefs:[{targets:[5,6,8],orderable:false}]
+    });
+    document.getElementById('workOrderPageLength').addEventListener('change',function(){table.page.len(this.value).draw()});
+    document.getElementById('workOrderSearch').addEventListener('input',function(){table.search(this.value).draw()});
 });
 </script>
 @endpush
