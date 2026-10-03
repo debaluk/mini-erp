@@ -16,10 +16,7 @@
 @endif
 
 <div class="card border-0 shadow-sm mb-3">
-    <div class="card-header bg-body d-flex align-items-center justify-content-between py-3">
-        <span class="fw-semibold">Filter Pemakaian</span>
-    </div>
-    <div class="card-body">
+        <div class="card-body">
         <form method="GET" class="row g-2 align-items-end">
             <div class="col-md-3">
                 <label class="form-label">Dari</label>
@@ -46,14 +43,30 @@
 </div>
 
 <div class="card border-0 shadow-sm mb-3">
-    <div class="card-header bg-body d-flex justify-content-between align-items-center py-3">
-        <span class="fw-semibold">SPK On Progress</span>
+    <div class="card-header bg-primary bg-opacity-10 text-primary border-bottom d-flex justify-content-between align-items-center py-3">
+        <div class="fw-semibold"><i class="bi bi-clipboard-check me-2"></i>SPK On Progress</div>
         <span class="badge text-bg-primary">{{ $workOrders->count() }} SPK</span>
     </div>
-    <div class="card-body p-0">
+    <div class="card-body">
+        <div id="materialUsageControls" class="d-flex justify-content-between align-items-center flex-nowrap gap-3 mb-3">
+            <div class="d-flex align-items-center gap-2 flex-nowrap">
+                <label for="materialUsagePageLength" class="mb-0 text-nowrap">Tampilkan</label>
+                <select id="materialUsagePageLength" class="form-select form-select-sm" style="width:80px;">
+                    <option value="15">15</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+                <span class="text-nowrap">baris</span>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-nowrap ms-auto">
+                <label for="materialUsageSearch" class="mb-0 text-nowrap">Cari:</label>
+                <input type="search" id="materialUsageSearch" class="form-control form-control-sm" style="width:240px;" placeholder="Cari...">
+            </div>
+        </div>
         <div class="table-responsive">
-            <table class="table table-sm table-hover align-middle mb-0">
-                <thead class="table-light">
+            <table id="materialUsageTable" class="table table-hover align-middle mb-0 w-100">
+                <thead class="table-primary">
                     <tr>
                         <th>No. SPK</th>
                         <th>Tanggal</th>
@@ -87,8 +100,8 @@
 </div>
 
 <div class="card border-0 shadow-sm">
-    <div class="card-header bg-body d-flex justify-content-between align-items-center py-3">
-        <span class="fw-semibold">Daftar Pemakaian Bahan Baku</span>
+    <div class="card-header bg-primary bg-opacity-10 text-primary border-bottom d-flex justify-content-between align-items-center py-3">
+        <div class="fw-semibold"><i class="bi bi-box-arrow-up me-2"></i>Daftar Pemakaian Bahan Baku</div>
         @if($rows->total() > 0)
             <span class="text-secondary small">{{ $rows->total() }} data</span>
         @endif
@@ -96,7 +109,7 @@
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-sm table-hover align-middle mb-0">
-                <thead class="table-light">
+                <thead class="table-primary">
                     <tr>
                         <th>No. Pengeluaran</th>
                         <th>Tanggal</th>
