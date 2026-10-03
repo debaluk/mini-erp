@@ -192,7 +192,7 @@
     <div class="modal-dialog modal-sm modal-dialog-centered"><div class="modal-content">
         <div class="modal-header"><h5 class="modal-title" id="woMessageTitle">Informasi</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         <div class="modal-body" id="woMessageBody"></div>
-        <div class="modal-footer"><button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button></div>
+        <div class="modal-footer"><button type="button" class="btn btn-primary" id="woMessageOk">OK</button></div>
     </div></div>
 </div>
 
@@ -262,6 +262,12 @@ document.addEventListener('DOMContentLoaded', function () {
     const modal=bootstrap.Modal.getOrCreateInstance(document.getElementById('workOrderModal'),{backdrop:'static',keyboard:false});
     const msgModal=bootstrap.Modal.getOrCreateInstance(document.getElementById('woMessageModal'));
     const deleteModal=bootstrap.Modal.getOrCreateInstance(document.getElementById('woDeleteModal'));
+    const messageOk=document.getElementById('woMessageOk');
+    messageOk.addEventListener('click',function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        msgModal.hide();
+    });
     const form=document.getElementById('workOrderForm');
     const workers=@json($workers);
     const costsByWo=@json($woCosts->groupBy('production_work_order_id'));
