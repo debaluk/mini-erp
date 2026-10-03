@@ -413,8 +413,12 @@ class ProductionMaterialUsageController extends Controller
         return back()->with('success', 'Pemakaian bahan disetujui. Beban bahan baku telah diakui.');
     }
 
-    public function reject(int $id)
+    public function reject(Request $request, int $id)
     {
+        $data = $request->validate([
+            'rejection_reason' => ['required', 'string', 'min:3'],
+        ]);
+
         $entityId = $this->entityId();
         $usage = DB::table('production_wo_material_usages')
             ->where('entity_id', $entityId)
@@ -426,6 +430,7 @@ class ProductionMaterialUsageController extends Controller
 
         DB::table('production_wo_material_usages')->where('id', $id)->update([
             'status' => 'rejected',
+            'rejection_reason' => $data['rejection_reason'],
             'updated_at' => now(),
         ]);
 
