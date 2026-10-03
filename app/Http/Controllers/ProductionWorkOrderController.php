@@ -455,6 +455,96 @@ class ProductionWorkOrderController extends Controller
         return redirect()->route('produksi.work-order')->with('success', 'WO berhasil diperbarui.');
     }
 
+    public function startWork(int $id)
+    {
+        $entityId = $this->entityId();
+
+        $wo = DB::table('production_work_orders')
+            ->where('entity_id', $entityId)
+            ->where('id', $id)
+            ->where('status', 'open')
+            ->first();
+
+        abort_unless($wo, 422, 'Hanya SPK Open yang dapat dimulai.');
+
+        DB::table('production_work_orders')
+            ->where('id', $id)
+            ->update([
+                'status' => 'in_progress',
+                'started_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        return redirect()->route('produksi.work-order.show', $id)
+            ->with('success', 'SPK berhasil dimulai. Rencana bahan tersedia untuk proses pengeluaran.');
+    }
+
+    public function show(int $id)
+    {
+        $entityId = $this->entityId();
+
+        $wo = DB::table('production_work_orders as wo')
+            ->join('boms as b', 'b.id', '=', 'wo.bom_id')
+            ->join('products as p', 'p.id', '=', 'b.product_id')
+            ->join('warehouses as w', 'w.id', '=', 'wo.warehouse_id')
+            ->where('wo.entity_id', $entityId)
+            ->where('wo.id', $id)
+            ->select(
+                'wo.*',
+                'b.code as bom_code',
+                'b.name as bom_name',
+                'p.name as product_name',
+                'w.name as warehouse_name'
+            )
+            ->first();
+
+        abort_unless($wo, 404);
+
+        $workers = DB::table('production_work_order_workers as wow')
+            ->join('workers as w', 'w.id', '=', 'wow.worker_id')
+            ->where('wow.production_work_order_id', $id)
+            ->orderBy('w.name')
+            ->get(['w.code', 'w.name']);
+
+        $items = DB::table('bom_items as bi')
+            ->join('products as p', 'p.id', '=', 'bi.product_id')
+            ->join('units as u', 'u.id', '=', 'bi.unit_id')
+            ->where('bi.bom_id', $wo->bom_id)
+            ->orderBy('bi.id')
+            ->get([
+                'bi.product_id',
+                'bi.unit_id',
+                'bi.qty',
+                'p.sku',
+                'p.name as product_name',
+                'p.base_unit_id',
+                'u.code as unit_code',
+                'u.name as unit_name',
+            ]);
+
+        $materials = $items->map(function ($item) use ($wo) {
+            $factor = 1.0;
+
+            if ((int) $item->unit_id !== (int) $item->base_unit_id) {
+                $factor = (float) DB::table('product_unit_conversions')
+                    ->where('product_id', $item->product_id)
+                    ->where('unit_id', $item->unit_id)
+                    ->where('is_active', 1)
+                    ->value('conversion_factor');
+            }
+
+            return [
+                'sku' => $item->sku,
+                'name' => $item->product_name,
+                'qty' => round((float) $item->qty * (float) $wo->batch_qty, 3),
+                'unit' => $item->unit_code ?: $item->unit_name,
+                'base_qty' => round((float) $item->qty * $factor * (float) $wo->batch_qty, 3),
+            ];
+        })->values();
+
+        return view('inventori.produksi.work-order.show', compact('wo', 'workers', 'materials'));
+    }
+
     public function destroy(int $id)
     {
         $entityId = $this->entityId();
