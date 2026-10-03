@@ -106,7 +106,7 @@
                 <input type="hidden" name="batch_qty" id="woBatchQty" value="1">
                 <div class="modal-header">
                     <h5 class="modal-title" id="workOrderModalTitle">Buat Work Order / SPK</h5>
-                    <button type="button" class="btn-close" aria-label="Tutup" onclick="return false;" disabled></button>
+                    <button type="button" class="btn-close" aria-label="Tutup" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row g-3">
@@ -228,13 +228,17 @@
     #workOrderModal .modal-content {
         height: 100%;
         max-height: none;
+    }
+    #workOrderModal #workOrderForm {
+        height: 100%;
         display: flex;
         flex-direction: column;
+        min-height: 0;
     }
     #workOrderModal .modal-body {
         flex: 1 1 auto;
         min-height: 0;
-        overflow-y: scroll !important;
+        overflow-y: auto !important;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
     }
