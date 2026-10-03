@@ -455,20 +455,6 @@ class ProductionWorkOrderController extends Controller
         return redirect()->route('produksi.work-order')->with('success', 'WO berhasil diperbarui.');
     }
 
-    public function approve(int $id)
-    {
-        $entityId = $this->entityId();
-        $updated = DB::table('production_work_orders')
-            ->where('entity_id', $entityId)
-            ->where('id', $id)
-            ->where('status', 'open')
-            ->update(['status' => 'open', 'updated_at' => now()]);
-
-        abort_unless($updated, 422, 'SPK tidak ditemukan atau statusnya bukan Open.');
-
-        return redirect()->route('produksi.work-order')->with('success', 'WO berhasil disetujui.');
-    }
-
     public function destroy(int $id)
     {
         $entityId = $this->entityId();
