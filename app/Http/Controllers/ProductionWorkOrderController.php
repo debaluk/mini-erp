@@ -575,6 +575,334 @@ class ProductionWorkOrderController extends Controller
         return view('inventori.produksi.work-order.show', compact('wo', 'workers', 'materials', 'woCosts', 'materialTotal', 'estimatedTotal'));
     }
 
+    public function saveProductionResult(Request $request, int $id)
+    {
+        $request->merge([
+            'labor_rate' => collect($request->input('labor_rate', []))->map(fn ($value) => FormatHelper::parse($value))->all(),
+            'labor_qty' => collect($request->input('labor_qty', []))->map(fn ($value) => FormatHelper::parse($value))->all(),
+            'good_output_qty' => FormatHelper::parse($request->input('good_output_qty')),
+            'reject_qty' => FormatHelper::parse($request->input('reject_qty')),
+        ]);
+
+        $data = $request->validate([
+            'worker_id' => ['required', 'array', 'min:1'],
+            'worker_id.*' => ['required', 'integer', 'distinct'],
+            'labor_basis' => ['required', 'array', 'min:1'],
+            'labor_basis.*' => ['required', 'in:BIJI,BORONGAN'],
+            'labor_rate' => ['required', 'array', 'min:1'],
+            'labor_rate.*' => ['required', 'numeric', 'gt:0'],
+            'labor_qty' => ['required', 'array', 'min:1'],
+            'labor_qty.*' => ['required', 'numeric', 'gt:0'],
+            'good_output_qty' => ['required', 'numeric', 'gt:0'],
+            'reject_qty' => ['required', 'numeric', 'gte:0'],
+        ]);
+
+        abort_unless(count($data['worker_id']) === count($data['labor_basis'])
+            && count($data['worker_id']) === count($data['labor_rate'])
+            && count($data['worker_id']) === count($data['labor_qty']), 422, 'Data upah pekerja tidak lengkap.');
+
+        $entityId = $this->entityId();
+
+        DB::transaction(function () use ($data, $entityId, $id): void {
+            $wo = DB::table('production_work_orders')
+                ->where('entity_id', $entityId)
+                ->where('id', $id)
+                ->lockForUpdate()
+                ->first();
+
+            abort_unless($wo, 404, 'SPK tidak ditemukan.');
+            abort_if($wo->status !== 'in_progress', 422, 'Hanya SPK On Progress yang dapat diselesaikan.');
+
+            $alreadyPosted = DB::table('productions')
+                ->where('production_work_order_id', $wo->id)
+                ->exists();
+            abort_if($alreadyPosted, 422, 'Hasil produksi SPK ini sudah diposting.');
+
+            $goodQty = round((float) $data['good_output_qty'], 3);
+            $rejectQty = round((float) $data['reject_qty'], 3);
+            $targetQty = round((float) $wo->target_output_qty, 3);
+
+            abort_if($goodQty <= 0, 422, 'Hasil bagus harus lebih dari 0.');
+            abort_if(($goodQty + $rejectQty) > ($targetQty + 0.000001), 422, 'Hasil bagus + reject melebihi target produksi.');
+
+            $usage = DB::table('production_wo_material_usages')
+                ->where('production_work_order_id', $wo->id)
+                ->where('status', 'approved')
+                ->lockForUpdate()
+                ->first();
+            abort_unless($usage, 422, 'Pemakaian bahan SPK harus sudah disetujui sebelum hasil produksi diposting.');
+
+            $materialCost = (float) DB::table('production_material_usage_items')
+                ->where('production_material_usage_id', $usage->id)
+                ->sum('total_cost');
+
+            $workers = DB::table('production_work_order_workers as wow')
+                ->join('workers as w', 'w.id', '=', 'wow.worker_id')
+                ->where('wow.production_work_order_id', $wo->id)
+                ->whereIn('wow.worker_id', $data['worker_id'])
+                ->get(['wow.id as worker_row_id', 'wow.worker_id', 'w.name']);
+
+            abort_unless($workers->count() === count($data['worker_id']), 422, 'Pekerja hasil produksi tidak sesuai dengan SPK.');
+
+            $laborCost = 0.0;
+            $laborRows = [];
+            foreach ($data['worker_id'] as $i => $workerId) {
+                $rate = round((float) $data['labor_rate'][$i], 2);
+                $qty = round((float) $data['labor_qty'][$i], 3);
+                $amount = round($rate * $qty, 2);
+                $worker = $workers->firstWhere('worker_id', (int) $workerId);
+
+                $laborCost += $amount;
+                $laborRows[] = [
+                    'worker_row_id' => $worker->worker_row_id,
+                    'worker_id' => $worker->worker_id,
+                    'worker_name' => $worker->name,
+                    'basis' => $data['labor_basis'][$i],
+                    'rate' => $rate,
+                    'qty' => $qty,
+                    'amount' => $amount,
+                ];
+            }
+
+            $otherCosts = DB::table('production_work_order_costs')
+                ->where('production_work_order_id', $wo->id)
+                ->whereIn('cost_group', ['A', 'S', 'O'])
+                ->sum('amount');
+
+            $totalCost = round($materialCost + $laborCost + (float) $otherCosts, 2);
+            $rejectCost = $targetQty > 0 ? round($totalCost * ($rejectQty / $targetQty), 2) : 0.0;
+            $goodCost = round($totalCost - $rejectCost, 2);
+            $goodUnitCost = $goodQty > 0 ? round($goodCost / $goodQty, 6) : 0.0;
+
+            $finished = DB::table('products')
+                ->where('entity_id', $entityId)
+                ->where('id', DB::table('boms')->where('id', $wo->bom_id)->value('product_id'))
+                ->first();
+            abort_unless($finished, 422, 'Produk hasil BOM tidak valid.');
+
+            $stock = DB::table('warehouses_stocks')
+                ->where('entity_id', $entityId)
+                ->where('warehouse_id', $wo->warehouse_id)
+                ->where('product_id', $finished->id)
+                ->lockForUpdate()
+                ->first();
+
+            if ($stock) {
+                $oldQty = (float) $stock->qty;
+                $oldAvg = (float) $stock->avg_cost;
+                $newQty = $oldQty + $goodQty;
+                $newAvg = $newQty > 0
+                    ? (($oldQty * $oldAvg) + ($goodQty * $goodUnitCost)) / $newQty
+                    : 0;
+
+                DB::table('warehouses_stocks')->where('id', $stock->id)->update([
+                    'qty' => $newQty,
+                    'avg_cost' => round($newAvg, 9),
+                    'updated_at' => now(),
+                ]);
+            } else {
+                DB::table('warehouses_stocks')->insert([
+                    'entity_id' => $entityId,
+                    'warehouse_id' => $wo->warehouse_id,
+                    'product_id' => $finished->id,
+                    'qty' => $goodQty,
+                    'avg_cost' => round($goodUnitCost, 9),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            $productionId = DB::table('productions')->insertGetId([
+                'entity_id' => $entityId,
+                'business_unit_id' => $wo->business_unit_id,
+                'warehouse_id' => $wo->warehouse_id,
+                'bom_id' => $wo->bom_id,
+                'production_work_order_id' => $wo->id,
+                'user_id' => auth()->id(),
+                'production_no' => 'PROD-'.now()->format('YmdHis').'-'.Str::upper(Str::random(3)),
+                'production_date' => now(),
+                'qty' => $wo->batch_qty,
+                'total_cost' => $totalCost,
+                'good_output_qty' => $goodQty,
+                'reject_qty' => $rejectQty,
+                'status' => 'posted',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            foreach ($laborRows as $labor) {
+                DB::table('production_costs')->insert([
+                    'production_id' => $productionId,
+                    'cost_group' => 'U',
+                    'description' => 'Upah '.$labor['worker_name'].' ('.$labor['basis'].')',
+                    'amount' => $labor['amount'],
+                    'source' => 'work_order_result',
+                    'reference_type' => 'production_work_order_worker',
+                    'reference_id' => $labor['worker_row_id'],
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            $otherRows = DB::table('production_work_order_costs')
+                ->where('production_work_order_id', $wo->id)
+                ->whereIn('cost_group', ['A', 'S', 'O'])
+                ->get();
+
+            foreach ($otherRows as $cost) {
+                DB::table('production_costs')->insert([
+                    'production_id' => $productionId,
+                    'cost_group' => $cost->cost_group,
+                    'description' => $cost->description,
+                    'amount' => round((float) $cost->amount, 2),
+                    'source' => 'work_order_wip',
+                    'reference_type' => 'production_work_order_cost',
+                    'reference_id' => $cost->id,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            DB::table('production_outputs')->insert([
+                'production_id' => $productionId,
+                'product_id' => $finished->id,
+                'warehouse_id' => $wo->warehouse_id,
+                'qty' => $goodQty,
+                'unit_cost' => $goodUnitCost,
+                'total_cost' => $goodCost,
+                'output_type' => 'good',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            if ($rejectQty > 0) {
+                DB::table('production_rejects')->insert([
+                    'production_id' => $productionId,
+                    'product_id' => $finished->id,
+                    'qty' => $rejectQty,
+                    'reject_type' => 'scrap',
+                    'description' => 'Reject produksi SPK '.$wo->wo_no,
+                    'recoverable_value' => 0,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            DB::table('stock_movements')->insert([
+                'entity_id' => $entityId,
+                'business_unit_id' => $wo->business_unit_id,
+                'warehouse_id' => $wo->warehouse_id,
+                'product_id' => $finished->id,
+                'unit_id' => $finished->base_unit_id,
+                'transaction_qty' => $goodQty,
+                'conversion_factor' => 1,
+                'movement_type' => 'production_in',
+                'qty' => $goodQty,
+                'unit_cost' => $goodUnitCost,
+                'reference_type' => 'production_work_order',
+                'reference_id' => $wo->id,
+                'occurred_at' => now(),
+                'created_by' => auth()->id() ?? 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $directLaborAccount = DB::table('business_unit_account_mappings')
+                ->where('entity_id', $entityId)->where('business_unit_id', $wo->business_unit_id)
+                ->where('mapping_key', 'direct_labor')->value('account_id');
+            $salaryPayableAccount = DB::table('business_unit_account_mappings')
+                ->where('entity_id', $entityId)->where('business_unit_id', $wo->business_unit_id)
+                ->where('mapping_key', 'salary_payable')->value('account_id');
+            $finishedInventoryAccount = DB::table('business_unit_account_mappings')
+                ->where('entity_id', $entityId)->where('business_unit_id', $wo->business_unit_id)
+                ->where('mapping_key', 'inventory_finished_goods')->value('account_id');
+            $damageAccount = DB::table('business_unit_account_mappings')
+                ->where('entity_id', $entityId)->where('business_unit_id', $wo->business_unit_id)
+                ->where('mapping_key', 'inventory_damage_loss')->value('account_id');
+
+            abort_unless($directLaborAccount && $salaryPayableAccount && $finishedInventoryAccount && $damageAccount, 422, 'Mapping akun produksi belum lengkap.');
+
+            $laborJournalId = DB::table('journals')->insertGetId([
+                'entity_id' => $entityId,
+                'business_unit_id' => $wo->business_unit_id,
+                'journal_no' => 'JRN-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4)),
+                'journal_date' => now()->toDateString(),
+                'source_type' => 'PRODUCTION_LABOR',
+                'source_id' => $productionId,
+                'description' => 'Pengakuan upah produksi '.$wo->wo_no,
+                'status' => 'posted',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            DB::table('journal_entries')->insert([
+                ['journal_id' => $laborJournalId, 'account_id' => $directLaborAccount, 'debit' => $laborCost, 'credit' => 0, 'created_at' => now(), 'updated_at' => now()],
+                ['journal_id' => $laborJournalId, 'account_id' => $salaryPayableAccount, 'debit' => 0, 'credit' => $laborCost, 'created_at' => now(), 'updated_at' => now()],
+            ]);
+
+            $costAccounts = [
+                'B' => DB::table('business_unit_account_mappings')->where('entity_id', $entityId)->where('business_unit_id', $wo->business_unit_id)->where('mapping_key', 'direct_material')->value('account_id'),
+                'U' => $directLaborAccount,
+                'A' => DB::table('business_unit_account_mappings')->where('entity_id', $entityId)->where('business_unit_id', $wo->business_unit_id)->where('mapping_key', 'direct_equipment')->value('account_id'),
+                'S' => DB::table('business_unit_account_mappings')->where('entity_id', $entityId)->where('business_unit_id', $wo->business_unit_id)->where('mapping_key', 'direct_rent')->value('account_id'),
+                'O' => DB::table('business_unit_account_mappings')->where('entity_id', $entityId)->where('business_unit_id', $wo->business_unit_id)->where('mapping_key', 'direct_overhead')->value('account_id'),
+            ];
+
+            abort_unless(!in_array(null, $costAccounts, true), 422, 'Mapping akun HPP produksi belum lengkap.');
+
+            $goodShare = $targetQty > 0 ? ($goodCost / $totalCost) : 0;
+            $rejectShare = $targetQty > 0 ? ($rejectCost / $totalCost) : 0;
+            $hppJournalId = DB::table('journals')->insertGetId([
+                'entity_id' => $entityId,
+                'business_unit_id' => $wo->business_unit_id,
+                'journal_no' => 'JRN-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4)),
+                'journal_date' => now()->toDateString(),
+                'source_type' => 'PRODUCTION_HPP',
+                'source_id' => $productionId,
+                'description' => 'Kapitalisasi HPP produksi '.$wo->wo_no,
+                'status' => 'posted',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $hppEntries = [
+                ['journal_id' => $hppJournalId, 'account_id' => $finishedInventoryAccount, 'debit' => $goodCost, 'credit' => 0, 'created_at' => now(), 'updated_at' => now()],
+            ];
+            foreach ($costAccounts as $group => $accountId) {
+                $groupTotal = match ($group) {
+                    'B' => $materialCost,
+                    'U' => $laborCost,
+                    'A', 'S', 'O' => (float) $otherRows->where('cost_group', $group)->sum('amount'),
+                };
+                $goodGroup = round($groupTotal * $goodShare, 2);
+                $rejectGroup = round($groupTotal * $rejectShare, 2);
+                if ($goodGroup > 0) {
+                    $hppEntries[] = ['journal_id' => $hppJournalId, 'account_id' => $accountId, 'debit' => 0, 'credit' => $goodGroup, 'created_at' => now(), 'updated_at' => now()];
+                }
+                if ($rejectGroup > 0) {
+                    $hppEntries[] = ['journal_id' => $hppJournalId, 'account_id' => $accountId, 'debit' => 0, 'credit' => $rejectGroup, 'created_at' => now(), 'updated_at' => now()];
+                }
+            }
+            if ($rejectCost > 0) {
+                $hppEntries[] = ['journal_id' => $hppJournalId, 'account_id' => $damageAccount, 'debit' => $rejectCost, 'credit' => 0, 'created_at' => now(), 'updated_at' => now()];
+            }
+
+            DB::table('journal_entries')->insert($hppEntries);
+
+            DB::table('productions')->where('id', $productionId)->update([
+                'updated_at' => now(),
+            ]);
+
+            DB::table('production_work_orders')->where('id', $wo->id)->update([
+                'status' => 'completed',
+                'updated_at' => now(),
+            ]);
+        });
+
+        return redirect()->route('produksi.work-order.show', $id)
+            ->with('success', 'Hasil produksi berhasil diposting. Stok barang jadi, upah, HPP, dan reject telah diproses.');
+    }
+
     public function destroy(int $id)
     {
         $entityId = $this->entityId();
