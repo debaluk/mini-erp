@@ -21,6 +21,7 @@ return new class extends Migration
             $table->date('usage_date');
             $table->enum('status', ['draft', 'pending', 'approved', 'rejected'])->default('draft');
             $table->text('notes')->nullable();
+            $table->text('rejection_reason')->nullable();
             $table->timestamp('approved_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
