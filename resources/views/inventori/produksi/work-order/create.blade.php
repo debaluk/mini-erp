@@ -43,7 +43,7 @@
 
 <div class="card border-success mb-3"><div class="card-body d-flex justify-content-between align-items-center"><div><div class="small text-secondary">TOTAL ESTIMASI BIAYA WO/SPK</div><div class="small text-secondary">Material + Tenaga + Equipment + Rent + Overhead</div></div><div class="fw-bold text-success fs-4" id="wo-total">Rp 0</div></div></div>
 <div class="card border-0 shadow-sm mb-3"><div class="card-header bg-light fw-semibold">Catatan SPK</div><div class="card-body"><textarea name="notes" class="form-control" rows="4" placeholder="Instruksi atau catatan produksi...">{{ old('notes') }}</textarea></div></div>
-<div class="d-flex justify-content-end gap-2"><a href="{{ route('produksi.work-order') }}" class="btn btn-light">Batal</a><button class="btn btn-primary"><i class="bi bi-check2-circle me-1"></i>Simpan & Terbitkan SPK</button></div>
+<div class="d-flex justify-content-end gap-2"><a href="{{ route('produksi.work-order') }}" class="btn btn-light">Batal</a><button class="btn btn-primary"><i class="bi bi-check2-circle me-1"></i>Simpan Draft WO</button></div>
 </form>
 @endsection
 
