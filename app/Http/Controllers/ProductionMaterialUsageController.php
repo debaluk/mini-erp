@@ -300,6 +300,10 @@ class ProductionMaterialUsageController extends Controller
                     'p.name as product_name',
                 ]);
 
+            // Mapping COA mengikuti tipe Unit Bisnis Produksi.
+            $businessUnit = DB::table('business_units')->where('entity_id', $entityId)->where('id', $usage->business_unit_id)->first(['id', 'business_type']);
+            abort_unless($businessUnit && $businessUnit->business_type === 'production', 422, 'Unit Bisnis pemakaian bahan harus bertipe Produksi.');
+
             $mapping = DB::table('business_unit_account_mappings')
                 ->where('entity_id', $entityId)
                 ->where('business_unit_id', $usage->business_unit_id)
