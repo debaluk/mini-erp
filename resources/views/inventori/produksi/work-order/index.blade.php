@@ -68,6 +68,7 @@
                         <td><span class="badge text-bg-{{ $statusClasses[$row->status] ?? 'secondary' }}">{{ $statusLabels[$row->status] ?? $row->status }}</span></td>
                         <td class="text-end text-nowrap">
                             @if($row->status === 'draft')
+                                <a href="{{ route('produksi.work-order.edit', $row->id) }}" class="btn btn-sm btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
                                 <form method="POST" action="{{ route('produksi.work-order.approve', $row->id) }}" class="d-inline" onsubmit="return confirm('Setujui WO {{ $row->wo_no }}?')">
                                     @csrf
                                     <button class="btn btn-sm btn-success" title="Setujui WO"><i class="bi bi-check2-circle"></i></button>
