@@ -327,6 +327,10 @@ class ProductionWorkOrderController extends Controller
             }
         });
 
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'SPK berhasil dibuat.']);
+        }
+
         return redirect()->route('produksi.work-order')->with('success', 'SPK berhasil dibuat.');
     }
 
@@ -415,6 +419,10 @@ class ProductionWorkOrderController extends Controller
             ->pluck('account_id', 'mapping_key');
 
         if ($productionMappings->count() !== count($mappingKeys) || $productionMappings->contains(fn ($accountId) => empty($accountId))) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Mapping akun produksi belum lengkap. Silakan lengkapi mapping akun produksi terlebih dahulu.'], 422);
+            }
+
             return redirect()->back()->with('error', 'Mapping akun produksi belum lengkap. Silakan lengkapi mapping akun produksi terlebih dahulu.');
         }
 
@@ -486,6 +494,10 @@ class ProductionWorkOrderController extends Controller
                 ]);
             }
         });
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'WO berhasil diperbarui.']);
+        }
 
         return redirect()->route('produksi.work-order')->with('success', 'WO berhasil diperbarui.');
     }
