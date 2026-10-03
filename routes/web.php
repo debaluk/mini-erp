@@ -270,8 +270,6 @@ Route::middleware(['auth', 'access:inventori'])->prefix('inventori/penyesuaian')
 
     Route::get('/produksi/work-order', [ProductionWorkOrderController::class, 'index'])->middleware('access:inventori')->name('produksi.work-order');
     Route::get('/produksi/work-order/create', [ProductionWorkOrderController::class, 'create'])->middleware('access:inventori')->name('produksi.work-order.create');
-    Route::get('/produksi/work-order/{id}', [ProductionWorkOrderController::class, 'show'])->middleware('access:inventori')->name('produksi.work-order.show');
-    Route::post('/produksi/work-order/{id}/start', [ProductionWorkOrderController::class, 'startWork'])->middleware('access:inventori')->name('produksi.work-order.start');
     Route::get('/produksi/work-order/{id}/edit', [ProductionWorkOrderController::class, 'edit'])->middleware('access:inventori')->name('produksi.work-order.edit');
     Route::post('/produksi/work-order', [ProductionWorkOrderController::class, 'store'])->middleware('access:inventori')->name('produksi.work-order.store');
     Route::put('/produksi/work-order/{id}', [ProductionWorkOrderController::class, 'update'])->middleware('access:inventori')->name('produksi.work-order.update');
@@ -279,6 +277,8 @@ Route::middleware(['auth', 'access:inventori'])->prefix('inventori/penyesuaian')
     Route::get('/produksi/work-order/bom/{bomId}/info', [ProductionWorkOrderController::class, 'bomInfo'])->middleware('access:inventori')->name('produksi.work-order.bom-info');
     Route::get('/produksi/work-order/{id}/print', [ProductionWorkOrderController::class, 'print'])->middleware('access:inventori')->name('produksi.work-order.print');
     Route::get('/produksi/work-order/export', [ProductionWorkOrderController::class, 'export'])->middleware('access:inventori')->name('produksi.work-order.export');
+    Route::get('/produksi/work-order/{id}', [ProductionWorkOrderController::class, 'show'])->middleware('access:inventori')->name('produksi.work-order.show');
+    Route::post('/produksi/work-order/{id}/start', [ProductionWorkOrderController::class, 'startWork'])->middleware('access:inventori')->name('produksi.work-order.start');
 
     // ============================================================
     // KEUANGAN & AKUNTANSI
