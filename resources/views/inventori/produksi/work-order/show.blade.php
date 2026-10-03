@@ -96,40 +96,4 @@
 </div>
 
 
-@if($wo->status === 'in_progress')
-<div class="card border-0 shadow-sm">
-    <div class="card-header bg-warning bg-opacity-10 fw-semibold">Rencana Bahan Berdasarkan BOM</div>
-    <div class="card-body">
-        <div class="alert alert-info mb-3">
-            Rencana bahan ditampilkan untuk proses pengeluaran. Belum ada perubahan stok maupun jurnal.
-        </div>
-        <div class="table-responsive">
-            <table class="table table-sm align-middle mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>SKU</th>
-                        <th>Material</th>
-                        <th class="text-end">Qty BOM</th>
-                        <th>Satuan</th>
-                        <th class="text-end">Qty Dasar</th>
-                    </tr>
-                </thead>
-                <tbody>
-                @forelse($materials as $material)
-                    <tr>
-                        <td>{{ $material['sku'] }}</td>
-                        <td>{{ $material['name'] }}</td>
-                        <td class="text-end">{{ \App\Helpers\FormatHelper::indo($material['qty'], 2) }}</td>
-                        <td>{{ $material['unit'] }}</td>
-                        <td class="text-end">{{ \App\Helpers\FormatHelper::indo($material['base_qty'], 2) }}</td>
-                    </tr>
-                @empty
-                    <tr><td colspan="5" class="text-center text-muted py-3">BOM belum memiliki bahan.</td></tr>
-                @endforelse
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-@endif
 @endsection
