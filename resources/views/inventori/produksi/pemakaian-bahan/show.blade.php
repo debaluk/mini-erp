@@ -69,6 +69,37 @@
     </div>
 </div>
 
+@if($journals->count())
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-header fw-semibold">Jurnal Pengakuan Biaya Bahan Baku</div>
+    <div class="card-body">
+        @foreach($journals as $journal)
+            <div class="small text-muted mb-2">{{ $journal->journal_no ?? $journal->id }} — {{ $journal->journal_date }}</div>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead class="table-light">
+                        <tr><th>Akun</th><th class="text-end">Debit</th><th class="text-end">Kredit</th></tr>
+                    </thead>
+                    <tbody>
+                    @foreach($journal->entries as $entry)
+                        <tr>
+                            <td>{{ $entry->account_code }} - {{ $entry->account_name }}</td>
+                            <td class="text-end">Rp {{ number_format($entry->debit, 0, ',', '.') }}</td>
+                            <td class="text-end">Rp {{ number_format($entry->credit, 0, ',', '.') }}</td>
+                        </tr>
+                    @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endforeach
+    </div>
+</div>
+@elseif($usage->status === 'approved')
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body text-muted">Jurnal pengakuan biaya belum ditemukan untuk pemakaian ini.</div>
+</div>
+@endif
+
 @if($usage->notes || $usage->rejection_reason)
 <div class="card border-0 shadow-sm mb-3"><div class="card-body">
     @if($usage->notes)<div class="text-secondary small mb-1">Catatan</div>{{ $usage->notes }}@endif
