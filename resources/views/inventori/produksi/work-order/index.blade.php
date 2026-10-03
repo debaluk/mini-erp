@@ -63,7 +63,7 @@
                         <td>{{ $row->product_name }}</td>
                         <td><span class="badge text-bg-light border">{{ $row->bom_code }}</span></td>
                         <td>{{ $row->warehouse_name }}</td>
-                        <td class="text-end">{{ number_format($row->target_output_qty,3,',','.') }}</td>
+                        <td class="text-end">{{ \App\Helpers\FormatHelper::indo($row->target_output_qty, 3) }}</td>
                         <td class="text-center">{{ $workerCounts[$row->id] ?? 0 }}</td>
                         <td><span class="badge text-bg-{{ $statusClasses[$row->status] ?? 'secondary' }}">{{ $statusLabels[$row->status] ?? $row->status }}</span></td>
                         <td class="text-end text-nowrap">
@@ -90,6 +90,13 @@
 
 @push('styles')
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
+<style>
+    #workOrderTable_wrapper .dataTables_length,
+    #workOrderTable_wrapper .dataTables_filter { white-space: nowrap; }
+    #workOrderTable_wrapper .dataTables_filter { display:flex; align-items:center; justify-content:flex-end; gap:.5rem; }
+    #workOrderTable_wrapper .dataTables_filter label { margin:0; display:flex; align-items:center; gap:.5rem; }
+    #workOrderTable_wrapper .dataTables_filter input { margin:0; width:240px; }
+</style>
 @endpush
 
 @push('scripts')
@@ -101,6 +108,7 @@ document.addEventListener('DOMContentLoaded', function () {
         dom: '<"row align-items-center px-3 py-3"<"col-sm-6"l><"col-sm-6 d-flex justify-content-end"f>>t<"row align-items-center px-3 py-3"<"col-sm-5"i><"col-sm-7 d-flex justify-content-end"p>>',
         pageLength: 15,
         lengthMenu: [[15,25,50,100],[15,25,50,100]],
+        autoWidth: false,
         order: [[1,'desc']],
         language: { search: 'Cari:', lengthMenu: 'Tampilkan _MENU_ baris', info: 'Menampilkan _START_–_END_ dari _TOTAL_ SPK', infoEmpty: 'Tidak ada SPK', zeroRecords: 'Data tidak ditemukan', paginate: { previous: '‹', next: '›' } },
         columnDefs: [{ targets: [5,6,8], orderable: false }]
