@@ -187,13 +187,18 @@
     </div>
 </div>
 
-{{-- Modal pesan --}}
-<div class="modal" id="woMessageModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-sm modal-dialog-centered"><div class="modal-content">
-        <div class="modal-header"><h5 class="modal-title" id="woMessageTitle">Informasi</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body" id="woMessageBody"></div>
-        <div class="modal-footer"><button type="button" class="btn btn-primary" id="woMessageOk" data-bs-dismiss="modal">OK</button></div>
-    </div></div>
+{{-- Popup pesan --}}
+<div id="woMessagePopup" class="wo-message-popup" aria-hidden="true">
+    <div class="wo-message-box" role="dialog" aria-modal="true" aria-labelledby="woMessageTitle">
+        <div class="wo-message-header">
+            <h5 class="mb-0" id="woMessageTitle">Informasi</h5>
+            <button type="button" class="btn-close" id="woMessageClose" aria-label="Tutup"></button>
+        </div>
+        <div class="wo-message-body" id="woMessageBody"></div>
+        <div class="wo-message-footer">
+            <button type="button" class="btn btn-primary" id="woMessageOk">OK</button>
+        </div>
+    </div>
 </div>
 
 {{-- Modal konfirmasi hapus --}}
@@ -246,6 +251,37 @@
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
     }
+    #woMessagePopup {
+        display:none;
+        position:fixed;
+        inset:0;
+        z-index:1090;
+        background:rgba(0,0,0,.5);
+        align-items:center;
+        justify-content:center;
+    }
+    #woMessagePopup.show { display:flex; }
+    #woMessagePopup .wo-message-box {
+        width:min(400px,calc(100vw - 30px));
+        background:#fff;
+        border-radius:.5rem;
+        box-shadow:0 .5rem 1rem rgba(0,0,0,.25);
+        overflow:hidden;
+    }
+    #woMessagePopup .wo-message-header,
+    #woMessagePopup .wo-message-footer { padding:.75rem 1rem; }
+    #woMessagePopup .wo-message-header {
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        border-bottom:1px solid #dee2e6;
+    }
+    #woMessagePopup .wo-message-body { padding:1rem; }
+    #woMessagePopup .wo-message-footer {
+        display:flex;
+        justify-content:flex-end;
+        border-top:1px solid #dee2e6;
+    }
     #workOrderControls { width:100%; }
     #workOrderControls > div { min-width:0; }
     #workOrderTable_wrapper .dataTables_filter,
@@ -257,8 +293,13 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const modal=bootstrap.Modal.getOrCreateInstance(document.getElementById('workOrderModal'),{backdrop:'static',keyboard:false});
-    const msgElement=document.getElementById('woMessageModal');
-    const msgModal=bootstrap.Modal.getOrCreateInstance(msgElement,{backdrop:true,keyboard:true});
+    const msgPopup=document.getElementById('woMessagePopup');
+    const closeMessage=function(){
+        msgPopup.classList.remove('show');
+        msgPopup.setAttribute('aria-hidden','true');
+    };
+    document.getElementById('woMessageOk').addEventListener('click',closeMessage);
+    document.getElementById('woMessageClose').addEventListener('click',closeMessage);
     const deleteModal=bootstrap.Modal.getOrCreateInstance(document.getElementById('woDeleteModal'));
     const form=document.getElementById('workOrderForm');
     const workers=@json($workers);
@@ -406,7 +447,8 @@ document.addEventListener('DOMContentLoaded', function () {
     @if(session('success') || session('error') || $errors->any())
         document.getElementById('woMessageTitle').textContent='{{ session('success') ? 'Berhasil' : 'Pesan' }}';
         document.getElementById('woMessageBody').innerHTML=@json(session('success') ?: session('error') ?: implode('<br>', $errors->all()));
-        msgModal.show();
+        msgPopup.classList.add('show');
+        msgPopup.setAttribute('aria-hidden','false');
     @endif
 
     const table=new DataTable('#workOrderTable',{
