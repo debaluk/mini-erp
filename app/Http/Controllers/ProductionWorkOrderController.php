@@ -328,7 +328,11 @@ class ProductionWorkOrderController extends Controller
         });
 
         if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => 'SPK berhasil dibuat.']);
+            return response()->json([
+                'success' => true,
+                'message' => 'SPK berhasil dibuat.',
+                'row' => $this->workOrderRow($entityId, $woId),
+            ]);
         }
 
         return redirect()->route('produksi.work-order')->with('success', 'SPK berhasil dibuat.');
@@ -496,7 +500,11 @@ class ProductionWorkOrderController extends Controller
         });
 
         if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => 'WO berhasil diperbarui.']);
+            return response()->json([
+                'success' => true,
+                'message' => 'WO berhasil diperbarui.',
+                'row' => $this->workOrderRow($entityId, $id),
+            ]);
         }
 
         return redirect()->route('produksi.work-order')->with('success', 'WO berhasil diperbarui.');
@@ -985,6 +993,45 @@ class ProductionWorkOrderController extends Controller
         }
 
         return redirect()->route('produksi.work-order')->with('success', 'SPK Open berhasil dihapus.');
+    }
+
+    private function workOrderRow(int $entityId, int $id): array
+    {
+        $row = DB::table('production_work_orders as wo')
+            ->join('boms as b', 'b.id', '=', 'wo.bom_id')
+            ->join('products as p', 'p.id', '=', 'b.product_id')
+            ->join('warehouses as w', 'w.id', '=', 'wo.warehouse_id')
+            ->where('wo.entity_id', $entityId)
+            ->where('wo.id', $id)
+            ->first([
+                'wo.id',
+                'wo.wo_no',
+                'wo.wo_date',
+                'wo.target_output_qty',
+                'wo.status',
+                'b.code as bom_code',
+                'p.name as product_name',
+                'w.name as warehouse_name',
+            ]);
+
+        abort_unless($row, 404);
+
+        return [
+            'id' => $row->id,
+            'wo_no' => $row->wo_no,
+            'wo_date' => $row->wo_date,
+            'wo_date_display' => Carbon::parse($row->wo_date)->format('d/m/Y'),
+            'product_name' => $row->product_name,
+            'bom_code' => $row->bom_code,
+            'warehouse_name' => $row->warehouse_name,
+            'target_output_qty' => (float) $row->target_output_qty,
+            'worker_count' => (int) DB::table('production_work_order_workers')
+                ->where('production_work_order_id', $row->id)
+                ->count(),
+            'status' => $row->status,
+            'print_url' => route('produksi.work-order.print', $row->id),
+            'show_url' => route('produksi.work-order.show', $row->id),
+        ];
     }
 
     public function print(int $id)
