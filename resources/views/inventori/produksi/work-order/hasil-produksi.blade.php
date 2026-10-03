@@ -48,32 +48,6 @@
                     </div>
                 </div>
 
-                <hr class="my-3">
-
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="fw-semibold">Hasil Produksi</div>
-                        <div class="text-secondary small">Hasil aktual dari SPK ini.</div>
-                    </div>
-                    <button type="button" class="btn btn-primary">
-                        <i class="bi bi-plus-lg me-1"></i> Input Hasil Produksi
-                    </button>
-                </div>
-
-                <div class="row g-3 mt-1">
-                    <div class="col-md-4">
-                        <div class="text-secondary small">Hasil Bagus</div>
-                        <div class="fw-semibold fs-5 text-success">-</div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="text-secondary small">Reject / Scrap</div>
-                        <div class="fw-semibold fs-5 text-danger">-</div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="text-secondary small">Status Hasil</div>
-                        <span class="badge text-bg-secondary">Belum Diinput</span>
-                    </div>
-                </div>
             </div>
         </div>
 
