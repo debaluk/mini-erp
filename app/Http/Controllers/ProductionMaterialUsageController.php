@@ -21,7 +21,7 @@ class ProductionMaterialUsageController extends Controller
         $dateFrom = $request->input('date_from', now()->startOfMonth()->toDateString());
         $dateTo = $request->input('date_to', now()->endOfMonth()->toDateString());
 
-        $rows = DB::table('production_material_usages as u')
+        $rows = DB::table('production_wo_material_usages as u')
             ->join('production_work_orders as wo', 'wo.id', '=', 'u.production_work_order_id')
             ->join('boms as b', 'b.id', '=', 'wo.bom_id')
             ->join('products as p', 'p.id', '=', 'b.product_id')
@@ -52,7 +52,7 @@ class ProductionMaterialUsageController extends Controller
             ->where('wo.status', 'in_progress')
             ->whereNotExists(function ($q) {
                 $q->select(DB::raw(1))
-                    ->from('production_material_usages as u')
+                    ->from('production_wo_material_usages as u')
                     ->whereColumn('u.production_work_order_id', 'wo.id')
                     ->whereIn('u.status', ['draft', 'pending', 'approved']);
             })
@@ -95,7 +95,7 @@ class ProductionMaterialUsageController extends Controller
 
         abort_unless($wo, 404, 'SPK On Progress tidak ditemukan.');
 
-        $exists = DB::table('production_material_usages')
+        $exists = DB::table('production_wo_material_usages')
             ->where('production_work_order_id', $workOrderId)
             ->whereIn('status', ['draft', 'pending', 'approved'])
             ->exists();
@@ -170,7 +170,7 @@ class ProductionMaterialUsageController extends Controller
 
             abort_unless($wo, 422, 'SPK harus berstatus On Progress.');
 
-            $existing = DB::table('production_material_usages')
+            $existing = DB::table('production_wo_material_usages')
                 ->where('production_work_order_id', $workOrderId)
                 ->whereIn('status', ['draft', 'pending', 'approved'])
                 ->exists();
@@ -178,7 +178,7 @@ class ProductionMaterialUsageController extends Controller
 
             $planned = $this->plannedMaterials($wo)->keyBy('product_id');
 
-            $usageId = DB::table('production_material_usages')->insertGetId([
+            $usageId = DB::table('production_wo_material_usages')->insertGetId([
                 'entity_id' => $entityId,
                 'business_unit_id' => $wo->business_unit_id,
                 'warehouse_id' => $wo->warehouse_id,
@@ -221,7 +221,7 @@ class ProductionMaterialUsageController extends Controller
     {
         $entityId = $this->entityId();
 
-        $usage = DB::table('production_material_usages as u')
+        $usage = DB::table('production_wo_material_usages as u')
             ->join('production_work_orders as wo', 'wo.id', '=', 'u.production_work_order_id')
             ->join('boms as b', 'b.id', '=', 'wo.bom_id')
             ->join('products as p', 'p.id', '=', 'b.product_id')
@@ -262,7 +262,7 @@ class ProductionMaterialUsageController extends Controller
     public function submit(int $id)
     {
         $entityId = $this->entityId();
-        $usage = DB::table('production_material_usages')
+        $usage = DB::table('production_wo_material_usages')
             ->where('entity_id', $entityId)
             ->where('id', $id)
             ->where('status', 'draft')
@@ -270,7 +270,7 @@ class ProductionMaterialUsageController extends Controller
 
         abort_unless($usage, 422, 'Hanya Draft yang dapat diajukan.');
 
-        DB::table('production_material_usages')->where('id', $id)->update([
+        DB::table('production_wo_material_usages')->where('id', $id)->update([
             'status' => 'pending',
             'updated_at' => now(),
         ]);
@@ -283,7 +283,7 @@ class ProductionMaterialUsageController extends Controller
         $entityId = $this->entityId();
 
         DB::transaction(function () use ($id, $entityId): void {
-            $usage = DB::table('production_material_usages')
+            $usage = DB::table('production_wo_material_usages')
                 ->where('entity_id', $entityId)
                 ->where('id', $id)
                 ->where('status', 'pending')
@@ -401,7 +401,7 @@ class ProductionMaterialUsageController extends Controller
 
             abort_unless($inventoryAccount, 422, 'Mapping akun Persediaan belum tersedia.');
 
-            DB::table('production_material_usages')->where('id', $usage->id)->update([
+            DB::table('production_wo_material_usages')->where('id', $usage->id)->update([
                 'status' => 'approved',
                 'approved_by' => auth()->id(),
                 'journal_id' => $journalId,
@@ -416,7 +416,7 @@ class ProductionMaterialUsageController extends Controller
     public function reject(int $id)
     {
         $entityId = $this->entityId();
-        $usage = DB::table('production_material_usages')
+        $usage = DB::table('production_wo_material_usages')
             ->where('entity_id', $entityId)
             ->where('id', $id)
             ->where('status', 'pending')
@@ -424,7 +424,7 @@ class ProductionMaterialUsageController extends Controller
 
         abort_unless($usage, 422, 'Hanya pemakaian Menunggu Approval yang dapat ditolak.');
 
-        DB::table('production_material_usages')->where('id', $id)->update([
+        DB::table('production_wo_material_usages')->where('id', $id)->update([
             'status' => 'rejected',
             'updated_at' => now(),
         ]);
