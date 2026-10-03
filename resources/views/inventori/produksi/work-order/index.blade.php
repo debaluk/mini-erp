@@ -63,7 +63,7 @@
                         <td>{{ $row->product_name }}</td>
                         <td><span class="badge text-bg-light border">{{ $row->bom_code }}</span></td>
                         <td>{{ $row->warehouse_name }}</td>
-                        <td class="text-end">{{ \App\Helpers\FormatHelper::indo($row->target_output_qty, 3) }}</td>
+                        <td class="text-end">{{ \App\Helpers\FormatHelper::indo((float) $row->target_output_qty, 3) }}</td>
                         <td class="text-center">{{ $workerCounts[$row->id] ?? 0 }}</td>
                         <td><span class="badge text-bg-{{ $statusClasses[$row->status] ?? 'secondary' }}">{{ $statusLabels[$row->status] ?? $row->status }}</span></td>
                         <td class="text-end text-nowrap">
