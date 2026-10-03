@@ -28,7 +28,7 @@
     <div class="card-body">
         <div class="row g-3">
             <div class="col-md-3"><div class="text-secondary small">No. Pengeluaran</div><div class="fw-semibold">{{ $usage->usage_no }}</div></div>
-            <div class="col-md-3"><div class="text-secondary small">Tanggal</div><div>{{ CarbonCarbon::parse($usage->usage_date)->format('d/m/Y') }}</div></div>
+            <div class="col-md-3"><div class="text-secondary small">Tanggal</div><div>{{ \Carbon\Carbon::parse($usage->usage_date)->format('d/m/Y') }}</div></div>
             <div class="col-md-3"><div class="text-secondary small">No. SPK</div><div>{{ $usage->wo_no }}</div></div>
             <div class="col-md-3"><div class="text-secondary small">Produk</div><div>{{ $usage->product_name }}</div></div>
             <div class="col-md-3"><div class="text-secondary small">BOM</div><div>{{ $usage->bom_code }}</div></div>
