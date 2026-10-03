@@ -39,9 +39,6 @@
 </div>
 
 <div class="card border-0 shadow-sm">
-    <div class="card-header bg-primary bg-opacity-10 text-primary border-bottom d-flex justify-content-between align-items-center py-3">
-        <div class="fw-semibold"><i class="bi bi-clipboard-check me-2"></i>Daftar Work Order / SPK</div>
-    </div>
     <div class="card-body">
         <div id="workOrderControls" class="d-flex justify-content-between align-items-center flex-nowrap gap-3 mb-3">
             <div class="d-flex align-items-center gap-2 flex-nowrap">
