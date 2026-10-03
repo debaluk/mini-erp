@@ -306,7 +306,14 @@ class ProductionMaterialUsageController extends Controller
                 ->where('mapping_key', 'direct_material')
                 ->value('account_id');
 
+            $inventoryAccount = DB::table('business_unit_account_mappings')
+                ->where('entity_id', $entityId)
+                ->where('business_unit_id', $usage->business_unit_id)
+                ->where('mapping_key', 'inventory')
+                ->value('account_id');
+
             abort_unless($mapping, 422, 'Mapping akun Bahan Baku Langsung belum tersedia.');
+            abort_unless($inventoryAccount, 422, 'Mapping akun Persediaan belum tersedia.');
 
             $total = 0.0;
 
@@ -381,25 +388,13 @@ class ProductionMaterialUsageController extends Controller
                 ],
                 [
                     'journal_id' => $journalId,
-                    'account_id' => DB::table('business_unit_account_mappings')
-                        ->where('entity_id', $entityId)
-                        ->where('business_unit_id', $usage->business_unit_id)
-                        ->where('mapping_key', 'inventory')
-                        ->value('account_id'),
+                    'account_id' => $inventoryAccount,
                     'debit' => 0,
                     'credit' => round($total, 2),
                     'created_at' => now(),
                     'updated_at' => now(),
                 ],
             ]);
-
-            $inventoryAccount = DB::table('business_unit_account_mappings')
-                ->where('entity_id', $entityId)
-                ->where('business_unit_id', $usage->business_unit_id)
-                ->where('mapping_key', 'inventory')
-                ->value('account_id');
-
-            abort_unless($inventoryAccount, 422, 'Mapping akun Persediaan belum tersedia.');
 
             DB::table('production_wo_material_usages')->where('id', $usage->id)->update([
                 'status' => 'approved',
