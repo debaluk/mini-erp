@@ -96,6 +96,7 @@
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
 <style>
     #workOrderControls { flex-wrap: nowrap !important; }
+    #workOrderTable_wrapper > .dt-source { display:none !important; }
     #workOrderControls .dataTables_length,
     #workOrderControls .dataTables_filter { margin:0 !important; white-space:nowrap !important; }
     #workOrderControls .dataTables_filter { margin-left:auto !important; }
@@ -111,7 +112,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     if (window.jQuery) { const table = $('#workOrderTable').DataTable({
-        dom: 't<"d-flex justify-content-between align-items-center px-3 py-3"i p>',
+        dom: '<"dt-source"lf>t<"d-flex justify-content-between align-items-center px-3 py-3"i p>',
         pageLength: 15,
         lengthMenu: [[15,25,50,100],[15,25,50,100]],
         autoWidth: false,
