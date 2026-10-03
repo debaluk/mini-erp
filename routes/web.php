@@ -13,6 +13,7 @@ use App\Http\Controllers\PurchaseReturnController;
 use App\Http\Controllers\HppController;
 use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\ProductionWorkOrderController;
+use App\Http\Controllers\ProductionMaterialUsageController;
 use App\Http\Controllers\PurchaseReportController;
 use App\Http\Controllers\ReceiptController;
 use App\Http\Controllers\SalesReturnController;
@@ -263,7 +264,15 @@ Route::middleware(['auth', 'access:inventori'])->prefix('inventori/penyesuaian')
     // ============================================================
     Route::get('/produksi', [ProductionController::class, 'index'])->middleware('access:inventori')->name('produksi');
     Route::post('/produksi', [ProductionController::class, 'store'])->middleware('access:inventori')->name('produksi.store');
-    Route::get('/produksi/pemakaian-bahan', fn () => app(ModuleController::class)->show('material-usage'))->middleware('access:inventori')->name('produksi.pemakaian-bahan');
+    Route::middleware(['auth', 'access:inventori'])->prefix('produksi/pemakaian-bahan')->name('produksi.pemakaian-bahan')->group(function () {
+    Route::get('/', [ProductionMaterialUsageController::class, 'index'])->name('');
+    Route::get('/create/{workOrderId}', [ProductionMaterialUsageController::class, 'create'])->name('.create');
+    Route::post('/{workOrderId}', [ProductionMaterialUsageController::class, 'store'])->name('.store');
+    Route::get('/{id}', [ProductionMaterialUsageController::class, 'show'])->name('.show');
+    Route::post('/{id}/submit', [ProductionMaterialUsageController::class, 'submit'])->name('.submit');
+    Route::post('/{id}/approve', [ProductionMaterialUsageController::class, 'approve'])->name('.approve');
+    Route::post('/{id}/reject', [ProductionMaterialUsageController::class, 'reject'])->name('.reject');
+});
     Route::get('/produksi/hasil-produksi', fn () => app(ModuleController::class)->show('production-results'))->middleware('access:inventori')->name('produksi.hasil-produksi');
     Route::get('/produksi/reject', fn () => app(ModuleController::class)->show('production-results'))->middleware('access:inventori')->name('produksi.reject');
     Route::get('/produksi/hpp', [HppController::class, 'index'])->middleware('access:inventori')->name('produksi.hpp');
