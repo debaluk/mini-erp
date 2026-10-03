@@ -91,11 +91,12 @@
 @push('styles')
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
 <style>
+    #workOrderTable_wrapper > .d-flex:first-child { display:flex !important; flex-wrap:nowrap !important; align-items:center !important; justify-content:space-between !important; gap:1rem; }
     #workOrderTable_wrapper .dataTables_length,
-    #workOrderTable_wrapper .dataTables_filter { white-space: nowrap; }
-    #workOrderTable_wrapper .dataTables_filter { display:flex; align-items:center; justify-content:flex-end; gap:.5rem; }
-    #workOrderTable_wrapper .dataTables_filter label { margin:0; display:flex; align-items:center; gap:.5rem; }
-    #workOrderTable_wrapper .dataTables_filter input { margin:0; width:240px; }
+    #workOrderTable_wrapper .dataTables_filter { float:none !important; width:auto !important; margin:0 !important; white-space:nowrap !important; }
+    #workOrderTable_wrapper .dataTables_filter { display:flex !important; align-items:center !important; justify-content:flex-end !important; flex:0 0 auto !important; }
+    #workOrderTable_wrapper .dataTables_filter label { margin:0 !important; display:flex !important; align-items:center !important; gap:.5rem !important; }
+    #workOrderTable_wrapper .dataTables_filter input { margin:0 !important; width:240px !important; }
 </style>
 @endpush
 
