@@ -8,9 +8,15 @@
 <div class="grid">
 <div class="label">Tanggal SPK</div><div>{{ \Carbon\Carbon::parse($wo->wo_date)->format('d/m/Y') }}</div><div class="label">Status</div><div>{{ strtoupper($wo->status) }}</div>
 <div class="label">Produk</div><div>{{ $wo->product_code }} — {{ $wo->product_name }}</div><div class="label">BOM / Formula</div><div>{{ $wo->bom_code }} — {{ $wo->bom_name }}</div>
-<div class="label">Gudang</div><div>{{ $wo->warehouse_code }} — {{ $wo->warehouse_name }}</div><div class="label">Jumlah Batch</div><div>{{ number_format($wo->batch_qty,3,',','.') }}</div>
-<div class="label">Target Output</div><div>{{ number_format($wo->target_output_qty,3,',','.') }}</div>
+<div class="label">Gudang</div><div>{{ $wo->warehouse_code }} — {{ $wo->warehouse_name }}</div><div class="label">Jumlah Batch</div><div>{{ \App\Helpers\FormatHelper::indo($wo->batch_qty, 3) }}</div>
+<div class="label">Target Output</div><div>{{ \App\Helpers\FormatHelper::indo($wo->target_output_qty, 3) }}</div>
 </div>
+<div class="box"><h3>Estimasi Biaya Produksi</h3>
+<table style="margin-top:8px">
+<tr><td>Material</td><td style="text-align:right">Rp {{ \App\Helpers\FormatHelper::indo($materialCost, 2) }}</td></tr>
+<tr><td>Tenaga + Equipment + Rent + Overhead</td><td style="text-align:right">Rp {{ \App\Helpers\FormatHelper::indo($costs->sum('amount'), 2) }}</td></tr>
+<tr><th>Total Estimasi Biaya WO/SPK</th><th style="text-align:right">Rp {{ \App\Helpers\FormatHelper::indo($totalEstimatedCost, 2) }}</th></tr>
+</table></div>
 <div class="box"><h3>Tenaga Kerja / Pekerja</h3><table style="margin-top:8px"><thead><tr><th>No.</th><th>Kode</th><th>Nama Pekerja</th><th>Peran / Pekerjaan</th></tr></thead><tbody>
 @foreach($workers as $i=>$worker)<tr><td>{{ $i+1 }}</td><td>{{ $worker->code }}</td><td>{{ $worker->name }}</td><td>{{ $worker->role ?: '-' }}</td></tr>@endforeach
 </tbody></table></div>
