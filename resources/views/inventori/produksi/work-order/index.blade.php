@@ -95,11 +95,11 @@
 @push('styles')
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
 <style>
-    #workOrderControls { flex-wrap: nowrap !important; }
-    #workOrderTable_wrapper > .dt-source { display:none !important; }
+    #workOrderControls { display:grid !important; grid-template-columns:max-content max-content !important; justify-content:space-between !important; align-items:center !important; flex-wrap:nowrap !important; width:100% !important; }
+    #workOrderTable_wrapper > .dt-source { position:absolute !important; left:-99999px !important; width:1px !important; height:1px !important; overflow:hidden !important; }
     #workOrderControls .dataTables_length,
     #workOrderControls .dataTables_filter { margin:0 !important; white-space:nowrap !important; }
-    #workOrderControls .dataTables_filter { margin-left:auto !important; }
+    #workOrderControls .dataTables_filter { margin-left:0 !important; }
     #workOrderControls .dataTables_filter label { margin:0 !important; display:flex !important; align-items:center !important; gap:.5rem !important; }
     #workOrderControls .dataTables_filter input { margin:0 !important; width:240px !important; }
     #workOrderControls .dataTables_length label { margin:0 !important; display:flex !important; align-items:center !important; gap:.5rem !important; }
