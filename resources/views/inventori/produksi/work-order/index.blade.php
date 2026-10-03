@@ -142,10 +142,9 @@
                     <div id="woBomInfo" class="card border-primary mt-3">
                         <div class="card-body">
                             <div class="row g-3 mb-3">
-                                <div class="col-md-3"><div class="small text-secondary">Produk</div><div class="fw-semibold" id="woBomProduct">-</div></div>
-                                <div class="col-md-3"><div class="small text-secondary">Kode BOM</div><div class="fw-semibold" id="woBomCode">-</div></div>
-                                <div class="col-md-3"><div class="small text-secondary">Target Produksi</div><div class="fw-bold text-primary fs-5" id="woBomTarget">0</div></div>
-                                <div class="col-md-3"><div class="small text-secondary">Estimasi Material</div><div class="fw-bold text-success fs-5" id="woMaterialTotal">Rp 0</div></div>
+                                <div class="col-md-4"><div class="small text-secondary">Produk</div><div class="fw-semibold" id="woBomProduct">-</div></div>
+                                <div class="col-md-4"><div class="small text-secondary">Kode BOM</div><div class="fw-semibold" id="woBomCode">-</div></div>
+                                <div class="col-md-4"><div class="small text-secondary">Target Produksi</div><div class="fw-bold text-primary fs-5" id="woBomTarget">0</div></div>
                             </div>
                             <div class="table-responsive">
                                 <table class="table table-sm table-hover align-middle mb-0">
@@ -165,6 +164,8 @@
                         <div class="card-body modal-cost-rows"></div>
                     </div>
                     @endforeach
+
+                    <span id="woMaterialTotal" class="d-none">Rp 0</span>
 
                     <div class="card border-success mt-3">
                         <div class="card-body d-flex justify-content-between align-items-center">
