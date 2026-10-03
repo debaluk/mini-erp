@@ -165,4 +165,54 @@
             </div>
         </div>
     </div>
-</div>
+
+        {{-- 4. Hasil Produksi --}}
+        <div class="card border">
+            <div class="card-header bg-light fw-semibold">
+                4. Hasil Produksi
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Target Produksi</label>
+                        <div class="form-control bg-light">
+                            {{ \App\Helpers\FormatHelper::indo((float) $wo->target_output_qty, 2) }} Biji
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Pekerja</label>
+                        <select class="form-select" disabled>
+                            @forelse($workers as $worker)
+                                <option>{{ $worker->name }}</option>
+                            @empty
+                                <option>Belum ada pekerja</option>
+                            @endforelse
+                        </select>
+                        <div class="form-text">Pekerja yang melakukan input hasil produksi.</div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Hasil Produksi</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" min="0" step="0.01" placeholder="0" disabled>
+                            <span class="input-group-text">Biji</span>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Reject</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" min="0" step="0.01" placeholder="0" disabled>
+                            <span class="input-group-text">Biji</span>
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <button type="button" class="btn btn-primary" disabled>
+                            <i class="bi bi-check-lg me-1"></i> Simpan Hasil Produksi
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
