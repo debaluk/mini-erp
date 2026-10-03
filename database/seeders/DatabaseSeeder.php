@@ -630,8 +630,6 @@ class DatabaseSeeder extends Seeder
             'cogs_finished_goods'=>'5000102',
             'cogs_service'=>'5000103',
             'inventory_damage_loss'=>'7000202',
-            'salary_payable'=>'20005',
-            'inventory_finished_goods'=>'1000404',
             'direct_labor'=>'5000201',
             'direct_overhead'=>'5000202',
             'direct_material'=>'5000203',
@@ -648,7 +646,7 @@ class DatabaseSeeder extends Seeder
             'PROD'=>[
                 'cash','bank','receivable','payable','inventory',
                 'sales_finished_goods','sales_return_finished_goods','cogs_finished_goods',
-                'inventory_damage_loss','inventory_finished_goods','salary_payable',
+                'inventory_damage_loss',
                 'direct_material','direct_labor','direct_equipment',
                 'direct_rent','direct_overhead',
             ],
