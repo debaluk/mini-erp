@@ -10,7 +10,7 @@
         <a href="{{ route('produksi.work-order.export', request()->query()) }}" class="btn btn-outline-success">
             <i class="bi bi-file-earmark-excel me-1"></i> Export Excel
         </a>
-        <a href="{{ route('produksi.work-order.create') }}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i> Buat SPK</a>
+        <button type="button" class="btn btn-primary" id="btnCreateWorkOrder"><i class="bi bi-plus-lg me-1"></i> Buat SPK</button>
     </div>
 </div>
 
@@ -81,12 +81,8 @@
                         <td><span class="badge text-bg-{{ $statusClasses[$row->status] ?? 'secondary' }}">{{ $statusLabels[$row->status] ?? $row->status }}</span></td>
                         <td class="text-end text-nowrap">
                             @if($row->status === 'open')
-                                <a href="{{ route('produksi.work-order.edit', $row->id) }}" class="btn btn-sm btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
-                                <form method="POST" action="{{ route('produksi.work-order.destroy', $row->id) }}" class="d-inline" onsubmit="return confirm('Hapus SPK {{ $row->wo_no }}?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button class="btn btn-sm btn-outline-danger" title="Hapus"><i class="bi bi-trash"></i></button>
-                                </form>
+                                <button type="button" class="btn btn-sm btn-outline-primary btn-edit-wo" title="Edit" data-id="{{ $row->id }}"><i class="bi bi-pencil"></i></button>
+                                <button type="button" class="btn btn-sm btn-outline-danger btn-delete-wo" title="Hapus" data-id="{{ $row->id }}" data-no="{{ $row->wo_no }}"><i class="bi bi-trash"></i></button>
                                 <a href="{{ route('produksi.work-order.print', $row->id) }}" target="_blank" class="btn btn-sm btn-outline-secondary" title="Cetak SPK"><i class="bi bi-printer"></i></a>
                             @else
                                 <a href="{{ route('produksi.work-order.show',$row->id) }}" class="btn btn-sm btn-outline-dark" title="View"><i class="bi bi-eye"></i></a>
@@ -98,6 +94,130 @@
             </table>
         </div>
     </div>
+
+</div>
+
+{{-- Modal Create/Edit WO --}}
+<div class="modal fade" id="workOrderModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <form method="POST" action="{{ route('produksi.work-order.store') }}" id="workOrderForm">
+                @csrf
+                <input type="hidden" name="_method" id="woMethod" value="">
+                <input type="hidden" name="batch_qty" id="woBatchQty" value="1">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="workOrderModalTitle">Buat Work Order / SPK</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info small" id="woModalHint">SPK adalah master/referensi pekerjaan produksi.</div>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Tanggal SPK</label>
+                            <input type="date" name="wo_date" id="woDate" class="form-control" value="{{ now()->toDateString() }}" required>
+                        </div>
+                        <div class="col-md-3" id="woBatchWrap">
+                            <label class="form-label">Jumlah Batch</label>
+                            <input type="number" step="0.001" min="0.001" id="woBatchDisplay" class="form-control" value="1" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Business Unit</label>
+                            <select name="business_unit_id" id="woModalBu" class="form-select" required>
+                                <option value="">Pilih BU</option>
+                                @foreach($businessUnits as $bu)
+                                    <option value="{{ $bu->id }}">{{ $bu->code }} — {{ $bu->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Gudang Produksi</label>
+                            <select name="warehouse_id" id="woModalWarehouse" class="form-select" required>
+                                <option value="">Pilih gudang</option>
+                                @foreach($warehouses as $warehouse)
+                                    <option value="{{ $warehouse->id }}" data-bu="{{ $warehouse->business_unit_id }}">{{ $warehouse->code }} — {{ $warehouse->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">BOM / Formula</label>
+                            <select name="bom_id" id="woModalBom" class="form-select" required>
+                                <option value="">Pilih BOM</option>
+                                @foreach($boms as $bom)
+                                    <option value="{{ $bom->id }}" data-bu="{{ $bom->business_unit_id }}">{{ $bom->code }} — {{ $bom->name }} ({{ $bom->product_name }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="woBomInfo" class="card border-primary mt-3">
+                        <div class="card-header bg-primary bg-opacity-10 text-primary fw-semibold"><i class="bi bi-info-circle me-2"></i>Informasi BOM</div>
+                        <div class="card-body">
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-3"><div class="small text-secondary">Produk</div><div class="fw-semibold" id="woBomProduct">-</div></div>
+                                <div class="col-md-3"><div class="small text-secondary">Kode BOM</div><div class="fw-semibold" id="woBomCode">-</div></div>
+                                <div class="col-md-3"><div class="small text-secondary">Target Produksi</div><div class="fw-bold text-primary fs-5" id="woBomTarget">0</div></div>
+                                <div class="col-md-3"><div class="small text-secondary">Estimasi Material</div><div class="fw-bold text-success fs-5" id="woMaterialTotal">Rp 0</div></div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover align-middle mb-0">
+                                    <thead class="table-primary"><tr><th>Material</th><th class="text-end">Qty</th><th>Satuan</th><th class="text-end">Harga</th><th class="text-end">Subtotal</th></tr></thead>
+                                    <tbody id="woBomRows"><tr><td colspan="5" class="text-center text-secondary">Pilih BOM.</td></tr></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    @foreach(['U'=>['Tenaga','Pilih pekerja dan isi estimasi biaya tenaga.'],'A'=>['Equipment','Nama alat dan estimasi biaya.'],'S'=>['Rent','Nama sewa dan estimasi biaya.'],'O'=>['Overhead','Nama overhead dan estimasi biaya.']] as $group => [$title,$help])
+                    <div class="card border-0 shadow-sm mt-3 cost-section-modal" data-group="{{ $group }}">
+                        <div class="card-header bg-primary bg-opacity-10 text-primary d-flex justify-content-between align-items-center">
+                            <div><div class="fw-semibold">{{ $title }}</div><div class="small text-secondary">{{ $help }}</div></div>
+                            <button type="button" class="btn btn-outline-primary btn-sm add-modal-cost"><i class="bi bi-plus-lg me-1"></i>Tambah</button>
+                        </div>
+                        <div class="card-body modal-cost-rows"></div>
+                    </div>
+                    @endforeach
+
+                    <div class="card border-success mt-3">
+                        <div class="card-body d-flex justify-content-between align-items-center">
+                            <div><div class="small text-secondary">TOTAL ESTIMASI BIAYA WO/SPK</div><div class="small text-secondary">Material + Tenaga + Equipment + Rent + Overhead</div></div>
+                            <div class="fw-bold text-success fs-4" id="woModalTotal">Rp 0</div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <label class="form-label">Catatan SPK</label>
+                        <textarea name="notes" id="woNotes" class="form-control" rows="3" placeholder="Instruksi atau catatan produksi..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check2-circle me-1"></i><span id="woSubmitText">Simpan Draft WO</span></button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{{-- Modal pesan --}}
+<div class="modal fade" id="woMessageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title" id="woMessageTitle">Informasi</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body" id="woMessageBody"></div>
+        <div class="modal-footer"><button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button></div>
+    </div></div>
+</div>
+
+{{-- Modal konfirmasi hapus --}}
+<div class="modal fade" id="woDeleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered"><div class="modal-content">
+        <form method="POST" id="woDeleteForm">
+            @csrf
+            @method('DELETE')
+            <div class="modal-header"><h5 class="modal-title">Hapus SPK</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">Hapus SPK <strong id="woDeleteNo"></strong>?</div>
+            <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button><button type="submit" class="btn btn-danger">Hapus</button></div>
+        </form>
+    </div></div>
 </div>
 
 @endsection
@@ -115,8 +235,52 @@
 @push('scripts')
 <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
-<script>
 document.addEventListener('DOMContentLoaded', function () {
+    const modalEl=document.getElementById('workOrderModal');
+    const modal=bootstrap.Modal.getOrCreateInstance(modalEl);
+    const msgModal=bootstrap.Modal.getOrCreateInstance(document.getElementById('woMessageModal'));
+    const deleteModal=bootstrap.Modal.getOrCreateInstance(document.getElementById('woDeleteModal'));
+    const form=document.getElementById('workOrderForm');
+    const workers=@json($workers);
+    const costsByWo=@json($woCosts->groupBy('production_work_order_id'));
+    const rows=@json($rows->keyBy('id'));
+    const money=v=>'Rp '+Number(v||0).toLocaleString('id-ID',{minimumFractionDigits:2,maximumFractionDigits:2});
+    const parseMoney=v=>{const r=String(v??'').trim().replace(/[^0-9,.-]/g,'');if(!r)return 0;return r.includes(',')?Number(r.replace(/\./g,'').replace(',','.'))||0:Number(r)||0};
+    const fields={bu:document.getElementById('woModalBu'),warehouse:document.getElementById('woModalWarehouse'),bom:document.getElementById('woModalBom'),date:document.getElementById('woDate'),batch:document.getElementById('woBatchQty'),batchDisplay:document.getElementById('woBatchDisplay'),notes:document.getElementById('woNotes'),total:document.getElementById('woModalTotal'),material:document.getElementById('woMaterialTotal'),bomRows:document.getElementById('woBomRows')};
+    const filterSelect=(select,bu)=>{[...select.options].forEach(o=>{if(o.value)o.hidden=!!bu&&o.dataset.bu!==String(bu)});if(select.selectedOptions[0]?.hidden)select.value=''};
+    function costRow(group,data={}) {
+        const wrap=document.createElement('div'); wrap.className='row g-2 mb-2 modal-cost-row';
+        if(group==='U'){
+            wrap.innerHTML='<div class="col-md-7"><select name="worker_id[]" class="form-select"><option value="">Pilih pekerja</option>'+workers.map(w=>'<option value="'+w.id+'">'+w.code+' — '+w.name+'</option>').join('')+'</select></div><div class="col-md-3"><input type="text" name="worker_amount[]" class="form-control cost-input text-end" inputmode="decimal" placeholder="Total biaya pekerja"></div><div class="col-md-2"><button type="button" class="btn btn-outline-danger w-100 remove-modal-cost"><i class="bi bi-trash"></i></button></div>';
+            wrap.querySelector('select').value=data.worker_id||''; wrap.querySelector('input').value=data.amount?Number(data.amount).toLocaleString('id-ID',{minimumFractionDigits:2,maximumFractionDigits:2}):'';
+        } else {
+            wrap.innerHTML='<div class="col-md-7"><input type="text" name="cost_description[]" class="form-control" placeholder="Keterangan"></div><div class="col-md-3"><input type="text" name="cost_amount[]" class="form-control cost-input text-end" inputmode="decimal" placeholder="Estimasi biaya"></div><div class="col-md-2"><button type="button" class="btn btn-outline-danger w-100 remove-modal-cost"><i class="bi bi-trash"></i></button></div><input type="hidden" name="cost_group[]" value="'+group+'">';
+            wrap.querySelector('input[name="cost_description[]"]').value=data.description||''; wrap.querySelector('input[name="cost_amount[]"]').value=data.amount?Number(data.amount).toLocaleString('id-ID',{minimumFractionDigits:2,maximumFractionDigits:2}):'';
+        }
+        return wrap;
+    }
+    function resetCosts(data={}) {
+        document.querySelectorAll('.cost-section-modal').forEach(sec=>{
+            const group=sec.dataset.group, box=sec.querySelector('.modal-cost-rows'); box.innerHTML='';
+            const items=(data[group]||[]);
+            if(items.length) items.forEach(x=>box.appendChild(costRow(group,x))); else box.appendChild(costRow(group));
+        });
+    }
+    function recalc(){let total=parseMoney(fields.material.dataset.value||0);document.querySelectorAll('#workOrderForm .cost-input').forEach(i=>total+=parseMoney(i.value));fields.total.textContent=money(total)}
+    async function loadBom(){if(!fields.bom.value){document.getElementById('woBomProduct').textContent='-';document.getElementById('woBomCode').textContent='-';document.getElementById('woBomTarget').textContent='0';fields.material.dataset.value=0;fields.material.textContent='Rp 0';fields.bomRows.innerHTML='<tr><td colspan="5" class="text-center text-secondary">Pilih BOM.</td></tr>';recalc();return}const q=new URLSearchParams({warehouse_id:fields.warehouse.value,batch_qty:fields.batch.value||1});const r=await fetch('{{ url('/produksi/work-order/bom') }}/'+fields.bom.value+'/info?'+q,{headers:{Accept:'application/json'}});if(!r.ok)return;const d=await r.json();document.getElementById('woBomProduct').textContent=(d.bom.product_sku?d.bom.product_sku+' — ':'')+d.bom.product_name;document.getElementById('woBomCode').textContent=d.bom.code+' — '+d.bom.name;document.getElementById('woBomTarget').textContent=Number(d.bom.target_output_qty||0).toLocaleString('id-ID',{maximumFractionDigits:3})+' '+(d.bom.output_unit||'');fields.material.dataset.value=d.material_cost||0;fields.material.textContent=money(d.material_cost);fields.bomRows.innerHTML=(d.materials||[]).map(i=>'<tr><td>'+i.sku+' — '+i.name+'</td><td class="text-end">'+Number(i.base_qty||0).toLocaleString('id-ID',{maximumFractionDigits:3})+'</td><td>'+i.unit+'</td><td class="text-end">'+money(i.unit_cost)+'</td><td class="text-end">'+money(i.line_cost)+'</td></tr>').join('')||'<tr><td colspan="5" class="text-center text-secondary">BOM belum memiliki material.</td></tr>';recalc()}
+    function openCreate(){form.action='{{ route('produksi.work-order.store') }}';document.getElementById('woMethod').value='';document.getElementById('workOrderModalTitle').textContent='Buat Work Order / SPK';document.getElementById('woSubmitText').textContent='Simpan Draft WO';document.getElementById('woModalHint').textContent='SPK adalah master/referensi pekerjaan produksi.';fields.date.value='{{ now()->toDateString() }}';fields.batch.value='1';fields.batchDisplay.value='1';fields.bu.value='';fields.warehouse.value='';fields.bom.value='';fields.notes.value='';filterSelect(fields.warehouse,'');filterSelect(fields.bom,'');fields.material.dataset.value=0;resetCosts();loadBom();modal.show()}
+    function openEdit(id){const row=rows[id];if(!row)return;form.action='{{ url('/produksi/work-order') }}/'+id;document.getElementById('woMethod').value='PUT';document.getElementById('workOrderModalTitle').textContent='Edit Work Order / SPK';document.getElementById('woSubmitText').textContent='Simpan Perubahan';document.getElementById('woModalHint').textContent='Perubahan hanya dapat dilakukan selama SPK masih Open.';fields.date.value=row.wo_date;fields.batch.value=row.batch_qty;fields.batchDisplay.value=row.batch_qty;fields.bu.value=row.business_unit_id;filterSelect(fields.warehouse,row.business_unit_id);filterSelect(fields.bom,row.business_unit_id);fields.warehouse.value=row.warehouse_id;fields.bom.value=row.bom_id;fields.notes.value=row.notes||'';const grouped={U:[],A:[],S:[],O:[]};(costsByWo[id]||[]).forEach(c=>{if(grouped[c.cost_group])grouped[c.cost_group].push(c)});resetCosts(grouped);loadBom();modal.show()}
+    document.getElementById('btnCreateWorkOrder').addEventListener('click',openCreate);
+    document.querySelectorAll('.btn-edit-wo').forEach(b=>b.addEventListener('click',()=>openEdit(b.dataset.id)));
+    fields.bu.addEventListener('change',()=>{filterSelect(fields.warehouse,fields.bu.value);filterSelect(fields.bom,fields.bu.value);loadBom()}); fields.warehouse.addEventListener('change',loadBom); fields.bom.addEventListener('change',loadBom); fields.batchDisplay.addEventListener('input',()=>{fields.batch.value=fields.batchDisplay.value||1;loadBom()});
+    document.addEventListener('click',e=>{const add=e.target.closest('.add-modal-cost');if(add){const sec=add.closest('.cost-section-modal');sec.querySelector('.modal-cost-rows').appendChild(costRow(sec.dataset.group));recalc()}const rm=e.target.closest('.remove-modal-cost');if(rm){const box=rm.closest('.modal-cost-rows');if(box.querySelectorAll('.modal-cost-row').length>1)rm.closest('.modal-cost-row').remove();recalc()}const del=e.target.closest('.btn-delete-wo');if(del){document.getElementById('woDeleteNo').textContent=del.dataset.no;document.getElementById('woDeleteForm').action='{{ url('/produksi/work-order') }}/'+del.dataset.id;deleteModal.show()}});
+    document.addEventListener('input',e=>{if(e.target.classList.contains('cost-input'))recalc()});
+    @if(session('success') || session('error') || $errors->any())
+        document.getElementById('woMessageTitle').textContent='{{ session('success') ? 'Berhasil' : 'Pesan' }}';
+        document.getElementById('woMessageBody').innerHTML=@json(session('success') ?: session('error') ?: $errors->all());
+        msgModal.show();
+    @endif
+    if(window.jQuery){
     if (window.jQuery) {
         const table = $('#workOrderTable').DataTable({
             dom: 't<"d-flex justify-content-between align-items-center px-3 py-3"i p>',
@@ -142,5 +306,3 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 });
-</script>
-@endpush
