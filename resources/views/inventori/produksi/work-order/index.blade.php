@@ -187,20 +187,6 @@
     </div>
 </div>
 
-{{-- Popup pesan --}}
-<div id="woMessagePopup" class="wo-message-popup" aria-hidden="true">
-    <div class="wo-message-box" role="dialog" aria-modal="true" aria-labelledby="woMessageTitle">
-        <div class="wo-message-header">
-            <h5 class="mb-0" id="woMessageTitle">Informasi</h5>
-            <button type="button" class="btn-close" id="woMessageClose" aria-label="Tutup"></button>
-        </div>
-        <div class="wo-message-body" id="woMessageBody"></div>
-        <div class="wo-message-footer">
-            <button type="button" class="btn btn-primary" id="woMessageOk">OK</button>
-        </div>
-    </div>
-</div>
-
 {{-- Modal konfirmasi hapus --}}
 <div class="modal fade" id="woDeleteModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-sm modal-dialog-centered"><div class="modal-content">
@@ -296,20 +282,10 @@
 @endpush
 
 @push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const modal=bootstrap.Modal.getOrCreateInstance(document.getElementById('workOrderModal'),{backdrop:'static',keyboard:false});
-    const msgPopup=document.getElementById('woMessagePopup');
-    // Lepaskan popup dari container halaman/modal agar position:fixed benar-benar relatif ke viewport.
-    if (msgPopup && msgPopup.parentElement !== document.body) {
-        document.body.appendChild(msgPopup);
-    }
-    const closeMessage=function(){
-        msgPopup.classList.remove('show');
-        msgPopup.setAttribute('aria-hidden','true');
-    };
-    document.getElementById('woMessageOk').addEventListener('click',closeMessage);
-    document.getElementById('woMessageClose').addEventListener('click',closeMessage);
     const deleteModal=bootstrap.Modal.getOrCreateInstance(document.getElementById('woDeleteModal'));
     const form=document.getElementById('workOrderForm');
     const workers=@json($workers);
@@ -454,12 +430,48 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.addEventListener('input',e=>{if(e.target.classList.contains('cost-input'))recalc()});
 
-    @if(session('success') || session('error') || $errors->any())
-        document.getElementById('woMessageTitle').textContent='{{ session('success') ? 'Berhasil' : 'Pesan' }}';
-        document.getElementById('woMessageBody').innerHTML=@json(session('success') ?: session('error') ?: implode('<br>', $errors->all()));
-        msgPopup.classList.add('show');
-        msgPopup.setAttribute('aria-hidden','false');
-    @endif
+    $('#workOrderForm').on('submit', function (e) {
+        e.preventDefault();
+
+        const formElement = this;
+        const isEdit = document.getElementById('woMethod').value === 'PUT';
+        const url = formElement.action;
+        const type = isEdit ? 'PUT' : 'POST';
+
+        $.ajax({
+            url: url,
+            type: type,
+            data: $(formElement).serialize(),
+            headers: { 'Accept': 'application/json' },
+            success: function (res) {
+                if (res.success) {
+                    modal.hide();
+                    table.ajax ? table.ajax.reload() : table.draw(false);
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil!',
+                        text: res.message,
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                }
+            },
+            error: function (xhr) {
+                const response = xhr.responseJSON || {};
+                let message = response.message || 'Terjadi kesalahan sistem';
+
+                if (response.errors) {
+                    message = Object.values(response.errors).flat().join('<br>');
+                }
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal!',
+                    html: message
+                });
+            }
+        });
+    });
 
     const table=new DataTable('#workOrderTable',{
         dom:'t<"d-flex justify-content-between align-items-center px-3 py-3"i p>',
