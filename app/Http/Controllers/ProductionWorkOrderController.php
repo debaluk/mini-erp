@@ -507,7 +507,13 @@ class ProductionWorkOrderController extends Controller
             ->join('workers as w', 'w.id', '=', 'wow.worker_id')
             ->where('wow.production_work_order_id', $id)
             ->orderBy('w.name')
-            ->get(['w.code', 'w.name']);
+            ->get(['wow.worker_id', 'w.code', 'w.name']);
+
+        $woCosts = DB::table('production_work_order_costs as c')
+            ->leftJoin('workers as w', 'w.id', '=', 'c.worker_id')
+            ->where('c.production_work_order_id', $id)
+            ->orderBy('c.id')
+            ->get(['c.cost_group', 'c.description', 'c.amount', 'c.worker_id', 'w.name as worker_name']);
 
         $items = DB::table('bom_items as bi')
             ->join('products as p', 'p.id', '=', 'bi.product_id')
@@ -542,10 +548,31 @@ class ProductionWorkOrderController extends Controller
                 'qty' => round((float) $item->qty * (float) $wo->batch_qty, 3),
                 'unit' => $item->unit_code ?: $item->unit_name,
                 'base_qty' => round((float) $item->qty * $factor * (float) $wo->batch_qty, 3),
+                'unit_cost' => (float) (DB::table('warehouses_stocks')
+                    ->where('entity_id', $wo->entity_id)
+                    ->where('warehouse_id', $wo->warehouse_id)
+                    ->where('product_id', $item->product_id)
+                    ->value('avg_cost') ?? 0),
+                'line_cost' => round(round((float) $item->qty * $factor * (float) $wo->batch_qty, 3) * (float) (DB::table('warehouses_stocks')
+                    ->where('entity_id', $wo->entity_id)
+                    ->where('warehouse_id', $wo->warehouse_id)
+                    ->where('product_id', $item->product_id)
+                    ->value('avg_cost') ?? 0), 2),
             ];
         })->values();
 
-        return view('inventori.produksi.work-order.show', compact('wo', 'workers', 'materials'));
+        $materialTotal = (float) $materials->sum('line_cost');
+        $estimatedTotal = $materialTotal + (float) $woCosts->sum('amount');
+
+        $workers = $workers->map(function ($worker) use ($woCosts) {
+            $worker->estimated_cost = (float) $woCosts
+                ->where('cost_group', 'U')
+                ->where('worker_id', $worker->worker_id)
+                ->sum('amount');
+            return $worker;
+        });
+
+        return view('inventori.produksi.work-order.show', compact('wo', 'workers', 'materials', 'woCosts', 'materialTotal', 'estimatedTotal'));
     }
 
     public function destroy(int $id)
