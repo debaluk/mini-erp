@@ -88,13 +88,6 @@
                         </td>
                     </tr>
                 @empty
-                    <tr>
-                        <td colspan="7" class="text-center text-secondary py-5">
-                            <div class="mb-2"><i class="bi bi-box-seam fs-2"></i></div>
-                            <div class="fw-semibold">Belum ada SPK yang siap dicatat hasilnya.</div>
-                            <div class="small">SPK akan muncul di sini saat sudah berstatus On Progress.</div>
-                        </td>
-                    </tr>
                 @endforelse
                 </tbody>
             </table>
