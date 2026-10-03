@@ -68,7 +68,7 @@
                         <li class="dropdown-submenu">
                             <a class="dropdown-item dropdown-toggle" href="#">PENJUALAN</a>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{{ route('inventori.penjualan') }}">Penjualan Tempo/Invoice</a></li>
+                                <li><a class="dropdown-item" href="{{ route('inventori.penjualan') }}">Faktur Penjualan</a></li>
                                 <li><a class="dropdown-item" href="{{ route('inventori.penjualan.retur') }}">Retur Penjualan</a></li>
                             </ul>
                         </li>
@@ -82,11 +82,11 @@
                             </ul>
                         </li>
                         <li class="dropdown-submenu">
-                            <a class="dropdown-item dropdown-toggle" href="#">PRODUKSI (BUASO)</a>
+                            <a class="dropdown-item dropdown-toggle" href="#">PRODUKSI</a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ route('produksi.work-order') }}">Work Order (SPK)</a></li>
-                                <li><a class="dropdown-item" href="{{ route('produksi.pemakaian-bahan') }}">Pemakaian Bahan Baku</a></li>
-                                <li><a class="dropdown-item" href="{{ route('produksi.hasil-produksi') }}">Hasil Barang Jadi &amp; Scrap</a></li>
+                                <li><a class="dropdown-item" href="{{ route('produksi.pemakaian-bahan') }}">Bahan Baku</a></li>
+                                <li><a class="dropdown-item" href="{{ route('produksi.hasil-produksi') }}">Hasil Produksi</a></li>
                             </ul>
                         </li>
                         <li class="dropdown-submenu">
