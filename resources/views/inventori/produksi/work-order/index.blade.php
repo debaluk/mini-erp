@@ -72,11 +72,11 @@
                     @endphp
                     <tr>
                         <td class="fw-semibold">{{ $row->wo_no }}</td>
-                        <td data-order="{{ $row->wo_date }}">{{ \Carbon\Carbon::parse($row->wo_date)->format('d/m/Y') }}</td>
+                        <td data-order="{{ $row->wo_date }}">{{ CarbonCarbon::parse($row->wo_date)->format('d/m/Y') }}</td>
                         <td>{{ $row->product_name }}</td>
                         <td><span class="badge text-bg-light border">{{ $row->bom_code }}</span></td>
                         <td>{{ $row->warehouse_name }}</td>
-                        <td class="text-end">{{ \App\Helpers\FormatHelper::indo((float) $row->target_output_qty, 2) }}</td>
+                        <td class="text-end">{{ AppHelpersFormatHelper::indo((float) $row->target_output_qty, 2) }}</td>
                         <td class="text-center">{{ $workerCounts[$row->id] ?? 0 }}</td>
                         <td><span class="badge text-bg-{{ $statusClasses[$row->status] ?? 'secondary' }}">{{ $statusLabels[$row->status] ?? $row->status }}</span></td>
                         <td class="text-end text-nowrap">
@@ -94,7 +94,6 @@
             </table>
         </div>
     </div>
-
 </div>
 
 {{-- Modal Create/Edit WO --}}
@@ -223,9 +222,25 @@
 @push('styles')
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
 <style>
-    #workOrderModal .modal-body { max-height: calc(100vh - 180px); overflow-y: auto; }
-    #workOrderModal .modal-content { max-height: calc(100vh - 30px); }
-    #workOrderModal .modal-dialog { height: calc(100vh - 30px); margin-top: 15px; margin-bottom: 15px; }
+    #workOrderModal .modal-dialog {
+        height: calc(100vh - 30px);
+        max-width: 1140px;
+        margin-top: 15px;
+        margin-bottom: 15px;
+    }
+    #workOrderModal .modal-content {
+        height: 100%;
+        max-height: none;
+        display: flex;
+        flex-direction: column;
+    }
+    #workOrderModal .modal-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: scroll !important;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+    }
     #workOrderControls { width:100%; }
     #workOrderControls > div { min-width:0; }
     #workOrderTable_wrapper .dataTables_filter,
@@ -246,7 +261,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const costsByWo=@json($woCosts->groupBy('production_work_order_id'));
     const rows=@json($rows->keyBy('id'));
     const money=v=>'Rp '+Number(v||0).toLocaleString('id-ID',{minimumFractionDigits:2,maximumFractionDigits:2});
-    const parseMoney=v=>{const r=String(v??'').trim().replace(/[^0-9,.-]/g,'');if(!r)return 0;return r.includes(',')?Number(r.replace(/\./g,'').replace(',','.'))||0:Number(r)||0};
+    const parseMoney=v=>{const r=String(v??'').trim().replace(/[^0-9,.-]/g,'');if(!r)return 0;return r.includes(',')?Number(r.replace(/./g,'').replace(',','.'))||0:Number(r)||0};
     const fields={bu:document.getElementById('woModalBu'),warehouse:document.getElementById('woModalWarehouse'),bom:document.getElementById('woModalBom'),date:document.getElementById('woDate'),batch:document.getElementById('woBatchQty'),batchDisplay:document.getElementById('woBatchDisplay'),notes:document.getElementById('woNotes'),total:document.getElementById('woModalTotal'),material:document.getElementById('woMaterialTotal'),bomRows:document.getElementById('woBomRows')};
 
     const filterSelect=(select,bu)=>{[...select.options].forEach(o=>{if(o.value)o.hidden=!!bu&&o.dataset.bu!==String(bu)});if(select.selectedOptions[0]?.hidden)select.value=''};
@@ -312,7 +327,7 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('woMethod').value='';
         document.getElementById('workOrderModalTitle').textContent='Buat Work Order / SPK';
         document.getElementById('woSubmitText').textContent='Simpan Draft WO';
-                fields.date.value='{{ now()->toDateString() }}';
+        fields.date.value='{{ now()->toDateString() }}';
         fields.batch.value='1';
         fields.batchDisplay.value='1';
         fields.bu.value='';
@@ -334,7 +349,7 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('woMethod').value='PUT';
         document.getElementById('workOrderModalTitle').textContent='Edit Work Order / SPK';
         document.getElementById('woSubmitText').textContent='Simpan Perubahan';
-                fields.date.value=row.wo_date;
+        fields.date.value=row.wo_date;
         fields.batch.value=row.batch_qty;
         fields.batchDisplay.value=row.batch_qty;
         fields.bu.value=row.business_unit_id;
