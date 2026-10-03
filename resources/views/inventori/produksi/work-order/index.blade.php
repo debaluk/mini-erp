@@ -235,9 +235,9 @@
 @push('scripts')
 <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+<script>
 document.addEventListener('DOMContentLoaded', function () {
-    const modalEl=document.getElementById('workOrderModal');
-    const modal=bootstrap.Modal.getOrCreateInstance(modalEl);
+    const modal=bootstrap.Modal.getOrCreateInstance(document.getElementById('workOrderModal'));
     const msgModal=bootstrap.Modal.getOrCreateInstance(document.getElementById('woMessageModal'));
     const deleteModal=bootstrap.Modal.getOrCreateInstance(document.getElementById('woDeleteModal'));
     const form=document.getElementById('workOrderForm');
@@ -247,62 +247,159 @@ document.addEventListener('DOMContentLoaded', function () {
     const money=v=>'Rp '+Number(v||0).toLocaleString('id-ID',{minimumFractionDigits:2,maximumFractionDigits:2});
     const parseMoney=v=>{const r=String(v??'').trim().replace(/[^0-9,.-]/g,'');if(!r)return 0;return r.includes(',')?Number(r.replace(/\./g,'').replace(',','.'))||0:Number(r)||0};
     const fields={bu:document.getElementById('woModalBu'),warehouse:document.getElementById('woModalWarehouse'),bom:document.getElementById('woModalBom'),date:document.getElementById('woDate'),batch:document.getElementById('woBatchQty'),batchDisplay:document.getElementById('woBatchDisplay'),notes:document.getElementById('woNotes'),total:document.getElementById('woModalTotal'),material:document.getElementById('woMaterialTotal'),bomRows:document.getElementById('woBomRows')};
+
     const filterSelect=(select,bu)=>{[...select.options].forEach(o=>{if(o.value)o.hidden=!!bu&&o.dataset.bu!==String(bu)});if(select.selectedOptions[0]?.hidden)select.value=''};
-    function costRow(group,data={}) {
-        const wrap=document.createElement('div'); wrap.className='row g-2 mb-2 modal-cost-row';
+
+    function costRow(group,data={}){
+        const wrap=document.createElement('div');
+        wrap.className='row g-2 mb-2 modal-cost-row';
         if(group==='U'){
             wrap.innerHTML='<div class="col-md-7"><select name="worker_id[]" class="form-select"><option value="">Pilih pekerja</option>'+workers.map(w=>'<option value="'+w.id+'">'+w.code+' — '+w.name+'</option>').join('')+'</select></div><div class="col-md-3"><input type="text" name="worker_amount[]" class="form-control cost-input text-end" inputmode="decimal" placeholder="Total biaya pekerja"></div><div class="col-md-2"><button type="button" class="btn btn-outline-danger w-100 remove-modal-cost"><i class="bi bi-trash"></i></button></div>';
-            wrap.querySelector('select').value=data.worker_id||''; wrap.querySelector('input').value=data.amount?Number(data.amount).toLocaleString('id-ID',{minimumFractionDigits:2,maximumFractionDigits:2}):'';
-        } else {
+            wrap.querySelector('select').value=data.worker_id||'';
+            wrap.querySelector('input').value=data.amount?Number(data.amount).toLocaleString('id-ID',{minimumFractionDigits:2,maximumFractionDigits:2}):'';
+        }else{
             wrap.innerHTML='<div class="col-md-7"><input type="text" name="cost_description[]" class="form-control" placeholder="Keterangan"></div><div class="col-md-3"><input type="text" name="cost_amount[]" class="form-control cost-input text-end" inputmode="decimal" placeholder="Estimasi biaya"></div><div class="col-md-2"><button type="button" class="btn btn-outline-danger w-100 remove-modal-cost"><i class="bi bi-trash"></i></button></div><input type="hidden" name="cost_group[]" value="'+group+'">';
-            wrap.querySelector('input[name="cost_description[]"]').value=data.description||''; wrap.querySelector('input[name="cost_amount[]"]').value=data.amount?Number(data.amount).toLocaleString('id-ID',{minimumFractionDigits:2,maximumFractionDigits:2}):'';
+            wrap.querySelector('input[name="cost_description[]"]').value=data.description||'';
+            wrap.querySelector('input[name="cost_amount[]"]').value=data.amount?Number(data.amount).toLocaleString('id-ID',{minimumFractionDigits:2,maximumFractionDigits:2}):'';
         }
         return wrap;
     }
-    function resetCosts(data={}) {
+
+    function resetCosts(data={}){
         document.querySelectorAll('.cost-section-modal').forEach(sec=>{
-            const group=sec.dataset.group, box=sec.querySelector('.modal-cost-rows'); box.innerHTML='';
-            const items=(data[group]||[]);
-            if(items.length) items.forEach(x=>box.appendChild(costRow(group,x))); else box.appendChild(costRow(group));
+            const group=sec.dataset.group,box=sec.querySelector('.modal-cost-rows');
+            box.innerHTML='';
+            const items=data[group]||[];
+            if(items.length)items.forEach(x=>box.appendChild(costRow(group,x)));
+            else box.appendChild(costRow(group));
         });
+        recalc();
     }
-    function recalc(){let total=parseMoney(fields.material.dataset.value||0);document.querySelectorAll('#workOrderForm .cost-input').forEach(i=>total+=parseMoney(i.value));fields.total.textContent=money(total)}
-    async function loadBom(){if(!fields.bom.value){document.getElementById('woBomProduct').textContent='-';document.getElementById('woBomCode').textContent='-';document.getElementById('woBomTarget').textContent='0';fields.material.dataset.value=0;fields.material.textContent='Rp 0';fields.bomRows.innerHTML='<tr><td colspan="5" class="text-center text-secondary">Pilih BOM.</td></tr>';recalc();return}const q=new URLSearchParams({warehouse_id:fields.warehouse.value,batch_qty:fields.batch.value||1});const r=await fetch('{{ url('/produksi/work-order/bom') }}/'+fields.bom.value+'/info?'+q,{headers:{Accept:'application/json'}});if(!r.ok)return;const d=await r.json();document.getElementById('woBomProduct').textContent=(d.bom.product_sku?d.bom.product_sku+' — ':'')+d.bom.product_name;document.getElementById('woBomCode').textContent=d.bom.code+' — '+d.bom.name;document.getElementById('woBomTarget').textContent=Number(d.bom.target_output_qty||0).toLocaleString('id-ID',{maximumFractionDigits:3})+' '+(d.bom.output_unit||'');fields.material.dataset.value=d.material_cost||0;fields.material.textContent=money(d.material_cost);fields.bomRows.innerHTML=(d.materials||[]).map(i=>'<tr><td>'+i.sku+' — '+i.name+'</td><td class="text-end">'+Number(i.base_qty||0).toLocaleString('id-ID',{maximumFractionDigits:3})+'</td><td>'+i.unit+'</td><td class="text-end">'+money(i.unit_cost)+'</td><td class="text-end">'+money(i.line_cost)+'</td></tr>').join('')||'<tr><td colspan="5" class="text-center text-secondary">BOM belum memiliki material.</td></tr>';recalc()}
-    function openCreate(){form.action='{{ route('produksi.work-order.store') }}';document.getElementById('woMethod').value='';document.getElementById('workOrderModalTitle').textContent='Buat Work Order / SPK';document.getElementById('woSubmitText').textContent='Simpan Draft WO';document.getElementById('woModalHint').textContent='SPK adalah master/referensi pekerjaan produksi.';fields.date.value='{{ now()->toDateString() }}';fields.batch.value='1';fields.batchDisplay.value='1';fields.bu.value='';fields.warehouse.value='';fields.bom.value='';fields.notes.value='';filterSelect(fields.warehouse,'');filterSelect(fields.bom,'');fields.material.dataset.value=0;resetCosts();loadBom();modal.show()}
-    function openEdit(id){const row=rows[id];if(!row)return;form.action='{{ url('/produksi/work-order') }}/'+id;document.getElementById('woMethod').value='PUT';document.getElementById('workOrderModalTitle').textContent='Edit Work Order / SPK';document.getElementById('woSubmitText').textContent='Simpan Perubahan';document.getElementById('woModalHint').textContent='Perubahan hanya dapat dilakukan selama SPK masih Open.';fields.date.value=row.wo_date;fields.batch.value=row.batch_qty;fields.batchDisplay.value=row.batch_qty;fields.bu.value=row.business_unit_id;filterSelect(fields.warehouse,row.business_unit_id);filterSelect(fields.bom,row.business_unit_id);fields.warehouse.value=row.warehouse_id;fields.bom.value=row.bom_id;fields.notes.value=row.notes||'';const grouped={U:[],A:[],S:[],O:[]};(costsByWo[id]||[]).forEach(c=>{if(grouped[c.cost_group])grouped[c.cost_group].push(c)});resetCosts(grouped);loadBom();modal.show()}
+
+    function recalc(){
+        let total=parseMoney(fields.material.dataset.value||0);
+        document.querySelectorAll('#workOrderForm .cost-input').forEach(i=>total+=parseMoney(i.value));
+        fields.total.textContent=money(total);
+    }
+
+    async function loadBom(){
+        if(!fields.bom.value){
+            document.getElementById('woBomProduct').textContent='-';
+            document.getElementById('woBomCode').textContent='-';
+            document.getElementById('woBomTarget').textContent='0';
+            fields.material.dataset.value=0;
+            fields.material.textContent='Rp 0';
+            fields.bomRows.innerHTML='<tr><td colspan="5" class="text-center text-secondary">Pilih BOM.</td></tr>';
+            recalc();
+            return;
+        }
+        const q=new URLSearchParams({warehouse_id:fields.warehouse.value,batch_qty:fields.batch.value||1});
+        const r=await fetch('{{ url('/produksi/work-order/bom') }}/'+fields.bom.value+'/info?'+q,{headers:{Accept:'application/json'}});
+        if(!r.ok)return;
+        const d=await r.json();
+        document.getElementById('woBomProduct').textContent=(d.bom.product_sku?d.bom.product_sku+' — ':'')+d.bom.product_name;
+        document.getElementById('woBomCode').textContent=d.bom.code+' — '+d.bom.name;
+        document.getElementById('woBomTarget').textContent=Number(d.bom.target_output_qty||0).toLocaleString('id-ID',{maximumFractionDigits:3})+' '+(d.bom.output_unit||'');
+        fields.material.dataset.value=d.material_cost||0;
+        fields.material.textContent=money(d.material_cost);
+        fields.bomRows.innerHTML=(d.materials||[]).map(i=>'<tr><td>'+i.sku+' — '+i.name+'</td><td class="text-end">'+Number(i.base_qty||0).toLocaleString('id-ID',{maximumFractionDigits:3})+'</td><td>'+i.unit+'</td><td class="text-end">'+money(i.unit_cost)+'</td><td class="text-end">'+money(i.line_cost)+'</td></tr>').join('')||'<tr><td colspan="5" class="text-center text-secondary">BOM belum memiliki material.</td></tr>';
+        recalc();
+    }
+
+    function openCreate(){
+        form.action='{{ route('produksi.work-order.store') }}';
+        document.getElementById('woMethod').value='';
+        document.getElementById('workOrderModalTitle').textContent='Buat Work Order / SPK';
+        document.getElementById('woSubmitText').textContent='Simpan Draft WO';
+        document.getElementById('woModalHint').textContent='SPK adalah master/referensi pekerjaan produksi.';
+        fields.date.value='{{ now()->toDateString() }}';
+        fields.batch.value='1';
+        fields.batchDisplay.value='1';
+        fields.bu.value='';
+        fields.warehouse.value='';
+        fields.bom.value='';
+        fields.notes.value='';
+        filterSelect(fields.warehouse,'');
+        filterSelect(fields.bom,'');
+        fields.material.dataset.value=0;
+        resetCosts();
+        loadBom();
+        modal.show();
+    }
+
+    function openEdit(id){
+        const row=rows[id];
+        if(!row)return;
+        form.action='{{ url('/produksi/work-order') }}/'+id;
+        document.getElementById('woMethod').value='PUT';
+        document.getElementById('workOrderModalTitle').textContent='Edit Work Order / SPK';
+        document.getElementById('woSubmitText').textContent='Simpan Perubahan';
+        document.getElementById('woModalHint').textContent='Perubahan hanya dapat dilakukan selama SPK masih Open.';
+        fields.date.value=row.wo_date;
+        fields.batch.value=row.batch_qty;
+        fields.batchDisplay.value=row.batch_qty;
+        fields.bu.value=row.business_unit_id;
+        filterSelect(fields.warehouse,row.business_unit_id);
+        filterSelect(fields.bom,row.business_unit_id);
+        fields.warehouse.value=row.warehouse_id;
+        fields.bom.value=row.bom_id;
+        fields.notes.value=row.notes||'';
+        const grouped={U:[],A:[],S:[],O:[]};
+        (costsByWo[id]||[]).forEach(c=>{if(grouped[c.cost_group])grouped[c.cost_group].push(c)});
+        resetCosts(grouped);
+        loadBom();
+        modal.show();
+    }
+
     document.getElementById('btnCreateWorkOrder').addEventListener('click',openCreate);
     document.querySelectorAll('.btn-edit-wo').forEach(b=>b.addEventListener('click',()=>openEdit(b.dataset.id)));
-    fields.bu.addEventListener('change',()=>{filterSelect(fields.warehouse,fields.bu.value);filterSelect(fields.bom,fields.bu.value);loadBom()}); fields.warehouse.addEventListener('change',loadBom); fields.bom.addEventListener('change',loadBom); fields.batchDisplay.addEventListener('input',()=>{fields.batch.value=fields.batchDisplay.value||1;loadBom()});
-    document.addEventListener('click',e=>{const add=e.target.closest('.add-modal-cost');if(add){const sec=add.closest('.cost-section-modal');sec.querySelector('.modal-cost-rows').appendChild(costRow(sec.dataset.group));recalc()}const rm=e.target.closest('.remove-modal-cost');if(rm){const box=rm.closest('.modal-cost-rows');if(box.querySelectorAll('.modal-cost-row').length>1)rm.closest('.modal-cost-row').remove();recalc()}const del=e.target.closest('.btn-delete-wo');if(del){document.getElementById('woDeleteNo').textContent=del.dataset.no;document.getElementById('woDeleteForm').action='{{ url('/produksi/work-order') }}/'+del.dataset.id;deleteModal.show()}});
+    fields.bu.addEventListener('change',()=>{filterSelect(fields.warehouse,fields.bu.value);filterSelect(fields.bom,fields.bu.value);loadBom()});
+    fields.warehouse.addEventListener('change',loadBom);
+    fields.bom.addEventListener('change',loadBom);
+    fields.batchDisplay.addEventListener('input',()=>{fields.batch.value=fields.batchDisplay.value||1;loadBom()});
+
+    document.addEventListener('click',e=>{
+        const add=e.target.closest('.add-modal-cost');
+        if(add){
+            const sec=add.closest('.cost-section-modal');
+            sec.querySelector('.modal-cost-rows').appendChild(costRow(sec.dataset.group));
+            recalc();
+        }
+        const rm=e.target.closest('.remove-modal-cost');
+        if(rm){
+            const box=rm.closest('.modal-cost-rows');
+            if(box.querySelectorAll('.modal-cost-row').length>1)rm.closest('.modal-cost-row').remove();
+            recalc();
+        }
+        const del=e.target.closest('.btn-delete-wo');
+        if(del){
+            document.getElementById('woDeleteNo').textContent=del.dataset.no;
+            document.getElementById('woDeleteForm').action='{{ url('/produksi/work-order') }}/'+del.dataset.id;
+            deleteModal.show();
+        }
+    });
+
     document.addEventListener('input',e=>{if(e.target.classList.contains('cost-input'))recalc()});
+
     @if(session('success') || session('error') || $errors->any())
         document.getElementById('woMessageTitle').textContent='{{ session('success') ? 'Berhasil' : 'Pesan' }}';
-        document.getElementById('woMessageBody').innerHTML=@json(session('success') ?: session('error') ?: $errors->all());
+        document.getElementById('woMessageBody').innerHTML=@json(session('success') ?: session('error') ?: implode('<br>', $errors->all()));
         msgModal.show();
     @endif
+
     if(window.jQuery){
-    if (window.jQuery) {
-        const table = $('#workOrderTable').DataTable({
-            dom: 't<"d-flex justify-content-between align-items-center px-3 py-3"i p>',
-            pageLength: 15,
-            lengthMenu: [[15,25,50,100],[15,25,50,100]],
-            autoWidth: false,
-            order: [[1,'desc']],
-            language: {
-                info: 'Menampilkan _START_–_END_ dari _TOTAL_ SPK',
-                infoEmpty: 'Tidak ada SPK',
-                zeroRecords: 'Data tidak ditemukan',
-                paginate: { previous: '‹', next: '›' }
-            },
-            columnDefs: [{ targets: [5,6,8], orderable: false }]
+        const table=$('#workOrderTable').DataTable({
+            dom:'t<"d-flex justify-content-between align-items-center px-3 py-3"i p>',
+            pageLength:15,
+            lengthMenu:[[15,25,50,100],[15,25,50,100]],
+            autoWidth:false,
+            order:[[1,'desc']],
+            language:{info:'Menampilkan _START_–_END_ dari _TOTAL_ SPK',infoEmpty:'Tidak ada SPK',zeroRecords:'Data tidak ditemukan',paginate:{previous:'‹',next:'›'}},
+            columnDefs:[{targets:[5,6,8],orderable:false}]
         });
-
-        $('#workOrderPageLength').on('change', function () {
-            table.page.len(this.value).draw();
-        });
-
-        $('#workOrderSearch').on('input', function () {
-            table.search(this.value).draw();
-        });
+        $('#workOrderPageLength').on('change',function(){table.page.len(this.value).draw()});
+        $('#workOrderSearch').on('input',function(){table.search(this.value).draw()});
     }
 });
+</script>
+@endpush
