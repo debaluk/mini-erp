@@ -134,7 +134,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const batch=document.getElementById('batch_display'), batchHidden=document.getElementById('batch_qty');
     const mt=document.getElementById('material-total'), target=document.getElementById('bom-target'), rows=document.getElementById('bom-material-rows');
     const money=v=>'Rp '+Number(v||0).toLocaleString('id-ID',{minimumFractionDigits:2,maximumFractionDigits:2});
-    const parseMoney=v=>{const r=String(v??'').trim().replace(/[^0-9,.-]/g,'');if(!r)return 0;return r.includes(',')?Number(r.replace(/\\./g,'').replace(',','.'))||0:Number(r)||0};
+    const parseMoney=v=>{const r=String(v??'').trim().replace(/[^0-9,.-]/g,'');if(!r)return 0;return r.includes(',')?Number(r.replace(/\./g,'').replace(',','.'))||0:Number(r)||0};
     const syncBatch=()=>{batchHidden.value=batch.value||1};
     const filter=(select,id)=>{[...select.options].forEach(o=>{if(o.value)o.hidden=!!id&&o.dataset.bu!==id});if(select.selectedOptions[0]?.hidden)select.value=''};
     const load=async()=>{
