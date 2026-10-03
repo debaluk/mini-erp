@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('production_material_usages', function (Blueprint $table) {
+        Schema::create('production_wo_material_usages', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('entity_id');
             $table->unsignedBigInteger('business_unit_id');
@@ -48,7 +48,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('production_material_usage_id', 'pmui_usage_fk')
-                ->references('id')->on('production_material_usages')->cascadeOnDelete();
+                ->references('id')->on('production_wo_material_usages')->cascadeOnDelete();
             $table->foreign('product_id', 'pmui_product_fk')->references('id')->on('products');
             $table->foreign('unit_id', 'pmui_unit_fk')->references('id')->on('units');
         });
@@ -57,6 +57,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('production_material_usage_items');
-        Schema::dropIfExists('production_material_usages');
+        Schema::dropIfExists('production_wo_material_usages');
     }
 };
