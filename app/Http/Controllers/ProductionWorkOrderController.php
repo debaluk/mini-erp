@@ -575,69 +575,28 @@ class ProductionWorkOrderController extends Controller
             ->join('warehouses as w', 'w.id', '=', 'wo.warehouse_id')
             ->where('wo.entity_id', $entityId)
             ->where('wo.id', $id)
-            ->select('wo.*', 'b.code as bom_code', 'b.name as bom_name', 'b.output_qty', 'p.name as product_name', 'p.code as product_code', 'w.code as warehouse_code', 'w.name as warehouse_name')
+            ->select(
+                'wo.*',
+                'b.code as bom_code',
+                'b.name as bom_name',
+                'p.name as product_name',
+                'p.code as product_code',
+                'w.code as warehouse_code',
+                'w.name as warehouse_name'
+            )
             ->first();
 
         abort_unless($wo, 404);
 
         $workers = DB::table('production_work_order_workers as wow')
             ->join('workers as w', 'w.id', '=', 'wow.worker_id')
-            ->leftJoin('production_work_order_costs as wc', function ($join) {
-                $join->on('wc.production_work_order_id', '=', 'wow.production_work_order_id')
-                    ->on('wc.worker_id', '=', 'wow.worker_id')
-                    ->where('wc.cost_group', '=', 'U');
-            })
             ->where('wow.production_work_order_id', $id)
             ->orderBy('w.name')
-            ->get(['w.code', 'w.name', 'wc.amount']);
-
-        $costs = DB::table('production_work_order_costs')
-            ->where('production_work_order_id', $id)
-            ->orderBy('cost_group')
-            ->orderBy('id')
-            ->get();
-
-        $materialCost = 0.0;
-        $bomItems = DB::table('bom_items as bi')
-            ->join('products as p', 'p.id', '=', 'bi.product_id')
-            ->where('bi.bom_id', $wo->bom_id)
-            ->get(['bi.product_id', 'bi.unit_id', 'bi.qty', 'p.base_unit_id']);
-
-        foreach ($bomItems as $item) {
-            $factor = 1.0;
-            if ((int) $item->unit_id !== (int) $item->base_unit_id) {
-                $factor = (float) DB::table('product_unit_conversions')
-                    ->where('product_id', $item->product_id)
-                    ->where('unit_id', $item->unit_id)
-                    ->where('is_active', 1)
-                    ->value('conversion_factor');
-            }
-
-            $stock = DB::table('warehouses_stocks')
-                ->where('entity_id', $entityId)
-                ->where('warehouse_id', $wo->warehouse_id)
-                ->where('product_id', $item->product_id)
-                ->first(['avg_cost']);
-
-            $unitCost = $stock
-                ? (float) $stock->avg_cost
-                : (float) (DB::table('warehouses_stocks')
-                    ->where('entity_id', $entityId)
-                    ->where('product_id', $item->product_id)
-                    ->where('qty', '>', 0)
-                    ->avg('avg_cost') ?? 0);
-
-            $materialCost += round((float) $item->qty * $factor * (float) $wo->batch_qty, 3) * $unitCost;
-        }
-        $materialCost = round($materialCost, 2);
-        $otherCost = round((float) $costs->sum('amount'), 2);
-        $totalEstimatedCost = round($materialCost + $otherCost, 2);
+            ->get(['w.code', 'w.name']);
 
         $entity = DB::table('entities')->where('id', $entityId)->first();
 
-        return view('inventori.produksi.work-order.print', compact(
-            'wo', 'workers', 'costs', 'entity', 'materialCost', 'totalEstimatedCost'
-        ));
+        return view('inventori.produksi.work-order.print', compact('wo', 'workers', 'entity'));
     }
 
     public function export(Request $request)
