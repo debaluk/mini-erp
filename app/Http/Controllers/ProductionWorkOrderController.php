@@ -455,8 +455,11 @@ class ProductionWorkOrderController extends Controller
         return redirect()->route('produksi.work-order')->with('success', 'WO berhasil diperbarui.');
     }
 
-    public function startWork(int $id)
+    public function startWork(Request $request, int $id)
     {
+        $data = $request->validate([
+            'started_at' => ['required', 'date'],
+        ]);
         $entityId = $this->entityId();
 
         $wo = DB::table('production_work_orders')
@@ -471,7 +474,7 @@ class ProductionWorkOrderController extends Controller
             ->where('id', $id)
             ->update([
                 'status' => 'in_progress',
-                'started_at' => now(),
+                'started_at' => $data['started_at'].' 00:00:00',
                 'updated_at' => now(),
             ]);
 
