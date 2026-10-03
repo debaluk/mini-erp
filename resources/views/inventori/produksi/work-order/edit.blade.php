@@ -122,11 +122,38 @@
 
 <div class="card border-0 shadow-sm mb-3"><div class="card-header bg-light fw-semibold">Catatan SPK</div><div class="card-body"><textarea name="notes" class="form-control" rows="4" placeholder="Instruksi atau catatan produksi...">{{ old('notes', $wo->notes) }}</textarea></div></div>
 
-<div class="d-flex justify-content-end gap-2">
-    <a href="{{ route('produksi.work-order') }}" class="btn btn-light">Batal</a>
-    <button class="btn btn-primary"><i class="bi bi-check2-circle me-1"></i>Simpan Perubahan</button>
+<div class="d-flex justify-content-between align-items-center">
+    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#mulaiKerjaModal">
+        <i class="bi bi-play-circle me-1"></i>Mulai Kerja
+    </button>
+    <div class="d-flex gap-2">
+        <a href="{{ route('produksi.work-order') }}" class="btn btn-light">Batal</a>
+        <button class="btn btn-primary"><i class="bi bi-check2-circle me-1"></i>Simpan Perubahan</button>
+    </div>
 </div>
 </form>
+
+<div class="modal fade" id="mulaiKerjaModal" tabindex="-1" aria-labelledby="mulaiKerjaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <form method="POST" action="{{ route('produksi.work-order.start', $wo->id) }}">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title" id="mulaiKerjaModalLabel">Mulai Kerja</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+                <div class="modal-body">
+                    <label for="started_at" class="form-label">Tanggal Mulai Kerja</label>
+                    <input type="date" name="started_at" id="started_at" class="form-control" value="{{ now()->toDateString() }}" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-success"><i class="bi bi-check2-circle me-1"></i>OK</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
