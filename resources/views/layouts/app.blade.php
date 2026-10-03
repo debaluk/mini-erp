@@ -248,6 +248,16 @@ document.addEventListener('DOMContentLoaded', () => {
         confirmModal.show();
     });
 
+    @if(session('success'))
+        erpNotify(@json(session('success')), 'success');
+    @elseif(session('error'))
+        erpNotify(@json(session('error')), 'danger');
+    @elseif(session('warning'))
+        erpNotify(@json(session('warning')), 'warning');
+    @elseif(session('info'))
+        erpNotify(@json(session('info')), 'info');
+    @endif
+
     confirmYes.addEventListener('click', () => {
         confirmModal.hide();
         if (confirmResolve) confirmResolve(true);
