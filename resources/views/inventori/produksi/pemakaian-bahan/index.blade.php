@@ -16,6 +16,9 @@
 @endif
 
 <div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-body d-flex align-items-center justify-content-between py-3">
+        <span class="fw-semibold">Filter Pemakaian</span>
+    </div>
     <div class="card-body">
         <form method="GET" class="row g-2 align-items-end">
             <div class="col-md-3">
@@ -43,8 +46,9 @@
 </div>
 
 <div class="card border-0 shadow-sm mb-3">
-    <div class="card-header d-flex justify-content-between align-items-center">
+    <div class="card-header bg-body d-flex justify-content-between align-items-center py-3">
         <span class="fw-semibold">SPK On Progress</span>
+        <span class="badge text-bg-primary">{{ $workOrders->count() }} SPK</span>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -63,7 +67,7 @@
                 @forelse($workOrders as $wo)
                     <tr>
                         <td class="fw-semibold">{{ $wo->wo_no }}</td>
-                        <td>{{ \Carbon\Carbon::parse($wo->wo_date)->format('d/m/Y') }}</td>
+                        <td>{{ CarbonCarbon::parse($wo->wo_date)->format('d/m/Y') }}</td>
                         <td>{{ $wo->product_name }}</td>
                         <td>{{ $wo->warehouse_name }}</td>
                         <td class="text-end">{{ number_format((float) $wo->target_output_qty, 2, ',', '.') }}</td>
@@ -74,7 +78,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="text-center text-muted py-3">Tidak ada SPK On Progress yang belum memiliki pemakaian bahan.</td></tr>
+                    <tr><td colspan="6" class="text-center text-muted py-4">Tidak ada SPK On Progress yang belum memiliki pemakaian bahan.</td></tr>
                 @endforelse
                 </tbody>
             </table>
@@ -83,7 +87,12 @@
 </div>
 
 <div class="card border-0 shadow-sm">
-    <div class="card-header fw-semibold">Daftar Pemakaian Bahan Baku</div>
+    <div class="card-header bg-body d-flex justify-content-between align-items-center py-3">
+        <span class="fw-semibold">Daftar Pemakaian Bahan Baku</span>
+        @if($rows->total() > 0)
+            <span class="text-secondary small">{{ $rows->total() }} data</span>
+        @endif
+    </div>
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-sm table-hover align-middle mb-0">
@@ -106,7 +115,7 @@
                     @endphp
                     <tr>
                         <td class="fw-semibold">{{ $row->usage_no }}</td>
-                        <td>{{ \Carbon\Carbon::parse($row->usage_date)->format('d/m/Y') }}</td>
+                        <td>{{ CarbonCarbon::parse($row->usage_date)->format('d/m/Y') }}</td>
                         <td>{{ $row->wo_no }}</td>
                         <td>{{ $row->product_name }}</td>
                         <td>{{ $row->warehouse_name }}</td>
@@ -122,5 +131,28 @@
             </table>
         </div>
     </div>
+
+    @if($rows->hasPages())
+    <div class="card-footer bg-body border-0 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 py-3">
+        <div class="text-secondary small">
+            Menampilkan {{ $rows->firstItem() }}–{{ $rows->lastItem() }} dari {{ $rows->total() }} data
+        </div>
+        <nav aria-label="Navigasi halaman">
+            <ul class="pagination pagination-sm mb-0">
+                <li class="page-item {{ $rows->onFirstPage() ? 'disabled' : '' }}">
+                    <a class="page-link" href="{{ $rows->previousPageUrl() ?? '#' }}" aria-label="Sebelumnya">&laquo;</a>
+                </li>
+                @foreach($rows->getUrlRange(max(1, $rows->currentPage() - 2), min($rows->lastPage(), $rows->currentPage() + 2)) as $page => $url)
+                    <li class="page-item {{ $page == $rows->currentPage() ? 'active' : '' }}">
+                        <a class="page-link" href="{{ $url }}">{{ $page }}</a>
+                    </li>
+                @endforeach
+                <li class="page-item {{ $rows->currentPage() == $rows->lastPage() ? 'disabled' : '' }}">
+                    <a class="page-link" href="{{ $rows->nextPageUrl() ?? '#' }}" aria-label="Berikutnya">&raquo;</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+    @endif
 </div>
 @endsection
