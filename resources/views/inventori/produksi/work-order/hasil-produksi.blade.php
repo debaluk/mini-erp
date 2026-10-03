@@ -82,8 +82,12 @@
                                 <td>{{ $material['unit'] }}</td>
                                 <td class="text-end">Rp {{ number_format((float) $material['unit_cost'], 2, ',', '.') }}</td>
                                 <td class="text-end">Rp {{ number_format((float) $material['line_cost'], 2, ',', '.') }}</td>
-                                <td class="text-end">-</td>
-                                <td class="text-end">-</td>
+                                <td class="text-end">
+                                    {{ $material['actual_qty'] !== null ? \App\Helpers\FormatHelper::indo((float) $material['actual_qty'], 3) : '-' }}
+                                </td>
+                                <td class="text-end">
+                                    {{ $material['actual_cost'] !== null ? 'Rp ' . number_format((float) $material['actual_cost'], 2, ',', '.') : '-' }}
+                                </td>
                             </tr>
                         @empty
                             <tr>
