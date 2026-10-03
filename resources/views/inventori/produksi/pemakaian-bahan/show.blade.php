@@ -69,8 +69,11 @@
     </div>
 </div>
 
-@if($usage->notes)
-<div class="card border-0 shadow-sm mb-3"><div class="card-body"><div class="text-secondary small mb-1">Catatan</div>{{ $usage->notes }}</div></div>
+@if($usage->notes || $usage->rejection_reason)
+<div class="card border-0 shadow-sm mb-3"><div class="card-body">
+    @if($usage->notes)<div class="text-secondary small mb-1">Catatan</div>{{ $usage->notes }}@endif
+    @if($usage->rejection_reason)<div class="text-secondary small mb-1 mt-2">Alasan Penolakan</div><div class="text-danger">{{ $usage->rejection_reason }}</div>@endif
+</div></div>
 @endif
 
 <div class="d-flex justify-content-end gap-2">
@@ -82,14 +85,33 @@
     @elseif($usage->status === 'pending')
         <form method="POST" action="{{ route('produksi.pemakaian-bahan.reject', $usage->id) }}">
             @csrf
-            <button class="btn btn-outline-danger" onclick="return confirm('Tolak pemakaian bahan ini?')">Tolak</button>
+            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">Tolak</button>
         </form>
         <form method="POST" action="{{ route('produksi.pemakaian-bahan.approve', $usage->id) }}">
             @csrf
-            <button class="btn btn-success" onclick="return confirm('Setujui? Setelah disetujui stok akan berkurang dan beban bahan baku diakui.')">Setujui</button>
+            <button class="btn btn-success">Setujui</button>
         </form>
     @elseif($usage->status === 'approved')
         <span class="text-success align-self-center small">Beban bahan baku sudah diakui.</span>
     @endif
+</div>
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form method="POST" action="{{ route('produksi.pemakaian-bahan.reject', $usage->id) }}" class="modal-content">
+            @csrf
+            <div class="modal-header">
+                <h5 class="modal-title">Tolak Pemakaian Bahan</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label">Alasan Penolakan <span class="text-danger">*</span></label>
+                <textarea name="rejection_reason" class="form-control" rows="4" required minlength="3" placeholder="Masukkan alasan penolakan"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="submit" class="btn btn-danger">Tolak</button>
+            </div>
+        </form>
+    </div>
 </div>
 @endsection
