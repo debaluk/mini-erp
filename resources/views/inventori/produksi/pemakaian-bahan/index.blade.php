@@ -66,7 +66,7 @@
                         <td>{{ \Carbon\Carbon::parse($wo->wo_date)->format('d/m/Y') }}</td>
                         <td>{{ $wo->product_name }}</td>
                         <td>{{ $wo->warehouse_name }}</td>
-                        <td class="text-end">{{ AppHelpersFormatHelper::indo((float) $wo->target_output_qty, 2) }}</td>
+                        <td class="text-end">{{ number_format((float) $wo->target_output_qty, 2, ',', '.') }}</td>
                         <td class="text-end">
                             <a href="{{ route('produksi.pemakaian-bahan.create', $wo->id) }}" class="btn btn-sm btn-primary">
                                 Pemakaian Bahan
