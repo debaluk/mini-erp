@@ -317,6 +317,144 @@ class ProductionWorkOrderController extends Controller
         return redirect()->route('produksi.work-order')->with('success', 'SPK berhasil dibuat.');
     }
 
+    public function edit(int $id)
+    {
+        $entityId = $this->entityId();
+
+        $wo = DB::table('production_work_orders')
+            ->where('entity_id', $entityId)
+            ->where('id', $id)
+            ->where('status', 'draft')
+            ->first();
+
+        abort_unless($wo, 404, 'WO Draft tidak ditemukan.');
+
+        $boms = DB::table('boms as b')
+            ->join('products as p', 'p.id', '=', 'b.product_id')
+            ->join('business_units as bu', 'bu.id', '=', 'b.business_unit_id')
+            ->where('b.entity_id', $entityId)->where('b.is_active', 1)->where('bu.business_type', 'production')
+            ->select('b.id','b.code','b.name','b.output_qty','b.business_unit_id','p.name as product_name')
+            ->orderBy('b.code')->get();
+
+        $warehouses = DB::table('warehouses as w')
+            ->join('business_units as bu','bu.id','=','w.business_unit_id')
+            ->where('w.entity_id',$entityId)->where('w.is_active',1)->where('bu.business_type','production')
+            ->select('w.id','w.code','w.name','w.business_unit_id')->orderBy('w.name')->get();
+
+        $businessUnits = DB::table('business_units')->where('entity_id',$entityId)->where('business_type','production')->orderBy('name')->get(['id','code','name']);
+        $workers = DB::table('workers')->where('entity_id',$entityId)->where('is_active',1)->orderBy('name')->get(['id','code','name']);
+
+        $woWorkers = DB::table('production_work_order_workers')
+            ->where('production_work_order_id', $id)->orderBy('id')->get();
+
+        $woCosts = DB::table('production_work_order_costs')
+            ->where('production_work_order_id', $id)->orderBy('id')->get();
+
+        return view('inventori.produksi.work-order.edit', compact(
+            'wo','boms','warehouses','businessUnits','workers','woWorkers','woCosts'
+        ));
+    }
+
+    public function update(Request $request, int $id)
+    {
+        $request->merge([
+            'worker_amount' => collect($request->input('worker_amount', []))->map(fn ($value) => FormatHelper::parse($value))->all(),
+            'cost_amount' => collect($request->input('cost_amount', []))->map(fn ($value) => FormatHelper::parse($value))->all(),
+        ]);
+
+        $data = $request->validate([
+            'wo_date' => ['required', 'date'],
+            'business_unit_id' => ['required', 'integer'],
+            'warehouse_id' => ['required', 'integer'],
+            'bom_id' => ['required', 'integer'],
+            'batch_qty' => ['required', 'numeric', 'gt:0'],
+            'notes' => ['nullable', 'string'],
+            'worker_id' => ['required', 'array', 'min:1'],
+            'worker_id.*' => ['required', 'integer', 'distinct'],
+            'worker_amount' => ['required', 'array', 'min:1'],
+            'worker_amount.*' => ['required', 'numeric', 'gt:0'],
+            'cost_group' => ['nullable', 'array'],
+            'cost_group.*' => ['nullable', 'in:A,S,O'],
+            'cost_description' => ['nullable', 'array'],
+            'cost_description.*' => ['nullable', 'string', 'max:255'],
+            'cost_amount' => ['nullable', 'array'],
+            'cost_amount.*' => ['nullable', 'numeric'],
+        ]);
+
+        $entityId = $this->entityId();
+
+        DB::transaction(function () use ($data, $entityId, $id): void {
+            $wo = DB::table('production_work_orders')
+                ->where('entity_id', $entityId)->where('id', $id)->where('status', 'draft')->first();
+            abort_unless($wo, 422, 'Hanya WO Draft yang dapat diedit.');
+
+            $warehouse = DB::table('warehouses')
+                ->where('entity_id', $entityId)->where('is_active', 1)->where('id', $data['warehouse_id'])->first();
+            abort_unless($warehouse, 422, 'Gudang produksi tidak valid.');
+            abort_unless((int) $warehouse->business_unit_id === (int) $data['business_unit_id'], 422, 'Business Unit gudang tidak sesuai.');
+
+            $bom = DB::table('boms')
+                ->where('entity_id', $entityId)->where('business_unit_id', $warehouse->business_unit_id)
+                ->where('is_active', 1)->where('id', $data['bom_id'])->first();
+            abort_unless($bom, 422, 'BOM produksi tidak valid.');
+
+            $validWorkers = DB::table('workers')->where('entity_id', $entityId)->where('is_active', 1)
+                ->whereIn('id', $data['worker_id'])->pluck('id');
+            abort_unless($validWorkers->count() === count($data['worker_id']), 422, 'Ada pekerja yang tidak valid.');
+
+            $targetOutput = round((float) $bom->output_qty * (float) $data['batch_qty'], 3);
+
+            DB::table('production_work_orders')->where('id', $id)->update([
+                'business_unit_id' => $warehouse->business_unit_id,
+                'warehouse_id' => $warehouse->id,
+                'bom_id' => $bom->id,
+                'wo_date' => $data['wo_date'],
+                'batch_qty' => $data['batch_qty'],
+                'target_output_qty' => $targetOutput,
+                'notes' => $data['notes'] ?? null,
+                'updated_at' => now(),
+            ]);
+
+            DB::table('production_work_order_costs')->where('production_work_order_id', $id)->delete();
+            DB::table('production_work_order_workers')->where('production_work_order_id', $id)->delete();
+
+            foreach ($data['worker_id'] as $i => $workerId) {
+                DB::table('production_work_order_workers')->insert([
+                    'production_work_order_id' => $id,
+                    'worker_id' => $workerId,
+                    'role' => null,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                DB::table('production_work_order_costs')->insert([
+                    'production_work_order_id' => $id,
+                    'worker_id' => $workerId,
+                    'cost_group' => 'U',
+                    'description' => 'Tenaga',
+                    'amount' => round((float) $data['worker_amount'][$i], 2),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            foreach (($data['cost_group'] ?? []) as $i => $group) {
+                $amount = round((float) (($data['cost_amount'] ?? [])[$i] ?? 0), 2);
+                if ($amount <= 0) continue;
+                DB::table('production_work_order_costs')->insert([
+                    'production_work_order_id' => $id,
+                    'worker_id' => null,
+                    'cost_group' => $group,
+                    'description' => trim((string) (($data['cost_description'] ?? [])[$i] ?? '')) ?: null,
+                    'amount' => $amount,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        });
+
+        return redirect()->route('produksi.work-order')->with('success', 'WO berhasil diperbarui.');
+    }
+
     public function approve(int $id)
     {
         $entityId = $this->entityId();
