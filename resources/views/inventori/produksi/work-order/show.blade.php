@@ -7,6 +7,11 @@
         <div class="text-secondary small">{{ $wo->wo_no }}</div>
     </div>
     <div class="d-flex gap-2">
+        @if($wo->status === 'in_progress')
+        <a href="{{ route('produksi.pemakaian-bahan.create', $wo->id) }}" class="btn btn-primary">
+            <i class="bi bi-box-arrow-right me-1"></i> Pemakaian Bahan
+        </a>
+        @endif
         <a href="{{ route('produksi.work-order.print', $wo->id) }}" target="_blank" class="btn btn-outline-dark">
             <i class="bi bi-printer me-1"></i> Print SPK
         </a>
