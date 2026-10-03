@@ -129,39 +129,52 @@
         </div>
 
         {{-- 3. Informasi Upah Tenaga Kerja --}}
-        <div class="card border">
+        <div class="card border mb-4">
             <div class="card-header bg-light fw-semibold">
                 3. Informasi Upah Tenaga Kerja
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-sm table-hover align-middle mb-0">
+                    <table class="table table-sm table-hover align-middle mb-0" id="labor-table">
                         <thead class="table-light">
                             <tr>
                                 <th>No</th>
-                                <th>Kode</th>
                                 <th>Nama Pekerja</th>
-                                <th class="text-end">Estimasi Upah</th>
+                                <th>Dasar Upah</th>
+                                <th class="text-end">Biaya Satuan</th>
+                                <th class="text-end">Qty Real</th>
+                                <th class="text-end">Total</th>
                             </tr>
                         </thead>
                         <tbody>
                         @forelse($workers as $worker)
                             <tr>
                                 <td>{{ $loop->iteration }}</td>
-                                <td>{{ $worker->code }}</td>
                                 <td>{{ $worker->name }}</td>
-                                <td class="text-end">Rp {{ number_format((float) $worker->estimated_cost, 2, ',', '.') }}</td>
+                                <td>
+                                    <select class="form-select form-select-sm labor-basis">
+                                        <option value="BIJI">Biji</option>
+                                        <option value="BORONGAN">Borongan</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control form-control-sm text-end labor-rate" min="0" step="0.01" placeholder="0">
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control form-control-sm text-end labor-qty" min="0" step="0.01" value="1">
+                                </td>
+                                <td class="text-end labor-total">Rp 0,00</td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="text-center text-muted py-3">Belum ada pekerja.</td>
+                                <td colspan="6" class="text-center text-muted py-3">Belum ada pekerja.</td>
                             </tr>
                         @endforelse
                         </tbody>
                         <tfoot>
                             <tr class="fw-semibold">
-                                <td colspan="3" class="text-end">Total Estimasi Upah</td>
-                                <td class="text-end">Rp {{ number_format((float) $woCosts->where('cost_group', 'U')->sum('amount'), 2, ',', '.') }}</td>
+                                <td colspan="5" class="text-end">Total Upah</td>
+                                <td class="text-end" id="labor-grand-total">Rp 0,00</td>
                             </tr>
                         </tfoot>
                     </table>
@@ -220,3 +233,34 @@
                 </div>
             </div>
         </div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const table = document.getElementById('labor-table');
+    if (!table) return;
+
+    const formatRupiah = (value) => 'Rp ' + new Intl.NumberFormat('id-ID', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(value || 0);
+
+    const calculateLabor = () => {
+        let grandTotal = 0;
+        table.querySelectorAll('tbody tr').forEach(row => {
+            const rate = parseFloat(row.querySelector('.labor-rate')?.value || 0);
+            const qty = parseFloat(row.querySelector('.labor-qty')?.value || 0);
+            const total = rate * qty;
+            grandTotal += total;
+            const output = row.querySelector('.labor-total');
+            if (output) output.textContent = formatRupiah(total);
+        });
+        const grand = document.getElementById('labor-grand-total');
+        if (grand) grand.textContent = formatRupiah(grandTotal);
+    };
+
+    table.addEventListener('input', calculateLabor);
+    calculateLabor();
+});
+</script>
+@endpush
