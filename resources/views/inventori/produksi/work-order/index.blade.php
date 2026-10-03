@@ -66,7 +66,20 @@
                         <td class="text-end">{{ number_format($row->target_output_qty,3,',','.') }}</td>
                         <td class="text-center">{{ $workerCounts[$row->id] ?? 0 }}</td>
                         <td><span class="badge text-bg-{{ $statusClasses[$row->status] ?? 'secondary' }}">{{ $statusLabels[$row->status] ?? $row->status }}</span></td>
-                        <td class="text-end"><a href="{{ route('produksi.work-order.print',$row->id) }}" target="_blank" class="btn btn-sm btn-outline-dark" title="Cetak"><i class="bi bi-printer"></i></a></td>
+                        <td class="text-end text-nowrap">
+                            @if($row->status === 'draft')
+                                <form method="POST" action="{{ route('produksi.work-order.approve', $row->id) }}" class="d-inline" onsubmit="return confirm('Setujui WO {{ $row->wo_no }}?')">
+                                    @csrf
+                                    <button class="btn btn-sm btn-success" title="Setujui WO"><i class="bi bi-check2-circle"></i></button>
+                                </form>
+                                <form method="POST" action="{{ route('produksi.work-order.destroy', $row->id) }}" class="d-inline" onsubmit="return confirm('Hapus WO Draft {{ $row->wo_no }}?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button class="btn btn-sm btn-outline-danger" title="Hapus WO"><i class="bi bi-trash"></i></button>
+                                </form>
+                            @endif
+                            <a href="{{ route('produksi.work-order.print',$row->id) }}" target="_blank" class="btn btn-sm btn-outline-dark" title="Cetak"><i class="bi bi-printer"></i></a>
+                        </td>
                     </tr>
                 @endforeach
                 </tbody>
