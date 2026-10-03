@@ -59,7 +59,6 @@ class BusinessUnitAccountMappingController extends Controller
                 'receivable',
                 'payable',
                 'sales_service',
-                'direct_material',
                 'direct_labor',
                 'direct_overhead',
             ],
