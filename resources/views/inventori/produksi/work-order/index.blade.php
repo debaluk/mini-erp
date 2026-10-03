@@ -481,7 +481,8 @@ document.addEventListener('DOMContentLoaded', function () {
             success: function (res) {
                 if (res.success) {
                     modal.hide();
-                    table.draw(false);
+                    await new Promise(resolve => setTimeout(resolve, 250));
+                    window.location.reload();
                     Swal.fire({
                         icon: 'success',
                         title: 'Berhasil!',
