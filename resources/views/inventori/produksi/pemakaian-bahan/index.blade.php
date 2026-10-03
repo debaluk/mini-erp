@@ -67,7 +67,7 @@
                 @forelse($workOrders as $wo)
                     <tr>
                         <td class="fw-semibold">{{ $wo->wo_no }}</td>
-                        <td>{{ CarbonCarbon::parse($wo->wo_date)->format('d/m/Y') }}</td>
+                        <td>{{ \Carbon\Carbon::parse($wo->wo_date)->format('d/m/Y') }}</td>
                         <td>{{ $wo->product_name }}</td>
                         <td>{{ $wo->warehouse_name }}</td>
                         <td class="text-end">{{ number_format((float) $wo->target_output_qty, 2, ',', '.') }}</td>
@@ -115,7 +115,7 @@
                     @endphp
                     <tr>
                         <td class="fw-semibold">{{ $row->usage_no }}</td>
-                        <td>{{ CarbonCarbon::parse($row->usage_date)->format('d/m/Y') }}</td>
+                        <td>{{ \Carbon\Carbon::parse($row->usage_date)->format('d/m/Y') }}</td>
                         <td>{{ $row->wo_no }}</td>
                         <td>{{ $row->product_name }}</td>
                         <td>{{ $row->warehouse_name }}</td>
