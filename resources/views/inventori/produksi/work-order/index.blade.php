@@ -105,7 +105,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     if (window.jQuery) $('#workOrderTable').DataTable({
-        dom: '<"row align-items-center px-3 py-3"<"col-sm-6"l><"col-sm-6 d-flex justify-content-end"f>>t<"row align-items-center px-3 py-3"<"col-sm-5"i><"col-sm-7 d-flex justify-content-end"p>>',
+        dom: '<"d-flex justify-content-between align-items-center flex-nowrap px-3 py-3"l f>t<"d-flex justify-content-between align-items-center px-3 py-3"i p>',
         pageLength: 15,
         lengthMenu: [[15,25,50,100],[15,25,50,100]],
         autoWidth: false,
