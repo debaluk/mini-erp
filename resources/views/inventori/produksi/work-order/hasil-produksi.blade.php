@@ -94,6 +94,8 @@
                                 <th>Satuan</th>
                                 <th class="text-end">Harga Satuan</th>
                                 <th class="text-end">Estimasi Biaya</th>
+                                <th class="text-end">Actual Qty</th>
+                                <th class="text-end">Actual Biaya</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -106,16 +108,18 @@
                                 <td>{{ $material['unit'] }}</td>
                                 <td class="text-end">Rp {{ number_format((float) $material['unit_cost'], 2, ',', '.') }}</td>
                                 <td class="text-end">Rp {{ number_format((float) $material['line_cost'], 2, ',', '.') }}</td>
+                                <td class="text-end">-</td>
+                                <td class="text-end">-</td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="text-center text-muted py-3">Belum ada bahan.</td>
+                                <td colspan="9" class="text-center text-muted py-3">Belum ada bahan.</td>
                             </tr>
                         @endforelse
                         </tbody>
                         <tfoot>
                             <tr class="fw-semibold">
-                                <td colspan="6" class="text-end">Total Estimasi Bahan</td>
+                                <td colspan="8" class="text-end">Total Estimasi Bahan</td>
                                 <td class="text-end">Rp {{ number_format((float) $materialTotal, 2, ',', '.') }}</td>
                             </tr>
                         </tfoot>
