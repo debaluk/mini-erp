@@ -531,9 +531,21 @@ class ProductionWorkOrderController extends Controller
                 'u.name as unit_name',
             ]);
 
-        $materials = $items->map(function ($item) use ($wo) {
-            $factor = 1.0;
+        $approvedUsage = DB::table('production_wo_material_usages')
+            ->where('production_work_order_id', $id)
+            ->where('status', 'approved')
+            ->latest('id')
+            ->first();
 
+        $actualItems = $approvedUsage
+            ? DB::table('production_material_usage_items')
+                ->where('production_material_usage_id', $approvedUsage->id)
+                ->get()
+                ->keyBy('product_id')
+            : collect();
+
+        $materials = $items->map(function ($item) use ($wo, $actualItems) {
+            $factor = 1.0;
             if ((int) $item->unit_id !== (int) $item->base_unit_id) {
                 $factor = (float) DB::table('product_unit_conversions')
                     ->where('product_id', $item->product_id)
@@ -542,22 +554,23 @@ class ProductionWorkOrderController extends Controller
                     ->value('conversion_factor');
             }
 
+            $unitCost = (float) (DB::table('warehouses_stocks')
+                ->where('entity_id', $wo->entity_id)
+                ->where('warehouse_id', $wo->warehouse_id)
+                ->where('product_id', $item->product_id)
+                ->value('avg_cost') ?? 0);
+
+            $actual = $actualItems->get($item->product_id);
+
             return [
                 'sku' => $item->sku,
                 'name' => $item->product_name,
                 'qty' => round((float) $item->qty * (float) $wo->batch_qty, 3),
                 'unit' => $item->unit_code ?: $item->unit_name,
                 'base_qty' => round((float) $item->qty * $factor * (float) $wo->batch_qty, 3),
-                'unit_cost' => (float) (DB::table('warehouses_stocks')
-                    ->where('entity_id', $wo->entity_id)
-                    ->where('warehouse_id', $wo->warehouse_id)
-                    ->where('product_id', $item->product_id)
-                    ->value('avg_cost') ?? 0),
-                'line_cost' => round(round((float) $item->qty * $factor * (float) $wo->batch_qty, 3) * (float) (DB::table('warehouses_stocks')
-                    ->where('entity_id', $wo->entity_id)
-                    ->where('warehouse_id', $wo->warehouse_id)
-                    ->where('product_id', $item->product_id)
-                    ->value('avg_cost') ?? 0), 2),
+                'unit_cost' => $actual ? (float) $actual->unit_cost : $unitCost,
+                'line_cost' => $actual ? (float) $actual->total_cost : 0,
+                'actual_qty' => $actual ? (float) $actual->actual_qty : null,
             ];
         })->values();
 
