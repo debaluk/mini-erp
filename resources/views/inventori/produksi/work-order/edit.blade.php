@@ -152,6 +152,7 @@ document.addEventListener('DOMContentLoaded', function () {
         target.textContent=Number(d.bom.target_output_qty||0).toLocaleString('id-ID',{maximumFractionDigits:3})+' '+(d.bom.output_unit||'');
         mt.dataset.value=d.material_cost||0; mt.textContent=money(d.material_cost);
         rows.innerHTML=(d.materials||[]).map(i=>'<tr><td>'+i.sku+' — '+i.name+'</td><td class="text-end">'+Number(i.base_qty||0).toLocaleString('id-ID',{maximumFractionDigits:3})+'</td><td>'+i.unit+'</td><td class="text-end">'+money(i.unit_cost)+'</td><td class="text-end">'+money(i.line_cost)+'</td></tr>').join('')||'<tr><td colspan="5" class="text-center text-secondary">BOM belum memiliki material.</td></tr>';
+        recalc();
     };
     bu.addEventListener('change',()=>{filter(warehouse,bu.value);filter(bom,bu.value);load()});
     warehouse.addEventListener('change',load); bom.addEventListener('change',load); batch.addEventListener('input',load);
