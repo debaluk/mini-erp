@@ -52,6 +52,9 @@ class ProductionWorkOrderController extends Controller
             ->orderBy('name')
             ->get(['id', 'code', 'name']);
 
+        $dateFrom = $request->input('date_from', now()->startOfMonth()->toDateString());
+        $dateTo = $request->input('date_to', now()->endOfMonth()->toDateString());
+
         $query = DB::table('production_work_orders as wo')
             ->join('boms as b', 'b.id', '=', 'wo.bom_id')
             ->join('products as p', 'p.id', '=', 'b.product_id')
@@ -67,8 +70,8 @@ class ProductionWorkOrderController extends Controller
                 'bu.name as business_unit_name'
             )
             ->when($request->filled('status'), fn ($q) => $q->where('wo.status', $request->string('status')))
-            ->when($request->filled('date_from'), fn ($q) => $q->whereDate('wo.wo_date', '>=', $request->date('date_from')))
-            ->when($request->filled('date_to'), fn ($q) => $q->whereDate('wo.wo_date', '<=', $request->date('date_to')))
+            ->whereDate('wo.wo_date', '>=', $dateFrom)
+            ->whereDate('wo.wo_date', '<=', $dateTo)
             ->orderByDesc('wo.wo_date')
             ->orderByDesc('wo.id');
 
@@ -86,7 +89,9 @@ class ProductionWorkOrderController extends Controller
             'businessUnits',
             'workers',
             'rows',
-            'workerCounts'
+            'workerCounts',
+            'dateFrom',
+            'dateTo'
         ));
     }
 
@@ -265,7 +270,7 @@ class ProductionWorkOrderController extends Controller
                 'wo_date' => $data['wo_date'],
                 'batch_qty' => $data['batch_qty'],
                 'target_output_qty' => $targetOutput,
-                'status' => 'open',
+                'status' => 'draft',
                 'notes' => $data['notes'] ?? null,
                 'created_at' => now(),
                 'updated_at' => now(),
