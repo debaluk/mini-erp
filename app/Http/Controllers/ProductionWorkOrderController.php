@@ -317,6 +317,40 @@ class ProductionWorkOrderController extends Controller
         return redirect()->route('produksi.work-order')->with('success', 'SPK berhasil dibuat.');
     }
 
+    public function approve(int $id)
+    {
+        $entityId = $this->entityId();
+        $updated = DB::table('production_work_orders')
+            ->where('entity_id', $entityId)
+            ->where('id', $id)
+            ->where('status', 'draft')
+            ->update(['status' => 'open', 'updated_at' => now()]);
+
+        abort_unless($updated, 422, 'WO tidak ditemukan atau statusnya bukan Draft.');
+
+        return redirect()->route('produksi.work-order')->with('success', 'WO berhasil disetujui.');
+    }
+
+    public function destroy(int $id)
+    {
+        $entityId = $this->entityId();
+        $wo = DB::table('production_work_orders')
+            ->where('entity_id', $entityId)
+            ->where('id', $id)
+            ->where('status', 'draft')
+            ->first();
+
+        abort_unless($wo, 422, 'Hanya WO Draft yang dapat dihapus.');
+
+        DB::transaction(function () use ($id): void {
+            DB::table('production_work_order_costs')->where('production_work_order_id', $id)->delete();
+            DB::table('production_work_order_workers')->where('production_work_order_id', $id)->delete();
+            DB::table('production_work_orders')->where('id', $id)->where('status', 'draft')->delete();
+        });
+
+        return redirect()->route('produksi.work-order')->with('success', 'WO Draft berhasil dihapus.');
+    }
+
     public function print(int $id)
     {
         $entityId = $this->entityId();
