@@ -256,7 +256,26 @@ class ProductionMaterialUsageController extends Controller
                 'u.name as unit_name',
             ]);
 
-        return view('inventori.produksi.pemakaian-bahan.show', compact('usage', 'items'));
+        $journals = collect();
+
+        if (!empty($usage->journal_id)) {
+            $journals = DB::table('journals')
+                ->where('id', $usage->journal_id)
+                ->where('entity_id', $entityId)
+                ->where('source_type', 'PRODUCTION_MATERIAL_USAGE')
+                ->get();
+
+            foreach ($journals as $journal) {
+                $journal->entries = DB::table('journal_entries as je')
+                    ->join('chart_of_accounts as coa', 'coa.id', '=', 'je.account_id')
+                    ->where('je.journal_id', $journal->id)
+                    ->select('je.*', 'coa.code as account_code', 'coa.name as account_name')
+                    ->orderBy('je.id')
+                    ->get();
+            }
+        }
+
+        return view('inventori.produksi.pemakaian-bahan.show', compact('usage', 'items', 'journals'));
     }
 
     public function submit(int $id)
