@@ -568,9 +568,11 @@ class ProductionWorkOrderController extends Controller
                 'qty' => round((float) $item->qty * (float) $wo->batch_qty, 3),
                 'unit' => $item->unit_code ?: $item->unit_name,
                 'base_qty' => round((float) $item->qty * $factor * (float) $wo->batch_qty, 3),
-                'unit_cost' => $actual ? (float) $actual->unit_cost : $unitCost,
-                'line_cost' => $actual ? (float) $actual->total_cost : 0,
+                'unit_cost' => $unitCost,
+                'line_cost' => round((float) $item->qty * (float) $wo->batch_qty * $unitCost, 2),
                 'actual_qty' => $actual ? (float) $actual->actual_qty : null,
+                'actual_unit_cost' => $actual ? (float) $actual->unit_cost : null,
+                'actual_cost' => $actual ? (float) $actual->total_cost : null,
             ];
         })->values();
 
