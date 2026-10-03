@@ -98,7 +98,7 @@
 
 {{-- Modal Create/Edit WO --}}
 <div class="modal fade" id="workOrderModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <form method="POST" action="{{ route('produksi.work-order.store') }}" id="workOrderForm">
                 @csrf
@@ -220,32 +220,37 @@
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
 <style>
     #workOrderModal .modal-dialog {
-        height: calc(100vh - 30px);
+        width: min(1140px, calc(100vw - 30px));
         max-width: 1140px;
-        margin-top: 15px;
-        margin-bottom: 15px;
+        height: calc(100vh - 30px);
+        margin: 15px auto;
     }
     #workOrderModal .modal-content {
         height: 100%;
-        max-height: none;
+        max-height: 100%;
+        overflow: hidden;
     }
     #workOrderModal #workOrderForm {
         height: 100%;
+        max-height: 100%;
         display: flex;
         flex-direction: column;
         min-height: 0;
+        overflow: hidden;
     }
-    #workOrderModal .modal-body {
-        height: calc(100vh - 180px);
-        flex: 0 0 calc(100vh - 180px);
-        min-height: 0;
-        overflow-y: auto !important;
-        overflow-x: hidden;
-        -webkit-overflow-scrolling: touch;
-    }
+    #workOrderModal .modal-header,
     #workOrderModal .modal-footer {
         flex: 0 0 auto;
         background: #fff;
+    }
+    #workOrderModal .modal-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        max-height: none;
+        height: auto;
+        overflow-y: scroll !important;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
     }
     #workOrderControls { width:100%; }
     #workOrderControls > div { min-width:0; }
