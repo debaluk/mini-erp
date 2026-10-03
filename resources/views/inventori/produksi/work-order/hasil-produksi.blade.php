@@ -13,7 +13,7 @@
                 <div class="row g-3">
                     <div class="col-md-3">
                         <div class="text-secondary small">No. SPK</div>
-                        <div class="fw-semibold">{{ $wo->wo_number }}</div>
+                        <div class="fw-semibold">{{ $wo->wo_no }}</div>
                     </div>
                     <div class="col-md-3">
                         <div class="text-secondary small">Tanggal SPK</div>
