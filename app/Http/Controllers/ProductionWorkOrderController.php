@@ -980,6 +980,10 @@ class ProductionWorkOrderController extends Controller
             DB::table('production_work_orders')->where('id', $id)->where('status', 'open')->delete();
         });
 
+        if (request()->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'SPK Open berhasil dihapus.']);
+        }
+
         return redirect()->route('produksi.work-order')->with('success', 'SPK Open berhasil dihapus.');
     }
 
