@@ -28,7 +28,7 @@
                 <label class="form-label small">Status</label>
                 <select name="status" class="form-select">
                     <option value="">Semua</option>
-                    @foreach(['draft'=>'Draft','open'=>'Disetujui','in_progress'=>'Proses','completed'=>'Selesai','cancelled'=>'Batal'] as $key => $label)
+                    @foreach(['open'=>'Open','in_progress'=>'On Progress','completed'=>'Selesai'] as $key => $label)
                         <option value="{{ $key }}" @selected(request('status') === $key)>{{ $label }}</option>
                     @endforeach
                 </select>
@@ -54,8 +54,8 @@
                 <tbody>
                 @foreach($rows as $row)
                     @php
-                        $statusLabels=['draft'=>'Draft','open'=>'Disetujui','in_progress'=>'Proses','completed'=>'Selesai','cancelled'=>'Batal'];
-                        $statusClasses=['draft'=>'secondary','open'=>'primary','in_progress'=>'warning','completed'=>'success','cancelled'=>'danger'];
+                        $statusLabels=['open'=>'Open','in_progress'=>'On Progress','completed'=>'Selesai'];
+                        $statusClasses=['open'=>'primary','in_progress'=>'warning','completed'=>'success'];
                     @endphp
                     <tr>
                         <td class="fw-semibold">{{ $row->wo_no }}</td>
@@ -67,19 +67,16 @@
                         <td class="text-center">{{ $workerCounts[$row->id] ?? 0 }}</td>
                         <td><span class="badge text-bg-{{ $statusClasses[$row->status] ?? 'secondary' }}">{{ $statusLabels[$row->status] ?? $row->status }}</span></td>
                         <td class="text-end text-nowrap">
-                            @if($row->status === 'draft')
+                            @if($row->status === 'open')
                                 <a href="{{ route('produksi.work-order.edit', $row->id) }}" class="btn btn-sm btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
-                                <form method="POST" action="{{ route('produksi.work-order.approve', $row->id) }}" class="d-inline" onsubmit="return confirm('Setujui WO {{ $row->wo_no }}?')">
-                                    @csrf
-                                    <button class="btn btn-sm btn-success" title="Setujui WO"><i class="bi bi-check2-circle"></i></button>
-                                </form>
-                                <form method="POST" action="{{ route('produksi.work-order.destroy', $row->id) }}" class="d-inline" onsubmit="return confirm('Hapus WO Draft {{ $row->wo_no }}?')">
+                                <form method="POST" action="{{ route('produksi.work-order.destroy', $row->id) }}" class="d-inline" onsubmit="return confirm('Hapus SPK {{ $row->wo_no }}?')">
                                     @csrf
                                     @method('DELETE')
-                                    <button class="btn btn-sm btn-outline-danger" title="Hapus WO"><i class="bi bi-trash"></i></button>
+                                    <button class="btn btn-sm btn-outline-danger" title="Hapus"><i class="bi bi-trash"></i></button>
                                 </form>
+                            @else
+                                <a href="{{ route('produksi.work-order.print',$row->id) }}" target="_blank" class="btn btn-sm btn-outline-dark" title="View"><i class="bi bi-eye"></i></a>
                             @endif
-                            <a href="{{ route('produksi.work-order.print',$row->id) }}" target="_blank" class="btn btn-sm btn-outline-dark" title="Cetak"><i class="bi bi-printer"></i></a>
                         </td>
                     </tr>
                 @endforeach
