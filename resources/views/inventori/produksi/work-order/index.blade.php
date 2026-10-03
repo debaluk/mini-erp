@@ -43,9 +43,21 @@
         <div class="fw-semibold"><i class="bi bi-clipboard-check me-2"></i>Daftar Work Order / SPK</div>
     </div>
     <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center gap-3 mb-3" id="workOrderControls">
-            <div id="workOrderLength"></div>
-            <div id="workOrderSearch"></div>
+        <div id="workOrderControls" class="d-flex justify-content-between align-items-center flex-nowrap gap-3 mb-3">
+            <div class="d-flex align-items-center gap-2 flex-nowrap">
+                <label for="workOrderPageLength" class="mb-0 text-nowrap">Tampilkan</label>
+                <select id="workOrderPageLength" class="form-select form-select-sm" style="width:80px;">
+                    <option value="15">15</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+                <span class="text-nowrap">baris</span>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-nowrap ms-auto">
+                <label for="workOrderSearch" class="mb-0 text-nowrap">Cari:</label>
+                <input type="search" id="workOrderSearch" class="form-control form-control-sm" style="width:240px;" placeholder="Cari...">
+            </div>
         </div>
         <div class="table-responsive">
             <table id="workOrderTable" class="table table-hover align-middle mb-0 w-100">
@@ -95,14 +107,10 @@
 @push('styles')
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
 <style>
-    #workOrderControls { display:grid !important; grid-template-columns:max-content max-content !important; justify-content:space-between !important; align-items:center !important; flex-wrap:nowrap !important; width:100% !important; }
-    #workOrderTable_wrapper > .dt-source { position:absolute !important; left:-99999px !important; width:1px !important; height:1px !important; overflow:hidden !important; }
-    #workOrderControls .dataTables_length,
-    #workOrderControls .dataTables_filter { margin:0 !important; white-space:nowrap !important; }
-    #workOrderControls .dataTables_filter { margin-left:0 !important; }
-    #workOrderControls .dataTables_filter label { margin:0 !important; display:flex !important; align-items:center !important; gap:.5rem !important; }
-    #workOrderControls .dataTables_filter input { margin:0 !important; width:240px !important; }
-    #workOrderControls .dataTables_length label { margin:0 !important; display:flex !important; align-items:center !important; gap:.5rem !important; }
+    #workOrderControls { width:100%; }
+    #workOrderControls > div { min-width:0; }
+    #workOrderTable_wrapper .dataTables_filter,
+    #workOrderTable_wrapper .dataTables_length { display:none !important; }
 </style>
 @endpush
 
@@ -111,17 +119,29 @@
 <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    if (window.jQuery) { const table = $('#workOrderTable').DataTable({
-        dom: '<"dt-source"lf>t<"d-flex justify-content-between align-items-center px-3 py-3"i p>',
-        pageLength: 15,
-        lengthMenu: [[15,25,50,100],[15,25,50,100]],
-        autoWidth: false,
-        order: [[1,'desc']],
-        language: { search: 'Cari:', lengthMenu: 'Tampilkan _MENU_ baris', info: 'Menampilkan _START_–_END_ dari _TOTAL_ SPK', infoEmpty: 'Tidak ada SPK', zeroRecords: 'Data tidak ditemukan', paginate: { previous: '‹', next: '›' } },
-        columnDefs: [{ targets: [5,6,8], orderable: false }]
-    });
-    $('#workOrderControls #workOrderLength').append($('#workOrderTable_length'));
-    $('#workOrderControls #workOrderSearch').append($('#workOrderTable_filter'));
+    if (window.jQuery) {
+        const table = $('#workOrderTable').DataTable({
+            dom: 't<"d-flex justify-content-between align-items-center px-3 py-3"i p>',
+            pageLength: 15,
+            lengthMenu: [[15,25,50,100],[15,25,50,100]],
+            autoWidth: false,
+            order: [[1,'desc']],
+            language: {
+                info: 'Menampilkan _START_–_END_ dari _TOTAL_ SPK',
+                infoEmpty: 'Tidak ada SPK',
+                zeroRecords: 'Data tidak ditemukan',
+                paginate: { previous: '‹', next: '›' }
+            },
+            columnDefs: [{ targets: [5,6,8], orderable: false }]
+        });
+
+        $('#workOrderPageLength').on('change', function () {
+            table.page.len(this.value).draw();
+        });
+
+        $('#workOrderSearch').on('input', function () {
+            table.search(this.value).draw();
+        });
     }
 });
 </script>
