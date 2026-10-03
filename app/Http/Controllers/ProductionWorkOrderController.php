@@ -83,6 +83,18 @@ class ProductionWorkOrderController extends Controller
             ->groupBy('production_work_order_id')
             ->pluck('total_workers', 'production_work_order_id');
 
+        $woCosts = DB::table('production_work_order_costs')
+            ->whereIn('production_work_order_id', $rows->pluck('id'))
+            ->orderBy('id')
+            ->get([
+                'id',
+                'production_work_order_id',
+                'worker_id',
+                'cost_group',
+                'description',
+                'amount',
+            ]);
+
         return view('inventori.produksi.work-order.index', compact(
             'boms',
             'warehouses',
@@ -90,6 +102,7 @@ class ProductionWorkOrderController extends Controller
             'workers',
             'rows',
             'workerCounts',
+            'woCosts',
             'dateFrom',
             'dateTo'
         ));
