@@ -188,11 +188,11 @@
 </div>
 
 {{-- Modal pesan --}}
-<div class="modal fade" id="woMessageModal" tabindex="-1" aria-hidden="true">
+<div class="modal" id="woMessageModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-sm modal-dialog-centered"><div class="modal-content">
         <div class="modal-header"><h5 class="modal-title" id="woMessageTitle">Informasi</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         <div class="modal-body" id="woMessageBody"></div>
-        <div class="modal-footer"><button type="button" class="btn btn-primary" id="woMessageOk">OK</button></div>
+        <div class="modal-footer"><button type="button" class="btn btn-primary" id="woMessageOk" data-bs-dismiss="modal">OK</button></div>
     </div></div>
 </div>
 
@@ -260,13 +260,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const msgElement=document.getElementById('woMessageModal');
     const msgModal=bootstrap.Modal.getOrCreateInstance(msgElement,{backdrop:true,keyboard:true});
     const deleteModal=bootstrap.Modal.getOrCreateInstance(document.getElementById('woDeleteModal'));
-    document.getElementById('woMessageOk').addEventListener('click',function(){
-        msgModal.hide();
-    });
-    msgElement.addEventListener('hidden.bs.modal',function(){
-        document.querySelectorAll('.modal-backdrop').forEach(function(backdrop){backdrop.remove();});
-        if(!document.querySelector('.modal.show'))document.body.classList.remove('modal-open');
-    });
     const form=document.getElementById('workOrderForm');
     const workers=@json($workers);
     const costsByWo=@json($woCosts->groupBy('production_work_order_id'));
