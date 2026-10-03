@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class ProductionMaterialUsageController extends Controller
 {
@@ -313,10 +314,13 @@ class ProductionMaterialUsageController extends Controller
 
             $items = DB::table('production_material_usage_items as ui')
                 ->join('products as p', 'p.id', '=', 'ui.product_id')
+                ->leftJoin('units as bu', 'bu.id', '=', 'p.base_unit_id')
                 ->where('ui.production_material_usage_id', $usage->id)
                 ->get([
                     'ui.*',
                     'p.name as product_name',
+                    'bu.code as base_unit_code',
+                    'bu.name as base_unit_name',
                 ]);
 
             // Mapping COA mengikuti tipe Unit Bisnis Produksi.
@@ -348,8 +352,21 @@ class ProductionMaterialUsageController extends Controller
                     ->lockForUpdate()
                     ->first();
 
-                abort_unless($stock && (float) $stock->qty >= (float) $item->base_actual_qty, 422,
-                    'Stok '.$item->product_name.' tidak mencukupi.');
+                if (!$stock || (float) $stock->qty < (float) $item->base_actual_qty) {
+                    $available = $stock ? (float) $stock->qty : 0;
+                    $unit = $item->base_unit_code ?: ($item->base_unit_name ?: 'satuan dasar');
+                    throw ValidationException::withMessages([
+                        'stock' => sprintf(
+                            'Pengakuan beban bahan belum dapat diproses. Stok %s di gudang %s tidak mencukupi. Tersedia %s %s, sedangkan kebutuhan aktual %s %s. Tambahkan stok terlebih dahulu, atau tolak pemakaian ini lalu buat ulang dengan jumlah aktual yang benar.',
+                            $item->product_name,
+                            $usage->warehouse_name ?? 'terpilih',
+                            number_format($available, 3, ',', '.'),
+                            $unit,
+                            number_format((float) $item->base_actual_qty, 3, ',', '.'),
+                            $unit
+                        ),
+                    ]);
+                }
 
                 $unitCost = (float) $stock->avg_cost;
                 $lineTotal = round((float) $item->base_actual_qty * $unitCost, 2);
@@ -392,7 +409,7 @@ class ProductionMaterialUsageController extends Controller
                 'business_unit_id' => $usage->business_unit_id,
                 'journal_no' => 'JRN-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4)),
                 'journal_date' => $usage->usage_date,
-                'source_type' => 'production_material_usage',
+                'source_type' => 'PRODUCTION_MATERIAL_USAGE',
                 'source_id' => $usage->id,
                 'description' => 'Pengakuan beban bahan baku '.$usage->usage_no,
                 'status' => 'posted',
