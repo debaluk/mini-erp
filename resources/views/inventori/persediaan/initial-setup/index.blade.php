@@ -50,7 +50,7 @@
             <tbody>
             @foreach($rows as $row)
                 <tr>
-                    <td>{{ $businessUnits->firstWhere('id', $businessUnitId)->name ?? '-' }}</td>
+                    <td>{{ $row->business_unit_name }}</td>
                     <td class="fw-semibold">{{ $row->code }}</td>
                     <td>{{ $row->name }}</td>
                     <td>{{ $row->unit_code ?: '-' }}</td>
@@ -169,7 +169,7 @@
         window.location.href = url.toString();
     });
 
-    setupBusinessUnitId.value = businessUnitFilter.value;
+    setupBusinessUnitId.value = businessUnitFilter.value === 'all' ? '' : businessUnitFilter.value;
     const modalEl = document.getElementById('setupAwalModal');
     const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
     const detailModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('detailHargaJualModal'));
@@ -216,11 +216,11 @@
         }
 
         const visibleRows = priceTable.rows({ search: 'applied' }).data().toArray();
-        const visibleCodes = new Set(visibleRows.map(r => String(r[0] ?? '').replace(/<[^>]*>/g, '').trim()));
+        const visibleCodes = new Set(visibleRows.map(r => String(r[1] ?? '').replace(/<[^>]*>/g, '').trim()));
         const data = exportRows
             .filter(r => visibleCodes.has(String(r.code ?? '').trim()))
             .map(r => [
-                '{{ $businessUnits->firstWhere('id', $businessUnitId)->name ?? '' }}',
+                String(r.business_unit_name ?? ''),
                 String(r.code ?? ''),
                 String(r.name ?? ''),
                 String(r.unit_code ?? '-'),
