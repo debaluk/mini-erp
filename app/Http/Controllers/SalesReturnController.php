@@ -194,9 +194,43 @@ class SalesReturnController extends Controller
             ->join('products as p', 'p.id', '=', 'sri.product_id')
             ->leftJoin('units as u', 'u.id', '=', 'sri.unit_id')
             ->where('sri.sales_return_id', $id)
-            ->select('sri.*', 'p.code as product_code', 'p.name as product_name', 'u.name as unit_name')->get();
+            ->select('sri.*', 'p.code as product_code', 'p.name as product_name', 'u.name as unit_name')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'id' => $item->sale_item_id,
+                    'sale_item_id' => $item->sale_item_id,
+                    'product_id' => $item->product_id,
+                    'product_code' => $item->product_code ?? '-',
+                    'product_name' => $item->product_name ?? '-',
+                    'unit_id' => $item->unit_id,
+                    'unit_name' => $item->unit_name ?? 'Pcs',
+                    'qty' => (float) $item->qty,
+                    'qty_sale' => (float) $item->qty,
+                    'qty_remaining' => (float) $item->qty,
+                    'unit_price' => (float) $item->unit_price,
+                    'hpp_unit' => (float) ($item->hpp_unit ?? 0),
+                    'condition' => $item->condition,
+                ];
+            })->values();
 
-        return response()->json(['success' => true, 'data' => $return, 'items' => $items]);
+        $data = (array) $return;
+        $data['sale'] = [
+            'id' => $return->sale_id,
+            'invoice_no' => $return->invoice_no,
+        ];
+        $data['customer'] = $return->customer_id ? [
+            'id' => $return->customer_id,
+            'name' => $return->customer_name ?? 'Pelanggan Umum',
+        ] : null;
+        $data['return_date_iso'] = $return->return_date
+            ? date('Y-m-d\\TH:i', strtotime($return->return_date))
+            : '';
+        $data['return_date_formatted'] = $return->return_date
+            ? date('d/m/Y H:i', strtotime($return->return_date))
+            : '-';
+
+        return response()->json(['success' => true, 'data' => $data, 'items' => $items]);
     }
 
     public function printData($id)
