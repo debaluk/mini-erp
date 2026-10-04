@@ -107,7 +107,7 @@ class SalesReturnController extends Controller
                 DB::raw("COALESCE(w.name, '-') as warehouse_name"),
                 DB::raw("(SELECT GROUP_CONCAT(DISTINCT p.name ORDER BY p.name SEPARATOR ', ') FROM sales_return_items ri JOIN products p ON p.id = ri.product_id WHERE ri.sales_return_id = r.id) as product_names"),
                 DB::raw("(SELECT COALESCE(SUM(ri.qty), 0) FROM sales_return_items ri WHERE ri.sales_return_id = r.id) as return_qty"),
-                DB::raw("(SELECT GROUP_CONCAT(CONCAT(p.name, ' @ ', FORMAT(ri.unit_price, 2)) ORDER BY ri.id SEPARATOR ' | ') FROM sales_return_items ri JOIN products p ON p.id = ri.product_id WHERE ri.sales_return_id = r.id) as return_prices")
+                DB::raw("(SELECT GROUP_CONCAT(CONCAT(p.name, ' @ ', FORMAT(ri.unit_price, 2)) ORDER BY ri.id SEPARATOR '\n') FROM sales_return_items ri JOIN products p ON p.id = ri.product_id WHERE ri.sales_return_id = r.id) as return_prices")
             )
             ->skip($startRow)
             ->take($length)
@@ -390,6 +390,7 @@ class SalesReturnController extends Controller
         $data = $request->validate([
             'sale_id' => 'required|integer',
             'warehouse_id' => 'required|integer',
+            'return_date' => 'required|date_format:Y-m-d',
             'reason' => 'nullable|string|max:1000',
             'items' => 'required|array|min:1',
             'items.*.sale_item_id' => 'required|integer',
@@ -467,8 +468,8 @@ class SalesReturnController extends Controller
                 default => throw new RuntimeException('Jenis Business Unit tidak valid untuk nomor retur.'),
             };
 
-            $monthKey = now()->format('Ym');
-        $dateKey = now()->format('Ymd');
+            $returnDate = Carbon::createFromFormat('Y-m-d', $data['return_date'])->startOfDay();
+            $dateKey = $returnDate->format('Ymd');
 
             DB::table('entities')
                 ->where('id', $entity)
@@ -486,11 +487,9 @@ class SalesReturnController extends Controller
                 $sequence = ((int) $matches[1]) + 1;
             }
 
-            abort_if($sequence > 999999, 422, 'Nomor retur bulan ini sudah mencapai batas 999999.');
+            abort_if($sequence > 99999, 422, 'Nomor retur pada tanggal ini sudah mencapai batas 99999.');
 
-            $dateKey = now()->format('Ymd');
-
-$returnNo = $prefix . '-' . $dateKey . str_pad((string) $sequence, 5, '0', STR_PAD_LEFT);
+            $returnNo = $prefix . '-' . $dateKey . str_pad((string) $sequence, 5, '0', STR_PAD_LEFT);
             $returnId = DB::table('sales_returns')->insertGetId([
                 'entity_id' => $entity,
                 'business_unit_id' => $sale->business_unit_id,
@@ -499,7 +498,7 @@ $returnNo = $prefix . '-' . $dateKey . str_pad((string) $sequence, 5, '0', STR_P
                 'warehouse_id' => $warehouse->id,
                 'user_id' => auth()->id(),
                 'return_no' => $returnNo,
-                'return_date' => now(),
+                'return_date' => $returnDate,
                 'total' => $returnTotal,
                 'reason' => $data['reason'] ?? null,
                 'status' => 'posted',
