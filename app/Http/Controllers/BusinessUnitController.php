@@ -6,6 +6,7 @@ use App\Models\BusinessUnit;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class BusinessUnitController extends Controller
@@ -60,19 +61,22 @@ class BusinessUnitController extends Controller
         $entityId = $this->entityId($request);
 
         $data = $request->validate([
-            'code' => [
-                'required', 'string', 'max:50',
-                Rule::unique('business_units', 'code')->where(fn ($q) => $q->where('entity_id', $entityId)),
-            ],
             'name' => ['required', 'string', 'max:150'],
             'business_type' => ['required', Rule::in(['retail', 'production', 'service'])],
             'hpp_method' => ['required', Rule::in(['perpetual', 'periodic', 'direct_cost'])],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
+        do {
+            $code = str_pad((string) random_int(0, 999), 3, '0', STR_PAD_LEFT);
+        } while (DB::table('business_units')
+            ->where('entity_id', $entityId)
+            ->where('code', $code)
+            ->exists());
+
         BusinessUnit::create([
             'entity_id' => $entityId,
-            'code' => strtoupper(trim($data['code'])),
+            'code' => $code,
             'name' => trim($data['name']),
             'business_type' => $data['business_type'],
             'hpp_method' => $data['hpp_method'],
