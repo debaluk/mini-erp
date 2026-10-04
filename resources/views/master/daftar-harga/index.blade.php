@@ -92,21 +92,17 @@
 
                     <div class="fw-semibold mb-3">Perubahan Harga</div>
                     <div class="row g-3">
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <label class="form-label small text-secondary">Harga Lama</label>
                             <input type="text" id="oldPriceDisplay" class="form-control text-end fw-semibold bg-light" disabled>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <label for="newPrice" class="form-label small text-secondary">Harga Baru</label>
-                            <input type="number" name="selling_price" id="newPrice" class="form-control text-end fw-semibold" min="0.01" step="0.01" required>
+                            <input type="text" name="selling_price" id="newPrice" class="form-control text-end fw-semibold" inputmode="decimal" autocomplete="off" required>
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label small text-secondary">% Selisih</label>
-                            <input type="text" id="changePercent" class="form-control text-end fw-semibold bg-light" value="-" disabled>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="priceChangeDate" class="form-label small text-secondary">Tanggal Update</label>
-                            <input type="date" name="change_date" id="priceChangeDate" class="form-control" required>
+                        <div class="col-md-4">
+                            <label for="priceChangeDate" class="form-label small text-secondary">Tanggal Setup</label>
+                            <input type="date" name="change_date" id="priceChangeDate" class="form-control" value="{{ today()->format('Y-m-d') }}" required>
                         </div>
                     </div>
                 </div>
@@ -205,7 +201,7 @@
     const oldDisplay = document.getElementById('oldPriceDisplay');
     const percent = document.getElementById('changePercent');
     const saveButton = document.getElementById('priceSaveButton');
-    const today = new Date().toISOString().slice(0, 10);
+
     let current = null;
         const formatRupiah = value => {
         if (value === null || value === undefined || value === '') return '-';
@@ -236,14 +232,12 @@
         const exists = !!current.price_id;
         const old = current.selling_price;
 
-        oldDisplay.value = exists ? formatRupiah(old) : '-';
-        newPrice.value = exists ? Number(old).toString() : '';
-
-        const calculate = () => {
-            const n = Number(newPrice.value), o = Number(old);
-            percent.value = (!exists || !o || !n) ? '-' : (((n - o) / o) * 100).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
-        };
-        calculate();
+        oldDisplay.value = exists
+            ? Number(old).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+            : '-';
+        newPrice.value = exists
+            ? Number(old).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+            : '';
     };
 
     const openSetup = row => {
@@ -254,16 +248,24 @@
         document.getElementById('priceProductLabel').textContent = row.product_code + ' - ' + row.product_name;
         document.getElementById('priceBusinessUnitLabel').textContent = row.business_unit_name || '-';
         document.getElementById('priceUnitLabel').textContent = row.unit_name || '-';
-        document.getElementById('priceChangeDate').value = today;
+        document.getElementById('priceChangeDate').value = '{{ today()->format('Y-m-d') }}';
         refreshOldPrice();
         showModal(setupModal);
     };
 
     newPrice.addEventListener('input', () => {
-        if (!current) return;
-        const old = Number(current.selling_price);
-        const n = Number(newPrice.value);
-        percent.value = old && n ? (((n - old) / old) * 100).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%' : '-';
+        const raw = newPrice.value.replace(/[^0-9,.-]/g, '');
+        const parts = raw.split(',');
+        const integerPart = parts[0].replace(/\./g, '');
+        const decimalPart = parts.slice(1).join('').replace(/[^0-9]/g, '').slice(0, 2);
+        const numeric = integerPart + (decimalPart ? ',' + decimalPart : '');
+        const digits = numeric.replace(/[^0-9,]/g, '');
+        if (!digits) {
+            newPrice.value = '';
+            return;
+        }
+        const [integer, decimal] = digits.split(',');
+        newPrice.value = Number(integer || 0).toLocaleString('id-ID') + (decimal !== undefined ? ',' + decimal : '');
     });
 
     form.addEventListener('submit', async event => {
@@ -277,6 +279,8 @@
             : '{{ route('master.harga-jual.store') }}';
 
         const payload = new FormData(form);
+        const enteredPrice = document.getElementById('newPrice').value;
+        payload.set('selling_price', parseFloat(enteredPrice.replace(/\./g, '').replace(',', '.')));
         if (isEdit) payload.append('_method', 'PUT');
 
         try {
