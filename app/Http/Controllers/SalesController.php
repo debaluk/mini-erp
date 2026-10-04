@@ -1437,6 +1437,7 @@ class SalesController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
+            'sale_date' => ['required', 'date_format:Y-m-d'],
             'customer_id' => ['nullable', 'integer'],
             'business_unit_id' => ['required', 'integer'],
             'payment_method' => ['required', 'in:Tunai,Transfer,QRIS,Kredit / Bon'],
@@ -1469,7 +1470,7 @@ class SalesController extends Controller
             abort_unless($customer, 422, 'Customer tidak valid.');
         }
 
-        $saleDate = now();
+        $saleDate = \Carbon\Carbon::createFromFormat('Y-m-d', $data['sale_date'])->startOfDay();
         $prefix = $this->salesPrefix($unit);
         $lockName = 'sales_no:' . $entity . ':' . $prefix . ':' . $saleDate->format('Ym');
         $lock = DB::selectOne('SELECT GET_LOCK(?, 10) AS locked', [$lockName]);
@@ -1591,7 +1592,7 @@ class SalesController extends Controller
                     'unit_cost' => $line['hpp_unit'],
                     'reference_type' => 'sale',
                     'reference_id' => $saleId,
-                    'occurred_at' => now(),
+                    'occurred_at' => $saleDate,
                     'created_by' => auth()->id(),
                     'created_at' => now(),
                     'updated_at' => now(),
@@ -1604,7 +1605,7 @@ class SalesController extends Controller
                     'business_unit_id' => $unit->id,
                     'sale_id' => $saleId,
                     'user_id' => auth()->id(),
-                    'payment_date' => now(),
+                    'payment_date' => $saleDate,
                     'method' => 'credit',
                     'amount' => 0,
                     'paid_amount' => 0,
