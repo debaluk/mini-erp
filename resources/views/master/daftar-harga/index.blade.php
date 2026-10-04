@@ -21,16 +21,17 @@
         <div class="col-md-4">
             <input type="text" name="search" id="priceSearch" class="form-control" placeholder="Cari kode / nama item...">
         </div>
-        <div class="col-md-2 d-flex gap-2">
+        <div class="col-md-4 d-flex gap-2">
             <button type="submit" class="btn btn-secondary">Filter</button>
             <button type="button" id="priceReset" class="btn btn-light">Reset</button>
+            <button type="button" id="priceExport" class="btn btn-outline-success">Export Excel</button>
+            <button type="button" id="priceSyncInitialSetup" class="btn btn-outline-primary">Sync Setup Awal</button>
         </div>
     </form>
 
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <span class="fw-semibold">Daftar Harga Jual</span>
-            <button type="button" id="priceExport" class="btn btn-sm btn-outline-success">Export</button>
         </div>
         <div class="table-responsive">
             <table class="table table-bordered table-hover mb-0 align-middle" id="priceDataTable" style="width:100%">
@@ -351,6 +352,34 @@
     document.querySelectorAll('.btn-close-modal').forEach(button => button.addEventListener('click', () => {
         hideModal(button.closest('.modal'));
     }));
+
+    document.getElementById('priceSyncInitialSetup').addEventListener('click', async () => {
+        const button = document.getElementById('priceSyncInitialSetup');
+        button.disabled = true;
+
+        const params = new URLSearchParams();
+        if (businessUnitFilter.value) params.set('business_unit_id', businessUnitFilter.value);
+
+        try {
+            const response = await fetch('{{ route('master.harga-jual.sync-initial-setup') }}?' + params.toString(), {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                }
+            });
+            const payload = await response.json();
+            if (!response.ok) throw new Error(payload.message || 'Sync Setup Awal gagal.');
+
+            showAlert(payload.message || 'Setup awal berhasil disinkronkan.');
+            dataTable.ajax.reload(null, false);
+        } catch (error) {
+            showAlert(error.message || 'Sync Setup Awal gagal.', 'danger');
+        } finally {
+            button.disabled = false;
+        }
+    });
 
     document.getElementById('priceExport').addEventListener('click', async () => {
         if (typeof XLSX === 'undefined') {
