@@ -92,32 +92,22 @@
 
                     <div class="fw-semibold mb-3">Perubahan Harga</div>
                     <div class="row g-3">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label small text-secondary">Harga Lama</label>
-                            <div class="input-group">
-                                <span class="input-group-text">Rp</span>
-                                <input type="text" id="oldPriceDisplay" class="form-control text-end fw-semibold bg-light" disabled>
-                            </div>
+                            <input type="text" id="oldPriceDisplay" class="form-control text-end fw-semibold bg-light" disabled>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label for="newPrice" class="form-label small text-secondary">Harga Baru</label>
-                            <div class="input-group">
-                                <span class="input-group-text">Rp</span>
-                                <input type="number" name="selling_price" id="newPrice" class="form-control text-end fw-semibold" min="0.01" step="0.01" required>
-                            </div>
+                            <input type="number" name="selling_price" id="newPrice" class="form-control text-end fw-semibold" min="0.01" step="0.01" required>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label small text-secondary">% Selisih</label>
-                            <div class="input-group">
-                                <input type="text" id="changePercent" class="form-control text-end fw-semibold bg-light" value="-" disabled>
-                                <span class="input-group-text">%</span>
-                            </div>
+                            <input type="text" id="changePercent" class="form-control text-end fw-semibold bg-light" value="-" disabled>
                         </div>
-                    </div>
-
-                    <div class="mt-4">
-                        <label for="priceChangeDate" class="form-label small text-secondary">Tanggal Update</label>
-                        <input type="date" name="change_date" id="priceChangeDate" class="form-control" required>
+                        <div class="col-md-3">
+                            <label for="priceChangeDate" class="form-label small text-secondary">Tanggal Update</label>
+                            <input type="date" name="change_date" id="priceChangeDate" class="form-control" required>
+                        </div>
                     </div>
                 </div>
 
