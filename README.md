@@ -2,6 +2,8 @@ Mini ERP adalah solusi manajemen bisnis manufaktur dan perdagangan untuk UKM ter
 
 Engine HPP (Harga Pokok Penjualan) merupakan salah satu keunggulan utama dan "jantung kecerdasan" dari sistem Mini ERP. Engine ini dirancang secara modular dengan arsitektur decoupled untuk mengkalkulasi modal persediaan dan beban pokok secara otomatis, akurat, dan transparan di seluruh unit bisnis
 
+Sistem pelaporan terpadu yang menyajikan visibilitas operasional dan kesehatan keuangan secara real-time, akurat, dan terisolasi per Unit Bisnis maupun Konsolidasi Perusahaan
+
 Module Utama
 
 Master Data
@@ -18,51 +20,6 @@ Pengaturan
 | Inventori | inventori@minierp.local | password |
 | Akuntansi | akuntansi@minierp.local | password |
 
-## Role & Hak Akses
-
-### Owner
-Pemilik & kontrol seluruh usaha.
-
-Akses:
-- Semua modul
-- Semua laporan
-- Approval
-
-### Admin
-Administrasi & pengelolaan.
-
-Akses:
-- Master data
-- User
-- Konfigurasi
-
-### Kasir
-Penjualan retail.
-
-Akses:
-- POS
-- Pembayaran
-- Shift kasir
-
-### Inventori
-Seluruh operasional stok.
-
-Akses:
-- Pembelian
-- Gudang
-- Inventory
-- Produksi
-- Armada
-
-### Akuntansi
-Keuangan & laporan.
-
-Akses:
-- Accounting
-- HPP
-- Laporan keuangan
-
----
 
 # Struktur Modul
 
