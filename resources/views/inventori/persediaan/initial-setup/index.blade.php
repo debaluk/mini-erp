@@ -22,6 +22,7 @@
             <div style="min-width: 260px;">
                 <label for="business-unit-filter" class="form-label small fw-semibold mb-1">Business Unit</label>
                 <select id="business-unit-filter" class="form-select form-select-sm">
+                    <option value="all" @selected($businessUnitId === null)>Semua Unit Bisnis</option>
                     @foreach($businessUnits as $businessUnit)
                         <option value="{{ $businessUnit->id }}"
                             @selected((int) $businessUnit->id === (int) $businessUnitId)>
