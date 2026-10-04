@@ -293,8 +293,8 @@
                     }
                 </style>
                 <div class="text-center mb-3 pb-2 border-bottom">
-                    <h5 class="fw-bold mb-0 text-uppercase" id="printCompanyName">MINI ERP - TOKO &amp; FABRIKASI</h5>
-                    <p class="small text-muted mb-0" id="printCompanyAddress">Jl. Raya Utama No. 88 | Telp: (0361) 555-8899</p>
+                    <h5 class="fw-bold mb-0 text-uppercase" id="printCompanyName">{{ auth()->user()->entity->name ?? 'Entitas' }}</h5>
+                    <p class="small text-muted mb-0" id="printCompanyAddress">{{ auth()->user()->entity->address ?? '' }}{{ !empty(auth()->user()->entity->phone) ? ' | Telp: ' . auth()->user()->entity->phone : '' }}</p>
                     <h6 class="fw-bold mt-2 text-decoration-underline">NOTA KREDIT / RETUR PENJUALAN</h6>
                     <span class="badge bg-outline-dark text-dark border extra-small" id="printReturnNo">RET-XXXXXX</span>
                 </div>
