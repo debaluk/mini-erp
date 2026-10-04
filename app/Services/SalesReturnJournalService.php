@@ -49,7 +49,7 @@ class SalesReturnJournalService
             'entity_id' => $journal->entity_id,
             'business_unit_id' => $journal->business_unit_id,
             'journal_no' => 'JRN-REV-RET-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4)),
-            'journal_date' => now()->toDateString(),
+            'journal_date' => $journal->journal_date,
             'source_type' => 'sales_return_reversal',
             'source_id' => $returnId,
             'description' => 'Reversal jurnal retur penjualan ' . $returnId . ' (Jurnal #' . $journal->journal_no . ')',
