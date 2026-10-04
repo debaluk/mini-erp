@@ -1,0 +1,42 @@
+name: Development Branch Policy
+
+on:
+  pull_request:
+    branches:
+      - audit/dev
+      - audit/golive
+      - main
+
+jobs:
+  branch-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate promotion flow
+        env:
+          BASE_BRANCH: ${{ github.base_ref }}
+          HEAD_BRANCH: ${{ github.head_ref }}
+        run: |
+          set -e
+
+          case "$BASE_BRANCH" in
+            audit/dev)
+              if [[ "$HEAD_BRANCH" != feat/* ]]; then
+                echo "Only feat/* branches may be promoted to audit/dev."
+                exit 1
+              fi
+              ;;
+            audit/golive)
+              if [[ "$HEAD_BRANCH" != audit/dev ]]; then
+                echo "Only audit/dev may be promoted to audit/golive."
+                exit 1
+              fi
+              ;;
+            main)
+              if [[ "$HEAD_BRANCH" != audit/golive ]]; then
+                echo "Only audit/golive may be promoted to main."
+                exit 1
+              fi
+              ;;
+          esac
+
+          echo "Branch promotion flow OK: $HEAD_BRANCH -> $BASE_BRANCH"
