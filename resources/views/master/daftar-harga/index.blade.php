@@ -56,28 +56,74 @@
 </div>
 
 <div class="modal fade" id="priceSetupModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-fullscreen-sm-down modal-dialog-centered" style="max-width: 1400px; width: 95%; margin: 1.75rem auto;">
-        <form id="priceSetupForm">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <form id="priceSetupForm" class="w-100">
             @csrf
             <input type="hidden" name="business_unit_id" id="priceBusinessUnitId">
             <input type="hidden" name="product_id" id="priceProductId">
             <input type="hidden" name="unit_id" id="priceUnitId">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Setup Harga Jual</h5>
+
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header px-4 py-3">
+                    <div>
+                        <h5 class="modal-title fw-semibold mb-1">Setup Harga Jual</h5>
+                        <div class="small text-secondary">Atur harga jual item untuk Unit Bisnis yang dipilih.</div>
+                    </div>
                     <button type="button" class="btn-close btn-close-modal" aria-label="Tutup"></button>
                 </div>
-                <div class="modal-body">
-                    <div class="mb-3"><label class="form-label">Barang</label><input class="form-control" id="priceProductLabel" disabled></div>
-                    <div class="mt-3"><label class="form-label">Satuan</label><input class="form-control" id="priceUnitLabel" disabled></div>
-                    <div class="mt-3"><label class="form-label">Tanggal Update</label><input type="date" name="change_date" id="priceChangeDate" class="form-control" required></div>
-                    <div class="mt-3"><label class="form-label">Harga Lama</label><input type="text" id="oldPriceDisplay" class="form-control" disabled></div>
-                    <div class="mt-3"><label class="form-label">Harga Baru</label><input type="number" name="selling_price" id="newPrice" class="form-control" min="0.01" step="0.01" required></div>
-                    <div class="mt-3"><label class="form-label">% Selisih</label><input type="text" id="changePercent" class="form-control" value="-" disabled></div>
+
+                <div class="modal-body p-4">
+                    <div class="border rounded-3 bg-light p-3 mb-4">
+                        <div class="row g-3">
+                            <div class="col-md-7">
+                                <div class="small text-secondary mb-1">Barang</div>
+                                <div class="fw-semibold" id="priceProductLabel">-</div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="small text-secondary mb-1">Unit Bisnis</div>
+                                <div class="fw-semibold" id="priceBusinessUnitLabel">-</div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="small text-secondary mb-1">Satuan</div>
+                                <div class="fw-semibold" id="priceUnitLabel">-</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="fw-semibold mb-3">Perubahan Harga</div>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label small text-secondary">Harga Lama</label>
+                            <div class="input-group">
+                                <span class="input-group-text">Rp</span>
+                                <input type="text" id="oldPriceDisplay" class="form-control text-end fw-semibold bg-light" disabled>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="newPrice" class="form-label small text-secondary">Harga Baru</label>
+                            <div class="input-group">
+                                <span class="input-group-text">Rp</span>
+                                <input type="number" name="selling_price" id="newPrice" class="form-control text-end fw-semibold" min="0.01" step="0.01" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small text-secondary">% Selisih</label>
+                            <div class="input-group">
+                                <input type="text" id="changePercent" class="form-control text-end fw-semibold bg-light" value="-" disabled>
+                                <span class="input-group-text">%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <label for="priceChangeDate" class="form-label small text-secondary">Tanggal Update</label>
+                        <input type="date" name="change_date" id="priceChangeDate" class="form-control" required>
+                    </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-close-modal">Batal</button>
-                    <button class="btn btn-primary" id="priceSaveButton">Simpan</button>
+
+                <div class="modal-footer px-4 py-3">
+                    <button type="button" class="btn btn-light border btn-close-modal">Batal</button>
+                    <button type="submit" class="btn btn-primary px-4" id="priceSaveButton">Simpan Harga</button>
                 </div>
             </div>
         </form>
@@ -115,23 +161,37 @@
 
 <div class="modal fade" id="priceHistoryModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header px-4 py-3">
                 <div>
-                    <h5 class="modal-title mb-1">History Harga Jual</h5>
+                    <h5 class="modal-title fw-semibold mb-1">History Harga Jual</h5>
                     <div class="small text-secondary" id="historySubtitle"></div>
                 </div>
                 <button type="button" class="btn-close btn-close-modal" aria-label="Tutup"></button>
             </div>
-            <div class="modal-body">
-                <div id="historyLoading" class="text-center text-muted py-3 d-none">Memuat history...</div>
-                <div class="table-responsive">
-                    <table class="table table-sm table-bordered align-middle mb-0">
-                        <thead><tr><th>Tanggal</th><th class="text-end">Harga Lama</th><th class="text-end">Harga Baru</th><th class="text-end">% Selisih</th><th>Diubah Oleh</th></tr></thead>
+            <div class="modal-body p-4">
+                <div id="historyLoading" class="text-center text-muted py-4 d-none">
+                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                    Memuat history...
+                </div>
+                <div class="table-responsive border rounded-3">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Tanggal</th>
+                                <th class="text-end">Harga Lama</th>
+                                <th class="text-end">Harga Baru</th>
+                                <th class="text-end">% Selisih</th>
+                                <th>Diubah Oleh</th>
+                            </tr>
+                        </thead>
                         <tbody id="historyBody"></tbody>
                     </table>
                 </div>
-                <div id="historyEmpty" class="text-center text-muted py-3 d-none">Belum ada history harga.</div>
+                <div id="historyEmpty" class="text-center text-muted py-4 d-none">Belum ada history harga.</div>
+            </div>
+            <div class="modal-footer px-4 py-3">
+                <button type="button" class="btn btn-light border btn-close-modal">Tutup</button>
             </div>
         </div>
     </div>
@@ -201,8 +261,9 @@
         document.getElementById('priceBusinessUnitId').value = row.business_unit_id;
         document.getElementById('priceProductId').value = row.product_id;
         document.getElementById('priceUnitId').value = row.unit_id;
-        document.getElementById('priceProductLabel').value = row.product_code + ' - ' + row.product_name;
-        document.getElementById('priceUnitLabel').value = row.unit_name;
+        document.getElementById('priceProductLabel').textContent = row.product_code + ' - ' + row.product_name;
+        document.getElementById('priceBusinessUnitLabel').textContent = row.business_unit_name || '-';
+        document.getElementById('priceUnitLabel').textContent = row.unit_name || '-';
         document.getElementById('priceChangeDate').value = today;
         refreshOldPrice();
         showModal(setupModal);
@@ -286,7 +347,7 @@
                 const oldPrice = row.old_price === null ? '-' : formatRupiah(row.old_price);
                 const pct = row.change_percent === null
                     ? '-'
-                    : Number(row.change_percent).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+                    : Number(row.change_percent).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
                 return '<tr><td>' + new Date(row.change_date).toLocaleDateString('id-ID') +
                     '</td><td class="text-end">' + oldPrice +
