@@ -29,7 +29,7 @@ class SalesController extends Controller
         };
     }
 
-    private function nextInvoiceNo(int $entity, object $businessUnit, \\Carbon\\Carbon $saleDate): string
+    private function nextInvoiceNo(int $entity, object $businessUnit, \Carbon\Carbon $saleDate): string
     {
         $prefix = $this->salesPrefix($businessUnit);
         $businessUnitId = (int) $businessUnit->id;
