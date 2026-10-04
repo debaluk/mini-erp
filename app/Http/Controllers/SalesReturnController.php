@@ -418,12 +418,6 @@ class SalesReturnController extends Controller
             $warehouse = DB::table('warehouses')->where('entity_id', $entity)->where('id', $data['warehouse_id'])->where('is_active', 1)->first();
             abort_unless($warehouse, 404, 'Gudang tidak ditemukan.');
 
-            abort_unless(
-                (int) $warehouse->business_unit_id === (int) $sale->business_unit_id,
-                422,
-                'Gudang tidak sesuai dengan Business Unit Penjualan.'
-            );
-
             $saleItems = DB::table('sale_items')->where('sale_id', $sale->id)->get()->keyBy('id');
             $subtotal = (float) $sale->subtotal;
             $saleDiscount = (float) $sale->discount;
