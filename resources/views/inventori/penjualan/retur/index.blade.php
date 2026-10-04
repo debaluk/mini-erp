@@ -24,7 +24,7 @@
    
 
     {{-- PANEL FILTER DATA --}}
-    <div class="card border-0 shadow-sm mb-4">
+    <div class="card border-0 shadow-sm mb-2">
         <div class="card-body py-3">
             <form id="filterForm" class="row g-2 align-items-center">
                 <div class="col-md-2">
