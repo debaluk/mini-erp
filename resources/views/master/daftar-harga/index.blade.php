@@ -85,6 +85,35 @@
     </div>
 </div>
 
+<div class="modal fade" id="priceSyncModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="priceSyncTitle">Perhatian</h5>
+                <button type="button" class="btn-close btn-close-sync" aria-label="Tutup"></button>
+            </div>
+            <div class="modal-body">
+                <div id="priceSyncAttention">
+                    <p class="mb-0">Proses ini akan mengisi harga awal pertama kali dari Setup Saldo Awal dan mencatat ke dalam histori. Item Barang yang sudah ada Harga Jual tidak akan diproses.</p>
+                </div>
+                <div id="priceSyncProgress" class="d-none">
+                    <div class="progress" style="height: 22px;">
+                        <div id="priceSyncProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%">0%</div>
+                    </div>
+                    <div class="text-center text-muted small mt-2">Sedang memproses...</div>
+                </div>
+                <div id="priceSyncDone" class="d-none">
+                    <p class="mb-0">Proses sudah selesai, silahkan cek kembali Daftar Harga Jual</p>
+                </div>
+            </div>
+            <div class="modal-footer" id="priceSyncFooter">
+                <button type="button" class="btn btn-secondary btn-close-sync">Batal</button>
+                <button type="button" class="btn btn-primary" id="priceSyncConfirm">Proses</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="priceHistoryModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
@@ -353,14 +382,58 @@
         hideModal(button.closest('.modal'));
     }));
 
-    document.getElementById('priceSyncInitialSetup').addEventListener('click', async () => {
-        const button = document.getElementById('priceSyncInitialSetup');
-        button.disabled = true;
+    const syncModal = document.getElementById('priceSyncModal');
+    const syncAttention = document.getElementById('priceSyncAttention');
+    const syncProgress = document.getElementById('priceSyncProgress');
+    const syncDone = document.getElementById('priceSyncDone');
+    const syncProgressBar = document.getElementById('priceSyncProgressBar');
+    const syncConfirm = document.getElementById('priceSyncConfirm');
+    const syncFooter = document.getElementById('priceSyncFooter');
+    let syncReloadOnClose = false;
+
+    const resetSyncModal = () => {
+        syncAttention.classList.remove('d-none');
+        syncProgress.classList.add('d-none');
+        syncDone.classList.add('d-none');
+        syncProgressBar.style.width = '0%';
+        syncProgressBar.textContent = '0%';
+        syncConfirm.classList.remove('d-none');
+        syncConfirm.disabled = false;
+        syncConfirm.textContent = 'Proses';
+        syncFooter.querySelectorAll('.btn-close-sync').forEach(button => button.classList.remove('d-none'));
+    };
+
+    const closeSyncModal = () => {
+        hideModal(syncModal);
+        if (syncReloadOnClose) {
+            syncReloadOnClose = false;
+            dataTable.ajax.reload(null, false);
+        }
+    };
+
+    document.getElementById('priceSyncInitialSetup').addEventListener('click', () => {
+        resetSyncModal();
+        showModal(syncModal);
+    });
+
+    syncFooter.querySelectorAll('.btn-close-sync').forEach(button => button.addEventListener('click', closeSyncModal));
+    syncModal.querySelector('.btn-close-sync').addEventListener('click', closeSyncModal);
+
+    syncConfirm.addEventListener('click', async () => {
+        syncConfirm.disabled = true;
+        syncAttention.classList.add('d-none');
+        syncProgress.classList.remove('d-none');
+        syncProgressBar.style.width = '15%';
+        syncProgressBar.textContent = '15%';
 
         const params = new URLSearchParams();
         if (businessUnitFilter.value) params.set('business_unit_id', businessUnitFilter.value);
 
         try {
+            await new Promise(resolve => setTimeout(resolve, 250));
+            syncProgressBar.style.width = '45%';
+            syncProgressBar.textContent = '45%';
+
             const response = await fetch('{{ route('master.harga-jual.sync-initial-setup') }}?' + params.toString(), {
                 method: 'POST',
                 headers: {
@@ -372,12 +445,21 @@
             const payload = await response.json();
             if (!response.ok) throw new Error(payload.message || 'Sync Setup Awal gagal.');
 
-            showAlert(payload.message || 'Setup awal berhasil disinkronkan.');
-            dataTable.ajax.reload(null, false);
+            syncProgressBar.style.width = '100%';
+            syncProgressBar.textContent = '100%';
+            await new Promise(resolve => setTimeout(resolve, 350));
+            syncProgress.classList.add('d-none');
+            syncDone.classList.remove('d-none');
+            syncConfirm.textContent = 'OK';
+            syncConfirm.disabled = false;
+            syncReloadOnClose = true;
+            syncConfirm.onclick = closeSyncModal;
         } catch (error) {
+            syncProgress.classList.add('d-none');
+            syncAttention.classList.remove('d-none');
+            syncConfirm.disabled = false;
             showAlert(error.message || 'Sync Setup Awal gagal.', 'danger');
-        } finally {
-            button.disabled = false;
+            closeSyncModal();
         }
     });
 
