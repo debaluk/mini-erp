@@ -139,7 +139,7 @@ class SalesReturnController extends Controller
                     'sale_item_id' => $item->id, 'product_id' => $item->product_id,
                     'product_code' => $item->product_code ?? '-', 'product_name' => $item->product_name ?? '-',
                     'unit_id' => $item->unit_id, 'unit_name' => $item->unit_name ?? 'Pcs',
-                    'qty_sold' => (float) $item->qty, 'qty_returned_before' => $returnedQty,
+                    'qty_sold' => (float) $item->qty, 'qty_sale' => (float) $item->qty, 'qty_returned_before' => $returnedQty,
                     'qty_remaining' => max(0, (float) $item->qty - $returnedQty),
                     'unit_price' => (float) $item->unit_price, 'hpp_unit' => (float) $item->hpp_unit,
                     'conversion_factor' => (float) ($item->conversion_factor ?? 1),
