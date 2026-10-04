@@ -78,6 +78,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/master/harga-jual', [ProductPriceController::class, 'index'])->middleware('access:master')->name('master.menu.harga-jual');
     Route::get('/master/harga-jual/export', [ProductPriceController::class, 'export'])->middleware('access:master')->name('master.harga-jual.export');
     Route::post('/master/harga-jual', [ProductPriceController::class, 'store'])->middleware('access:master')->name('master.harga-jual.store');
+    Route::post('/master/harga-jual/sync-initial-setup', [ProductPriceController::class, 'syncInitialSetup'])->middleware('access:master')->name('master.harga-jual.sync-initial-setup');
     Route::get('/master/harga-jual/history', [ProductPriceController::class, 'history'])->middleware('access:master')->name('master.harga-jual.history');
     Route::put('/master/harga-jual/{id}', [ProductPriceController::class, 'update'])->middleware('access:master')->name('master.harga-jual.update');
 
