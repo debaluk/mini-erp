@@ -146,14 +146,12 @@
             </div>
         </div>
 
-        
-
         <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
             <div>
                 <h6 class="mb-0">Detil Penjualan</h6>
                 <div class="small text-secondary">Masukkan barcode pada baris kosong untuk menambah barang.</div>
             </div>
-            <span class="badge text-bg-light border text-secondary">Harga dapat disesuaikan</span>
+            <span class="badge text-bg-light border text-secondary">Harga jual dari master</span>
         </div>
 
         <div class="table-responsive pos-cart">
@@ -172,8 +170,6 @@
                 <tbody id="detailBody"></tbody>
             </table>
         </div>
-
-        
 
         <div class="row g-3 align-items-end">
             <div class="col-md-6">
@@ -276,7 +272,6 @@
     </div>
 </div>
 
-
 <div class="modal fade" id="productModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content">
@@ -312,7 +307,6 @@
         </div>
     </div>
 </div>
-
 
 <div class="modal fade" id="saleSavedModal" tabindex="-1"
      aria-labelledby="saleSavedModalLabel" aria-hidden="true">
