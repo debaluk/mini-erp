@@ -114,9 +114,9 @@
 
             <div class="col-md-6">
                 <div class="d-flex align-items-center">
-                    <label class="form-label mb-0 me-3 text-nowrap" style="min-width:80px">Customer</label>
+                    <label class="form-label mb-0 me-3 text-nowrap" style="min-width:80px">Pelanggan</label>
                     <div class="input-group">
-                        <input id="customerSearch" class="form-control" value="Umum" placeholder="Pilih customer..." readonly>
+                        <input id="customerSearch" class="form-control" value="Umum" placeholder="Pilih pelanggan..." readonly>
                         <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#customerModal">Pilih</button>
                     </div>
                 </div>
