@@ -37,18 +37,16 @@
             <table class="table table-bordered table-hover mb-0 align-middle" id="priceDataTable" style="width:100%">
                 <thead>
                     <tr>
-                        <th>Unit Bisnis</th>
-                        <th>Kode</th>
-                        <th>Item</th>
+                        <th>Kode Barang</th>
+                        <th>Nama Barang</th>
                         <th>Satuan</th>
+                        <th>Unit Bisnis</th>
                         <th class="text-end">Harga Jual</th>
-                        <th class="text-center">Tgl Update</th>
-                        <th class="text-center">Aksi</th>
-                        <th class="text-center">Status</th>
+                        <th class="text-center">Tgl. Update</th>
                     </tr>
                 </thead>
                 <tbody id="priceTableBody">
-                    <tr><td colspan="8" class="text-center text-muted py-4">Memuat data...</td></tr>
+                    <tr><td colspan="6" class="text-center text-muted py-4">Memuat data...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -329,10 +327,10 @@
             dataSrc: 'data'
         },
         columns: [
-            { data: 'business_unit_name', defaultContent: '' },
             { data: 'product_code', defaultContent: '', className: 'fw-semibold' },
             { data: 'product_name', defaultContent: '' },
             { data: 'unit_name', defaultContent: '' },
+            { data: 'business_unit_name', defaultContent: '' },
             {
                 data: 'selling_price',
                 className: 'text-end',
@@ -344,24 +342,6 @@
                 data: 'updated_price_date',
                 className: 'text-center',
                 render: data => data ? new Date(data).toLocaleDateString('id-ID') : '-'
-            },
-            {
-                data: null,
-                orderable: false,
-                searchable: false,
-                className: 'text-center text-nowrap',
-                render: (data, type, row) =>
-                    '<button type="button" class="btn btn-sm btn-outline-primary btn-setup-price">Setup / Edit</button> ' +
-                    '<button type="button" class="btn btn-sm btn-outline-secondary btn-history">History</button>'
-            },
-            {
-                data: 'price_id',
-                orderable: false,
-                searchable: false,
-                className: 'text-center',
-                render: data => data
-                    ? '<span class="badge bg-success">Sudah Setup</span>'
-                    : '<span class="badge bg-secondary">Belum Setup</span>'
             }
         ],
         createdRow: (row, data) => {
@@ -489,10 +469,10 @@
 
             const rows = payload.rows || [];
             const data = rows.map(row => [
-                String(row.business_unit_name || ''),
                 String(row.product_code || ''),
                 String(row.product_name || ''),
                 String(row.unit_name || ''),
+                String(row.business_unit_name || ''),
                 row.selling_price === null ? 'Belum Setup' : Number(row.selling_price),
                 row.updated_price_date ? new Date(row.updated_price_date).toLocaleDateString('id-ID') : '-'
             ]);
@@ -503,7 +483,7 @@
                 ['Unit Bisnis : ' + (payload.business_unit_name || 'Semua Unit Bisnis')],
                 ['Tgl Export : ' + todayText],
                 [],
-                ['Unit Bisnis', 'Kode', 'Item', 'Satuan', 'Harga Jual', 'Tgl Update'],
+                ['Kode Barang', 'Nama Barang', 'Satuan', 'Unit Bisnis', 'Harga Jual', 'Tgl. Update'],
                 ...data
             ]);
 
