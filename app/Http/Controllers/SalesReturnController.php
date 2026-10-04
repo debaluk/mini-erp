@@ -61,31 +61,72 @@ class SalesReturnController extends Controller
             ]);
         }
 
-        return datatables()->of($query)
-            ->addIndexColumn()
-            ->editColumn('return_date', function ($row) {
-                return date('d/m/Y H:i', strtotime($row->return_date));
-            })
-            ->editColumn('total', function ($row) {
-                return 'Rp ' . number_format($row->total, 2, ',', '.');
-            })
-            ->addColumn('customer_name', function ($row) {
-                return $row->customer ? $row->customer->name : 'Pelanggan Umum';
-            })
-            ->addColumn('invoice_no', function ($row) {
-                return $row->sale ? $row->sale->invoice_no : '-';
-            })
-            ->addColumn('action', function ($row) {
-                return '
-                    <div class="btn-group btn-group-sm">
-                        <button type="button" class="btn btn-outline-info btn-view" data-id="' . $row->id . '" title="Detail & Jurnal"><i class="bi bi-eye"></i></button>
-                        <button type="button" class="btn btn-outline-warning btn-edit" data-id="' . $row->id . '" title="Edit & Koreksi Jurnal"><i class="bi bi-pencil"></i></button>
-                        <button type="button" class="btn btn-outline-secondary btn-print" data-id="' . $row->id . '" title="Cetak Nota"><i class="bi bi-printer"></i></button>
-                    </div>
-                ';
-            })
-            ->rawColumns(['action'])
-            ->make(true);
+        // DataTables server-side response dibuat native agar controller tidak
+        // bergantung pada package/helper datatables() yang tidak terpasang.
+        $recordsTotal = (clone $query)->count();
+
+        $search = trim((string) $request->input('search.value', ''));
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('return_no', 'like', "%{$search}%")
+                    ->orWhere('status', 'like', "%{$search}%")
+                    ->orWhereHas('sale', function ($sq) use ($search) {
+                        $sq->where('invoice_no', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('customer', function ($cq) use ($search) {
+                        $cq->where('name', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('warehouse', function ($wq) use ($search) {
+                        $wq->where('name', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        $recordsFiltered = (clone $query)->count();
+
+        $columns = [
+            0 => 'return_no',
+            1 => 'return_date',
+            5 => 'total',
+            6 => 'status',
+        ];
+
+        $orderColumn = (int) $request->input('order.0.column', 1);
+        $orderDirection = strtolower((string) $request->input('order.0.dir', 'desc')) === 'asc' ? 'asc' : 'desc';
+        $query->orderBy($columns[$orderColumn] ?? 'return_date', $orderDirection);
+
+        $start = max(0, (int) $request->input('start', 0));
+        $length = (int) $request->input('length', 10);
+
+        if ($length !== -1) {
+            $query->skip($start)->take(max(1, $length));
+        }
+
+        $rows = $query->get();
+
+        $data = $rows->map(function ($row) {
+            return [
+                'return_no' => $row->return_no,
+                'return_date_formatted' => $row->return_date ? date('d/m/Y H:i', strtotime($row->return_date)) : '-',
+                'invoice_no' => $row->sale?->invoice_no ?? '-',
+                'customer_name' => $row->customer?->name ?? 'Pelanggan Umum',
+                'warehouse_name' => $row->warehouse?->name ?? '-',
+                'total_formatted' => 'Rp ' . number_format((float) $row->total, 2, ',', '.'),
+                'status' => $row->status,
+                'actions' => '<div class="btn-group btn-group-sm">'
+                    . '<button type="button" class="btn btn-outline-info btn-view-return" data-id="' . $row->id . '" title="Detail & Jurnal"><i class="bi bi-eye"></i></button>'
+                    . '<button type="button" class="btn btn-outline-warning btn-edit-return" data-id="' . $row->id . '" title="Edit & Koreksi Jurnal"><i class="bi bi-pencil"></i></button>'
+                    . '<button type="button" class="btn btn-outline-secondary btn-print-return" data-id="' . $row->id . '" title="Cetak Nota"><i class="bi bi-printer"></i></button>'
+                    . '</div>',
+            ];
+        })->values();
+
+        return response()->json([
+            'draw' => (int) $request->input('draw', 0),
+            'recordsTotal' => $recordsTotal,
+            'recordsFiltered' => $recordsFiltered,
+            'data' => $data,
+        ]);
     }
 
     /**
