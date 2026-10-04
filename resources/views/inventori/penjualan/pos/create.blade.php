@@ -98,7 +98,7 @@
     }
 
     .pos-total {
-        font-size: 22pt;
+        font-size: 18pt;
         line-height: 1;
         font-weight: 800;
         letter-spacing: .02em;
@@ -108,7 +108,7 @@
         background: #212529;
         color: #fff;
         border-radius: .5rem;
-        padding: 12px 16px;
+        padding: 6px 12px;
     }
 
     .pos-action {
@@ -245,15 +245,13 @@
                         <div class="small text-uppercase fw-semibold opacity-75 text-nowrap">TOTAL BAYAR</div>
                         <div id="totalAmount" class="pos-total text-end">Rp 0</div>
                     </div>
-                    <div class="row align-items-center mt-2 g-2">
-                        <div class="col-sm-4 text-end fw-semibold">Cara Bayar</div>
-                        <div class="col-sm-8">
-                            <select id="paymentMethod" class="form-select">
-                                <option value="Tunai">Tunai</option>
-                                <option value="Transfer">Transfer</option>
-                                <option value="QRIS">QRIS</option>
-                            </select>
-                        </div>
+                    <div class="d-flex justify-content-between align-items-center py-1 mt-1 text-end">
+                        <span class="flex-grow-1 fw-semibold">Cara Bayar</span>
+                        <select id="paymentMethod" class="form-select" style="max-width:160px">
+                            <option value="Tunai">Tunai</option>
+                            <option value="Transfer">Transfer</option>
+                            <option value="QRIS">QRIS</option>
+                        </select>
                     </div>
                 </div>
             </div>
