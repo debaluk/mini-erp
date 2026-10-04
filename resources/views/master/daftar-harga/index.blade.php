@@ -241,7 +241,7 @@
 
         const calculate = () => {
             const n = Number(newPrice.value), o = Number(old);
-            percent.value = (!exists || !o || !n) ? '-' : (((n - o) / o) * 100).toFixed(2).replace('.', ',') + '%';
+            percent.value = (!exists || !o || !n) ? '-' : (((n - o) / o) * 100).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
         };
         calculate();
     };
@@ -263,7 +263,7 @@
         if (!current) return;
         const old = Number(current.selling_price);
         const n = Number(newPrice.value);
-        percent.value = old && n ? (((n - old) / old) * 100).toFixed(2).replace('.', ',') + '%' : '-';
+        percent.value = old && n ? (((n - old) / old) * 100).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%' : '-';
     });
 
     form.addEventListener('submit', async event => {
