@@ -78,7 +78,7 @@ class SalesReturnExport implements FromQuery, WithHeadings, WithMapping, ShouldA
         ];
     }
 
-    public function styles(Worksheet $sheet)
+    public function styles(Worksheet $sheet): ?array
     {
         return [
             1 => ['font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']], 'fill' => ['fillType' => 'solid', 'color' => ['rgb' => 'DC3545']]],
