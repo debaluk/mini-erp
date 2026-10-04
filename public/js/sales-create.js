@@ -89,9 +89,7 @@
     }
 
     function ensureBlankRow() {
-        if (!rows.length || rows[rows.length - 1].product_id) {
-            rows.push(createBlankRow());
-        }
+        return;
     }
 
     function fillRow(index, product) {
@@ -110,7 +108,6 @@
             discount: 0
         };
 
-        ensureBlankRow();
         renderRows();
         calculateTotals();
     }
@@ -291,7 +288,6 @@
         if (!rows[index]?.product_id) return;
 
         rows.splice(index, 1);
-        ensureBlankRow();
         renderRows();
         calculateTotals();
     }
@@ -326,8 +322,7 @@
 
         posBarcodeSearch.classList.remove('is-invalid');
 
-        const blankIndex = rows.findIndex(row => !row.product_id);
-        fillRow(blankIndex >= 0 ? blankIndex : rows.length, product);
+        fillRow(rows.length, product);
 
         posBarcodeSearch.value = '';
         posBarcodeSearch.focus();
@@ -392,8 +387,7 @@
     });
 
     posChooseProduct?.addEventListener('click', () => {
-        const blankIndex = rows.findIndex(row => !row.product_id);
-        openProductModal(blankIndex >= 0 ? blankIndex : rows.length - 1);
+        openProductModal(rows.length);
     });
 
     document.addEventListener('keydown', event => {
@@ -405,8 +399,7 @@
         if (event.key === 'F2') {
             event.preventDefault();
             if (productModalEl && !productModalEl.classList.contains('show')) {
-                const blankIndex = rows.findIndex(row => !row.product_id);
-                openProductModal(blankIndex >= 0 ? blankIndex : rows.length - 1);
+                openProductModal(rows.length);
             } else {
                 productFilter?.focus();
                 productFilter?.select();
@@ -691,7 +684,6 @@
 
     saveButton?.addEventListener('click', submitSale);
 
-    ensureBlankRow();
     renderRows();
     calculateTotals();
 
