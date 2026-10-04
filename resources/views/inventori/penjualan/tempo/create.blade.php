@@ -15,11 +15,7 @@
             <div class="col-md-6">
                 <div class="d-flex align-items-center">
                     <label class="form-label mb-0 me-3 text-nowrap" style="min-width:80px">Tanggal</label>
-                    <div class="input-group">
-                        <input id="saleDateDisplay" type="text" class="form-control" value="{{ now()->format('d/m/Y') }}" placeholder="dd/mm/yyyy" inputmode="numeric" autocomplete="off" required>
-                        <button type="button" class="btn btn-outline-secondary" id="saleDatePicker" title="Pilih tanggal">📅</button>
-                        <input id="saleDate" name="sale_date" type="date" value="{{ now()->toDateString() }}" class="position-absolute opacity-0" style="width:1px;height:1px;pointer-events:none" tabindex="-1" aria-hidden="true">
-                    </div>
+                    <x-date-input-id name="sale_date" id="saleDate" :value="now()->toDateString()" required />
                 </div>
             </div>
 
