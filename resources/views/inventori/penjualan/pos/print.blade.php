@@ -26,7 +26,13 @@
         'total' => $sale->total,
         'payment' => $payments->pluck('method')
             ->unique()
-            ->map(fn($m) => $m === 'credit' ? 'Kredit / Bon' : $m)
+            ->map(fn($m) => match ($m) {
+                'cash' => 'Tunai',
+                'transfer' => 'Transfer',
+                'qris' => 'QRIS',
+                'credit' => 'Kredit / Bon',
+                default => $m ?: '-',
+            })
             ->implode(', ') ?: '-',
         'memo' => $sale->memo,
     ])
