@@ -35,22 +35,6 @@
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
-        <div id="workOrderControls" class="d-flex justify-content-between align-items-center flex-nowrap gap-3 mb-3">
-            <div class="d-flex align-items-center gap-2 flex-nowrap">
-                <label for="workOrderPageLength" class="mb-0 text-nowrap">Tampilkan</label>
-                <select id="workOrderPageLength" class="form-select form-select-sm" style="width:80px;">
-                    <option value="15">15</option>
-                    <option value="25">25</option>
-                    <option value="50">50</option>
-                    <option value="100">100</option>
-                </select>
-                <span class="text-nowrap">baris</span>
-            </div>
-            <div class="d-flex align-items-center gap-2 flex-nowrap ms-auto">
-                <label for="workOrderSearch" class="mb-0 text-nowrap">Cari:</label>
-                <input type="search" id="workOrderSearch" class="form-control form-control-sm" style="width:240px;" placeholder="Cari...">
-            </div>
-        </div>
         <div class="table-responsive">
             <table id="workOrderTable" class="table table-hover align-middle mb-0 w-100">
                 <thead class="table-primary">
@@ -278,10 +262,6 @@
         justify-content:flex-end;
         border-top:1px solid #dee2e6;
     }
-    #workOrderControls { width:100%; }
-    #workOrderControls > div { min-width:0; }
-    #workOrderTable_wrapper .dataTables_filter,
-    #workOrderTable_wrapper .dataTables_length { display:none !important; }
 </style>
 @endpush
 
@@ -584,16 +564,23 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     const table=new DataTable('#workOrderTable',{
-        dom:'t<"d-flex justify-content-between align-items-center px-3 py-3"i p>',
+        dom:'<"row align-items-center mb-2"<"col-md-6"l><"col-md-6"f>>t<"row align-items-center mt-2"<"col-md-6"i><"col-md-6"p>>',
         pageLength:15,
         lengthMenu:[[15,25,50,100],[15,25,50,100]],
         autoWidth:false,
         order:[[1,'desc']],
-        language:{info:'Menampilkan _START_–_END_ dari _TOTAL_ SPK',infoEmpty:'Tidak ada SPK',zeroRecords:'Data tidak ditemukan',paginate:{previous:'‹',next:'›'}},
+        language:{
+            lengthMenu:'Tampilkan _MENU_ baris',
+            search:'Cari:',
+            searchPlaceholder:'Cari...',
+            info:'Menampilkan _START_–_END_ dari _TOTAL_ SPK',
+            infoEmpty:'Tidak ada SPK',
+            zeroRecords:'Data tidak ditemukan',
+            emptyTable:'Belum ada SPK',
+            paginate:{previous:'‹',next:'›'}
+        },
         columnDefs:[{targets:[5,6,8],orderable:false}]
     });
-    document.getElementById('workOrderPageLength').addEventListener('change',function(){table.page.len(this.value).draw()});
-    document.getElementById('workOrderSearch').addEventListener('input',function(){table.search(this.value).draw()});
 });
 </script>
 @endpush
