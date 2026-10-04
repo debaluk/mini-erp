@@ -39,7 +39,7 @@
     }
 
     function parseDateIndonesia(value) {
-        const match = String(value || '').trim().match(/^(\\d{2})\\/(\\d{2})\\/(\\d{4})$/);
+        const match = String(value || '').trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
         if (!match) return null;
         const day = Number(match[1]);
         const month = Number(match[2]);
@@ -583,8 +583,11 @@
             if (dueDate) dueDate.value = '';
         }
 
+        const parsedSaleDate = parseDateIndonesia(saleDateDisplay?.value || '');
+        if (parsedSaleDate) saleDate.value = parsedSaleDate;
+
         const payload = {
-            sale_date: saleDate?.value || '',
+            sale_date: saleDate?.value || parsedSaleDate || '',
             customer_id: Number(selectedCustomerId || customerId?.value || 0) || null,
             business_unit_id: buId,
             payment_method: paymentMethod?.value || 'tunai',
