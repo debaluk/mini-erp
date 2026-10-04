@@ -32,7 +32,6 @@
             <table class="table table-bordered table-hover mb-0 align-middle">
                 <thead class="table-light">
                     <tr>
-                        <th style="width: 12%">Kode Unit</th>
                         <th>Nama Unit</th>
                         <th style="width: 15%">Tipe Usaha</th>
                         <th style="width: 15%">Metode HPP</th>
@@ -43,7 +42,6 @@
                 <tbody>
                     @forelse($units as $unit)
                         <tr>
-                            <td>{{ $unit->code }}</td>
                             <td>{{ $unit->name }}</td>
                             <td>{{ ['retail' => 'Retail', 'production' => 'Produksi', 'service' => 'Jasa'][$unit->business_type] }}</td>
                             <td>
@@ -68,7 +66,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="6" class="text-center text-secondary py-4">Belum ada unit bisnis.</td></tr>
+                        <tr><td colspan="5" class="text-center text-secondary py-4">Belum ada unit bisnis.</td></tr>
                     @endforelse
                 </tbody>
             </table>
