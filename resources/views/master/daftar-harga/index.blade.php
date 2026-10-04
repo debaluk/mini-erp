@@ -25,13 +25,13 @@
             <button type="submit" class="btn btn-secondary">Filter</button>
             <button type="button" id="priceReset" class="btn btn-light">Reset</button>
             <button type="button" id="priceExport" class="btn btn-outline-success">Export Excel</button>
-            <button type="button" id="priceSyncInitialSetup" class="btn btn-outline-primary">Sync Setup Awal</button>
         </div>
     </form>
 
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <span class="fw-semibold">Daftar Harga Jual</span>
+            <button type="button" id="priceSyncInitialSetup" class="btn btn-sm btn-outline-primary">Sync Setup Awal</button>
         </div>
         <div class="table-responsive">
             <table class="table table-bordered table-hover mb-0 align-middle" id="priceDataTable" style="width:100%">
