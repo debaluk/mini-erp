@@ -10,6 +10,9 @@ class SalesReturnJournalService
 {
     public function reverse(int $returnId, int $userId): ?int
     {
+        // Ambil jurnal retur TERAKHIR untuk retur ini.
+        // Saat retur dikoreksi berkali-kali, setiap koreksi harus membalik
+        // jurnal retur terbaru, bukan selalu jurnal retur pertama.
         $journal = DB::table('journals')
             ->where('source_type', 'sales_return')
             ->where('source_id', $returnId)
@@ -19,6 +22,19 @@ class SalesReturnJournalService
 
         if (!$journal) {
             return null;
+        }
+
+        // Cegah reversal ganda untuk jurnal yang sama.
+        $alreadyReversed = DB::table('journals')
+            ->where('source_type', 'sales_return_reversal')
+            ->where('source_id', $returnId)
+            ->where('description', 'like', '%Jurnal #' . $journal->journal_no . '%')
+            ->exists();
+
+        if ($alreadyReversed) {
+            throw new RuntimeException(
+                'Jurnal retur ' . $journal->journal_no . ' sudah memiliki reversal. Koreksi tidak boleh membuat reversal ganda.'
+            );
         }
 
         $entries = DB::table('journal_entries')
@@ -36,7 +52,7 @@ class SalesReturnJournalService
             'journal_date' => now()->toDateString(),
             'source_type' => 'sales_return_reversal',
             'source_id' => $returnId,
-            'description' => 'Reversal jurnal retur penjualan #' . $returnId . ' (Jurnal #' . $journal->journal_no . ')',
+            'description' => 'Reversal jurnal retur penjualan ' . $returnId . ' (Jurnal #' . $journal->journal_no . ')',
             'status' => 'posted',
             'created_at' => now(),
             'updated_at' => now(),
