@@ -1723,10 +1723,12 @@ class SalesController extends Controller
         $user = auth()->user();
 
         $units = DB::table('business_units as bu')
-            ->join('user_business_units as ubu', 'ubu.business_unit_id', '=', 'bu.id')
-            ->where('ubu.user_id', $user->id)
             ->where('bu.entity_id', $entity)
             ->where('bu.is_active', 1)
+            ->when($user->role !== 'owner', function ($query) use ($user) {
+                $query->join('user_business_units as ubu', 'ubu.business_unit_id', '=', 'bu.id')
+                    ->where('ubu.user_id', $user->id);
+            })
             ->orderBy('bu.name')
             ->get(['bu.id', 'bu.code', 'bu.name']);
 
