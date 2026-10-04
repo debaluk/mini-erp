@@ -26,114 +26,13 @@ Password seluruh akun uji coba:
 | Inventori | inventori@minierp.local | password |
 | Akuntansi | akuntansi@minierp.local | password |
 
-## Role & Hak Akses
-
-### Owner
-Pemilik & kontrol seluruh usaha.
-
-Akses:
-- Semua modul
-- Semua laporan
-- Approval
-
-### Admin
-Administrasi & pengelolaan.
-
-Akses:
-- Master data
-- User
-- Konfigurasi
-
-### Kasir
-Penjualan retail.
-
-Akses:
-- POS
-- Pembayaran
-- Shift kasir
-
-### Inventori
-Seluruh operasional stok.
-
-Akses:
-- Pembelian
-- Gudang
-- Inventory
-- Produksi
-- Armada
-
-### Akuntansi
-Keuangan & laporan.
-
-Akses:
-- Accounting
-- HPP
-- Laporan keuangan
-
----
-
-# Struktur Modul
-
-## 1. MASTER
-
-- Produk
-- Customer
-- Supplier
-- Gudang
-- Satuan
-- Tarif
-
-## 2. PENJUALAN / POS
-
-- POS
-- Transaksi penjualan
-- Pembayaran
-- Shift kasir
-
-## 3. PEMBELIAN
-
-- Pembelian
-- Supplier
-- Penerimaan barang
-- Hutang
-
-## 4. INVENTORI
-
-- Stok
-- Mutasi stok
-- Gudang
-- Stock opname
-
-## 5. PRODUKSI BATAKO
-
-- Formula / BOM
-- Bahan baku
-- Produksi
-- Hasil produksi
-- Pemakaian bahan
-- HPP produksi
-
-## 6. ARMADA
-
-- Kendaraan
-- Driver
-- Pengiriman
-- Operasional armada
-- Biaya armada
-
-## 7. AKUNTANSI
-
-- Jurnal
-- Buku besar
-- Hutang
-- Piutang
-- Kas & Bank
-- HPP
-- Laba Rugi
-- Neraca
-- Arus Kas
-
----
+Aturan NomorPenjualan :
+RET-1-20261004000001
+ |   │    │        └─ sequence 000001//reset setiap bulan
+ |   │    └────────── tanggal
+ |   └─────────────── business_unit_id
+ └─────────────────── business_tipe
+ 
 
 # Teknologi
 
