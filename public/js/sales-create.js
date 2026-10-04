@@ -21,6 +21,8 @@
     const productModalEl = document.getElementById('productModal');
     const productFilter = document.getElementById('productFilter');
     const productList = document.getElementById('productList');
+    const posBarcodeSearch = document.getElementById('posBarcodeSearch');
+    const posChooseProduct = document.getElementById('posChooseProduct');
 
     const mode = config.mode || 'tempo';
     const requireCustomer = config.requireCustomer !== false;
@@ -210,6 +212,12 @@
     }
 
     function focusFirstBarcode() {
+        if (posBarcodeSearch) {
+            posBarcodeSearch.focus();
+            posBarcodeSearch.select();
+            return true;
+        }
+
         const input = body?.querySelector('.barcode-input');
         if (input) {
             input.focus();
@@ -303,6 +311,28 @@
         fillRow(index, product);
     }
 
+    function handlePosBarcode() {
+        if (!posBarcodeSearch) return;
+
+        const value = posBarcodeSearch.value.trim();
+        if (!value) return;
+
+        const product = findProduct(value);
+
+        if (!product) {
+            posBarcodeSearch.classList.add('is-invalid');
+            return;
+        }
+
+        posBarcodeSearch.classList.remove('is-invalid');
+
+        const blankIndex = rows.findIndex(row => !row.product_id);
+        fillRow(blankIndex >= 0 ? blankIndex : rows.length, product);
+
+        posBarcodeSearch.value = '';
+        posBarcodeSearch.focus();
+    }
+
     body?.addEventListener('click', event => {
         const choose = event.target.closest('.choose-product');
         if (choose) {
@@ -348,6 +378,22 @@
 
     productFilter?.addEventListener('input', () => {
         renderProductList(productFilter.value);
+    });
+
+    posBarcodeSearch?.addEventListener('keydown', event => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            handlePosBarcode();
+        }
+    });
+
+    posBarcodeSearch?.addEventListener('input', () => {
+        posBarcodeSearch.classList.remove('is-invalid');
+    });
+
+    posChooseProduct?.addEventListener('click', () => {
+        const blankIndex = rows.findIndex(row => !row.product_id);
+        openProductModal(blankIndex >= 0 ? blankIndex : rows.length - 1);
     });
 
     document.addEventListener('keydown', event => {
@@ -504,9 +550,8 @@
         const detailRows = rows.filter(row => row.product_id);
 
         if (!detailRows.length) {
-            const barcodeInput = body?.querySelector('.barcode-input');
-            markInvalid(barcodeInput);
-            barcodeInput?.focus();
+            markInvalid(posBarcodeSearch);
+            posBarcodeSearch?.focus();
             return;
         }
 
