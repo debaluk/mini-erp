@@ -9,10 +9,14 @@
     <button type="button" class="btn btn-primary btn-sm" id="btnAddMaster">+ Tambah</button>
 </div>
 
-<div class="card shadow-sm">
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-primary bg-opacity-10 text-primary border-bottom d-flex justify-content-between align-items-center py-3">
+        <div class="fw-semibold"><i class="bi bi-people me-2"></i>Daftar Pelanggan</div>
+        <span class="badge rounded-pill bg-white text-primary border border-primary-subtle" id="customerCount">Data pelanggan</span>
+    </div>
     <div class="table-responsive">
         <table class="table table-sm table-hover align-middle mb-0" id="masterDataTable" style="width:100%">
-            <thead>
+            <thead class="table-primary">
                 <tr>
                     @foreach($config['columns'] as $column)
                         <th>{{ $config['column_labels'][$column] ?? ucwords(str_replace('_', ' ', $column)) }}</th>
@@ -25,7 +29,7 @@
     </div>
 </div>
 
-<div class="modal fade" id="masterModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="masterModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
             <form id="masterForm" novalidate>
@@ -91,6 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('masterForm');
     const title = document.getElementById('masterModalTitle');
     const submitButton = document.getElementById('masterSubmit');
+    const countBadge = document.getElementById('customerCount');
     const baseUrl = @json(url('/master/customers'));
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content || @json(csrf_token());
 
@@ -122,7 +127,10 @@ document.addEventListener('DOMContentLoaded', () => {
         ajax: {
             url: baseUrl,
             type: 'GET',
-            dataSrc: 'data'
+            dataSrc: json => {
+                countBadge.textContent = (json.recordsFiltered ?? json.recordsTotal ?? 0) + ' pelanggan';
+                return json.data || [];
+            }
         },
         columns: [
             @foreach($config['columns'] as $column)

@@ -110,7 +110,13 @@ class HppController extends Controller
                 ->join('products as p', 'p.id', '=', 'b.product_id')
                 ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
                 ->leftJoin(DB::raw('(SELECT production_id, SUM(total_cost) total_material FROM production_material_usages GROUP BY production_id) mu'), 'mu.production_id', '=', 'pr.id')
-                ->leftJoin(DB::raw('(SELECT production_id, SUM(CASE WHEN cost_group = "U" THEN amount ELSE 0 END) labor_cost, SUM(CASE WHEN cost_group <> "U" THEN amount ELSE 0 END) overhead_cost FROM production_costs GROUP BY production_id) pc'), 'pc.production_id', '=', 'pr.id')
+                ->leftJoin(DB::raw('(SELECT production_id,
+                    SUM(CASE WHEN cost_group = "U" THEN amount ELSE 0 END) labor_cost,
+                    SUM(CASE WHEN cost_group = "A" THEN amount ELSE 0 END) equipment_cost,
+                    SUM(CASE WHEN cost_group = "S" THEN amount ELSE 0 END) rental_cost,
+                    SUM(CASE WHEN cost_group = "O" THEN amount ELSE 0 END) overhead_cost,
+                    SUM(amount) additional_cost
+                    FROM production_costs GROUP BY production_id) pc'), 'pc.production_id', '=', 'pr.id')
                 ->where('pr.entity_id', $entityId)
                 ->where('pr.business_unit_id', $productionBu->id)
                 ->whereBetween('pr.production_date', [$startDate.' 00:00:00', $endDate.' 23:59:59'])
@@ -122,8 +128,11 @@ class HppController extends Controller
                     'u.code as unit',
                     'b.code as bom',
                     'pr.good_output_qty as qty',
+                    'pr.reject_qty',
                     DB::raw('COALESCE(mu.total_material,0) as material_cost'),
                     DB::raw('COALESCE(pc.labor_cost,0) as labor_cost'),
+                    DB::raw('COALESCE(pc.equipment_cost,0) as equipment_cost'),
+                    DB::raw('COALESCE(pc.rental_cost,0) as rental_cost'),
                     DB::raw('COALESCE(pc.overhead_cost,0) as overhead_cost'),
                     'pr.total_cost'
                 )
@@ -133,9 +142,6 @@ class HppController extends Controller
                 ->map(function ($row) {
                     $qty = (float) $row->qty;
                     $total = (float) $row->total_cost;
-                    $material = (float) $row->material_cost;
-                    $labor = (float) $row->labor_cost;
-                    $overhead = (float) $row->overhead_cost;
 
                     return (object) [
                         'production_no' => $row->production_no,
@@ -144,9 +150,12 @@ class HppController extends Controller
                         'unit' => $row->unit,
                         'bom' => $row->bom,
                         'qty' => $qty,
-                        'material_cost' => $material,
-                        'labor_cost' => $labor,
-                        'freight_cost' => $overhead,
+                        'reject_qty' => (float) $row->reject_qty,
+                        'material_cost' => (float) $row->material_cost,
+                        'labor_cost' => (float) $row->labor_cost,
+                        'equipment_cost' => (float) $row->equipment_cost,
+                        'rental_cost' => (float) $row->rental_cost,
+                        'overhead_cost' => (float) $row->overhead_cost,
                         'total_cost' => $total,
                         'unit_cost' => $qty > 0 ? $total / $qty : 0,
                     ];

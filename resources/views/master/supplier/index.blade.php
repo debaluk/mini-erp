@@ -1,18 +1,44 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <div>
-        <h3 class="mb-1">{{ $config['title'] }}</h3>
-        <div class="text-secondary">Master data</div>
+        <h4 class="mb-1">Master Data Supplier</h4>
+        <div class="text-secondary small">Data pemasok barang dan jasa untuk kebutuhan pembelian.</div>
     </div>
-    <button type="button" class="btn btn-primary btn-sm" id="btnAddMaster">+ Tambah</button>
+    <button type="button" class="btn btn-primary" id="btnAddMaster">
+        <i class="bi bi-plus-lg me-1"></i> Tambah Supplier
+    </button>
 </div>
 
-<div class="card shadow-sm">
+@if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show py-2" role="alert">
+        <i class="bi bi-check-circle me-1"></i>{{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+
+@if($errors->any())
+    <div class="alert alert-danger py-2">
+        <div class="fw-semibold mb-1">Data supplier belum tersimpan.</div>
+        <ul class="mb-0 ps-3">
+            @foreach($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+@endif
+
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-primary bg-opacity-10 text-primary border-bottom d-flex justify-content-between align-items-center py-3">
+        <div class="fw-semibold">
+            <i class="bi bi-truck me-2"></i>Daftar Supplier
+        </div>
+        <span class="badge rounded-pill bg-white text-primary border border-primary-subtle" id="supplierCount">Data supplier</span>
+    </div>
     <div class="table-responsive">
-        <table class="table table-sm table-hover align-middle mb-0" id="masterDataTable" style="width:100%">
-            <thead>
+        <table class="table table-hover align-middle mb-0" id="masterDataTable" style="width:100%">
+            <thead class="table-primary">
                 <tr>
                     @foreach($config['columns'] as $column)
                         <th>{{ $config['column_labels'][$column] ?? ucwords(str_replace('_', ' ', $column)) }}</th>
@@ -25,12 +51,15 @@
     </div>
 </div>
 
-<div class="modal fade" id="masterModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="masterModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
             <form id="masterForm" novalidate>
-                <div class="modal-header py-2">
-                    <h5 class="modal-title" id="masterModalTitle">Tambah {{ $config['title'] }}</h5>
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title mb-1" id="masterModalTitle">Tambah Supplier</h5>
+                        <div class="text-secondary small">Lengkapi data supplier dengan benar.</div>
+                    </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body py-3">
@@ -53,9 +82,11 @@
                         @endforeach
                     </div>
                 </div>
-                <div class="modal-footer py-2">
-                    <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary btn-sm" id="masterSubmit">Simpan</button>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-success px-4" id="masterSubmit">
+                        <i class="bi bi-check-lg me-1"></i>Simpan Supplier
+                    </button>
                 </div>
             </form>
         </div>
@@ -69,10 +100,12 @@
                 <h5 class="modal-title">Konfirmasi</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">Hapus data ini?</div>
+            <div class="modal-body">Hapus data supplier ini?</div>
             <div class="modal-footer py-2">
                 <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Batal</button>
-                <button type="button" class="btn btn-danger btn-sm" id="masterConfirmYes">Ya, Hapus</button>
+                <button type="button" class="btn btn-danger btn-sm" id="masterConfirmYes">
+                    <i class="bi bi-trash me-1"></i>Ya, Hapus
+                </button>
             </div>
         </div>
     </div>
@@ -91,6 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('masterForm');
     const title = document.getElementById('masterModalTitle');
     const submitButton = document.getElementById('masterSubmit');
+    const countBadge = document.getElementById('supplierCount');
     const baseUrl = @json(url('/master/suppliers'));
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content || @json(csrf_token());
 
@@ -122,7 +156,10 @@ document.addEventListener('DOMContentLoaded', () => {
         ajax: {
             url: baseUrl,
             type: 'GET',
-            dataSrc: 'data'
+            dataSrc: json => {
+                countBadge.textContent = (json.recordsFiltered ?? json.recordsTotal ?? 0) + ' supplier';
+                return json.data || [];
+            }
         },
         columns: [
             @foreach($config['columns'] as $column)
@@ -150,8 +187,8 @@ document.addEventListener('DOMContentLoaded', () => {
         form.reset();
         editId = null;
         form.querySelectorAll('.required-field').forEach(input => input.classList.remove('is-invalid'));
-        title.textContent = 'Tambah {{ $config['title'] }}';
-        submitButton.textContent = 'Simpan';
+        title.textContent = 'Tambah Supplier';
+        submitButton.innerHTML = '<i class="bi bi-check-lg me-1"></i>Simpan Supplier';
     };
 
     const validateRequired = () => {
@@ -236,8 +273,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (input) input.value = row[key] ?? '';
             });
 
-            title.textContent = 'Edit {{ $config['title'] }}';
-            submitButton.textContent = 'Update';
+            title.textContent = 'Edit Supplier';
+            submitButton.innerHTML = '<i class="bi bi-check-lg me-1"></i>Update Supplier';
             modal.show();
             return;
         }

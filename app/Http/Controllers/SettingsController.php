@@ -321,12 +321,22 @@ class SettingsController extends Controller
             ->orderBy('code')
             ->get();
 
-        $accounts = DB::table('chart_of_accounts')
-            ->where('entity_id', $entityId)
-            ->where('is_active', true)
-            ->where('is_postable', true)
-            ->orderBy('code')
-            ->get();
+        $accounts = DB::table('chart_of_accounts as coa')
+            ->where('coa.entity_id', $entityId)
+            ->where('coa.is_active', true)
+            ->whereNotExists(function ($query) {
+                $query->select(DB::raw(1))
+                    ->from('chart_of_accounts as child')
+                    ->whereColumn('child.parent_id', 'coa.id')
+                    ->where('child.entity_id', DB::raw('coa.entity_id'));
+            })
+            ->orderBy('coa.code')
+            ->get([
+                'coa.id',
+                'coa.code',
+                'coa.name',
+                'coa.level',
+            ]);
 
         $mappings = BusinessUnitAccountMapping::where('entity_id', $entityId)
             ->get()
@@ -338,7 +348,9 @@ class SettingsController extends Controller
             'bank' => 'Bank',
             'receivable' => 'Piutang',
             'payable' => 'Hutang',
-            'inventory' => 'Persediaan',
+            'inventory' => 'Persediaan Bahan Baku',
+            'inventory_wip' => 'Persediaan Barang Dalam Proses',
+            'inventory_finished_goods' => 'Persediaan Barang Jadi',
             'sales_merchandise' => 'Penjualan Barang Dagangan',
             'sales_finished_goods' => 'Penjualan Hasil Produksi',
             'sales_service' => 'Pendapatan Jasa',
@@ -346,7 +358,13 @@ class SettingsController extends Controller
             'cogs_finished_goods' => 'HPP Hasil Produksi',
             'direct_material' => 'Bahan Baku Langsung',
             'direct_labor' => 'Tenaga Kerja Langsung',
+            'direct_equipment' => 'Alat Langsung',
+            'direct_rent' => 'Sewa Langsung',
             'direct_overhead' => 'Overhead Langsung',
+            'salary_payable' => 'Hutang Gaji',
+            'inventory_damage_loss' => 'Kerugian Kerusakan Persediaan',
+            'hpp_difference' => 'Selisih HPP',
+            'hpp_adjustment' => 'Penyesuaian HPP',
         ];
 
         $warehouseList = DB::table('warehouses')
@@ -378,13 +396,20 @@ class SettingsController extends Controller
                     'receivable',
                     'payable',
                     'inventory',
+                    'inventory_wip',
+                    'inventory_finished_goods',
                     'sales_finished_goods',
                     'sales_return_finished_goods',
                     'cogs_finished_goods',
-                    'inventory_damage_loss',
                     'direct_material',
                     'direct_labor',
+                    'direct_equipment',
+                    'direct_rent',
                     'direct_overhead',
+                    'salary_payable',
+                    'inventory_damage_loss',
+                    'hpp_difference',
+                    'hpp_adjustment',
                 ],
                 'service' => [
                     'cash',

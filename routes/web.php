@@ -11,6 +11,9 @@ use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\PurchaseInvoiceController;
 use App\Http\Controllers\PurchaseReturnController;
 use App\Http\Controllers\HppController;
+use App\Http\Controllers\ProductionController;
+use App\Http\Controllers\ProductionWorkOrderController;
+use App\Http\Controllers\ProductionMaterialUsageController;
 use App\Http\Controllers\PurchaseReportController;
 use App\Http\Controllers\ReceiptController;
 use App\Http\Controllers\SalesReturnController;
@@ -84,6 +87,15 @@ Route::middleware('auth')->group(function () {
     Route::post('/master/bom', [BomController::class, 'store'])
         ->middleware('access:master')
         ->name('master.bom.store');
+    Route::put('/master/bom/{id}', [BomController::class, 'update'])
+        ->middleware('access:master')
+        ->name('master.bom.update');
+    Route::delete('/master/bom/{id}', [BomController::class, 'destroy'])
+        ->middleware('access:master')
+        ->name('master.bom.delete');
+    Route::get('/master/bom/{id}/print', [BomController::class, 'print'])
+        ->middleware('access:master')
+        ->name('master.bom.print');
     
     Route::get('/master/akun', [AccountController::class, 'index'])->middleware('access:master')->name('master.akun');
     Route::post('/master/akun', [AccountController::class, 'store'])->middleware('access:master')->name('master.akun.store');
@@ -250,14 +262,33 @@ Route::middleware(['auth', 'access:inventori'])->prefix('inventori/penyesuaian')
     // ============================================================
     // PRODUKSI
     // ============================================================
-    Route::get('/produksi', fn () => app(ModuleController::class)->show('production'))->middleware('access:inventori')->name('produksi');
-    Route::get('/produksi/pemakaian-bahan', fn () => app(ModuleController::class)->show('material-usage'))->middleware('access:inventori')->name('produksi.pemakaian-bahan');
+    Route::get('/produksi', [ProductionController::class, 'index'])->middleware('access:inventori')->name('produksi');
+    Route::post('/produksi', [ProductionController::class, 'store'])->middleware('access:inventori')->name('produksi.store');
+    Route::middleware(['auth', 'access:inventori'])->prefix('produksi/pemakaian-bahan')->name('produksi.pemakaian-bahan')->group(function () {
+    Route::get('/', [ProductionMaterialUsageController::class, 'index'])->name('');
+    Route::get('/create/{workOrderId}', [ProductionMaterialUsageController::class, 'create'])->name('.create');
+    Route::post('/{workOrderId}', [ProductionMaterialUsageController::class, 'store'])->name('.store');
+    Route::get('/{id}', [ProductionMaterialUsageController::class, 'show'])->name('.show');
+    Route::post('/{id}/submit', [ProductionMaterialUsageController::class, 'submit'])->name('.submit');
+    Route::post('/{id}/approve', [ProductionMaterialUsageController::class, 'approve'])->name('.approve');
+    Route::post('/{id}/reject', [ProductionMaterialUsageController::class, 'reject'])->name('.reject');
+});
     Route::get('/produksi/hasil-produksi', fn () => app(ModuleController::class)->show('production-results'))->middleware('access:inventori')->name('produksi.hasil-produksi');
     Route::get('/produksi/reject', fn () => app(ModuleController::class)->show('production-results'))->middleware('access:inventori')->name('produksi.reject');
     Route::get('/produksi/hpp', [HppController::class, 'index'])->middleware('access:inventori')->name('produksi.hpp');
 
-    Route::get('/produksi/work-order', fn () => view('inventori.produksi.work-order.index'))
-        ->name('produksi.work-order');
+    Route::get('/produksi/work-order', [ProductionWorkOrderController::class, 'index'])->middleware('access:inventori')->name('produksi.work-order');
+    Route::get('/produksi/work-order/create', [ProductionWorkOrderController::class, 'create'])->middleware('access:inventori')->name('produksi.work-order.create');
+    Route::get('/produksi/work-order/{id}/edit', [ProductionWorkOrderController::class, 'edit'])->middleware('access:inventori')->name('produksi.work-order.edit');
+    Route::post('/produksi/work-order', [ProductionWorkOrderController::class, 'store'])->middleware('access:inventori')->name('produksi.work-order.store');
+    Route::put('/produksi/work-order/{id}', [ProductionWorkOrderController::class, 'update'])->middleware('access:inventori')->name('produksi.work-order.update');
+    Route::delete('/produksi/work-order/{id}', [ProductionWorkOrderController::class, 'destroy'])->middleware('access:inventori')->name('produksi.work-order.destroy');
+    Route::get('/produksi/work-order/bom/{bomId}/info', [ProductionWorkOrderController::class, 'bomInfo'])->middleware('access:inventori')->name('produksi.work-order.bom-info');
+    Route::get('/produksi/work-order/{id}/print', [ProductionWorkOrderController::class, 'print'])->middleware('access:inventori')->name('produksi.work-order.print');
+    Route::get('/produksi/work-order/export', [ProductionWorkOrderController::class, 'export'])->middleware('access:inventori')->name('produksi.work-order.export');
+    Route::get('/produksi/work-order/{id}', [ProductionWorkOrderController::class, 'show'])->middleware('access:inventori')->name('produksi.work-order.show');
+    Route::post('/produksi/work-order/{id}/start', [ProductionWorkOrderController::class, 'startWork'])->middleware('access:inventori')->name('produksi.work-order.start');
+    Route::post('/produksi/work-order/{id}/hasil-produksi', [ProductionWorkOrderController::class, 'saveProductionResult'])->middleware('access:inventori')->name('produksi.work-order.hasil-produksi');
 
     // ============================================================
     // KEUANGAN & AKUNTANSI

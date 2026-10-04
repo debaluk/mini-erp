@@ -5,7 +5,9 @@
 $prodTotalQty=$productionRows->sum('qty');
 $prodMaterial=$productionRows->sum('material_cost');
 $prodLabor=$productionRows->sum('labor_cost');
-$prodOverhead=$productionRows->sum('freight_cost');
+$prodEquipment=$productionRows->sum('equipment_cost');
+$prodRental=$productionRows->sum('rental_cost');
+$prodOverhead=$productionRows->sum('overhead_cost');
 $prodTotal=$productionRows->sum('total_cost');
 @endphp
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -45,18 +47,20 @@ $prodTotal=$productionRows->sum('total_cost');
             <div class="p-3">
                 <div class="d-flex justify-content-between align-items-center mb-3"><div><div class="fw-semibold">HPP Produksi — Perpetual</div><small class="text-secondary">Cost hasil produksi berdasarkan BOM, pemakaian aktual, dan biaya produksi.</small></div><span class="badge text-bg-success">PERPETUAL</span></div>
                 <div class="table-responsive"><table class="table table-hover align-middle mb-0">
-                    <thead class="table-light"><tr><th>No. Produksi</th><th>Tanggal</th><th>Produk Jadi</th><th>BOM / Formula</th><th class="text-end">Qty Hasil (Base Unit)</th><th class="text-end">Bahan Baku (Rp)</th><th class="text-end">Tenaga Kerja (Rp)</th><th class="text-end">Overhead / Angkut (Rp)</th><th class="text-end">Total HPP (Rp)</th><th class="text-end">HPP / Unit (Rp)</th></tr></thead>
-                    <tbody>@forelse($productionRows as $row)<tr><td>{{ $row->production_no }}</td><td>{{ \Carbon\Carbon::parse($row->date)->format('d/m/Y') }}</td><td>{{ $row->product }}</td><td>{{ $row->bom }}</td><td class="text-end">{{ number_format($row->qty,0,',','.') }}</td><td class="text-end">Rp {{ number_format($row->material_cost,0,',','.') }}</td><td class="text-end">Rp {{ number_format($row->labor_cost,0,',','.') }}</td><td class="text-end">Rp {{ number_format($row->freight_cost,0,',','.') }}</td><td class="text-end fw-semibold">Rp {{ number_format($row->total_cost,0,',','.') }}</td><td class="text-end fw-semibold">Rp {{ number_format($row->unit_cost,2,',','.') }}</td></tr>@empty<tr><td colspan="10" class="text-center text-secondary py-4">Belum ada data HPP Produksi.</td></tr>@endforelse</tbody>
-                    <tfoot class="table-light fw-semibold"><tr><td colspan="4">TOTAL</td><td class="text-end">{{ number_format($prodTotalQty,0,',','.') }}</td><td class="text-end">Rp {{ number_format($prodMaterial,0,',','.') }}</td><td class="text-end">Rp {{ number_format($prodLabor,0,',','.') }}</td><td class="text-end">Rp {{ number_format($prodOverhead,0,',','.') }}</td><td class="text-end">Rp {{ number_format($prodTotal,0,',','.') }}</td><td></td></tr></tfoot>
+                    <thead class="table-light"><tr><th>No. Produksi</th><th>Tanggal</th><th>Produk Jadi</th><th>BOM / Formula</th><th class="text-end">Qty Bagus</th><th class="text-end">Reject</th><th class="text-end">Bahan (B)</th><th class="text-end">Upah (U)</th><th class="text-end">Alat (A)</th><th class="text-end">Sewa (S)</th><th class="text-end">Overhead (O)</th><th class="text-end">Total HPP</th><th class="text-end">HPP / Unit</th></tr></thead>
+                    <tbody>@forelse($productionRows as $row)<tr><td>{{ $row->production_no }}</td><td>{{ \Carbon\Carbon::parse($row->date)->format('d/m/Y') }}</td><td>{{ $row->product }}</td><td>{{ $row->bom }}</td><td class="text-end">{{ number_format($row->qty,3,',','.') }}</td><td class="text-end">{{ number_format($row->reject_qty,3,',','.') }}</td><td class="text-end">Rp {{ number_format($row->material_cost,0,',','.') }}</td><td class="text-end">Rp {{ number_format($row->labor_cost,0,',','.') }}</td><td class="text-end">Rp {{ number_format($row->equipment_cost,0,',','.') }}</td><td class="text-end">Rp {{ number_format($row->rental_cost,0,',','.') }}</td><td class="text-end">Rp {{ number_format($row->overhead_cost,0,',','.') }}</td><td class="text-end fw-semibold">Rp {{ number_format($row->total_cost,0,',','.') }}</td><td class="text-end fw-semibold">Rp {{ number_format($row->unit_cost,2,',','.') }}</td></tr>@empty<tr><td colspan="13" class="text-center text-secondary py-4">Belum ada data HPP Produksi.</td></tr>@endforelse</tbody>
+                    <tfoot class="table-light fw-semibold"><tr><td colspan="4">TOTAL</td><td class="text-end">{{ number_format($prodTotalQty,3,',','.') }}</td><td></td><td class="text-end">Rp {{ number_format($prodMaterial,0,',','.') }}</td><td class="text-end">Rp {{ number_format($prodLabor,0,',','.') }}</td><td class="text-end">Rp {{ number_format($prodEquipment,0,',','.') }}</td><td class="text-end">Rp {{ number_format($prodRental,0,',','.') }}</td><td class="text-end">Rp {{ number_format($prodOverhead,0,',','.') }}</td><td class="text-end">Rp {{ number_format($prodTotal,0,',','.') }}</td><td></td></tr></tfoot>
                 </table></div>
                 <div class="alert alert-light border mt-3 mb-0">
     <div class="fw-semibold mb-2">Informasi Formula HPP Produksi</div>
     <div class="mb-1"><strong>1. Bahan Baku</strong> = nilai pemakaian bahan baku aktual berdasarkan stok/HPP bahan.</div>
     <div class="mb-1"><strong>2. Tenaga Kerja</strong> = biaya tenaga kerja langsung yang dibebankan ke produksi.</div>
-    <div class="mb-1"><strong>3. Overhead / Angkut</strong> = biaya overhead produksi dan biaya angkut yang dialokasikan ke produksi.</div>
-    <div class="mb-1"><strong>4. Total HPP</strong> = Bahan Baku + Tenaga Kerja + Overhead / Angkut.</div>
-    <div class="mb-1"><strong>5. HPP / Unit</strong> = Total HPP ÷ Qty Hasil (Bagus).</div>
-    <div><strong>6. BOM / Formula</strong> = acuan kebutuhan produksi; HPP final menggunakan biaya aktual produksi.</div>
+    <div class="mb-1"><strong>3. Alat</strong> = biaya penggunaan alat produksi aktual.</div>
+    <div class="mb-1"><strong>4. Sewa</strong> = biaya sewa yang dibebankan ke produksi.</div>
+    <div class="mb-1"><strong>5. Overhead</strong> = overhead produksi aktual lainnya.</div>
+    <div class="mb-1"><strong>6. Total HPP</strong> = Bahan + Upah + Alat + Sewa + Overhead.</div>
+    <div class="mb-1"><strong>7. HPP / Unit</strong> = Total HPP ÷ Qty Hasil (Bagus).</div>
+    <div><strong>8. BOM / Formula</strong> = acuan kebutuhan produksi; HPP final menggunakan biaya aktual produksi.</div>
 </div>
             </div>
         </div>
