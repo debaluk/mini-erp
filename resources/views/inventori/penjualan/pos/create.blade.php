@@ -53,7 +53,7 @@
         overflow: hidden;
         display: flex;
         flex-direction: column;
-        padding: 12px !important;
+        padding: 0 12px 12px !important;
     }
 
     .pos-cart {
