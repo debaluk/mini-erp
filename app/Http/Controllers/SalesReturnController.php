@@ -183,9 +183,16 @@ class SalesReturnController extends Controller
             ]);
 
             $message = match (true) {
-                str_contains($e->getMessage(), 'Tanggal retur') => $e->getMessage(),
-                str_contains($e->getMessage(), 'No query results') => 'Data retur atau transaksi penjualan tidak ditemukan.',
-                default => 'Retur penjualan belum berhasil disimpan. Silakan periksa kembali data retur dan coba lagi.',
+                str_contains($e->getMessage(), 'Tanggal retur')
+                    || str_contains($e->getMessage(), 'Double time specification')
+                    || str_contains($e->getMessage(), 'Failed to parse time string')
+                    => 'Tanggal dan waktu retur tidak valid. Silakan pilih ulang tanggal dan waktu retur.',
+                str_contains($e->getMessage(), 'No query results')
+                    => 'Data retur atau transaksi penjualan tidak ditemukan. Silakan muat ulang halaman dan coba lagi.',
+                str_contains($e->getMessage(), 'Integrity constraint violation')
+                    => 'Retur tidak dapat disimpan karena data transaksi belum lengkap atau tidak sesuai.',
+                default
+                    => 'Retur penjualan belum berhasil disimpan. Periksa kembali invoice, item retur, jumlah, kondisi barang, dan gudang, lalu coba lagi.',
             };
 
             return response()->json([
