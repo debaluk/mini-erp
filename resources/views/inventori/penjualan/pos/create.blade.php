@@ -150,8 +150,14 @@
         <div class="d-flex align-items-center mt-3 mb-2">
             <div>
                 <h6 class="mb-0"><i class="bi bi-receipt me-2"></i>Detil Penjualan</h6>
-                <div class="small text-secondary">Masukkan barcode pada baris kosong untuk menambah barang.</div>
+                <div class="small text-secondary">Scan barcode atau ketik kode barang pada kolom di atas.</div>
             </div>
+        </div>
+
+        <div class="input-group input-group-sm mb-2">
+            <span class="input-group-text"><i class="bi bi-upc-scan"></i></span>
+            <input type="text" id="posBarcodeSearch" class="form-control" autocomplete="off" placeholder="Scan / ketik barcode barang..." autofocus>
+            <button type="button" class="btn btn-outline-primary" id="posChooseProduct">Pilih Barang</button>
         </div>
 
         <div class="table-responsive pos-cart">
