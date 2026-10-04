@@ -131,8 +131,7 @@ class SalesController extends Controller
             )
             ->orderByDesc('s.sale_date')
             ->orderByDesc('s.id')
-            ->paginate(10)
-            ->withQueryString();
+            ->get();
 
         $units = DB::table('business_units')
             ->where('entity_id', $entity)
