@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Carbon\Carbon;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\ProductionWorkOrderExport;
 use App\Helpers\FormatHelper;
@@ -283,7 +284,7 @@ class ProductionWorkOrderController extends Controller
                 'wo_date' => $data['wo_date'],
                 'batch_qty' => $data['batch_qty'],
                 'target_output_qty' => $targetOutput,
-                'status' => 'open',
+                'status' => 'draft',
                 'notes' => $data['notes'] ?? null,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -330,7 +331,7 @@ class ProductionWorkOrderController extends Controller
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
-                'message' => 'SPK berhasil dibuat.',
+                'message' => 'SPK berhasil disimpan sebagai Draft.',
                 'row' => $this->workOrderRow($entityId, $woId),
             ]);
         }
@@ -345,10 +346,10 @@ class ProductionWorkOrderController extends Controller
         $wo = DB::table('production_work_orders')
             ->where('entity_id', $entityId)
             ->where('id', $id)
-            ->where('status', 'open')
+            ->where('status', 'draft')
             ->first();
 
-        abort_unless($wo, 404, 'SPK Open tidak ditemukan.');
+        abort_unless($wo, 404, 'SPK Draft tidak ditemukan.');
 
         $boms = DB::table('boms as b')
             ->join('products as p', 'p.id', '=', 'b.product_id')
@@ -432,8 +433,8 @@ class ProductionWorkOrderController extends Controller
 
         DB::transaction(function () use ($data, $entityId, $id): void {
             $wo = DB::table('production_work_orders')
-                ->where('entity_id', $entityId)->where('id', $id)->where('status', 'open')->first();
-            abort_unless($wo, 422, 'Hanya SPK Open yang dapat diedit.');
+                ->where('entity_id', $entityId)->where('id', $id)->where('status', 'draft')->first();
+            abort_unless($wo, 422, 'Hanya SPK Draft yang dapat diedit.');
 
             $warehouse = DB::table('warehouses')
                 ->where('entity_id', $entityId)->where('is_active', 1)->where('id', $data['warehouse_id'])->first();
@@ -508,6 +509,38 @@ class ProductionWorkOrderController extends Controller
         }
 
         return redirect()->route('produksi.work-order')->with('success', 'WO berhasil diperbarui.');
+    }
+
+    public function approve(int $id)
+    {
+        $entityId = $this->entityId();
+
+        $wo = DB::table('production_work_orders')
+            ->where('entity_id', $entityId)
+            ->where('id', $id)
+            ->where('status', 'draft')
+            ->first();
+
+        abort_unless($wo, 422, 'Hanya SPK Draft yang dapat disetujui.');
+
+        DB::table('production_work_orders')
+            ->where('entity_id', $entityId)
+            ->where('id', $id)
+            ->where('status', 'draft')
+            ->update([
+                'status' => 'open',
+                'updated_at' => now(),
+            ]);
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'SPK berhasil disetujui dan menjadi Open.',
+                'row' => $this->workOrderRow($entityId, $id),
+            ]);
+        }
+
+        return redirect()->route('produksi.work-order')->with('success', 'SPK berhasil disetujui dan menjadi Open.');
     }
 
     public function startWork(Request $request, int $id)
@@ -977,22 +1010,22 @@ class ProductionWorkOrderController extends Controller
         $wo = DB::table('production_work_orders')
             ->where('entity_id', $entityId)
             ->where('id', $id)
-            ->where('status', 'open')
+            ->where('status', 'draft')
             ->first();
 
-        abort_unless($wo, 422, 'Hanya SPK Open yang dapat dihapus.');
+        abort_unless($wo, 422, 'Hanya SPK Draft yang dapat dihapus.');
 
         DB::transaction(function () use ($id): void {
             DB::table('production_work_order_costs')->where('production_work_order_id', $id)->delete();
             DB::table('production_work_order_workers')->where('production_work_order_id', $id)->delete();
-            DB::table('production_work_orders')->where('id', $id)->where('status', 'open')->delete();
+            DB::table('production_work_orders')->where('id', $id)->where('status', 'draft')->delete();
         });
 
         if (request()->expectsJson()) {
-            return response()->json(['success' => true, 'message' => 'SPK Open berhasil dihapus.']);
+            return response()->json(['success' => true, 'message' => 'SPK Draft berhasil dihapus.']);
         }
 
-        return redirect()->route('produksi.work-order')->with('success', 'SPK Open berhasil dihapus.');
+        return redirect()->route('produksi.work-order')->with('success', 'SPK Draft berhasil dihapus.');
     }
 
     private function workOrderRow(int $entityId, int $id): array
