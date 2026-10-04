@@ -370,9 +370,23 @@ public function exportPaymentsExcel(Request $request)
         $entityRow=DB::table('entities')->where('id',$entity)->first();
         $e=fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');
         $num=fn($v)=>'<span x:num="'.number_format((float)$v,2,'.','').'">'.number_format((float)$v,2,'.','').'</span>';
+        $date=fn($v)=>$v ? date('d/m/Y H:i',strtotime($v)) : '-';
+        $method=fn($v)=>match(strtolower((string)$v)){
+            'cash'=>'Tunai',
+            'credit'=>'Kredit / Bon',
+            'transfer'=>'Transfer',
+            'qris'=>'QRIS',
+            default=>$v ?: '-',
+        };
+        $status=fn($v)=>match(strtolower((string)$v)){
+            'posted'=>'Diposting',
+            'draft'=>'Draf',
+            'cancelled'=>'Dibatalkan',
+            default=>$v ?: '-',
+        };
         $html='<html><head><meta charset="UTF-8"><style>td,th{border:1px solid #999;padding:5px}th{background:#eee}</style></head><body>';
-        $html.='<h3>'. $e($entityRow?->name ?? 'MINI ERP') .'</h3><div>'. $e($entityRow?->address ?? '') .'</div><h4>Penerimaan Pembayaran</h4><div>Periode: '.$e($start).' s/d '.$e($end).'</div><br><table><tr><th>No Pembayaran</th><th>Tanggal</th><th>Sumber</th><th>Referensi</th><th>Customer</th><th>Jumlah</th><th>Metode</th><th>Kas/Bank</th><th>User</th><th>Status</th></tr>';
-        foreach($rows as $r){$html.='<tr><td>'.$e($r->payment_no).'</td><td>'.$e($r->payment_date).'</td><td>'.$e($r->source_name).'</td><td>'.$e($r->reference_no).'</td><td>'.$e($r->customer_name).'</td><td>'.$num($r->amount).'</td><td>'.$e($r->method).'</td><td>'.$e($r->method).'</td><td>'.$e($r->user_name).'</td><td>'.$e($r->payment_status).'</td></tr>';}
+        $html.='<h3>'. $e($entityRow?->name ?? 'MINI ERP') .'</h3><div>'. $e($entityRow?->address ?? '') .'</div><h4>Penerimaan Pembayaran</h4><div>Periode: '.$e($start).' s/d '.$e($end).'</div><br><table><tr><th>No Pembayaran</th><th>Tanggal</th><th>Sumber</th><th>Referensi</th><th>Pelanggan</th><th>Jumlah</th><th>Metode Pembayaran</th><th>Kas/Bank</th><th>Petugas</th><th>Status</th></tr>';
+        foreach($rows as $r){$html.='<tr><td>'.$e($r->payment_no).'</td><td>'.$e($date($r->payment_date)).'</td><td>'.$e($r->source_name).'</td><td>'.$e($r->reference_no).'</td><td>'.$e($r->customer_name).'</td><td>'.$num($r->amount).'</td><td>'.$e($method($r->method)).'</td><td>'.$e($r->method).'</td><td>'.$e($r->user_name).'</td><td>'.$e($status($r->payment_status)).'</td></tr>';}
         $html.='</table></body></html>';
         return response($html)->header('Content-Type','application/vnd.ms-excel; charset=UTF-8')->header('Content-Disposition','attachment; filename="penerimaan-pembayaran-'.$start.'-'.$end.'.xls"');
     }
