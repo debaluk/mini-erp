@@ -25,12 +25,12 @@
 
 @include('master.unit-bisnis._form', ['editUnit' => $editUnit])
 
-<div class="card shadow-sm">
-    <div class="card-header fw-semibold">Daftar Unit Bisnis</div>
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-primary bg-opacity-10 text-primary border-bottom d-flex justify-content-between align-items-center py-3"><div class="fw-semibold"><i class="bi bi-building me-2"></i>Daftar Unit Bisnis</div><span class="badge rounded-pill bg-white text-primary border border-primary-subtle">Master data</span></div>
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-bordered table-hover mb-0 align-middle">
-                <thead class="table-light">
+            <table class="table table-sm table-hover align-middle mb-0">
+                <thead class="table-primary">
                     <tr>
                         <th>Nama Unit</th>
                         <th style="width: 15%">Tipe Usaha</th>
@@ -74,8 +74,8 @@
     </div>
 </div>
 
-<div class="card shadow-sm mb-3">
-    <div class="card-header fw-semibold">Edukasi Metode HPP</div>
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-primary bg-opacity-10 text-primary border-bottom py-3"><div class="fw-semibold"><i class="bi bi-info-circle me-2"></i>Edukasi Metode HPP</div></div>
     <div class="card-body">
         <div class="row g-3">
             <div class="col-md-6">
