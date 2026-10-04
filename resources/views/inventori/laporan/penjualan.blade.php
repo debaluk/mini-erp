@@ -445,7 +445,7 @@
             </thead>
 
             <tbody>
-                @forelse($topPelanggans as $c)
+                @forelse($topCustomers as $c)
                     <tr>
                         <td class="fw-semibold">{{ $c->customer_name }}</td>
                         <td class="text-end">{{ number_format((int) $c->transactions, 0, ',', '.') }}</td>
