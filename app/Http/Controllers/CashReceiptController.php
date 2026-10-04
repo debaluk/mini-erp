@@ -48,7 +48,7 @@ class CashReceiptController extends Controller
 
         // Base Query Filter
         $baseQuery = Journal::with(['businessUnit', 'entries.account'])
-            ->whereIn('source_type', ['CASH_IN', 'AR_PAYMENT'])
+            ->whereIn('source_type', ['CASH_IN', 'AR_PAYMENT', 'sale'])
             ->whereDate('journal_date', '>=', $startDate)
             ->whereDate('journal_date', '<=', $endDate);
 
