@@ -186,30 +186,6 @@
                         @endif
                     </div>
 
-                    <div class="mt-auto pt-3 border-top pos-summary">
-                        <h6 class="mb-2"><i class="bi bi-calculator me-2"></i>Ringkasan Transaksi</h6>
-                        <div class="d-flex justify-content-between py-1">
-                            <span>Subtotal</span>
-                            <strong id="subtotalAmount">Rp 0</strong>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center py-1">
-                            <span>Diskon (Rp)</span>
-                            <input id="discountInput" type="number" min="0" class="form-control text-end" style="max-width:160px" value="0">
-                        </div>
-                        <div class="pos-total-card mt-2 d-flex justify-content-between align-items-center gap-3">
-                            <div class="small text-uppercase fw-semibold opacity-75 text-nowrap">TOTAL BAYAR</div>
-                            <div id="totalAmount" class="pos-total text-end">Rp 0</div>
-                        </div>
-                        <div class="mt-2">
-                            <label class="form-label">Cara Bayar</label>
-                            <select id="paymentMethod" class="form-select">
-                                <option value="Tunai">Tunai</option>
-                                <option value="Transfer">Transfer</option>
-                                <option value="QRIS">QRIS</option>
-                            </select>
-                        </div>
-                    </div>
-
                     <div class="pt-3 mt-3 border-top">
                         <div class="small fw-semibold text-secondary mb-2">Shortcut Kasir</div>
                         <div class="d-flex flex-wrap gap-2">
@@ -255,6 +231,31 @@
                         <tbody id="detailBody"></tbody>
                     </table>
                 </div>
+
+
+                                    <div class="mt-auto pt-3 border-top pos-summary">
+                        <h6 class="mb-2"><i class="bi bi-calculator me-2"></i>Ringkasan Transaksi</h6>
+                        <div class="d-flex justify-content-between py-1">
+                            <span>Subtotal</span>
+                            <strong id="subtotalAmount">Rp 0</strong>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center py-1">
+                            <span>Diskon (Rp)</span>
+                            <input id="discountInput" type="number" min="0" class="form-control text-end" style="max-width:160px" value="0">
+                        </div>
+                        <div class="pos-total-card mt-2 d-flex justify-content-between align-items-center gap-3">
+                            <div class="small text-uppercase fw-semibold opacity-75 text-nowrap">TOTAL BAYAR</div>
+                            <div id="totalAmount" class="pos-total text-end">Rp 0</div>
+                        </div>
+                        <div class="mt-2">
+                            <label class="form-label">Cara Bayar</label>
+                            <select id="paymentMethod" class="form-select">
+                                <option value="Tunai">Tunai</option>
+                                <option value="Transfer">Transfer</option>
+                                <option value="QRIS">QRIS</option>
+                            </select>
+                        </div>
+                    </div>
             </div>
         </div>
 </div>
