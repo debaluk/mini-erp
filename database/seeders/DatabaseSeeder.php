@@ -312,33 +312,6 @@ class DatabaseSeeder extends Seeder
         }
 
         // ================================================================
-        // CUSTOMER / SUPPLIER
-        // ================================================================
-        DB::table('customers')->updateOrInsert(
-            ['entity_id' => $entityId, 'code' => 'CUS-001'],
-            [
-                'name' => 'Customer Demo',
-                'phone' => '081234567890',
-                'address' => 'Bali',
-                'credit_limit' => 0,
-                'is_active' => true,
-                'updated_at' => $now,
-            ]
-        );
-
-        DB::table('suppliers')->updateOrInsert(
-            ['entity_id' => $entityId, 'code' => 'SUP-001'],
-            [
-                'name' => 'Supplier Demo',
-                'phone' => '081298765432',
-                'address' => 'Bali',
-                'credit_limit' => 0,
-                'is_active' => true,
-                'updated_at' => $now,
-            ]
-        );
-
-        // ================================================================
         // WAREHOUSES
         // ================================================================
         $warehouseIds = [];
@@ -375,49 +348,6 @@ class DatabaseSeeder extends Seeder
                 ]
             );
         }
-
-        // ================================================================
-        // ARMADA MASTER
-        // ================================================================
-        DB::table('vehicles')->updateOrInsert(
-            ['entity_id' => $entityId, 'code' => 'TRK-001'],
-            [
-                'plate_number' => 'DK 1001 XX',
-                'model' => 'Truck Bak',
-                'vehicle_type' => 'Truck',
-                'capacity' => 5,
-                'current_km' => 0,
-                'acquisition_value' => 0,
-                'status' => 'active',
-                'updated_at' => $now,
-            ]
-        );
-
-        DB::table('drivers')->updateOrInsert(
-            ['entity_id' => $entityId, 'code' => 'DRV-001'],
-            [
-                'name' => 'Driver Demo',
-                'phone' => '0800000000',
-                'license_no' => 'SIM-B1',
-                'license_expiry' => null,
-                'is_active' => true,
-                'updated_at' => $now,
-            ]
-        );
-
-        DB::table('tariffs')->updateOrInsert(
-            ['entity_id' => $entityId, 'code' => 'TRF-001'],
-            [
-                'name' => 'Pengiriman Standar',
-                'tariff_type' => 'per_km',
-                'base_price' => 0,
-                'price_per_km' => 5000,
-                'price_per_hour' => 0,
-                'minimum_charge' => 25000,
-                'is_active' => true,
-                'updated_at' => $now,
-            ]
-        );
 
         // ================================================================
         // CHART OF ACCOUNTS
@@ -671,51 +601,6 @@ class DatabaseSeeder extends Seeder
                     ]
                 );
             }
-        }
-
-        // ================================================================
-        // INITIAL STOCK / WAREHOUSE STOCK
-        // Hanya baseline ringan untuk UAT. HPP engine tetap menghitung
-        // berdasarkan transaksi/movement, bukan nilai hardcoded produk.
-        // ================================================================
-        $initialStocks = [
-            ['bu'=>'RET',  'product'=>'SEMEN-001',   'warehouse'=>'RET',  'qty'=>100, 'cost'=>1300],
-            ['bu'=>'RET',  'product'=>'PASIR-001',   'warehouse'=>'RET',  'qty'=>50,  'cost'=>250000],
-            ['bu'=>'RET',  'product'=>'BATAKO-001', 'warehouse'=>'RET',  'qty'=>200, 'cost'=>2500],
-            ['bu'=>'PROD', 'product'=>'SEMEN-001',   'warehouse'=>'PROD', 'qty'=>100, 'cost'=>1300],
-            ['bu'=>'PROD', 'product'=>'PASIR-001',   'warehouse'=>'PROD', 'qty'=>50,  'cost'=>250000],
-        ];
-
-        foreach ($initialStocks as $stock) {
-            DB::table('warehouses_stocks')->updateOrInsert(
-                [
-                    'warehouse_id' => $warehouseIds[$stock['warehouse']],
-                    'product_id' => $productIds[$stock['product']],
-                ],
-                [
-                    'entity_id' => $entityId,
-                    'qty' => $stock['qty'],
-                    'avg_cost' => $stock['cost'],
-                    'updated_at' => $now,
-                ]
-            );
-
-            DB::table('item_initial_setups')->updateOrInsert(
-                [
-                    'entity_id' => $entityId,
-                    'product_id' => $productIds[$stock['product']],
-                ],
-                [
-                    'business_unit_id' => $buIds[$stock['bu']],
-                    'warehouse_id' => $warehouseIds[$stock['warehouse']],
-                    'setup_date' => now()->toDateString(),
-                    'purchase_price' => $stock['cost'],
-                    'initial_stock' => $stock['qty'],
-                    'markup_percent' => 0,
-                    'selling_price' => $products[array_search($stock['product'], array_column($products, 'code'))]['selling_price'],
-                    'updated_at' => $now,
-                ]
-            );
         }
 
         // ================================================================
