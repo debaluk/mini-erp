@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h3 class="mb-1">Akun</h3>
         <div class="text-secondary">Chart of Accounts / daftar akun keuangan</div>
@@ -15,13 +15,13 @@
 @endphp
 
 <div class="card border-0 shadow-sm">
-    <div class="card-header bg-white border-bottom py-3">
-        <div class="fw-semibold">Struktur Akun</div>
+    <div class="card-header bg-primary bg-opacity-10 text-primary border-bottom py-3">
+        <div class="fw-semibold"><i class="bi bi-journal-text me-2"></i>Struktur Akun</div>
         <small class="text-secondary">Maksimal 3 level • akun level 3 dapat digunakan untuk posting</small>
     </div>
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
-            <thead class="table-light">
+            <thead class="table-primary">
                 <tr>
                     <th style="width:170px">Kode</th>
                     <th>Nama Akun</th>
