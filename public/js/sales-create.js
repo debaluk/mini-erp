@@ -7,6 +7,8 @@
     const body = document.getElementById('detailBody');
     const unitSelect = document.getElementById('unitSelect');
     const saleDate = document.getElementById('saleDate');
+    const saleDateDisplay = document.getElementById('saleDateDisplay');
+    const saleDatePicker = document.getElementById('saleDatePicker');
     const customerSearch = document.getElementById('customerSearch');
     const customerId = document.getElementById('customerId');
     const customerFilter = document.getElementById('customerFilter');
@@ -27,6 +29,49 @@
     let rows = [];
     let activeRowIndex = null;
     let selectedCustomerId = customerId ? customerId.value : '';
+
+
+    function formatDateIndonesia(isoDate) {
+        if (!isoDate) return '';
+        const parts = String(isoDate).split('-');
+        if (parts.length !== 3) return '';
+        return parts[2] + '/' + parts[1] + '/' + parts[0];
+    }
+
+    function parseDateIndonesia(value) {
+        const match = String(value || '').trim().match(/^(\\d{2})\\/(\\d{2})\\/(\\d{4})$/);
+        if (!match) return null;
+        const day = Number(match[1]);
+        const month = Number(match[2]);
+        const year = Number(match[3]);
+        const date = new Date(year, month - 1, day);
+        if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return null;
+        return year + '-' + String(month).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+    }
+
+    saleDateDisplay?.addEventListener('change', () => {
+        const iso = parseDateIndonesia(saleDateDisplay.value);
+        if (iso) {
+            saleDate.value = iso;
+            saleDateDisplay.value = formatDateIndonesia(iso);
+            saleDateDisplay.classList.remove('is-invalid');
+        } else {
+            saleDateDisplay.classList.add('is-invalid');
+        }
+    });
+
+    saleDatePicker?.addEventListener('click', () => {
+        if (typeof saleDate.showPicker === 'function') {
+            saleDate.showPicker();
+        } else {
+            saleDate.click();
+        }
+    });
+
+    saleDate?.addEventListener('change', () => {
+        saleDateDisplay.value = formatDateIndonesia(saleDate.value);
+        saleDateDisplay.classList.remove('is-invalid');
+    });
 
     function money(value) {
         return new Intl.NumberFormat('id-ID', {
