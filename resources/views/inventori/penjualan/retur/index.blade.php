@@ -615,6 +615,8 @@ $(document).ready(function() {
             return;
         }
 
+        const isEdit = Boolean($('#returnId').val());
+
         let payload = {
             return_id: $('#returnId').val(),
             entity_id: $('#entityId').val(),
@@ -641,7 +643,10 @@ $(document).ready(function() {
                 if (res.success) {
                     $('#modalReturnForm').modal('hide');
                     returnTable.ajax.reload();
-                    showReturnSuccessPopup('Retur Penjualan berhasil disimpan', 200000);
+                    showReturnSuccessPopup(
+                        isEdit ? 'Retur Penjualan berhasil diupdate' : 'Retur Penjualan berhasil disimpan',
+                        2000
+                    );
                 } else {
                     alert('Gagal: ' + res.message);
                 }
@@ -714,37 +719,39 @@ $(document).ready(function() {
     });
 
     function showReturnSuccessPopup(message, duration) {
-        const id = 'returnSuccessPopup';
-        $('#' + id).remove();
+        $('#returnSuccessPopup').remove();
 
         const popup = $(`
-            <div class="modal fade" id="${id}" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered modal-sm">
-                    <div class="modal-content border-0 shadow">
-                        <div class="modal-body text-center p-4">
-                            <div class="text-success mb-2">
-                                <i class="bi bi-check-circle-fill fs-1"></i>
-                            </div>
-                            <div class="fw-bold fs-6">${message}</div>
-                        </div>
-                    </div>
+            <div id="returnSuccessPopup" style="
+                position: fixed;
+                inset: 0;
+                z-index: 20000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: rgba(0,0,0,.35);
+            ">
+                <div style="
+                    background: #fff;
+                    border-radius: 12px;
+                    padding: 24px 30px;
+                    min-width: 280px;
+                    max-width: calc(100% - 32px);
+                    text-align: center;
+                    box-shadow: 0 8px 30px rgba(0,0,0,.2);
+                ">
+                    <div class="text-success mb-2"><i class="bi bi-check-circle-fill" style="font-size: 42px;"></i></div>
+                    <div class="fw-bold">${message}</div>
                 </div>
             </div>
         `);
 
         $('body').append(popup);
-        const modal = new bootstrap.Modal(document.getElementById(id), {
-            backdrop: 'static',
-            keyboard: false
-        });
 
-        modal.show();
-
-        setTimeout(function() {
-            modal.hide();
-            setTimeout(function() {
+        window.setTimeout(function() {
+            popup.stop(true, true).fadeOut(200, function() {
                 popup.remove();
-            }, 300);
+            });
         }, duration);
     }
 
