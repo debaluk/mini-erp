@@ -23,7 +23,7 @@
             <div class="col-md-3"><div class="text-secondary small">Target Produksi</div><div>{{ number_format((float) $wo->target_output_qty, 2, ',', '.') }}</div></div>
             <div class="col-md-3">
                 <label class="form-label">Tanggal Pemakaian</label>
-                <input type="date" name="usage_date" class="form-control" value="{{ old('usage_date', now()->toDateString()) }}" required>
+                <x-date-input-id name="usage_date" :value="old('usage_date', now()->toDateString())" required />
             </div>
         </div>
     </div>
