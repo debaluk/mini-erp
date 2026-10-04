@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Services\Penjualan\SalesReturnService;
+use App\Services\SalesReturnService;
 use App\Exports\SalesReturnExport;
 use App\Models\SalesReturn;
 use App\Models\Sale;
