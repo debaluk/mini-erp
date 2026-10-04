@@ -138,6 +138,7 @@ Route::middleware('auth')->group(function () {
     //Route::post('/inventori/penjualan/retur', [SalesReturnController::class, 'store'])->middleware('access:inventori')->name('inventori.penjualan.retur.store');
 Route::middleware(['auth'])->prefix('inventori/penjualan/retur')->name('inventori.penjualan.retur.')->group(function () {
     Route::get('/', [SalesReturnController::class, 'index'])->name('index');
+    Route::get('/', [SalesReturnController::class, 'index'])->name('');
     Route::get('/data', [SalesReturnController::class, 'data'])->name('data');
     Route::get('/lookup-invoices', [SalesReturnController::class, 'lookupInvoices'])->name('lookup-invoices');
     Route::get('/sale-items/{saleId}', [SalesReturnController::class, 'saleItems'])->name('sale-items');
