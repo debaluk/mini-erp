@@ -73,7 +73,7 @@
     }
 
     .pos-total {
-        font-size: 32pt;
+        font-size: 22pt;
         line-height: 1;
         font-weight: 800;
         letter-spacing: .02em;
@@ -103,7 +103,7 @@
         }
 
         .pos-total {
-            font-size: 28pt;
+            font-size: 20pt;
         }
     }
 </style>
@@ -226,9 +226,9 @@
                     <input id="discountInput" type="number" min="0" class="form-control text-end" style="max-width:160px" value="0">
                 </div>
 
-                <div class="pos-total-card mt-2">
-                    <div class="small text-uppercase fw-semibold opacity-75">TOTAL BAYAR</div>
-                    <div id="totalAmount" class="pos-total">Rp 0</div>
+                <div class="pos-total-card mt-2 d-flex justify-content-between align-items-center gap-3">
+                    <div class="small text-uppercase fw-semibold opacity-75 text-nowrap">TOTAL BAYAR</div>
+                    <div id="totalAmount" class="pos-total text-end">Rp 0</div>
                 </div>
 
                 <div class="mt-2">
