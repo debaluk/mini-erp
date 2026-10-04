@@ -165,7 +165,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 '<td class="text-end">' + Number(item.returned_qty || 0).toLocaleString('id-ID') + '</td>' +
                 '<td class="text-end fw-semibold">' + max.toLocaleString('id-ID') + '</td>' +
                 '<td><input type="number" class="form-control form-control-sm return-qty" data-index="' + index + '" min="0" max="' + max + '" step="0.001" value="0"' + (max <= 0 ? ' disabled' : '') + '></td>' +
-                '<td><select class="form-select form-select-sm return-condition" data-index="' + index + '"' + (max <= 0 ? ' disabled' : '') + '><option value="good">Layak Jual</option><option value="reject">Reject/Rusak</option></select></td>' +
+                '<td><select class="form-select form-select-sm return-condition" data-index="' + index + '"' + (max <= 0 ? ' disabled' : '') + '><option value="good">Layak Jual</option><option value="damaged">Reject/Rusak</option></select></td>' +
                 '<td class="text-end return-line-value" data-index="' + index + '">Rp 0</td>' +
                 '</tr>'
             );
@@ -204,7 +204,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('return-search').addEventListener('click', function () {
         const invoice = document.getElementById('return-invoice').value.trim();
         if (!invoice) return alert('Nomor struk wajib diisi.');
-        fetch(@json(route('inventori.penjualan.retur.lookup')) + '?invoice_no=' + encodeURIComponent(invoice), { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
+        fetch(@json(route('inventori.penjualan.retur.lookup-invoices')) + '?invoice_no=' + encodeURIComponent(invoice), { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
             .then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(new Error(e.message || 'Struk tidak ditemukan.'))))
             .then(payload => {
                 sale = payload.sale;
@@ -244,7 +244,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         fetch(form.action, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
             .then(r => {
-                if (r.ok) return window.location.href = @json(route('inventori.penjualan.retur'));
+                if (r.ok) return window.location.href = @json(route('inventori.penjualan.retur.index'));
                 return r.json().then(e => Promise.reject(new Error(e.message || 'Retur gagal diproses.')));
             })
             .catch(e => alert(e.message));
