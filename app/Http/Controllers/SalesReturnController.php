@@ -459,7 +459,27 @@ class SalesReturnController extends Controller
 
             abort_if($returnTotal <= 0, 422, 'Nilai retur harus lebih besar dari nol.');
 
-            $returnNo = 'RET-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4));
+            $period = now()->format('Ym');
+
+            DB::table('entities')
+                ->where('id', $entity)
+                ->lockForUpdate()
+                ->first();
+
+            $lastReturn = DB::table('sales_returns')
+                ->where('entity_id', $entity)
+                ->where('return_no', 'like', 'RET-' . now()->format('Ym') . '%')
+                ->orderByDesc('id')
+                ->value('return_no');
+
+            $sequence = 1;
+            if ($lastReturn && preg_match('/^RET-\\d{6}(\\d{5})-/', $lastReturn, $matches)) {
+                $sequence = ((int) $matches[1]) + 1;
+            }
+
+            abort_if($sequence > 99999, 422, 'Nomor retur bulan ini sudah mencapai batas.');
+
+            $returnNo = 'RET-' . now()->format('Ymd') . str_pad((string) $sequence, 5, '0', STR_PAD_LEFT) . '-' . Str::lower(Str::random(3));
             $returnId = DB::table('sales_returns')->insertGetId([
                 'entity_id' => $entity,
                 'business_unit_id' => $sale->business_unit_id,
