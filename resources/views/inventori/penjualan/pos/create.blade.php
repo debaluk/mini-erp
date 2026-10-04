@@ -171,6 +171,7 @@
                         <th style="width:160px" class="text-end">Harga</th>
                         <th style="width:140px" class="text-end">Diskon</th>
                         <th style="width:170px" class="text-end">Subtotal</th>
+                        <th style="width:60px" class="text-center">Aksi</th>
                     </tr>
                 </thead>
                 <tbody id="detailBody"></tbody>
