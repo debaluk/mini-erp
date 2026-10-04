@@ -136,7 +136,9 @@ class SalesReturnController extends Controller
             ->map(function ($item) {
                 $returnedQty = (float) DB::table('sales_return_items')->where('sale_item_id', $item->id)->sum('qty');
                 return [
-                    'sale_item_id' => $item->id, 'product_id' => $item->product_id,
+                    'id' => $item->id,
+                    'sale_item_id' => $item->id,
+                    'product_id' => $item->product_id,
                     'product_code' => $item->product_code ?? '-', 'product_name' => $item->product_name ?? '-',
                     'unit_id' => $item->unit_id, 'unit_name' => $item->unit_name ?? 'Pcs',
                     'qty_sold' => (float) $item->qty, 'qty_sale' => (float) $item->qty, 'qty_returned_before' => $returnedQty,
