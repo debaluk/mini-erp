@@ -22,9 +22,6 @@ class SalesReturnController extends Controller
         $this->salesReturnService = $salesReturnService;
     }
 
-    /**
-     * Halaman Utama Retur Penjualan
-     */
     public function index()
     {
         $businessUnits = BusinessUnit::where('is_active', 1)->get();
@@ -33,15 +30,11 @@ class SalesReturnController extends Controller
         return view('inventori.penjualan.retur.index', compact('businessUnits', 'warehouses'));
     }
 
-    /**
-     * DataTables Server-Side AJAX Endpoint
-     */
     public function data(Request $request)
     {
         $query = SalesReturn::with(['sale', 'customer', 'warehouse', 'businessUnit', 'user'])
             ->select('sales_returns.*');
 
-        // Multi-Tenant Isolation
         if ($request->filled('business_unit_id')) {
             $query->where('business_unit_id', $request->business_unit_id);
         }
@@ -61,8 +54,8 @@ class SalesReturnController extends Controller
             ]);
         }
 
-        // DataTables server-side response dibuat native agar controller tidak
-        // bergantung pada package/helper datatables() yang tidak terpasang.
+        // Server-side DataTables response dibuat native agar tidak bergantung
+        // pada helper/package datatables() yang tidak tersedia di aplikasi.
         $recordsTotal = (clone $query)->count();
 
         $search = trim((string) $request->input('search.value', ''));
@@ -129,9 +122,6 @@ class SalesReturnController extends Controller
         ]);
     }
 
-    /**
-     * AJAX Lookup Modal Invoice Penjualan
-     */
     public function lookupInvoices(Request $request)
     {
         $query = Sale::with('customer')
@@ -159,15 +149,11 @@ class SalesReturnController extends Controller
         ]);
     }
 
-    /**
-     * Get Items dari Invoice Asal (Lengkap dengan Sisa Qty Belum Diretur)
-     */
     public function saleItems($saleId)
     {
         $sale = Sale::with(['saleItems.product', 'saleItems.unit', 'customer'])->findOrFail($saleId);
 
         $items = $sale->saleItems->map(function ($item) {
-            // Hitung Qty yang sudah pernah diretur sebelumnya
             $returnedQty = DB::table('sales_return_items')
                 ->where('sale_item_id', $item->id)
                 ->sum('qty');
@@ -198,9 +184,6 @@ class SalesReturnController extends Controller
         ]);
     }
 
-    /**
-     * Store / Update Transaksi Retur Penjualan & Otomatis Koreksi Jurnal
-     */
     public function store(Request $request)
     {
         $request->validate([
@@ -230,9 +213,6 @@ class SalesReturnController extends Controller
         }
     }
 
-    /**
-     * Get Data Detail Retur untuk Modal Edit
-     */
     public function edit($id)
     {
         $return = SalesReturn::with([
@@ -250,9 +230,6 @@ class SalesReturnController extends Controller
         ]);
     }
 
-    /**
-     * Cetak Nota Kredit / Proof Retur
-     */
     public function printData($id)
     {
         $return = SalesReturn::with([
@@ -271,9 +248,6 @@ class SalesReturnController extends Controller
         ]);
     }
 
-    /**
-     * Export Excel List Retur Penjualan
-     */
     public function export(Request $request)
     {
         $filename = 'Laporan_Retur_Penjualan_' . date('Ymd_His') . '.xlsx';
