@@ -8,8 +8,8 @@
     {{-- HEADER HALAMAN & BREADCRUMB --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <h4 class="fw-bold mb-1"><i class="bi bi-box-arrow-in-left text-danger me-2"></i>Retur Penjualan (SAL-02)</h4>
-            <p class="text-muted small mb-0">Pencatatan Pengembalian Barang, Restock Persediaan, dan Koreksi Otomatis Piutang / Kas</p>
+            <h4 class="fw-bold mb-1"><i class="bi bi-box-arrow-in-left text-danger me-2"></i>Retur Penjualan</h4>
+            <p class="text-muted small mb-0">Pencatatan Pengembalian Barang</p>
         </div>
         <div class="d-flex gap-2">
             <button type="button" class="btn btn-outline-success btn-sm fw-semibold" id="btnExportExcel">
