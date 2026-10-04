@@ -19,49 +19,44 @@ class SalesController extends Controller
         return (int) (DB::table('entities')->value('id') ?? 1);
     }
 
-    private function generateInvoiceNo(int $entity, object $businessUnit, \Carbon\Carbon $saleDate): string
+    private function salesPrefix(object $businessUnit): string
     {
-        $prefix = match ($businessUnit->business_type) {
+        return match ($businessUnit->business_type) {
             'retail' => 'RET',
             'production' => 'PRO',
             'service' => 'JAS',
             default => throw new \RuntimeException('Jenis Business Unit tidak valid untuk nomor penjualan.'),
         };
+    }
 
+    private function nextInvoiceNo(int $entity, object $businessUnit, \Carbon\Carbon $saleDate): string
+    {
+        $prefix = $this->salesPrefix($businessUnit);
         $monthKey = $saleDate->format('Ym');
         $dateKey = $saleDate->format('Ymd');
-        $lockName = 'sales_no:' . $entity . ':' . $prefix . ':' . $monthKey;
 
-        $lock = DB::selectOne('SELECT GET_LOCK(?, 10) AS locked', [$lockName]);
-        abort_unless((int) ($lock->locked ?? 0) === 1, 503, 'Nomor penjualan sedang diproses. Silakan coba lagi.');
+        $existingNumbers = DB::table('sales')
+            ->where('entity_id', $entity)
+            ->where('invoice_no', 'like', $prefix . '-' . $monthKey . '%')
+            ->pluck('invoice_no');
 
-        try {
-            $pattern = $prefix . '-' . $monthKey . '%';
-            $existingNumbers = DB::table('sales')
-                ->where('entity_id', $entity)
-                ->where('invoice_no', 'like', $pattern)
-                ->pluck('invoice_no');
+        $lastSequence = 0;
+        $regex = '/^' . preg_quote($prefix, '/') . '-' . $monthKey . '[0-9]{2}([0-9]{5})(?:-[A-Z0-9]{3})?$/';
 
-            $lastSequence = 0;
-            $regex = '/^' . preg_quote($prefix, '/') . '-' . $monthKey . '\\d{2}([0-9]{5})(?:-[A-Z0-9]{3})?$/';
-
-            foreach ($existingNumbers as $existingNumber) {
-                if (preg_match($regex, (string) $existingNumber, $matches)) {
-                    $lastSequence = max($lastSequence, (int) $matches[1]);
-                }
+        foreach ($existingNumbers as $existingNumber) {
+            if (preg_match($regex, (string) $existingNumber, $matches)) {
+                $lastSequence = max($lastSequence, (int) $matches[1]);
             }
-
-            $sequence = $lastSequence + 1;
-            abort_if($sequence > 99999, 422, 'Nomor urut penjualan bulan ini sudah mencapai batas 99999.');
-
-            $baseNumber = $prefix . '-' . $dateKey . str_pad((string) $sequence, 5, '0', STR_PAD_LEFT);
-
-            return $businessUnit->business_type === 'service'
-                ? $baseNumber
-                : $baseNumber . '-' . \Illuminate\Support\Str::upper(\Illuminate\Support\Str::random(3));
-        } finally {
-            DB::selectOne('SELECT RELEASE_LOCK(?) AS released', [$lockName]);
         }
+
+        $sequence = $lastSequence + 1;
+        abort_if($sequence > 99999, 422, 'Nomor urut penjualan bulan ini sudah mencapai batas 99999.');
+
+        $baseNumber = $prefix . '-' . $dateKey . str_pad((string) $sequence, 5, '0', STR_PAD_LEFT);
+
+        return $businessUnit->business_type === 'service'
+            ? $baseNumber
+            : $baseNumber . '-' . \Illuminate\Support\Str::upper(\Illuminate\Support\Str::random(3));
     }
 
     private function resolveSalePrice(int $productId, int $businessUnitId, int $unitId, int $entity): float
@@ -1478,9 +1473,15 @@ class SalesController extends Controller
         }
 
         $saleDate = now();
+        $prefix = $this->salesPrefix($unit);
+        $lockName = 'sales_no:' . $entity . ':' . $prefix . ':' . $saleDate->format('Ym');
+        $lock = DB::selectOne('SELECT GET_LOCK(?, 10) AS locked', [$lockName]);
 
-        $saleId = DB::transaction(function () use ($data, $entity, $unit, $saleDate): int {
-            $invoiceNo = $this->generateInvoiceNo($entity, $unit, $saleDate);
+        abort_unless((int) ($lock->locked ?? 0) === 1, 503, 'Nomor penjualan sedang diproses. Silakan coba lagi.');
+
+        try {
+            $saleId = DB::transaction(function () use ($data, $entity, $unit, $saleDate): int {
+                $invoiceNo = $this->nextInvoiceNo($entity, $unit, $saleDate);
             $subtotal = 0.0;
             $lineItems = [];
 
@@ -1637,8 +1638,11 @@ class SalesController extends Controller
 
             app(SalesJournalService::class)->post($saleId, $entity);
 
-            return $saleId;
-        });
+                return $saleId;
+            });
+        } finally {
+            DB::selectOne('SELECT RELEASE_LOCK(?) AS released', [$lockName]);
+        }
 
         if ($request->expectsJson()) {
             return response()->json([
