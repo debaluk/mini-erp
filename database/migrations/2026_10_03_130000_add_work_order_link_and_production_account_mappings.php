@@ -9,10 +9,12 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('productions', function (Blueprint $table) {
-            $table->unsignedBigInteger('production_work_order_id')->nullable()->after('bom_id');
-            $table->unique('production_work_order_id', 'productions_work_order_unique');
-        });
+        if (!Schema::hasColumn('productions', 'production_work_order_id')) {
+            Schema::table('productions', function (Blueprint $table) {
+                $table->unsignedBigInteger('production_work_order_id')->nullable()->after('bom_id');
+                $table->unique('production_work_order_id', 'productions_work_order_unique');
+            });
+        }
 
         $entityId = DB::table('entities')->value('id');
         $productionBu = DB::table('business_units')
