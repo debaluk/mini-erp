@@ -970,6 +970,13 @@ class SalesController extends Controller
             default => $value ?: '-',
         };
 
+        $statusLabel = fn ($value) => match ($value) {
+            'posted' => 'Diposting',
+            'draft' => 'Draf',
+            'cancelled' => 'Dibatalkan',
+            default => $value ?: '-',
+        };
+
         $spreadsheet = new Spreadsheet();
 
         $spreadsheet->getProperties()
@@ -1262,7 +1269,7 @@ class SalesController extends Controller
         $customerHeader = $customerStart + 1;
 
         $sheet->fromArray([
-            ['Customer', 'Transaksi', 'Penjualan', 'Piutang'],
+            ['Pelanggan', 'Transaksi', 'Penjualan', 'Piutang'],
         ], null, 'A' . $customerHeader);
 
         $applyHeader($sheet, 'A' . $customerHeader . ':D' . $customerHeader);
@@ -1320,7 +1327,7 @@ class SalesController extends Controller
         $sheet->setCellValue('B5', $selectedUnitName);
 
         $sheet->fromArray([
-            ['Tanggal', 'No Faktur', 'Customer', 'Business Unit', 'Pembayaran', 'Total', 'Status'],
+            ['Tanggal', 'No Faktur', 'Pelanggan', 'Unit Bisnis', 'Pembayaran', 'Total', 'Status'],
         ], null, 'A7');
 
         $applyHeader($sheet, 'A7:G7');
@@ -1340,7 +1347,7 @@ class SalesController extends Controller
                     $item->unit_name,
                     $methods ?: '-',
                     (float) $item->total,
-                    $item->status ?? '-',
+                    $statusLabel($item->status),
                 ],
             ], null, 'A' . $row);
 
