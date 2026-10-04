@@ -218,7 +218,7 @@
                     <table class="table table-sm table-hover align-middle mb-0" id="salesDetailTable">
                         <thead class="table-primary">
                             <tr>
-                                <th style="width:70px">Kode Barang</th>
+                                <th style="width:70px">Kode</th>
                                 <th style="min-width:220px">Nama Barang</th>
                                 <th style="width:120px">Satuan</th>
                                 <th style="width:100px;min-width:100px" class="text-end">Qty</th>
@@ -245,7 +245,7 @@
                         <div class="small text-uppercase fw-semibold opacity-75 text-nowrap">TOTAL BAYAR</div>
                         <div id="totalAmount" class="pos-total text-end">Rp 0</div>
                     </div>
-                    <div class="d-flex justify-content-between align-items-center py-1 mt-1 text-end">
+                    <div class="d-flex justify-content-between align-items-center py-1 mt-2 mb-2 text-end">
                         <span class="flex-grow-1 fw-semibold">Cara Bayar</span>
                         <select id="paymentMethod" class="form-select" style="max-width:160px">
                             <option value="Tunai">Tunai</option>
