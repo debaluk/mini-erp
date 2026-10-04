@@ -42,8 +42,6 @@
                     <th class="text-end">Harga Retur</th>
                     <th>Gudang</th>
                     <th class="text-end">Total</th>
-                    <th>User</th>
-                    <th>Status</th>
                     <th>Aksi</th>
                 </tr>
             </thead>
@@ -290,8 +288,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }},
             { data: 'warehouse_name', defaultContent: '-' },
             { data: 'total', className: 'text-end fw-semibold', render: data => 'Rp ' + Number(data || 0).toLocaleString('id-ID') },
-            { data: 'user_name', defaultContent: '-' },
-            { data: 'status', render: data => { const status = String(data || '').toLowerCase(); const label = status === 'posted' ? 'Diposting' : status === 'draft' ? 'Draf' : (status === 'cancelled' || status === 'canceled') ? 'Dibatalkan' : (data || '-'); const badge = status === 'posted' ? 'text-bg-success' : (status === 'cancelled' || status === 'canceled') ? 'text-bg-danger' : 'text-bg-secondary'; return '<span class="badge ' + badge + '">' + label + '</span>'; } },
             {
                 data: null,
                 orderable: false,
