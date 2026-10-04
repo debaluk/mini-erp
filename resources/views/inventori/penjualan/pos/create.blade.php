@@ -150,7 +150,7 @@
 <div class="card pos-card">
     <div class="card-body pos-card-body">
         <div class="row g-3 pos-main-row">
-            <div class="col-md-5 pos-left-panel">
+            <div class="col-md-4 pos-left-panel">
                 <div class="border rounded p-3 h-100 d-flex flex-column">
                     <h6 class="mb-3"><i class="bi bi-receipt me-2"></i>Transaksi</h6>
 
@@ -200,7 +200,7 @@
                 </div>
             </div>
 
-            <div class="col-md-7 pos-right-panel">
+            <div class="col-md-8 pos-right-panel">
                 <div class="d-flex align-items-center mb-2">
                     <div>
                         <h6 class="mb-0"><i class="bi bi-receipt me-2"></i>Detil Penjualan</h6>
@@ -218,14 +218,14 @@
                     <table class="table table-sm table-hover align-middle mb-0" id="salesDetailTable">
                         <thead class="table-primary">
                             <tr>
-                                <th style="width:130px">Kode Barang</th>
-                                <th style="min-width:280px">Nama Barang</th>
+                                <th style="width:90px">Kode Barang</th>
+                                <th style="min-width:220px">Nama Barang</th>
                                 <th style="width:120px">Satuan</th>
-                                <th style="width:110px" class="text-end">Qty</th>
+                                <th style="width:150px" class="text-end">Qty</th>
                                 <th style="width:160px" class="text-end">Harga</th>
                                 <th style="width:140px" class="text-end">Diskon</th>
                                 <th style="width:170px" class="text-end">Subtotal</th>
-                                <th style="width:60px" class="text-center">Aksi</th>
+                                <th style="width:90px" class="text-center">Aksi</th>
                             </tr>
                         </thead>
                         <tbody id="detailBody"></tbody>
@@ -235,25 +235,27 @@
 
                                     <div class="mt-auto pt-3 border-top pos-summary">
                         <h6 class="mb-2"><i class="bi bi-calculator me-2"></i>Ringkasan Transaksi</h6>
-                        <div class="d-flex justify-content-between py-1">
-                            <span>Subtotal</span>
-                            <strong id="subtotalAmount">Rp 0</strong>
+                        <div class="d-flex justify-content-between py-1 text-end">
+                            <span class="flex-grow-1">Subtotal</span>
+                            <strong id="subtotalAmount" style="min-width:160px">Rp 0</strong>
                         </div>
-                        <div class="d-flex justify-content-between align-items-center py-1">
-                            <span>Diskon (Rp)</span>
+                        <div class="d-flex justify-content-between align-items-center py-1 text-end">
+                            <span class="flex-grow-1">Diskon (Rp)</span>
                             <input id="discountInput" type="number" min="0" class="form-control text-end" style="max-width:160px" value="0">
                         </div>
                         <div class="pos-total-card mt-2 d-flex justify-content-between align-items-center gap-3">
                             <div class="small text-uppercase fw-semibold opacity-75 text-nowrap">TOTAL BAYAR</div>
                             <div id="totalAmount" class="pos-total text-end">Rp 0</div>
                         </div>
-                        <div class="mt-2">
-                            <label class="form-label">Cara Bayar</label>
-                            <select id="paymentMethod" class="form-select">
-                                <option value="Tunai">Tunai</option>
-                                <option value="Transfer">Transfer</option>
-                                <option value="QRIS">QRIS</option>
-                            </select>
+                        <div class="row align-items-center mt-2 g-2">
+                            <div class="col-sm-4 text-end fw-semibold">Cara Bayar</div>
+                            <div class="col-sm-8">
+                                <select id="paymentMethod" class="form-select">
+                                    <option value="Tunai">Tunai</option>
+                                    <option value="Transfer">Transfer</option>
+                                    <option value="QRIS">QRIS</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
             </div>
