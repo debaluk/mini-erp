@@ -119,14 +119,17 @@ class SalesReturnService
             throw new Exception('Tanggal retur wajib diisi.');
         }
 
+        // Input dari <input type="datetime-local"> berbentuk YYYY-MM-DDTHH:MM.
+        // Normalisasi eksplisit agar tidak pernah terjadi double time specification.
         $value = str_replace('T', ' ', $value);
-        $timestamp = strtotime($value);
 
-        if ($timestamp === false) {
-            throw new Exception('Tanggal retur tidak valid. Silakan pilih tanggal dan waktu retur yang benar.');
+        try {
+            $date = new \DateTime($value);
+        } catch (\Throwable $e) {
+            throw new Exception('Tanggal dan waktu retur tidak valid. Silakan pilih ulang tanggal dan waktu retur.');
         }
 
-        return date('Y-m-d H:i:s', $timestamp);
+        return $date->format('Y-m-d H:i:s');
     }
 
     /**
