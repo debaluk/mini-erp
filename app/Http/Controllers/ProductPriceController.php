@@ -79,9 +79,10 @@ class ProductPriceController extends Controller
                 'pp.selling_price as selling_price',
                 DB::raw('(SELECT MAX(h.change_date) FROM product_price_histories h WHERE h.product_price_id = pp.id) as updated_price_date')
             )
-            ->orderBy('bu.name')
+            ->orderBy('p.code')
             ->orderBy('p.name')
-            ->orderBy('u.name');
+            ->orderBy('u.name')
+            ->orderBy('bu.name');
 
         if ($request->expectsJson()) {
             if ($request->has('draw')) {
