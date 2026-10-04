@@ -348,7 +348,7 @@
                     </div>
                     <div class="col-4">
                         <p class="mb-4">Kasir / Finance,</p>
-                        <br><p class="fw-bold mb-0" id="printOperatorName">( Admin Sales )</p>
+                        <br><p class="fw-bold mb-0" id="printOperatorName">( .......................... )</p>
                     </div>
                 </div>
             </div>
