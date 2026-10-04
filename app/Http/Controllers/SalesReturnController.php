@@ -459,7 +459,23 @@ class SalesReturnController extends Controller
 
             abort_if($returnTotal <= 0, 422, 'Nilai retur harus lebih besar dari nol.');
 
-            $period = now()->format('Ym');
+            $businessUnit = DB::table('business_units')
+                ->where('id', $sale->business_unit_id)
+                ->where('entity_id', $entity)
+                ->first(['id', 'business_type']);
+
+            abort_unless($businessUnit, 422, 'Business Unit penjualan tidak ditemukan.');
+
+            $prefix = match ($businessUnit->business_type) {
+                'retail' => 'RET',
+                'production' => 'PRO',
+                'service' => 'JAS',
+                default => throw new RuntimeException('Jenis Business Unit tidak valid untuk nomor retur.'),
+            };
+
+            $monthKey = now()->format('Ym');
+            $dateKey = now()->format('Ymd');
+            $businessUnitId = (int) $businessUnit->id;
 
             DB::table('entities')
                 ->where('id', $entity)
@@ -468,18 +484,19 @@ class SalesReturnController extends Controller
 
             $lastReturn = DB::table('sales_returns')
                 ->where('entity_id', $entity)
-                ->where('return_no', 'like', 'RET-' . now()->format('Ym') . '%')
+                ->where('business_unit_id', $businessUnitId)
+                ->where('return_no', 'like', $prefix . '-' . $businessUnitId . '-' . $monthKey . '%')
                 ->orderByDesc('id')
                 ->value('return_no');
 
             $sequence = 1;
-            if ($lastReturn && preg_match('/^RET-\\d{6}(\\d{5})-/', $lastReturn, $matches)) {
+            if ($lastReturn && preg_match('/^' . preg_quote($prefix, '/') . '-' . $businessUnitId . '-' . $monthKey . '[0-9]{2}([0-9]{6})$/', $lastReturn, $matches)) {
                 $sequence = ((int) $matches[1]) + 1;
             }
 
-            abort_if($sequence > 99999, 422, 'Nomor retur bulan ini sudah mencapai batas.');
+            abort_if($sequence > 999999, 422, 'Nomor retur bulan ini sudah mencapai batas 999999.');
 
-            $returnNo = 'RET-' . now()->format('Ymd') . str_pad((string) $sequence, 5, '0', STR_PAD_LEFT) . '-' . Str::lower(Str::random(3));
+            $returnNo = $prefix . '-' . $businessUnitId . '-' . $dateKey . str_pad((string) $sequence, 6, '0', STR_PAD_LEFT);
             $returnId = DB::table('sales_returns')->insertGetId([
                 'entity_id' => $entity,
                 'business_unit_id' => $sale->business_unit_id,
