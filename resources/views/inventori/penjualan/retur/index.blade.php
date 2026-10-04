@@ -36,7 +36,7 @@
                     <th>No. Retur</th>
                     <th>Tanggal</th>
                     <th>No. Struk</th>
-                    <th>Customer</th>
+                    <th>Pelanggan</th>
                     <th>Barang</th>
                     <th class="text-end">Qty</th>
                     <th class="text-end">Harga Retur</th>
@@ -214,7 +214,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     '<div class="row g-2 small">' +
                     '<div class="col-md-3"><strong>No. Struk:</strong> ' + esc(sale.invoice_no) + '</div>' +
                     '<div class="col-md-3"><strong>Tanggal:</strong> ' + esc(sale.sale_date) + '</div>' +
-                    '<div class="col-md-3"><strong>Customer:</strong> ' + esc(sale.customer_name) + '</div>' +
+                    '<div class="col-md-3"><strong>Pelanggan:</strong> ' + esc(sale.customer_name) + '</div>' +
                     '<div class="col-md-3"><strong>Total:</strong> ' + money(sale.total) + '</div>' +
                     '</div>';
                 renderItems();
