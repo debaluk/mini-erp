@@ -418,12 +418,6 @@ class SalesReturnController extends Controller
             $warehouse = DB::table('warehouses')->where('entity_id', $entity)->where('id', $data['warehouse_id'])->where('is_active', 1)->first();
             abort_unless($warehouse, 404, 'Gudang tidak ditemukan.');
 
-            abort_unless(
-                (int) $warehouse->business_unit_id === (int) $sale->business_unit_id,
-                422,
-                'Gudang tidak sesuai dengan Business Unit Penjualan.'
-            );
-
             $saleItems = DB::table('sale_items')->where('sale_id', $sale->id)->get()->keyBy('id');
             $subtotal = (float) $sale->subtotal;
             $saleDiscount = (float) $sale->discount;
@@ -474,8 +468,6 @@ class SalesReturnController extends Controller
             };
 
             $monthKey = now()->format('Ym');
-            $dateKey = now()->format('Ymd');
-            $businessUnitId = (int) $businessUnit->id;
 
             DB::table('entities')
                 ->where('id', $entity)
@@ -484,19 +476,18 @@ class SalesReturnController extends Controller
 
             $lastReturn = DB::table('sales_returns')
                 ->where('entity_id', $entity)
-                ->where('business_unit_id', $businessUnitId)
-                ->where('return_no', 'like', $prefix . '-' . $businessUnitId . '-' . $monthKey . '%')
+                ->where('return_no', 'like', $prefix . '-' . $monthKey . '-%')
                 ->orderByDesc('id')
                 ->value('return_no');
 
             $sequence = 1;
-            if ($lastReturn && preg_match('/^' . preg_quote($prefix, '/') . '-' . $businessUnitId . '-' . $monthKey . '[0-9]{2}([0-9]{6})$/', $lastReturn, $matches)) {
+            if ($lastReturn && preg_match('/^' . preg_quote($prefix, '/') . '-' . $monthKey . '-([0-9]{6})$/', $lastReturn, $matches)) {
                 $sequence = ((int) $matches[1]) + 1;
             }
 
             abort_if($sequence > 999999, 422, 'Nomor retur bulan ini sudah mencapai batas 999999.');
 
-            $returnNo = $prefix . '-' . $businessUnitId . '-' . $dateKey . str_pad((string) $sequence, 6, '0', STR_PAD_LEFT);
+            $returnNo = $prefix . '-' . $monthKey . '-' . str_pad((string) $sequence, 6, '0', STR_PAD_LEFT);
             $returnId = DB::table('sales_returns')->insertGetId([
                 'entity_id' => $entity,
                 'business_unit_id' => $sale->business_unit_id,
