@@ -453,6 +453,16 @@ document.addEventListener('DOMContentLoaded', function () {
             recalc();
             return;
         }
+        const edit=e.target.closest('.btn-edit-wo');
+        if(edit){
+            openEdit(edit.dataset.id);
+            return;
+        }
+        const approve=e.target.closest('.btn-approve-wo');
+        if(approve){
+            approveWorkOrder(approve.dataset.id,approve.dataset.no);
+            return;
+        }
         const del=e.target.closest('.btn-delete-wo');
         if(del){
             document.getElementById('woDeleteNo').textContent=del.dataset.no;
