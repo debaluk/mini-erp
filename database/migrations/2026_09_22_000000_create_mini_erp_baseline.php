@@ -117,16 +117,6 @@ return new class extends Migration
             $t->unique(['product_id', 'business_unit_id']);
         });
 
-        Schema::create('product_units', function (Blueprint $t) {
-            $t->id();
-            $t->foreignId('product_id')->constrained('products')->cascadeOnDelete();
-            $t->foreignId('unit_id')->constrained('units')->cascadeOnDelete();
-            $t->decimal('conversion_factor', 18, 6)->default(1);
-            $t->boolean('is_default')->default(false);
-            $t->timestamps();
-            $t->unique(['product_id', 'unit_id']);
-        });
-
         Schema::create('customers', function (Blueprint $t) {
             $t->id();
             $t->foreignId('entity_id')->constrained()->cascadeOnDelete();
@@ -165,50 +155,6 @@ return new class extends Migration
             $t->timestamps();
             $t->unique(['entity_id', 'code']);
             $t->index(['entity_id', 'business_unit_id']);
-        });
-
-        Schema::create('vehicles', function (Blueprint $t) {
-            $t->id();
-            $t->foreignId('entity_id')->constrained()->cascadeOnDelete();
-            $t->string('code');
-            $t->string('plate_number');
-            $t->string('model')->nullable();
-            $t->string('vehicle_type')->nullable();
-            $t->decimal('capacity', 18, 3)->nullable();
-            $t->decimal('acquisition_value', 18, 2)->default(0);
-            $t->unsignedInteger('current_km')->default(0);
-            $t->string('status')->default('active');
-            $t->date('acquisition_date')->nullable();
-            $t->timestamps();
-            $t->unique(['entity_id', 'code']);
-        });
-
-        Schema::create('drivers', function (Blueprint $t) {
-            $t->id();
-            $t->foreignId('entity_id')->constrained()->cascadeOnDelete();
-            $t->string('code');
-            $t->string('name');
-            $t->string('phone')->nullable();
-            $t->string('license_no')->nullable();
-            $t->date('license_expiry')->nullable();
-            $t->boolean('is_active')->default(true);
-            $t->timestamps();
-            $t->unique(['entity_id', 'code']);
-        });
-
-        Schema::create('tariffs', function (Blueprint $t) {
-            $t->id();
-            $t->foreignId('entity_id')->constrained()->cascadeOnDelete();
-            $t->string('code');
-            $t->string('name');
-            $t->string('tariff_type');
-            $t->decimal('base_price', 18, 2)->default(0);
-            $t->decimal('price_per_km', 18, 2)->default(0);
-            $t->decimal('price_per_hour', 18, 2)->default(0);
-            $t->decimal('minimum_charge', 18, 2)->default(0);
-            $t->boolean('is_active')->default(true);
-            $t->timestamps();
-            $t->unique(['entity_id', 'code']);
         });
 
         // ================================================================
@@ -356,42 +302,12 @@ return new class extends Migration
         // ================================================================
         // POS / SALES
         // ================================================================
-        Schema::create('cash_shifts', function (Blueprint $t) {
-            $t->id();
-            $t->foreignId('entity_id')->constrained()->cascadeOnDelete();
-            $t->foreignId('business_unit_id')->constrained('business_units')->restrictOnDelete();
-            $t->foreignId('user_id')->constrained('users')->restrictOnDelete();
-            $t->dateTime('opened_at');
-            $t->dateTime('closed_at')->nullable();
-            $t->decimal('opening_cash', 18, 2)->default(0);
-            $t->decimal('closing_cash', 18, 2)->default(0);
-            $t->decimal('expected_cash', 18, 2)->nullable();
-            $t->decimal('cash_difference', 18, 2)->nullable();
-            $t->string('status')->default('open');
-            $t->timestamps();
-        });
-
-        Schema::create('shift_cash_movements', function (Blueprint $t) {
-            $t->id();
-            $t->foreignId('cash_shift_id')->constrained('cash_shifts')->cascadeOnDelete();
-            $t->foreignId('entity_id')->constrained()->cascadeOnDelete();
-            $t->foreignId('business_unit_id')->constrained('business_units')->restrictOnDelete();
-            $t->foreignId('user_id')->constrained('users')->restrictOnDelete();
-            $t->enum('movement_type', ['in', 'out']);
-            $t->decimal('amount', 18, 2);
-            $t->string('description');
-            $t->timestamp('movement_at');
-            $t->timestamps();
-            $t->index(['cash_shift_id', 'movement_type']);
-        });
-
         Schema::create('sales', function (Blueprint $t) {
             $t->id();
             $t->foreignId('entity_id')->constrained()->cascadeOnDelete();
             $t->foreignId('business_unit_id')->constrained('business_units')->restrictOnDelete();
             $t->foreignId('customer_id')->nullable()->constrained('customers')->nullOnDelete();
             $t->foreignId('user_id')->constrained('users')->restrictOnDelete();
-            $t->foreignId('shift_id')->nullable()->constrained('cash_shifts')->nullOnDelete();
             $t->string('invoice_no');
             $t->dateTime('sale_date');
             $t->date('due_date')->nullable();
@@ -556,50 +472,6 @@ return new class extends Migration
         });
 
         // ================================================================
-        // ARMADA & JASA
-        // ================================================================
-        Schema::create('deliveries', function (Blueprint $t) {
-            $t->id();
-            $t->foreignId('entity_id')->constrained()->cascadeOnDelete();
-            $t->foreignId('business_unit_id')->constrained('business_units')->restrictOnDelete();
-            $t->foreignId('vehicle_id')->nullable()->constrained('vehicles')->nullOnDelete();
-            $t->foreignId('driver_id')->nullable()->constrained('drivers')->nullOnDelete();
-            $t->string('delivery_no');
-            $t->dateTime('delivery_date');
-            $t->string('destination')->nullable();
-            $t->decimal('distance_km', 18, 2)->default(0);
-            $t->string('status')->default('planned');
-            $t->timestamps();
-            $t->unique(['entity_id', 'delivery_no']);
-        });
-
-        Schema::create('vehicle_operations', function (Blueprint $t) {
-            $t->id();
-            $t->foreignId('entity_id')->constrained()->cascadeOnDelete();
-            $t->foreignId('business_unit_id')->constrained('business_units')->restrictOnDelete();
-            $t->foreignId('vehicle_id')->constrained('vehicles')->restrictOnDelete();
-            $t->date('operation_date');
-            $t->unsignedInteger('km_start')->default(0);
-            $t->unsignedInteger('km_end')->default(0);
-            $t->decimal('fuel_cost', 18, 2)->default(0);
-            $t->decimal('other_cost', 18, 2)->default(0);
-            $t->text('notes')->nullable();
-            $t->timestamps();
-        });
-
-        Schema::create('fleet_costs', function (Blueprint $t) {
-            $t->id();
-            $t->foreignId('entity_id')->constrained()->cascadeOnDelete();
-            $t->foreignId('business_unit_id')->constrained('business_units')->restrictOnDelete();
-            $t->foreignId('vehicle_id')->constrained('vehicles')->restrictOnDelete();
-            $t->date('cost_date');
-            $t->string('cost_type');
-            $t->decimal('amount', 18, 2);
-            $t->string('description')->nullable();
-            $t->timestamps();
-        });
-
-        // ================================================================
         // ACCOUNTING TRANSACTIONS
         // ================================================================
         Schema::create('journals', function (Blueprint $t) {
@@ -671,9 +543,6 @@ return new class extends Migration
             'business_unit_account_mappings',
             'journal_entries',
             'journals',
-            'fleet_costs',
-            'vehicle_operations',
-            'deliveries',
             'production_rejects',
             'production_outputs',
             'production_costs',
@@ -686,8 +555,6 @@ return new class extends Migration
             'payments',
             'sale_items',
             'sales',
-            'shift_cash_movements',
-            'cash_shifts',
             'stock_opname_items',
             'stock_opnames',
             'purchase_price_histories',
@@ -697,13 +564,9 @@ return new class extends Migration
             'stock_movements',
             'warehouses_stocks',
             'chart_of_accounts',
-            'tariffs',
-            'drivers',
-            'vehicles',
             'warehouses',
             'customers',
             'suppliers',
-            'product_units',
             'product_business_units',
             'products',
             'product_categories',
