@@ -136,19 +136,15 @@ Route::middleware('auth')->group(function () {
     //Route::get('/inventori/penjualan/retur/export-excel', [SalesReturnController::class, 'exportExcel'])->middleware('access:inventori')->name('inventori.penjualan.retur.export-excel');
     //Route::get('/inventori/penjualan/retur/lookup', [SalesReturnController::class, 'saleLookup'])->middleware('access:inventori')->name('inventori.penjualan.retur.lookup');
     //Route::post('/inventori/penjualan/retur', [SalesReturnController::class, 'store'])->middleware('access:inventori')->name('inventori.penjualan.retur.store');
-Route::get('/inventori/penjualan/retur', [SalesReturnController::class, 'index'])
-    ->middleware(['auth', 'access:inventori'])
-    ->name('inventori.penjualan.retur');
-
-Route::middleware(['auth'])->prefix('inventori/penjualan/retur')->name('inventori.penjualan.retur.')->group(function () {
-    Route::get('/', [SalesReturnController::class, 'index'])->name('index');
-    Route::get('/data', [SalesReturnController::class, 'data'])->name('data');
-    Route::get('/lookup-invoices', [SalesReturnController::class, 'lookupInvoices'])->name('lookup-invoices');
-    Route::get('/sale-items/{saleId}', [SalesReturnController::class, 'saleItems'])->name('sale-items');
-    Route::post('/store', [SalesReturnController::class, 'store'])->name('store');
-    Route::get('/{id}/edit', [SalesReturnController::class, 'edit'])->name('edit');
-    Route::get('/{id}/print-data', [SalesReturnController::class, 'printData'])->name('print-data');
-    Route::get('/export', [SalesReturnController::class, 'export'])->name('export');
+Route::middleware(['auth', 'access:inventori'])->prefix('inventori/penjualan/retur')->group(function () {
+    Route::get('/', [SalesReturnController::class, 'index'])->name('inventori.penjualan.retur');
+    Route::get('/data', [SalesReturnController::class, 'data'])->name('inventori.penjualan.retur.data');
+    Route::get('/lookup-invoices', [SalesReturnController::class, 'lookupInvoices'])->name('inventori.penjualan.retur.lookup-invoices');
+    Route::get('/sale-items/{saleId}', [SalesReturnController::class, 'saleItems'])->name('inventori.penjualan.retur.sale-items');
+    Route::post('/store', [SalesReturnController::class, 'store'])->name('inventori.penjualan.retur.store');
+    Route::get('/{id}/edit', [SalesReturnController::class, 'edit'])->name('inventori.penjualan.retur.edit');
+    Route::get('/{id}/print-data', [SalesReturnController::class, 'printData'])->name('inventori.penjualan.retur.print-data');
+    Route::get('/export', [SalesReturnController::class, 'export'])->name('inventori.penjualan.retur.export');
 });
     Route::get('/inventori/penjualan/{id}', [SalesController::class, 'show'])->middleware('access:inventori')->name('inventori.penjualan.show');
     Route::get('/inventori/penjualan/{id}/print', [SalesController::class, 'print'])->middleware('access:inventori')->name('inventori.penjualan.print');
