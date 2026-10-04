@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\SalesReturn;
+use Illuminate\Database\Eloquent\Builder;
 use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
@@ -19,7 +20,7 @@ class SalesReturnExport implements FromQuery, WithHeadings, WithMapping, ShouldA
         $this->filters = $filters;
     }
 
-    public function query()
+    public function query(): Builder
     {
         $query = SalesReturn::with(['sale', 'customer', 'warehouse', 'businessUnit', 'user']);
 
