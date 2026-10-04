@@ -63,6 +63,11 @@
         overflow-x: hidden;
     }
 
+    .pos-cart .barcode-input,
+    .pos-cart .choose-product {
+        display: none !important;
+    }
+
     .pos-summary {
         flex: 0 0 auto;
     }
