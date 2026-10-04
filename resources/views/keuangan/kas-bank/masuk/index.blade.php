@@ -97,6 +97,7 @@
                         <option value="">Semua Kategori</option>
                         <option value="AR_PAYMENT" {{ $receiptType === 'AR_PAYMENT' ? 'selected' : '' }}>Pelunasan Piutang</option>
                         <option value="CASH_IN" {{ $receiptType === 'CASH_IN' ? 'selected' : '' }}>Penerimaan Umum</option>
+                        <option value="sale" {{ $receiptType === 'sale' ? 'selected' : '' }}>Penjualan Tunai</option>
                     </select>
                 </div>
 
@@ -159,7 +160,7 @@
                                 <td>{{ $journal->businessUnit?->name ?? '-' }}</td>
                                 <td class="text-center">
                                     <span class="badge {{ $journal->source_type === 'AR_PAYMENT' ? 'bg-primary' : 'bg-info text-dark' }}">
-                                        {{ $journal->source_type === 'AR_PAYMENT' ? 'PELUNASAN AR' : 'KAS MASUK' }}
+                                        {{ $journal->source_type === 'AR_PAYMENT' ? 'PELUNASAN AR' : ($journal->source_type === 'sale' ? 'PENJUALAN TUNAI' : 'KAS MASUK') }}
                                     </span>
                                 </td>
                                 <td>
