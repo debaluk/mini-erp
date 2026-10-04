@@ -641,7 +641,7 @@ $(document).ready(function() {
                 if (res.success) {
                     $('#modalReturnForm').modal('hide');
                     returnTable.ajax.reload();
-                    alert(res.message || 'Retur penjualan dan koreksi jurnal berhasil diposting!');
+                    showReturnSuccessPopup('Retur Penjualan berhasil disimpan', 200000);
                 } else {
                     alert('Gagal: ' + res.message);
                 }
@@ -712,6 +712,41 @@ $(document).ready(function() {
             $('#modalPrintReturn').modal('show');
         });
     });
+
+    function showReturnSuccessPopup(message, duration) {
+        const id = 'returnSuccessPopup';
+        $('#' + id).remove();
+
+        const popup = $(`
+            <div class="modal fade" id="${id}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-sm">
+                    <div class="modal-content border-0 shadow">
+                        <div class="modal-body text-center p-4">
+                            <div class="text-success mb-2">
+                                <i class="bi bi-check-circle-fill fs-1"></i>
+                            </div>
+                            <div class="fw-bold fs-6">${message}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `);
+
+        $('body').append(popup);
+        const modal = new bootstrap.Modal(document.getElementById(id), {
+            backdrop: 'static',
+            keyboard: false
+        });
+
+        modal.show();
+
+        setTimeout(function() {
+            modal.hide();
+            setTimeout(function() {
+                popup.remove();
+            }, 300);
+        }, duration);
+    }
 
     // HELPER UTILITY FORMAT RUPIAH
     function formatRupiah(num) {
