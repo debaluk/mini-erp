@@ -6,10 +6,6 @@
             @if(isset($editUnit))
                 @method('PUT')
             @endif
-            <div class="col-md-2">
-                <label class="form-label">Kode Unit *</label>
-                <input type="text" name="code" class="form-control" value="{{ old('code', $editUnit->code ?? '') }}" required>
-            </div>
             <div class="col-md-3">
                 <label class="form-label">Nama Unit *</label>
                 <input type="text" name="name" class="form-control" value="{{ old('name', $editUnit->name ?? '') }}" required>
