@@ -4,8 +4,6 @@ namespace App\Services;
 
 use App\Models\SalesReturn;
 use App\Models\SalesReturnItem;
-use App\Models\Sale;
-use App\Models\SaleItem;
 use App\Models\StockMovement;
 use App\Models\Journal;
 use App\Models\JournalEntry;
@@ -30,7 +28,8 @@ class SalesReturnService
             }
 
             // 2. Generate Nomor Retur jika baru
-            $sale = Sale::findOrFail($data['sale_id']);
+            $sale = DB::table('sales')->where('id', $data['sale_id'])->first();
+            abort_unless($sale, 404);
             $returnNo = $isEdit 
                 ? $existingReturn->return_no 
                 : $this->generateReturnNo($data['business_unit_id']);
@@ -63,7 +62,8 @@ class SalesReturnService
             $totalHppValue = 0;
 
             foreach ($data['items'] as $itemData) {
-                $saleItem = SaleItem::findOrFail($itemData['sale_item_id']);
+                $saleItem = DB::table('sale_items')->where('id', $itemData['sale_item_id'])->first();
+                abort_unless($saleItem, 404);
 
                 $qty = (float)$itemData['qty'];
                 $unitPrice = (float)$saleItem->unit_price;
@@ -201,7 +201,8 @@ class SalesReturnService
         $hppDamaged = 0;
 
         foreach ($itemsData as $it) {
-            $sItem = SaleItem::find($it['sale_item_id']);
+            $sItem = DB::table('sale_items')->where('id', $it['sale_item_id'])->first();
+            abort_unless($sItem, 404);
             $val = (float)$it['qty'] * (float)$sItem->hpp_unit;
             if ($it['condition'] === 'damaged') {
                 $hppDamaged += $val;
