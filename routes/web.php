@@ -136,9 +136,12 @@ Route::middleware('auth')->group(function () {
     //Route::get('/inventori/penjualan/retur/export-excel', [SalesReturnController::class, 'exportExcel'])->middleware('access:inventori')->name('inventori.penjualan.retur.export-excel');
     //Route::get('/inventori/penjualan/retur/lookup', [SalesReturnController::class, 'saleLookup'])->middleware('access:inventori')->name('inventori.penjualan.retur.lookup');
     //Route::post('/inventori/penjualan/retur', [SalesReturnController::class, 'store'])->middleware('access:inventori')->name('inventori.penjualan.retur.store');
+Route::get('/inventori/penjualan/retur', [SalesReturnController::class, 'index'])
+    ->middleware(['auth', 'access:inventori'])
+    ->name('inventori.penjualan.retur');
+
 Route::middleware(['auth'])->prefix('inventori/penjualan/retur')->name('inventori.penjualan.retur.')->group(function () {
     Route::get('/', [SalesReturnController::class, 'index'])->name('index');
-    Route::get('/', [SalesReturnController::class, 'index'])->name('');
     Route::get('/data', [SalesReturnController::class, 'data'])->name('data');
     Route::get('/lookup-invoices', [SalesReturnController::class, 'lookupInvoices'])->name('lookup-invoices');
     Route::get('/sale-items/{saleId}', [SalesReturnController::class, 'saleItems'])->name('sale-items');
