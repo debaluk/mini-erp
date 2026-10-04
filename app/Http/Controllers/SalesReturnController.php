@@ -468,6 +468,7 @@ class SalesReturnController extends Controller
             };
 
             $monthKey = now()->format('Ym');
+        $dateKey = now()->format('Ymd');
 
             DB::table('entities')
                 ->where('id', $entity)
