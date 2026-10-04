@@ -6,9 +6,8 @@
     const products = Array.isArray(config.products) ? config.products : [];
     const body = document.getElementById('detailBody');
     const unitSelect = document.getElementById('unitSelect');
-    const saleDate = document.getElementById('saleDate');
-    const saleDateDisplay = document.getElementById('saleDateDisplay');
-    const saleDatePicker = document.getElementById('saleDatePicker');
+    const saleDate = document.querySelector('input[name="sale_date"]');
+    const saleDateDisplay = document.getElementById('saleDate_display');
     const customerSearch = document.getElementById('customerSearch');
     const customerId = document.getElementById('customerId');
     const customerFilter = document.getElementById('customerFilter');
@@ -586,8 +585,15 @@
         const parsedSaleDate = parseDateIndonesia(saleDateDisplay?.value || '');
         if (parsedSaleDate) saleDate.value = parsedSaleDate;
 
+        const submittedSaleDate = saleDate?.value || parsedSaleDate || '';
+        if (!submittedSaleDate) {
+            saleDateDisplay?.classList.add('is-invalid');
+            saleDateDisplay?.focus();
+            return;
+        }
+
         const payload = {
-            sale_date: saleDate?.value || parsedSaleDate || '',
+            sale_date: submittedSaleDate,
             customer_id: Number(selectedCustomerId || customerId?.value || 0) || null,
             business_unit_id: buId,
             payment_method: paymentMethod?.value || 'tunai',
