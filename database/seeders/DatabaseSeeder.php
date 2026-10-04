@@ -635,6 +635,7 @@ class DatabaseSeeder extends Seeder
             [
                 'bom_id' => $bomId,
                 'product_id' => $productIds['SEMEN-001'],
+                'unit_id' => $unitIds['SAK'],
                 'qty' => 50,
                 'created_at' => $now,
                 'updated_at' => $now,
@@ -642,6 +643,7 @@ class DatabaseSeeder extends Seeder
             [
                 'bom_id' => $bomId,
                 'product_id' => $productIds['PASIR-001'],
+                'unit_id' => $unitIds['M3'],
                 'qty' => 2,
                 'created_at' => $now,
                 'updated_at' => $now,
