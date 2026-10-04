@@ -53,7 +53,32 @@
         overflow: hidden;
         display: flex;
         flex-direction: column;
-        padding: 0 12px 12px !important;
+        padding: 12px !important;
+    }
+
+    .pos-main-row {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .pos-left-panel,
+    .pos-right-panel {
+        min-height: 0;
+        height: 100%;
+    }
+
+    .pos-left-panel {
+        overflow-y: auto;
+    }
+
+    .pos-right-panel {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .pos-right-panel .pos-cart {
+        flex: 1 1 auto;
     }
 
     .pos-cart {
@@ -102,6 +127,20 @@
             padding: 0;
         }
 
+        .pos-main-row {
+            overflow-y: auto;
+        }
+
+        .pos-left-panel,
+        .pos-right-panel {
+            height: auto;
+            min-height: auto;
+        }
+
+        .pos-right-panel .pos-cart {
+            max-height: 45vh;
+        }
+
         .pos-total {
             font-size: 20pt;
         }
@@ -110,137 +149,115 @@
 <div class="pos-screen">
 <div class="card pos-card">
     <div class="card-body pos-card-body">
-        <div class="row g-2">
-            <div class="col-md-6">
-                <div class="d-flex align-items-center">
-                    <label class="form-label mb-0 me-3 text-nowrap" style="min-width:80px">Tanggal</label>
-                    <x-date-input-id name="sale_date" :value="now()->toDateString()" required />
-                </div>
-            </div>
+        <div class="row g-3 pos-main-row">
+            <div class="col-md-5 pos-left-panel">
+                <div class="border rounded p-3 h-100 d-flex flex-column">
+                    <h6 class="mb-3"><i class="bi bi-receipt me-2"></i>Transaksi</h6>
 
-            <div class="col-md-6">
-                <div class="d-flex align-items-center">
-                    <label class="form-label mb-0 me-3 text-nowrap" style="min-width:80px">Pelanggan</label>
-                    <div class="input-group">
-                        <input id="customerSearch" class="form-control" value="Umum" placeholder="Pilih pelanggan..." readonly>
-                        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#customerModal">Pilih</button>
+                    <div class="mb-3">
+                        <label class="form-label mb-1">Tanggal</label>
+                        <x-date-input-id name="sale_date" :value="now()->toDateString()" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label mb-1">Pelanggan</label>
+                        <div class="input-group">
+                            <input id="customerSearch" class="form-control" value="Umum" placeholder="Pilih pelanggan..." readonly>
+                            <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#customerModal">Pilih</button>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label mb-1">Nomor</label>
+                        <input class="form-control" value="Otomatis" readonly>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label mb-1">Unit Bisnis</label>
+                        <select id="unitSelect" class="form-select" required disabled>
+                            @foreach($units as $u)
+                                <option value="{{ $u->id }}" @selected((int) $defaultUnitId === (int) $u->id)>
+                                    {{ $u->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @if($units->isEmpty())
+                            <div class="form-text text-danger">User belum memiliki alokasi Business Unit.</div>
+                        @endif
+                    </div>
+
+                    <div class="mt-auto pt-3 border-top pos-summary">
+                        <h6 class="mb-2"><i class="bi bi-calculator me-2"></i>Ringkasan Transaksi</h6>
+                        <div class="d-flex justify-content-between py-1">
+                            <span>Subtotal</span>
+                            <strong id="subtotalAmount">Rp 0</strong>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center py-1">
+                            <span>Diskon (Rp)</span>
+                            <input id="discountInput" type="number" min="0" class="form-control text-end" style="max-width:160px" value="0">
+                        </div>
+                        <div class="pos-total-card mt-2 d-flex justify-content-between align-items-center gap-3">
+                            <div class="small text-uppercase fw-semibold opacity-75 text-nowrap">TOTAL BAYAR</div>
+                            <div id="totalAmount" class="pos-total text-end">Rp 0</div>
+                        </div>
+                        <div class="mt-2">
+                            <label class="form-label">Cara Bayar</label>
+                            <select id="paymentMethod" class="form-select">
+                                <option value="Tunai">Tunai</option>
+                                <option value="Transfer">Transfer</option>
+                                <option value="QRIS">QRIS</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="pt-3 mt-3 border-top">
+                        <div class="small fw-semibold text-secondary mb-2">Shortcut Kasir</div>
+                        <div class="d-flex flex-wrap gap-2">
+                            <span class="small text-secondary"><kbd>F2</kbd> Pilih Barang</span>
+                            <span class="small text-secondary"><kbd>F4</kbd> Cara Bayar</span>
+                            <span class="small text-secondary"><kbd>F5</kbd> Refresh</span>
+                            <span class="small text-secondary"><kbd>F8</kbd> Bayar</span>
+                            <span class="small text-secondary"><kbd>Esc</kbd> Tutup</span>
+                            <span class="small text-secondary"><kbd>Enter</kbd> Barcode</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="col-md-6">
-                <div class="d-flex align-items-center">
-                    <label class="form-label mb-0 me-3 text-nowrap" style="min-width:80px">Nomor</label>
-                    <input class="form-control" value="Otomatis" readonly>
-                </div>
-            </div>
-
-            <div class="col-md-6">
-                <div class="d-flex align-items-center">
-                    <label class="form-label mb-0 me-3 text-nowrap" style="min-width:80px">Unit Bisnis</label>
-                    <select id="unitSelect" class="form-select" required disabled>
-                        @foreach($units as $u)
-                            <option value="{{ $u->id }}" @selected((int) $defaultUnitId === (int) $u->id)>
-                                {{ $u->name }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-                @if($units->isEmpty())
-                    <div class="form-text text-danger ms-5">User belum memiliki alokasi Business Unit.</div>
-                @endif
-            </div>
-        </div>
-
-        <div class="d-flex align-items-center mt-3 mb-2">
-            <div>
-                <h6 class="mb-0"><i class="bi bi-receipt me-2"></i>Detil Penjualan</h6>
-                <div class="small text-secondary">Scan barcode atau ketik kode barang pada kolom di atas.</div>
-            </div>
-        </div>
-
-        <div class="input-group input-group-sm mb-2">
-            <span class="input-group-text"><i class="bi bi-upc-scan"></i></span>
-            <input type="text" id="posBarcodeSearch" class="form-control" autocomplete="off" placeholder="Scan / ketik barcode barang..." autofocus>
-            <button type="button" class="btn btn-outline-primary" id="posChooseProduct">Pilih Barang</button>
-        </div>
-
-        <div class="table-responsive pos-cart">
-            <table class="table table-sm table-hover align-middle mb-0" id="salesDetailTable">
-                <thead class="table-primary">
-                    <tr>
-                        <th style="width:130px">Kode Barang</th>
-                        <th style="min-width:280px">Nama Barang</th>
-                        <th style="width:120px">Satuan</th>
-                        <th style="width:110px" class="text-end">Qty</th>
-                        <th style="width:160px" class="text-end">Harga</th>
-                        <th style="width:140px" class="text-end">Diskon</th>
-                        <th style="width:170px" class="text-end">Subtotal</th>
-                        <th style="width:60px" class="text-center">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody id="detailBody"></tbody>
-            </table>
-        </div>
-
-        <div class="row g-3 align-items-end">
-            <div class="col-md-6">
-                <div class="pos-shortcuts h-100 d-flex flex-column justify-content-end pb-1">
-                    <div class="small fw-semibold text-secondary mb-2">
-                        Shortcut Kasir
-                    </div>
-
-                    <div class="d-flex flex-wrap gap-2">
-                        <span class="small text-secondary">
-                            <kbd>F2</kbd> Pilih Barang
-                        </span>
-                        <span class="small text-secondary">
-                            <kbd>F4</kbd> Cara Bayar
-                        </span>
-                        <span class="small text-secondary">
-                            <kbd>F5</kbd> Refresh
-                        </span>
-                        <span class="small text-secondary">
-                            <kbd>F8</kbd> Bayar
-                        </span>
-                        <span class="small text-secondary">
-                            <kbd>Esc</kbd> Tutup
-                        </span>
-                        <span class="small text-secondary">
-                            <kbd>Enter</kbd> Barcode
-                        </span>
+            <div class="col-md-7 pos-right-panel">
+                <div class="d-flex align-items-center mb-2">
+                    <div>
+                        <h6 class="mb-0"><i class="bi bi-receipt me-2"></i>Detil Penjualan</h6>
+                        <div class="small text-secondary">Scan barcode atau ketik kode barang pada kolom di bawah.</div>
                     </div>
                 </div>
-            </div>
 
-            <div class="col-md-6 pos-summary">
-                <h6 class="mt-2"><i class="bi bi-calculator me-2"></i>Ringkasan Transaksi</h6>
-
-                <div class="d-flex justify-content-between py-1">
-                    <span>Subtotal</span>
-                    <strong id="subtotalAmount">Rp 0</strong>
+                <div class="input-group input-group-sm mb-2">
+                    <span class="input-group-text"><i class="bi bi-upc-scan"></i></span>
+                    <input type="text" id="posBarcodeSearch" class="form-control" autocomplete="off" placeholder="Scan / ketik barcode barang..." autofocus>
+                    <button type="button" class="btn btn-outline-primary" id="posChooseProduct">Pilih Barang</button>
                 </div>
 
-                <div class="d-flex justify-content-between align-items-center py-1">
-                    <span>Diskon (Rp)</span>
-                    <input id="discountInput" type="number" min="0" class="form-control text-end" style="max-width:160px" value="0">
-                </div>
-
-                <div class="pos-total-card mt-2 d-flex justify-content-between align-items-center gap-3">
-                    <div class="small text-uppercase fw-semibold opacity-75 text-nowrap">TOTAL BAYAR</div>
-                    <div id="totalAmount" class="pos-total text-end">Rp 0</div>
-                </div>
-
-                <div class="mt-2">
-                    <label class="form-label">Cara Bayar</label>
-                    <select id="paymentMethod" class="form-select">
-                        <option value="Tunai">Tunai</option>
-                        <option value="Transfer">Transfer</option>
-                        <option value="QRIS">QRIS</option>
-                    </select>
+                <div class="table-responsive pos-cart border rounded">
+                    <table class="table table-sm table-hover align-middle mb-0" id="salesDetailTable">
+                        <thead class="table-primary">
+                            <tr>
+                                <th style="width:130px">Kode Barang</th>
+                                <th style="min-width:280px">Nama Barang</th>
+                                <th style="width:120px">Satuan</th>
+                                <th style="width:110px" class="text-end">Qty</th>
+                                <th style="width:160px" class="text-end">Harga</th>
+                                <th style="width:140px" class="text-end">Diskon</th>
+                                <th style="width:170px" class="text-end">Subtotal</th>
+                                <th style="width:60px" class="text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detailBody"></tbody>
+                    </table>
                 </div>
             </div>
         </div>
+</div>
     </div>
 
     <div class="card-footer pos-action d-flex justify-content-between align-items-center gap-2">
