@@ -175,9 +175,9 @@
     const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
     const detailModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('detailHargaJualModal'));
     const priceTable = new DataTable('#selling-price-table', {
-        pageLength: 10,
+        pageLength: 15,
         autoWidth: false,
-        lengthMenu: [10, 25, 50, 100],
+        lengthMenu: [15, 25, 50, 100],
         order: [[2, 'asc']],
         columnDefs: [{ targets: [4,5,6,7], className: 'text-end' }, { targets: [8], orderable: false, searchable: false }]
     });
