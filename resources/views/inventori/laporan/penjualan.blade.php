@@ -108,9 +108,9 @@
                 </div>
 
                 <div class="col-12 col-sm-8 col-lg-4">
-                    <label class="form-label">Business Unit</label>
+                    <label class="form-label">Unit Bisnis</label>
                     <select name="unit_id" class="form-select">
-                        <option value="">Semua Business Unit</option>
+                        <option value="">Semua Unit Bisnis</option>
 
                         @foreach($units as $u)
                             <option
@@ -152,8 +152,8 @@
             </div>
 
             <div class="col-12 col-md-4">
-                <div class="text-secondary">Business Unit</div>
-                <div class="fw-semibold">{{ $selectedUnitName ?? 'Semua Business Unit' }}</div>
+                <div class="text-secondary">Unit Bisnis</div>
+                <div class="fw-semibold">{{ $selectedUnitName ?? 'Semua Unit Bisnis' }}</div>
             </div>
         </div>
     </div>
@@ -349,17 +349,17 @@
     </div>
 </div>
 
-{{-- Penjualan per Business Unit --}}
+{{-- Penjualan per Unit Bisnis --}}
 <div class="card shadow-sm mb-3">
     <div class="card-header fw-semibold">
-        Penjualan per Business Unit
+        Penjualan per Unit Bisnis
     </div>
 
     <div class="table-responsive">
         <table class="table table-hover report-table mb-0">
             <thead class="table-light">
                 <tr>
-                    <th>Business Unit</th>
+                    <th>Unit Bisnis</th>
                     <th class="text-end">Penjualan</th>
                     <th class="text-end">Retur</th>
                     <th class="text-end">Bersih</th>
@@ -381,7 +381,7 @@
                 @empty
                     <tr>
                         <td colspan="6" class="text-center text-secondary py-3">
-                            Tidak ada data Business Unit pada periode ini.
+                            Tidak ada data Unit Bisnis pada periode ini.
                         </td>
                     </tr>
                 @endforelse
@@ -445,7 +445,7 @@
             </thead>
 
             <tbody>
-                @forelse($topCustomers as $c)
+                @forelse($topPelanggans as $c)
                     <tr>
                         <td class="fw-semibold">{{ $c->customer_name }}</td>
                         <td class="text-end">{{ number_format((int) $c->transactions, 0, ',', '.') }}</td>
@@ -476,8 +476,8 @@
                 <tr>
                     <th>No. Penjualan</th>
                     <th>Tanggal</th>
-                    <th>Customer</th>
-                    <th>Business Unit</th>
+                    <th>Pelanggan</th>
+                    <th>Unit Bisnis</th>
                     <th>Cara Bayar</th>
                     <th>Jatuh Tempo</th>
                     <th class="text-end">Subtotal</th>
@@ -499,7 +499,7 @@
 
                         <td>{{ $r->unit_name ?? '-' }}</td>
 
-                        <td>{{ $r->payment_methods ?? '-' }}</td>
+                        <td>{{ collect(explode(', ', (string) $r->payment_methods))->map(fn($m) => match ($m) { 'cash' => 'Tunai', 'credit' => 'Kredit / Bon', 'transfer' => 'Transfer', 'qris' => 'QRIS', default => $m ?: '-' })->implode(', ') ?: '-' }}</td>
 
                         <td>
                             {{ !empty($r->due_date) ? \Carbon\Carbon::parse($r->due_date)->format('d/m/Y') : '-' }}
@@ -529,7 +529,7 @@
                             @endphp
 
                             <span class="badge {{ $statusClass }}">
-                                {{ $r->status }}
+                                {{ match (strtolower((string) $r->status)) { 'posted' => 'Diposting', 'draft' => 'Draf', 'cancelled', 'canceled', 'void' => 'Dibatalkan', 'paid', 'lunas' => 'Lunas', default => $r->status ?: '-' } }}
                             </span>
                         </td>
 
