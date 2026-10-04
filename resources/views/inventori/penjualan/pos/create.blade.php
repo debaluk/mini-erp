@@ -221,8 +221,8 @@
                                 <th style="width:70px">Kode Barang</th>
                                 <th style="min-width:220px">Nama Barang</th>
                                 <th style="width:120px">Satuan</th>
-                                <th style="width:120px" class="text-end">Qty</th>
-                                <th style="width:160px" class="text-end">Harga</th>
+                                <th style="width:100px;min-width:100px" class="text-end">Qty</th>
+                                <th style="width:120px" class="text-end">Harga</th>
                                 <th style="width:140px" class="text-end">Diskon</th>
                                 <th style="width:170px" class="text-end">Subtotal</th>
                                 <th style="width:90px" class="text-center">Aksi</th>
@@ -232,34 +232,32 @@
                     </table>
                 </div>
 
-
-                                    <div class="mt-auto pt-3 border-top pos-summary">
-                        <div class="d-flex justify-content-between py-1 text-end">
-                            <span class="flex-grow-1">Subtotal</span>
-                            <strong id="subtotalAmount" style="min-width:160px">Rp 0</strong>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center py-1 text-end">
-                            <span class="flex-grow-1">Diskon (Rp)</span>
-                            <input id="discountInput" type="number" min="0" class="form-control text-end" style="max-width:160px" value="0">
-                        </div>
-                        <div class="pos-total-card mt-2 d-flex justify-content-between align-items-center gap-3">
-                            <div class="small text-uppercase fw-semibold opacity-75 text-nowrap">TOTAL BAYAR</div>
-                            <div id="totalAmount" class="pos-total text-end">Rp 0</div>
-                        </div>
-                        <div class="row align-items-center mt-2 g-2">
-                            <div class="col-sm-4 text-end fw-semibold">Cara Bayar</div>
-                            <div class="col-sm-8">
-                                <select id="paymentMethod" class="form-select">
-                                    <option value="Tunai">Tunai</option>
-                                    <option value="Transfer">Transfer</option>
-                                    <option value="QRIS">QRIS</option>
-                                </select>
-                            </div>
+                <div class="mt-auto pt-3 border-top pos-summary">
+                    <div class="d-flex justify-content-between py-1 text-end">
+                        <span class="flex-grow-1">Subtotal</span>
+                        <strong id="subtotalAmount" style="min-width:160px">Rp 0</strong>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center py-1 text-end">
+                        <span class="flex-grow-1">Diskon (Rp)</span>
+                        <input id="discountInput" type="number" min="0" class="form-control text-end" style="max-width:160px" value="0">
+                    </div>
+                    <div class="pos-total-card mt-2 d-flex justify-content-between align-items-center gap-3">
+                        <div class="small text-uppercase fw-semibold opacity-75 text-nowrap">TOTAL BAYAR</div>
+                        <div id="totalAmount" class="pos-total text-end">Rp 0</div>
+                    </div>
+                    <div class="row align-items-center mt-2 g-2">
+                        <div class="col-sm-4 text-end fw-semibold">Cara Bayar</div>
+                        <div class="col-sm-8">
+                            <select id="paymentMethod" class="form-select">
+                                <option value="Tunai">Tunai</option>
+                                <option value="Transfer">Transfer</option>
+                                <option value="QRIS">QRIS</option>
+                            </select>
                         </div>
                     </div>
+                </div>
             </div>
         </div>
-</div>
     </div>
 
     <div class="card-footer pos-action d-flex justify-content-between align-items-center gap-2">
