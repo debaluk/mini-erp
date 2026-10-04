@@ -4,14 +4,18 @@ namespace App\Services;
 
 use App\Models\SalesReturn;
 use App\Models\SalesReturnItem;
-use App\Models\Journal;
-use App\Models\JournalEntry;
-use App\Models\ChartOfAccount;
 use Illuminate\Support\Facades\DB;
 use Exception;
 
 class SalesReturnService
 {
+    private SalesReturnJournalService $journalService;
+
+    public function __construct(SalesReturnJournalService $journalService)
+    {
+        $this->journalService = $journalService;
+    }
+
     /**
      * Orchestrator Utama: Simpan/Edit Retur + Reversal Jurnal & Stok
      */
@@ -101,7 +105,7 @@ class SalesReturnService
             $returnHeader->update(['total' => $totalReturnValue]);
 
             // 6. Post Auto-Journal ke GL Engine
-            $this->postJournalGL($returnHeader, $sale, $totalReturnValue, $totalHppValue, $data['items']);
+            $this->journalService->post($returnHeader, $sale, $totalReturnValue, $totalHppValue, $data['items']);
 
             return $returnHeader;
         });
@@ -136,15 +140,8 @@ class SalesReturnService
      */
     private function rollbackPreviousTransactions(SalesReturn $return)
     {
-        // Hapus Jurnal Lama
-        $journals = Journal::where('source_type', 'sales_return')
-            ->where('source_id', $return->id)
-            ->get();
-
-        foreach ($journals as $j) {
-            JournalEntry::where('journal_id', $j->id)->delete();
-            $j->delete();
-        }
+        // Reversal jurnal lama melalui Journal Service; jurnal lama tetap tersimpan sebagai audit trail.
+        $this->journalService->reverse($return->id, auth()->id());
 
         // Hapus Mutasi Stok Lama
         DB::table('stock_movements')
@@ -174,93 +171,6 @@ class SalesReturnService
             'reference_id'     => $return->id,
             'occurred_at'       => $return->return_date,
             'created_by'        => $userId,
-        ]);
-    }
-
-    /**
-     * Post Auto-Journal berpasangan ke GL Engine
-     */
-    private function postJournalGL($return, $sale, $totalRefund, $totalHpp, array $itemsData)
-    {
-        $journalNo = 'JRN-RET-' . date('YmdHis') . '-' . $return->id;
-
-        $journal = Journal::create([
-            'entity_id'        => $return->entity_id,
-            'business_unit_id' => $return->business_unit_id,
-            'journal_no'       => $journalNo,
-            'journal_date'     => date('Y-m-d', strtotime($return->return_date)),
-            'source_type'      => 'sales_return',
-            'source_id'        => $return->id,
-            'description'      => "Jurnal Retur Penjualan No. {$return->return_no} (Inv: {$sale->invoice_no})",
-            'status'           => 'posted',
-        ]);
-
-        // Fetch COA Mapping
-        $accountRetur = ChartOfAccount::where('entity_id', $return->entity_id)->where('code', '4000201')->firstOrFail(); // Retur Penjualan
-        $accountPiutang = ChartOfAccount::where('entity_id', $return->entity_id)->where('code', '1000301')->first(); // Piutang Usaha
-        $accountKas = ChartOfAccount::where('entity_id', $return->entity_id)->where('code', '1000101')->first(); // Kas Kecil
-        $accountPersediaan = ChartOfAccount::where('entity_id', $return->entity_id)->where('code', '1000401')->firstOrFail(); // Persediaan
-        $accountHpp = ChartOfAccount::where('entity_id', $return->entity_id)->where('code', '5000101')->firstOrFail(); // HPP
-        $accountKerusakan = ChartOfAccount::where('entity_id', $return->entity_id)->where('code', '5000901')->first(); // Beban Kerusakan
-
-        // 1. (D) Retur Penjualan
-        JournalEntry::create([
-            'journal_id' => $journal->id,
-            'account_id' => $accountRetur->id,
-            'debit'      => $totalRefund,
-            'credit'     => 0.00,
-        ]);
-
-        // 2. (K) Piutang Usaha ATAU Kas Kecil (Tergantung jenis transaksi asal)
-        $creditAccountId = ($sale->due_date != null) ? $accountPiutang->id : $accountKas->id;
-        JournalEntry::create([
-            'journal_id' => $journal->id,
-            'account_id' => $creditAccountId,
-            'debit'      => 0.00,
-            'credit'     => $totalRefund,
-        ]);
-
-        // 3. Hitung pemisahan HPP Barang Bagus vs Rusak
-        $hppGood = 0;
-        $hppDamaged = 0;
-
-        foreach ($itemsData as $it) {
-            $sItem = DB::table('sale_items')->where('id', $it['sale_item_id'])->first();
-            abort_unless($sItem, 404);
-            $val = (float)$it['qty'] * (float)$sItem->hpp_unit;
-            if ($it['condition'] === 'damaged') {
-                $hppDamaged += $val;
-            } else {
-                $hppGood += $val;
-            }
-        }
-
-        // 4. (D) Persediaan Barang Dagangan (Untuk Barang Bagus)
-        if ($hppGood > 0) {
-            JournalEntry::create([
-                'journal_id' => $journal->id,
-                'account_id' => $accountPersediaan->id,
-                'debit'      => $hppGood,
-                'credit'     => 0.00,
-            ]);
-        }
-
-        // 5. (D) Beban Kerusakan / Scrap (Untuk Barang Rusak)
-        if ($hppDamaged > 0 && $accountKerusakan) {
-            JournalEntry::create([
-                'journal_id' => $journal->id,
-                'account_id' => $accountKerusakan->id,
-                'debit'      => $hppDamaged,
-                'credit'     => 0.00,
-            ]);
-        }
-
-        // 6. (K) HPP Barang Dagangan (Reversal total HPP)
-        JournalEntry::create([
-            'journal_id' => $journal->id,
-            'account_id' => $accountHpp->id,
-            'debit'      => 0.00,
-            'credit'     => $totalHpp,
         ]);
     }
 
