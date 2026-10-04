@@ -8,6 +8,7 @@
     const unitSelect = document.getElementById('unitSelect');
     const saleDate = document.querySelector('input[name="sale_date"]');
     const saleDateDisplay = document.getElementById('saleDate_display');
+    if (saleDate && !saleDate.value) saleDate.value = config.saleDate || ''; 
     const customerSearch = document.getElementById('customerSearch');
     const customerId = document.getElementById('customerId');
     const customerFilter = document.getElementById('customerFilter');
@@ -585,7 +586,7 @@
         const parsedSaleDate = parseDateIndonesia(saleDateDisplay?.value || '');
         if (parsedSaleDate) saleDate.value = parsedSaleDate;
 
-        const submittedSaleDate = saleDate?.value || parsedSaleDate || '';
+        const submittedSaleDate = saleDate?.value || parsedSaleDate || config.saleDate || '';
         if (!submittedSaleDate) {
             saleDateDisplay?.classList.add('is-invalid');
             saleDateDisplay?.focus();
