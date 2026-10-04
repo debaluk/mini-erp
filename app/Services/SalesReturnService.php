@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\SalesReturn;
 use App\Models\SalesReturnItem;
-use App\Models\StockMovement;
 use App\Models\Journal;
 use App\Models\JournalEntry;
 use App\Models\ChartOfAccount;
@@ -148,7 +147,8 @@ class SalesReturnService
         }
 
         // Hapus Mutasi Stok Lama
-        StockMovement::where('reference_type', 'sales_return')
+        DB::table('stock_movements')
+            ->where('reference_type', 'sales_return')
             ->where('reference_id', $return->id)
             ->delete();
     }
@@ -159,21 +159,21 @@ class SalesReturnService
     private function createStockMovement($return, $productId, $unitId, $qty, $conversionFactor, $baseQty, $hppUnit, $condition, $userId)
     {
         // Movement Type: return_in (Menambah Stok Kembali)
-        StockMovement::create([
-            'entity_id'        => $return->entity_id,
-            'business_unit_id' => $return->business_unit_id,
-            'warehouse_id'     => $return->warehouse_id,
-            'product_id'       => $productId,
-            'unit_id'          => $unitId,
-            'movement_type'    => 'sales_return_in',
-            'qty'              => $qty,
-            'transaction_qty'  => $qty,
-            'conversion_factor'=> $conversionFactor,
-            'unit_cost'        => $hppUnit,
-            'reference_type'   => 'sales_return',
+        DB::table('stock_movements')->insert([
+            'entity_id'         => $return->entity_id,
+            'business_unit_id'  => $return->business_unit_id,
+            'warehouse_id'      => $return->warehouse_id,
+            'product_id'        => $productId,
+            'unit_id'           => $unitId,
+            'movement_type'     => 'sales_return_in',
+            'qty'               => $qty,
+            'transaction_qty'   => $qty,
+            'conversion_factor' => $conversionFactor,
+            'unit_cost'         => $hppUnit,
+            'reference_type'    => 'sales_return',
             'reference_id'     => $return->id,
-            'occurred_at'      => $return->return_date,
-            'created_by'       => $userId,
+            'occurred_at'       => $return->return_date,
+            'created_by'        => $userId,
         ]);
     }
 
