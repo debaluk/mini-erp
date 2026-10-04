@@ -10,7 +10,7 @@
 
 <div id="unit-alert"></div>
 
-<div class="card shadow-sm mb-3">
+<div class="card border-0 shadow-sm mb-3">
     <div class="card-body py-3">
         <form id="unitForm" novalidate>
             <div class="row g-2 align-items-end">
@@ -44,15 +44,15 @@
     </div>
 </div>
 
-<div class="card shadow-sm">
-    <div class="card-body py-2 border-bottom">
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-primary bg-opacity-10 text-primary border-bottom py-3">
         <div class="d-flex justify-content-between align-items-center">
-            <div class="fw-semibold">Daftar Satuan</div>
+            <div class="fw-semibold"><i class="bi bi-rulers me-2"></i>Daftar Satuan</div>
         </div>
     </div>
     <div class="table-responsive">
         <table class="table table-sm table-hover align-middle mb-0" id="units-table" style="width:100%">
-            <thead>
+            <thead class="table-primary">
                 <tr>
                     <th>Kode</th>
                     <th>Nama Satuan</th>
