@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Penjualan;
+namespace App\Services;
 
 use App\Models\SalesReturn;
 use App\Models\SalesReturnItem;
