@@ -23,7 +23,7 @@
 
 <div class="card border-0 shadow-sm">
     <div class="card-header bg-primary bg-opacity-10 text-primary border-bottom d-flex justify-content-between align-items-center py-3"><div class="fw-semibold"><i class="bi bi-box-seam me-2"></i>Daftar Item</div><span class="badge rounded-pill bg-white text-primary border border-primary-subtle">Master data</span></div>
-    <div class="table-responsive>
+    <div class="table-responsive">
         <table id="items-table" class="table table-sm table-hover align-middle mb-0 w-100">
             <thead class="table-primary">
                 <tr>
