@@ -92,15 +92,19 @@
 
                     <div class="fw-semibold mb-3">Perubahan Harga</div>
                     <div class="row g-3">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label small text-secondary">Harga Lama</label>
                             <input type="text" id="oldPriceDisplay" class="form-control text-end fw-semibold bg-light" disabled>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label for="newPrice" class="form-label small text-secondary">Harga Baru</label>
                             <input type="text" name="selling_price" id="newPrice" class="form-control text-end fw-semibold" inputmode="decimal" autocomplete="off" required>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
+                            <label class="form-label small text-secondary">% Selisih</label>
+                            <input type="text" id="changePercent" class="form-control text-end fw-semibold bg-light" value="-" disabled>
+                        </div>
+                        <div class="col-md-3">
                             <label for="priceChangeDate" class="form-label small text-secondary">Tanggal Setup</label>
                             <input type="date" name="change_date" id="priceChangeDate" class="form-control" value="{{ today()->format('Y-m-d') }}" required>
                         </div>
@@ -238,6 +242,16 @@
         newPrice.value = exists
             ? Number(old).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
             : '';
+
+        const calculate = () => {
+            const entered = newPrice.value.replace(/\./g, '').replace(',', '.');
+            const n = Number(entered);
+            const o = Number(old);
+            percent.value = (!exists || !o || !n)
+                ? '-'
+                : (((n - o) / o) * 100).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+        };
+        calculate();
     };
 
     const openSetup = row => {
@@ -262,10 +276,19 @@
         const digits = numeric.replace(/[^0-9,]/g, '');
         if (!digits) {
             newPrice.value = '';
+            if (current) document.getElementById('changePercent').value = '-';
             return;
         }
         const [integer, decimal] = digits.split(',');
         newPrice.value = Number(integer || 0).toLocaleString('id-ID') + (decimal !== undefined ? ',' + decimal : '');
+
+        if (current) {
+            const old = Number(current.selling_price);
+            const n = Number(newPrice.value.replace(/\./g, '').replace(',', '.'));
+            document.getElementById('changePercent').value = old && n
+                ? (((n - old) / old) * 100).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%'
+                : '-';
+        }
     });
 
     form.addEventListener('submit', async event => {
