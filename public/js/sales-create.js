@@ -128,7 +128,7 @@
             const tr = document.createElement('tr');
 
             tr.innerHTML = `
-                <td style="min-width:220px">
+                <td style="width:70px;min-width:70px">
                     ${blank ? `
                         <div class="input-group input-group-sm">
                             <input type="text" class="form-control barcode-input" data-index="${index}" placeholder="Scan / ketik barcode">
@@ -143,7 +143,7 @@
                     ${blank ? '<span class="text-muted">Belum dipilih</span>' : escapeHtml(row.name)}
                 </td>
                 <td>${blank ? '-' : escapeHtml(row.unit_code || row.unit_name)}</td>
-                <td style="width:85px;max-width:85px">
+                <td style="width:120px;max-width:120px">
                     ${blank ? '<span class="text-muted">-</span>' : `<input type="number" min="1" step="1" class="form-control form-control-sm qty-input text-end" data-index="${index}" value="${Number(row.qty || 1)}">`}
                 </td>
                 <td style="min-width:145px">
