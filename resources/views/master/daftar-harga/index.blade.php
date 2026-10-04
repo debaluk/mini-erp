@@ -105,8 +105,9 @@
                             <input type="text" id="changePercent" class="form-control text-end fw-semibold bg-light" value="-" disabled>
                         </div>
                         <div class="col-md-3">
-                            <label for="priceChangeDate" class="form-label small text-secondary">Tanggal Setup</label>
-                            <input type="date" name="change_date" id="priceChangeDate" class="form-control" value="{{ today()->format('Y-m-d') }}" required>
+                            <label for="priceChangeDateDisplay" class="form-label small text-secondary">Tanggal Setup</label>
+                            <input type="text" id="priceChangeDateDisplay" class="form-control" inputmode="numeric" placeholder="dd/mm/yyyy" autocomplete="off" maxlength="10" required>
+                            <input type="hidden" name="change_date" id="priceChangeDate">
                         </div>
                     </div>
                 </div>
@@ -205,11 +206,53 @@
     const oldDisplay = document.getElementById('oldPriceDisplay');
     const percent = document.getElementById('changePercent');
     const saveButton = document.getElementById('priceSaveButton');
+    const priceChangeDateDisplay = document.getElementById('priceChangeDateDisplay');
+    const priceChangeDate = document.getElementById('priceChangeDate');
 
     let current = null;
-        const formatRupiah = value => {
+    const formatRupiah = value => {
         if (value === null || value === undefined || value === '') return '-';
         return 'Rp ' + Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 });
+    };
+
+    const formatDateIndonesia = value => {
+        if (!value) return '-';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return '-';
+        return date.toLocaleDateString('id-ID', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+    };
+
+    const setSetupDate = value => {
+        if (!value) return;
+        const parts = value.split('-');
+        if (parts.length !== 3) return;
+        priceChangeDate.value = value;
+        priceChangeDateDisplay.value = parts[2] + '/' + parts[1] + '/' + parts[0];
+    };
+
+    const getSetupDate = () => {
+        const value = priceChangeDateDisplay.value.trim();
+        const match = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+        if (!match) return null;
+
+        const day = Number(match[1]);
+        const month = Number(match[2]);
+        const year = Number(match[3]);
+        const date = new Date(year, month - 1, day);
+
+        if (
+            date.getFullYear() !== year ||
+            date.getMonth() !== month - 1 ||
+            date.getDate() !== day
+        ) {
+            return null;
+        }
+
+        return year + '-' + String(month).padStart(2, '0') + '-' + String(day).padStart(2, '0');
     };
 
     const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({
@@ -262,10 +305,21 @@
         document.getElementById('priceProductLabel').textContent = row.product_code + ' - ' + row.product_name;
         document.getElementById('priceBusinessUnitLabel').textContent = row.business_unit_name || '-';
         document.getElementById('priceUnitLabel').textContent = row.unit_name || '-';
-        document.getElementById('priceChangeDate').value = '{{ today()->format('Y-m-d') }}';
+        setSetupDate('{{ today()->format('Y-m-d') }}');
         refreshOldPrice();
         showModal(setupModal);
     };
+
+    priceChangeDateDisplay.addEventListener('input', () => {
+        const digits = priceChangeDateDisplay.value.replace(/\D/g, '').slice(0, 8);
+        if (digits.length <= 2) {
+            priceChangeDateDisplay.value = digits;
+        } else if (digits.length <= 4) {
+            priceChangeDateDisplay.value = digits.slice(0, 2) + '/' + digits.slice(2);
+        } else {
+            priceChangeDateDisplay.value = digits.slice(0, 2) + '/' + digits.slice(2, 4) + '/' + digits.slice(4);
+        }
+    });
 
     newPrice.addEventListener('input', () => {
         const raw = newPrice.value.replace(/[^0-9,.-]/g, '');
@@ -294,6 +348,16 @@
     form.addEventListener('submit', async event => {
         event.preventDefault();
         saveButton.disabled = true;
+
+        const setupDate = getSetupDate();
+        if (!setupDate) {
+            priceChangeDateDisplay.classList.add('is-invalid');
+            saveButton.disabled = false;
+            showAlert('Tanggal Setup harus menggunakan format dd/mm/yyyy.', 'danger');
+            return;
+        }
+        priceChangeDateDisplay.classList.remove('is-invalid');
+        priceChangeDate.value = setupDate;
 
         const isEdit = !!current.price_id;
         const priceId = current.price_id;
@@ -364,9 +428,9 @@
                 const oldPrice = row.old_price === null ? '-' : formatRupiah(row.old_price);
                 const pct = row.change_percent === null
                     ? '-'
-                    : Number(row.change_percent).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    : Number(row.change_percent).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
 
-                return '<tr><td>' + new Date(row.change_date).toLocaleDateString('id-ID') +
+                return '<tr><td>' + formatDateIndonesia(row.change_date) +
                     '</td><td class="text-end">' + oldPrice +
                     '</td><td class="text-end">' + formatRupiah(row.new_price) +
                     '</td><td class="text-end">' + pct +
@@ -420,7 +484,7 @@
             {
                 data: 'updated_price_date',
                 className: 'text-center',
-                render: data => data ? new Date(data).toLocaleDateString('id-ID') : '-'
+                render: data => data ? formatDateIndonesia(data) : '-'
             },
             {
                 data: null,
