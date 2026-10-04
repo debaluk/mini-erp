@@ -241,6 +241,7 @@
 @push('scripts')
 <script type="application/json" id="salesCreateData">{!! json_encode([
     'mode' => 'tempo',
+    'saleDate' => now()->toDateString(),
     'requireCustomer' => true,
     'allowCredit' => true,
     'mode' => 'tempo',
