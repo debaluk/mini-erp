@@ -33,7 +33,7 @@
                 </div>
                 <div class="col-md-2">
                     <label class="form-label extra-small text-muted fw-bold mb-1">Sampai Tanggal</label>
-                    <input type="date" class="form-control form-control-sm" id="filterEndDate" value="{{ date('Y-m-d') }}">
+                    <input type="date" class="form-control form-control-sm" id="filterEndDate" value="{{ date('Y-m-t') }}">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label extra-small text-muted fw-bold mb-1">Unit Bisnis</label>
@@ -51,15 +51,6 @@
                         @foreach($warehouses ?? [] as $wh)
                             <option value="{{ $wh->id }}">{{ $wh->name }}</option>
                         @endforeach
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label extra-small text-muted fw-bold mb-1">Status</label>
-                    <select class="form-select form-select-sm" id="filterStatus">
-                        <option value="">-- Semua Status --</option>
-                        <option value="posted" selected>Posted</option>
-                        <option value="draft">Draft</option>
-                        <option value="cancelled">Cancelled</option>
                     </select>
                 </div>
                 <div class="col-md-2 d-flex gap-1 align-self-end">
@@ -380,7 +371,6 @@ $(document).ready(function() {
                 d.end_date = $('#filterEndDate').val();
                 d.business_unit_id = $('#filterBusinessUnit').val();
                 d.warehouse_id = $('#filterWarehouse').val();
-                d.status = $('#filterStatus').val();
             }
         },
         columns: [
@@ -424,8 +414,7 @@ $(document).ready(function() {
             start_date: $('#filterStartDate').val(),
             end_date: $('#filterEndDate').val(),
             business_unit_id: $('#filterBusinessUnit').val(),
-            warehouse_id: $('#filterWarehouse').val(),
-            status: $('#filterStatus').val()
+            warehouse_id: $('#filterWarehouse').val()
         });
         window.location.href = "{{ url('/inventori/penjualan/retur/export') }}?" + params;
     });
