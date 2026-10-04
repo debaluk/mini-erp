@@ -24,7 +24,10 @@ class SalesReturnService
         return DB::transaction(function () use ($data, $userId) {
             $isEdit = !empty($data['return_id']);
 
-            // 1. Jika mode EDIT, eksekusi Reversal Jurnal & Mutasi Stok Lama
+            // 1. Jika mode EDIT, pertahankan tanggal transaksi retur asli.
+            // Koreksi hanya mengganti isi transaksi; tanggal tidak boleh bergeser
+            // ke tanggal saat koreksi dilakukan.
+            $existingReturn = null;
             if ($isEdit) {
                 $existingReturn = SalesReturn::findOrFail($data['return_id']);
                 $this->rollbackPreviousTransactions($existingReturn);
@@ -48,7 +51,9 @@ class SalesReturnService
                     'warehouse_id'     => $data['warehouse_id'],
                     'user_id'          => $userId,
                     'return_no'        => $returnNo,
-                    'return_date'      => $this->normalizeReturnDate($data['return_date'] ?? null),
+                    'return_date'      => $isEdit
+                        ? $existingReturn->return_date
+                        : $this->normalizeReturnDate($data['return_date'] ?? null),
                     'total'            => 0.00, // Will be updated
                     'reason'           => $data['reason'] ?? null,
                     'status'           => 'posted',
