@@ -476,18 +476,20 @@ class SalesReturnController extends Controller
 
             $lastReturn = DB::table('sales_returns')
                 ->where('entity_id', $entity)
-                ->where('return_no', 'like', $prefix . '-' . $monthKey . '-%')
+                ->where('return_no', 'like', $prefix . '-' . $dateKey . '%')
                 ->orderByDesc('id')
                 ->value('return_no');
 
             $sequence = 1;
-            if ($lastReturn && preg_match('/^' . preg_quote($prefix, '/') . '-' . $monthKey . '-([0-9]{6})$/', $lastReturn, $matches)) {
+            if ($lastReturn && preg_match('/^' . preg_quote($prefix, '/') . '-' . $dateKey . '([0-9]{5})$/', $lastReturn, $matches)) {
                 $sequence = ((int) $matches[1]) + 1;
             }
 
             abort_if($sequence > 999999, 422, 'Nomor retur bulan ini sudah mencapai batas 999999.');
 
-            $returnNo = $prefix . '-' . $monthKey . '-' . str_pad((string) $sequence, 6, '0', STR_PAD_LEFT);
+            $dateKey = now()->format('Ymd');
+
+$returnNo = $prefix . '-' . $dateKey . str_pad((string) $sequence, 5, '0', STR_PAD_LEFT);
             $returnId = DB::table('sales_returns')->insertGetId([
                 'entity_id' => $entity,
                 'business_unit_id' => $sale->business_unit_id,
