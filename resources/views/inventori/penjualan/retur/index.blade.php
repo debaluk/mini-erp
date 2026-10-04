@@ -1,340 +1,692 @@
 @extends('layouts.app')
 
+@section('title')
+
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <h3 class="mb-1">Retur Penjualan</h3>
-        <div class="text-secondary">Retur berdasarkan nomor struk penjualan</div>
-    </div>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#return-modal">+ Tambah Retur</button>
-</div>
+<div class="container-fluid px-4 py-3">
 
-<div class="card shadow-sm mb-3">
-    <div class="card-header fw-semibold">Riwayat Retur Penjualan</div>
-    <div class="card-body border-bottom py-2">
-        <form id="return-period-filter" class="d-flex align-items-end gap-2 flex-nowrap" style="white-space:nowrap;">
-            <div>
-                <label for="return-start-date" class="form-label mb-1">Mulai tanggal</label>
-                <input type="date" id="return-start-date" class="form-control" value="{{ request('start_date', now()->startOfMonth()->format('Y-m-d')) }}">
-            </div>
-            <div>
-                <label for="return-end-date" class="form-label mb-1">Sampai tanggal</label>
-                <input type="date" id="return-end-date" class="form-control" value="{{ request('end_date', now()->endOfMonth()->format('Y-m-d')) }}">
-            </div>
-            <div>
-                <button type="submit" class="btn btn-primary">Tampilkan</button>
-            </div>
-            <div>
-                <button type="button" id="return-export-excel" class="btn btn-success">Export Excel</button>
-            </div>
-        </form>
+    {{-- HEADER HALAMAN & BREADCRUMB --}}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h4 class="fw-bold mb-1"><i class="bi bi-box-arrow-in-left text-danger me-2"></i>Retur Penjualan (SAL-02)</h4>
+            <p class="text-muted small mb-0">Pencatatan Pengembalian Barang, Restock Persediaan, dan Koreksi Otomatis Piutang / Kas</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-success btn-sm fw-semibold" id="btnExportExcel">
+                <i class="bi bi-file-earmark-excel me-1"></i> Export Excel
+            </button>
+            <button type="button" class="btn btn-danger btn-sm fw-semibold" id="btnCreateReturn">
+                <i class="bi bi-plus-lg me-1"></i> Buat Retur Baru
+            </button>
+        </div>
     </div>
-    <div class="table-responsive px-2">
-        <table id="return-datatable" class="table table-hover align-middle w-100 mb-0">
-            <thead>
-                <tr>
-                    <th>No. Retur</th>
-                    <th>Tanggal</th>
-                    <th>No. Struk</th>
-                    <th>Pelanggan</th>
-                    <th>Barang</th>
-                    <th class="text-end">Qty</th>
-                    <th class="text-end">Harga Retur</th>
-                    <th>Gudang</th>
-                    <th class="text-end">Total</th>
-                    <th>Aksi</th>
-                </tr>
-            </thead>
-        </table>
-    </div>
-</div>
 
-<div class="modal fade" id="return-modal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl return-modal-dialog">
-        <div class="modal-content">
-            <form method="POST" action="{{ route('inventori.penjualan.retur.store') }}" id="return-form">
-                @csrf
-                <div class="modal-header">
-                    <h5 class="modal-title">Tambah Retur Penjualan</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+   
+
+    {{-- PANEL FILTER DATA --}}
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body py-3">
+            <form id="filterForm" class="row g-2 align-items-center">
+                <div class="col-md-2">
+                    <label class="form-label extra-small text-muted fw-bold mb-1">Mulai Tanggal</label>
+                    <input type="date" class="form-control form-control-sm" id="filterStartDate" value="{{ date('Y-m-01') }}">
                 </div>
-                <div class="modal-body">
-                    <div class="row g-2 mb-3">
-                        <div class="col-md-4">
-                            <label class="form-label">Tanggal Retur</label>
-                            <input type="date" name="return_date" id="return-date" class="form-control" value="{{ now()->format('Y-m-d') }}" required>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">No. Struk</label>
-                            <div class="input-group">
-                                <input type="text" id="return-invoice" class="form-control" placeholder="Ketik nomor struk" required>
-                                <button type="button" class="btn btn-outline-primary" id="return-search">Cari</button>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Gudang Retur</label>
-                            <select name="warehouse_id" id="return-warehouse" class="form-select" required>
-                                <option value="">Pilih gudang</option>
-                                @foreach($warehouses as $w)<option value="{{ $w->id }}">{{ $w->code }} — {{ $w->name }}</option>@endforeach
-                            </select>
-                        </div>
-                    </div>
-                    <input type="hidden" name="sale_id" id="return-sale-id">
-                    <div id="return-sale-info" class="alert alert-light border d-none"></div>
-                    <div class="table-responsive return-items-scroll">
-                        <table class="table table-sm table-bordered align-middle mb-0">
-                            <thead><tr><th>#</th><th>SKU</th><th>Produk</th><th class="text-end">Terjual</th><th class="text-end">Sudah Retur</th><th class="text-end">Bisa Retur</th><th style="width:130px">Qty Retur</th><th style="width:150px">Kondisi</th><th class="text-end">Nilai</th></tr></thead>
-                            <tbody id="return-items"><tr><td colspan="9" class="text-center text-secondary">Cari nomor struk terlebih dahulu.</td></tr></tbody>
-                            <tfoot><tr><th colspan="8" class="text-end">TOTAL RETUR</th><th class="text-end" id="return-total">Rp 0</th></tr></tfoot>
-                        </table>
-                    </div>
-                    <div class="mt-3">
-                        <label class="form-label">Alasan Retur</label>
-                        <textarea name="reason" class="form-control" rows="2" placeholder="Contoh: barang rusak / salah barang / customer batal"></textarea>
-                    </div>
+                <div class="col-md-2">
+                    <label class="form-label extra-small text-muted fw-bold mb-1">Sampai Tanggal</label>
+                    <input type="date" class="form-control form-control-sm" id="filterEndDate" value="{{ date('Y-m-d') }}">
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary" id="return-submit" disabled>Proses Retur</button>
+                <div class="col-md-2">
+                    <label class="form-label extra-small text-muted fw-bold mb-1">Unit Bisnis</label>
+                    <select class="form-select form-select-sm" id="filterBusinessUnit">
+                        <option value="">-- Semua BU --</option>
+                        @foreach($businessUnits ?? [] as $bu)
+                            <option value="{{ $bu->id }}">{{ $bu->code }} - {{ $bu->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label extra-small text-muted fw-bold mb-1">Gudang Penerima</label>
+                    <select class="form-select form-select-sm" id="filterWarehouse">
+                        <option value="">-- Semua Gudang --</option>
+                        @foreach($warehouses ?? [] as $wh)
+                            <option value="{{ $wh->id }}">{{ $wh->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label extra-small text-muted fw-bold mb-1">Status</label>
+                    <select class="form-select form-select-sm" id="filterStatus">
+                        <option value="">-- Semua Status --</option>
+                        <option value="posted" selected>Posted</option>
+                        <option value="draft">Draft</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex gap-1 align-self-end">
+                    <button type="button" class="btn btn-primary btn-sm w-100" id="btnApplyFilter">
+                        <i class="bi bi-search me-1"></i> Filter
+                    </button>
+                    <button type="button" class="btn btn-light btn-sm border" id="btnResetFilter" title="Reset Filter">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </button>
                 </div>
             </form>
         </div>
     </div>
+
+    {{-- TABEL DATATABLE AJAX --}}
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 w-100" id="salesReturnTable">
+                    <thead class="bg-light text-muted extra-small text-uppercase">
+                        <tr>
+                            <th class="ps-3">No. Retur</th>
+                            <th>Tanggal</th>
+                            <th>No. Invoice Asal</th>
+                            <th>Pelanggan</th>
+                            <th>Gudang</th>
+                            <th class="text-end">Total Value (Rp)</th>
+                            <th>Status</th>
+                            <th class="text-center pe-3" style="width: 120px;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
 </div>
-<style>
-    #return-modal .return-modal-dialog {
-        height: calc(100vh - 2rem);
-        max-height: calc(100vh - 2rem);
-        margin-top: 1rem;
-        margin-bottom: 1rem;
-    }
 
-    #return-modal .return-modal-dialog .modal-content {
-        height: 100%;
-    }
+{{-- ========================================================================= --}}
+{{-- MODAL 1: FORM TAMBAH / EDIT RETUR PENJUALAN --}}
+{{-- ========================================================================= --}}
+<div class="modal fade" id="modalReturnForm" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white py-2 px-3">
+                <h6 class="modal-title fw-bold" id="modalReturnFormTitle">
+                    <i class="bi bi-arrow-return-left me-2"></i>Form Retur Penjualan (SAL-02)
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-3">
+                <form id="returnForm">
+                    <input type="hidden" id="returnId" name="return_id">
+                    <input type="hidden" id="entityId" name="entity_id" value="{{ auth()->user()->entity_id ?? 1 }}">
+                    <input type="hidden" id="businessUnitId" name="business_unit_id">
+                    <input type="hidden" id="saleId" name="sale_id">
+                    <input type="hidden" id="customerId" name="customer_id">
 
-    #return-modal .return-modal-dialog .modal-body {
-        overflow: hidden;
-    }
+                    {{-- INFORMASI REVERSAL WARNING PADA MODE EDIT --}}
+                    <div class="alert alert-warning py-2 px-3 mb-3 d-none" id="editReversalAlert">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-exclamation-triangle-fill fs-5 me-2 text-warning"></i>
+                            <div class="small">
+                                <strong>Mode Koreksi / Edit Retur Posted:</strong>
+                                Perubahan data retur ini secara otomatis akan membalikkan (reversal) jurnal GL &amp; mutasi stok lama, lalu menerbitkan jurnal koreksi baru yang presisi.
+                            </div>
+                        </div>
+                    </div>
 
-    #return-modal .return-items-scroll {
-        max-height: 45vh;
-        overflow-y: auto;
-        overflow-x: auto;
-    }
+                    {{-- HEADER SELECTION --}}
+                    <div class="row g-2 mb-3 bg-light p-2 rounded border">
+                        <div class="col-md-3">
+                            <label class="form-label extra-small fw-bold text-muted mb-1">Cari Invoice Penjualan Asal *</label>
+                            <div class="input-group input-group-sm">
+                                <input type="text" class="form-control fw-bold bg-white" id="invoiceNoDisplay" placeholder="Klik tombol cari..." readonly required>
+                                <button class="btn btn-danger" type="button" id="btnOpenSearchInvoice">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label extra-small fw-bold text-muted mb-1">Pelanggan</label>
+                            <input type="text" class="form-control form-control-sm bg-white" id="customerNameDisplay" placeholder="-" readonly>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label extra-small fw-bold text-muted mb-1">Tanggal Retur *</label>
+                            <input type="datetime-local" class="form-control form-control-sm" id="returnDate" name="return_date" required value="{{ date('Y-m-d\TH:i') }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label extra-small fw-bold text-muted mb-1">Gudang Penerima *</label>
+                            <select class="form-select form-select-sm" id="warehouseId" name="warehouse_id" required>
+                                <option value="">-- Pilih Gudang --</option>
+                                @foreach($warehouses ?? [] as $wh)
+                                    <option value="{{ $wh->id }}">{{ $wh->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label extra-small fw-bold text-muted mb-1">No. Retur</label>
+                            <input type="text" class="form-control form-control-sm bg-white" id="returnNo" name="return_no" placeholder="[Auto Generated]" readonly>
+                        </div>
+                    </div>
 
-    #return-modal .modal-footer {
-        background: #fff;
-        border-top: 1px solid var(--bs-border-color);
-        position: relative;
-        z-index: 3;
-        flex-shrink: 0;
-    }
+                    {{-- TABEL LINE ITEMS --}}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="fw-bold extra-small text-uppercase text-secondary">Rincian Barang yang Diretur</span>
+                            <span class="badge bg-secondary extra-small" id="itemCountBadge">0 Item</span>
+                        </div>
+                        <div class="table-responsive border rounded">
+                            <table class="table table-sm table-bordered align-middle mb-0" id="returnItemsTable">
+                                <thead class="bg-light text-muted extra-small">
+                                    <tr>
+                                        <th style="width: 250px;">Nama Produk</th>
+                                        <th style="width: 90px;" class="text-center">Qty Jual</th>
+                                        <th style="width: 90px;" class="text-center">Sisa Retur</th>
+                                        <th style="width: 100px;" class="text-center">Qty Retur *</th>
+                                        <th style="width: 100px;">Satuan</th>
+                                        <th style="width: 130px;" class="text-end">Harga Jual</th>
+                                        <th style="width: 130px;" class="text-end">Total Refund</th>
+                                        <th style="width: 140px;">Kondisi Barang *</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="returnItemsBody">
+                                    <tr>
+                                        <td colspan="8" class="text-center py-3 text-muted small">
+                                            Silakan cari dan pilih Invoice Penjualan Asal terlebih dahulu.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
 
-    #return-modal .return-items-scroll thead th {
-        position: sticky;
-        top: 0;
-        z-index: 2;
-        background: var(--bs-body-bg);
-    }
-</style>
+                    {{-- FOOTER / CATATAN & TOTAL --}}
+                    <div class="row g-3">
+                        <div class="col-md-7">
+                            <label class="form-label extra-small fw-bold text-muted mb-1">Alasan Retur / Catatan *</label>
+                            <textarea class="form-control form-control-sm" id="returnReason" name="reason" rows="2" placeholder="Contoh: Barang rusak saat pengiriman / Kuantitas semen kurang..." required></textarea>
+                        </div>
+                        <div class="col-md-5">
+                            <div class="card bg-light border-0">
+                                <div class="card-body p-2">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="small text-muted">Total Nilai Retur:</span>
+                                        <span class="fw-bold text-danger h5 mb-0" id="displayTotalReturn">Rp 0</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center extra-small text-muted">
+                                        <span>Reversal Beban HPP (Est):</span>
+                                        <span id="displayTotalHppReversal">Rp 0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer py-2 px-3 bg-light">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-danger btn-sm fw-semibold" id="btnSaveReturn">
+                    <i class="bi bi-check-circle me-1"></i> Simpan &amp; Post Retur
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- ========================================================================= --}}
+{{-- MODAL 2: CARI & LOOKUP NOTA PENJUALAN --}}
+{{-- ========================================================================= --}}
+<div class="modal fade" id="modalSearchInvoice" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-secondary text-white py-2 px-3">
+                <h6 class="modal-title fw-bold">
+                    <i class="bi bi-search me-2"></i>Pilih Invoice Penjualan Asal
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-3">
+                <div class="row g-2 mb-3">
+                    <div class="col-md-8">
+                        <input type="text" class="form-control form-control-sm" id="searchInvoiceKeyword" placeholder="Cari No Invoice / Nama Pelanggan...">
+                    </div>
+                    <div class="col-md-4">
+                        <button type="button" class="btn btn-primary btn-sm w-100" id="btnDoSearchInvoice">
+                            <i class="bi bi-search me-1"></i> Cari Invoice
+                        </button>
+                    </div>
+                </div>
+                <div class="table-responsive border rounded">
+                    <table class="table table-sm table-hover align-middle mb-0" id="lookupInvoiceTable">
+                        <thead class="bg-light extra-small text-muted">
+                            <tr>
+                                <th>No. Invoice</th>
+                                <th>Tanggal</th>
+                                <th>Pelanggan</th>
+                                <th class="text-end">Total Invoice</th>
+                                <th class="text-center" style="width: 80px;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lookupInvoiceBody">
+                            <tr><td colspan="5" class="text-center py-3 text-muted">Ketik kata kunci untuk mencari invoice...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- ========================================================================= --}}
+{{-- MODAL 3: CETAK NOTA RETUR / CREDIT NOTE (PRINTABLE VIEW) --}}
+{{-- ========================================================================= --}}
+<div class="modal fade" id="modalPrintReturn" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header py-2 px-3 bg-dark text-white">
+                <h6 class="modal-title fw-bold"><i class="bi bi-printer me-2"></i>Cetak Nota Retur Penjualan</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4" id="printableArea">
+                {{-- STYLING HANYA UNTUK CETAK --}}
+                <style>
+                    @media print {
+                        body * { visibility: hidden; }
+                        #printableArea, #printableArea * { visibility: visible; }
+                        #printableArea { position: absolute; left: 0; top: 0; width: 100%; }
+                        .no-print { display: none !important; }
+                    }
+                </style>
+                <div class="text-center mb-3 pb-2 border-bottom">
+                    <h5 class="fw-bold mb-0 text-uppercase" id="printCompanyName">MINI ERP - TOKO &amp; FABRIKASI</h5>
+                    <p class="small text-muted mb-0" id="printCompanyAddress">Jl. Raya Utama No. 88 | Telp: (0361) 555-8899</p>
+                    <h6 class="fw-bold mt-2 text-decoration-underline">NOTA KREDIT / RETUR PENJUALAN</h6>
+                    <span class="badge bg-outline-dark text-dark border extra-small" id="printReturnNo">RET-XXXXXX</span>
+                </div>
+
+                <div class="row extra-small mb-3">
+                    <div class="col-6">
+                        <table class="table table-borderless table-sm mb-0">
+                            <tr><td class="text-muted p-0" style="width: 100px;">Pelanggan</td><td class="fw-bold p-0" id="printCustomerName">-</td></tr>
+                            <tr><td class="text-muted p-0">No. Ref Invoice</td><td class="fw-bold p-0" id="printInvoiceNo">-</td></tr>
+                        </table>
+                    </div>
+                    <div class="col-6 text-end">
+                        <table class="table table-borderless table-sm mb-0">
+                            <tr><td class="text-muted p-0">Tanggal Retur</td><td class="fw-bold p-0" id="printReturnDate">-</td></tr>
+                            <tr><td class="text-muted p-0">Gudang Penerima</td><td class="fw-bold p-0" id="printWarehouseName">-</td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <table class="table table-sm table-bordered extra-small mb-3">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>Nama Produk</th>
+                            <th class="text-center">Qty</th>
+                            <th class="text-center">Kondisi</th>
+                            <th class="text-end">Harga Satuan</th>
+                            <th class="text-end">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody id="printItemsBody"></tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="4" class="text-end fw-bold">GRAND TOTAL RETUR:</td>
+                            <td class="text-end fw-bold text-danger" id="printGrandTotal">Rp 0</td>
+                        </tr>
+                    </tfoot>
+                </table>
+
+                <div class="extra-small mb-4">
+                    <strong>Alasan Retur:</strong> <span id="printReason">-</span>
+                </div>
+
+                <div class="row text-center extra-small mt-4 pt-3">
+                    <div class="col-4">
+                        <p class="mb-4">Pelanggan,</p>
+                        <br><p class="fw-bold mb-0">( .......................... )</p>
+                    </div>
+                    <div class="col-4">
+                        <p class="mb-4">Petugas Gudang,</p>
+                        <br><p class="fw-bold mb-0">( .......................... )</p>
+                    </div>
+                    <div class="col-4">
+                        <p class="mb-4">Kasir / Finance,</p>
+                        <br><p class="fw-bold mb-0" id="printOperatorName">( Admin Sales )</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer py-2 px-3 bg-light">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                <button type="button" class="btn btn-primary btn-sm fw-semibold" onclick="window.print()">
+                    <i class="bi bi-printer me-1"></i> Cetak Sekarang
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const form = document.getElementById('return-form');
-    const tbody = document.getElementById('return-items');
-    const totalEl = document.getElementById('return-total');
-    let sale = null;
-    let items = [];
-
-    const money = n => 'Rp ' + Number(n || 0).toLocaleString('id-ID');
-    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
-
-    function renderItems() {
-        tbody.innerHTML = '';
-        items.forEach((item, index) => {
-            const max = Number(item.available_qty || 0);
-            tbody.insertAdjacentHTML('beforeend',
-                '<tr>' +
-                '<td>' + (index + 1) + '</td>' +
-                '<td>' + esc(item.sku || '-') + '</td>' +
-                '<td>' + esc(item.name || '-') + '</td>' +
-                '<td class="text-end">' + Number(item.qty || 0).toLocaleString('id-ID') + '</td>' +
-                '<td class="text-end">' + Number(item.returned_qty || 0).toLocaleString('id-ID') + '</td>' +
-                '<td class="text-end fw-semibold">' + max.toLocaleString('id-ID') + '</td>' +
-                '<td><input type="number" class="form-control form-control-sm return-qty" data-index="' + index + '" min="0" max="' + max + '" step="0.001" value="0"' + (max <= 0 ? ' disabled' : '') + '></td>' +
-                '<td><select class="form-select form-select-sm return-condition" data-index="' + index + '"' + (max <= 0 ? ' disabled' : '') + '><option value="good">Layak Jual</option><option value="damaged">Reject/Rusak</option></select></td>' +
-                '<td class="text-end return-line-value" data-index="' + index + '">Rp 0</td>' +
-                '</tr>'
-            );
-        });
-        if (!items.length) tbody.innerHTML = '<tr><td colspan="9" class="text-center text-secondary">Tidak ada detail penjualan.</td></tr>';
-        bindInputs();
-        calculate();
-    }
-
-    function bindInputs() {
-        document.querySelectorAll('.return-qty').forEach(el => el.addEventListener('input', calculate));
-        document.querySelectorAll('.return-condition').forEach(el => el.addEventListener('change', calculate));
-    }
-
-    function calculate() {
-        let total = 0;
-        document.querySelectorAll('.return-qty').forEach(input => {
-            const i = Number(input.dataset.index);
-            let qty = Number(input.value || 0);
-            const max = Number(items[i]?.available_qty || 0);
-            if (qty < 0) qty = 0;
-            if (qty > max) { qty = max; input.value = max; }
-            const gross = Number(items[i]?.total || 0);
-            const subtotal = Number(sale?.subtotal || 0);
-            const allocatedDiscount = subtotal > 0 ? (gross / subtotal) * Number(sale?.discount || 0) : 0;
-            const netUnit = Number(items[i]?.qty || 0) > 0 ? Math.max(0, gross - allocatedDiscount) / Number(items[i].qty) : 0;
-            const value = Math.round(netUnit * qty * 100) / 100;
-            const cell = document.querySelector('.return-line-value[data-index="' + i + '"]');
-            if (cell) cell.textContent = money(value);
-            total += value;
-        });
-        totalEl.textContent = money(total);
-        document.getElementById('return-submit').disabled = !sale || total <= 0;
-    }
-
-    document.getElementById('return-search').addEventListener('click', function () {
-        const invoice = document.getElementById('return-invoice').value.trim();
-        if (!invoice) return alert('Nomor struk wajib diisi.');
-        fetch(@json(route('inventori.penjualan.retur.lookup')) + '?invoice_no=' + encodeURIComponent(invoice), { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(new Error(e.message || 'Struk tidak ditemukan.'))))
-            .then(payload => {
-                sale = payload.sale;
-                items = payload.items || [];
-                document.getElementById('return-sale-id').value = sale.id;
-                const info = document.getElementById('return-sale-info');
-                info.classList.remove('d-none');
-                info.innerHTML =
-                    '<div class="row g-2 small">' +
-                    '<div class="col-md-3"><strong>No. Struk:</strong> ' + esc(sale.invoice_no) + '</div>' +
-                    '<div class="col-md-3"><strong>Tanggal:</strong> ' + esc(sale.sale_date) + '</div>' +
-                    '<div class="col-md-3"><strong>Pelanggan:</strong> ' + esc(sale.customer_name) + '</div>' +
-                    '<div class="col-md-3"><strong>Total:</strong> ' + money(sale.total) + '</div>' +
-                    '</div>';
-                renderItems();
-            })
-            .catch(e => alert(e.message));
-    });
-
-    form.addEventListener('submit', function (e) {
-        e.preventDefault();
-        const fd = new FormData(form);
-        fd.delete('items[]');
-        const selected = [];
-        document.querySelectorAll('.return-qty').forEach(input => {
-            const i = Number(input.dataset.index);
-            const qty = Number(input.value || 0);
-            if (qty > 0) {
-                selected.push({ sale_item_id: items[i].sale_item_id, qty, condition: document.querySelector('.return-condition[data-index="' + i + '"]').value });
-            }
-        });
-        if (!selected.length) return alert('Isi minimal satu Qty Retur.');
-        selected.forEach((item, i) => {
-            fd.append('items[' + i + '][sale_item_id]', item.sale_item_id);
-            fd.append('items[' + i + '][qty]', item.qty);
-            fd.append('items[' + i + '][condition]', item.condition);
-        });
-        fetch(form.action, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
-            .then(r => {
-                if (r.ok) return window.location.href = @json(route('inventori.penjualan.retur'));
-                return r.json().then(e => Promise.reject(new Error(e.message || 'Retur gagal diproses.')));
-            })
-            .catch(e => alert(e.message));
-    });
-
-    document.getElementById('return-modal').addEventListener('hidden.bs.modal', function () {
-        form.reset();
-        document.getElementById('return-sale-id').value = '';
-        document.getElementById('return-sale-info').classList.add('d-none').innerHTML = '';
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-secondary">Cari nomor struk terlebih dahulu.</td></tr>';
-        totalEl.textContent = 'Rp 0';
-        document.getElementById('return-submit').disabled = true;
-        sale = null; items = [];
-    });
-});
-</script>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const table = new DataTable('#return-datatable', {
+$(document).ready(function() {
+    // -----------------------------------------------------------------------
+    // 1. INITIALIZE DATATABLE AJAX
+    // -----------------------------------------------------------------------
+    let returnTable = $('#salesReturnTable').DataTable({
         processing: true,
         serverSide: true,
-        pageLength: 15,
-        lengthMenu: [[15, 25, 50, 100], [15, 25, 50, 100]],
         ajax: {
-            url: @json(route('inventori.penjualan.retur.data')),
-            data: function (d) {
-                d.start_date = document.getElementById('return-start-date').value;
-                d.end_date = document.getElementById('return-end-date').value;
+            url: "{{ url('/inventori/penjualan/retur/data') }}",
+            data: function(d) {
+                d.start_date = $('#filterStartDate').val();
+                d.end_date = $('#filterEndDate').val();
+                d.business_unit_id = $('#filterBusinessUnit').val();
+                d.warehouse_id = $('#filterWarehouse').val();
+                d.status = $('#filterStatus').val();
             }
         },
-        order: [[1, 'desc']],
         columns: [
-            { data: 'return_no', className: 'fw-semibold' },
-            { data: 'return_date', render: function (data) {
-                if (!data) return '-';
-                const d = new Date(data.replace(' ', 'T'));
-                return isNaN(d) ? data : d.toLocaleString('id-ID');
-            }},
-            { data: 'invoice_no', defaultContent: '-' },
-            { data: 'customer_name', defaultContent: '-' },
-            { data: 'product_names', defaultContent: '-' },
-            { data: 'return_qty', className: 'text-end', render: data => Number(data || 0).toLocaleString('id-ID') },
-            { data: 'return_prices', className: 'text-end', defaultContent: '-', render: function (data) {
-                if (!data) return '-';
-                return String(data).split('\\n').map(line => { const el = document.createElement('div'); el.textContent = line; return el.innerHTML; }).join('<br>');
-            }},
-            { data: 'warehouse_name', defaultContent: '-' },
-            { data: 'total', className: 'text-end fw-semibold', render: data => 'Rp ' + Number(data || 0).toLocaleString('id-ID') },
-            {
-                data: null,
-                orderable: false,
-                searchable: false,
-                className: 'text-center',
-                render: function (data, type, row) {
-                    return '<a href="' +
-                        @json(url('/inventori/penjualan/retur')) +
-                        '/' + encodeURIComponent(row.id) +
-                        '/print" target="_blank" class="text-secondary text-decoration-none" style="font-size:11px;line-height:1;" title="Cetak Nota Kredit" aria-label="Cetak Nota Kredit">' +
-                        '🖨️</a>';
+            { data: 'return_no', name: 'return_no', className: 'fw-bold ps-3' },
+            { data: 'return_date_formatted', name: 'return_date' },
+            { data: 'invoice_no', name: 'sale.invoice_no' },
+            { data: 'customer_name', name: 'customer.name' },
+            { data: 'warehouse_name', name: 'warehouse.name' },
+            { data: 'total_formatted', name: 'total', className: 'text-end fw-bold text-danger' },
+            { 
+                data: 'status', 
+                name: 'status',
+                render: function(data) {
+                    if (data === 'posted') return '<span class="badge bg-success-subtle text-success border border-success">POSTED</span>';
+                    if (data === 'draft') return '<span class="badge bg-warning-subtle text-warning border border-warning">DRAFT</span>';
+                    return '<span class="badge bg-secondary">CANCELLED</span>';
                 }
+            },
+            { data: 'actions', name: 'actions', orderable: false, searchable: false, className: 'text-center pe-3' }
+        ],
+        order: [[1, 'desc']],
+        language: {
+            search: "Cari Retur:",
+            lengthMenu: "_MENU_",
+            zeroRecords: "Tidak ada data retur penjualan ditemukan",
+            processing: "Memuat data retur..."
+        }
+    });
+
+    $('#btnApplyFilter').click(function() { returnTable.ajax.reload(); });
+    $('#btnResetFilter').click(function() {
+        $('#filterForm')[0].reset();
+        returnTable.ajax.reload();
+    });
+
+    // -----------------------------------------------------------------------
+    // 2. EXPORT EXCEL & CSV
+    // -----------------------------------------------------------------------
+    $('#btnExportExcel').click(function() {
+        let params = $.param({
+            start_date: $('#filterStartDate').val(),
+            end_date: $('#filterEndDate').val(),
+            business_unit_id: $('#filterBusinessUnit').val(),
+            warehouse_id: $('#filterWarehouse').val(),
+            status: $('#filterStatus').val()
+        });
+        window.location.href = "{{ url('/inventori/penjualan/retur/export') }}?" + params;
+    });
+
+    // -----------------------------------------------------------------------
+    // 3. SEARCH & LOOKUP INVOICE ASAL
+    // -----------------------------------------------------------------------
+    $('#btnOpenSearchInvoice').click(function() {
+        $('#modalSearchInvoice').modal('show');
+    });
+
+    $('#btnDoSearchInvoice').click(function() {
+        let q = $('#searchInvoiceKeyword').val();
+        $('#lookupInvoiceBody').html('<tr><td colspan="5" class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div> Memuat invoice...</td></tr>');
+        
+        $.get("{{ url('/inventori/penjualan/retur/lookup-invoices') }}", { keyword: q }, function(res) {
+            let html = '';
+            if (res.data.length === 0) {
+                html = '<tr><td colspan="5" class="text-center py-3 text-muted">Invoice tidak ditemukan.</td></tr>';
+            } else {
+                res.data.forEach(function(inv) {
+                    html += `<tr>
+                        <td class="fw-bold">${inv.invoice_no}</td>
+                        <td>${inv.sale_date_formatted}</td>
+                        <td>${inv.customer_name}</td>
+                        <td class="text-end fw-bold">Rp ${formatRupiah(inv.total)}</td>
+                        <td class="text-center">
+                            <button type="button" class="btn btn-xs btn-primary btn-select-invoice" 
+                                data-id="${inv.id}" data-no="${inv.invoice_no}" data-customer="${inv.customer_name}" data-customer-id="${inv.customer_id}" data-bu-id="${inv.business_unit_id}">
+                                Pilih
+                            </button>
+                        </td>
+                    </tr>`;
+                });
             }
-        ]
+            $('#lookupInvoiceBody').html(html);
+        });
     });
 
-    document.getElementById('return-period-filter').addEventListener('submit', function (e) {
-        e.preventDefault();
-        const start = document.getElementById('return-start-date').value;
-        const end = document.getElementById('return-end-date').value;
-        if (!start || !end || start > end) {
-            alert('Periode tanggal tidak valid.');
-            return;
-        }
-        table.ajax.reload(null, true);
+    $(document).on('click', '.btn-select-invoice', function() {
+        let saleId = $(this).data('id');
+        let invoiceNo = $(this).data('no');
+        let customerName = $(this).data('customer');
+        let customerId = $(this).data('customer-id');
+        let buId = $(this).data('bu-id');
+
+        $('#saleId').val(saleId);
+        $('#invoiceNoDisplay').val(invoiceNo);
+        $('#customerNameDisplay').val(customerName);
+        $('#customerId').val(customerId);
+        $('#businessUnitId').val(buId);
+
+        $('#modalSearchInvoice').modal('hide');
+        loadSaleItemsForReturn(saleId);
     });
 
-    document.getElementById('return-export-excel').addEventListener('click', function () {
-        const start = document.getElementById('return-start-date').value;
-        const end = document.getElementById('return-end-date').value;
-        if (!start || !end) {
-            alert('Periode tanggal wajib diisi.');
-            return;
-        }
-        if (start > end) {
-            alert('Tanggal mulai tidak boleh lebih besar dari tanggal sampai.');
-            return;
-        }
-        window.location.href = @json(route('inventori.penjualan.retur.export-excel')) + '?start_date=' + encodeURIComponent(start) + '&end_date=' + encodeURIComponent(end);
+    function loadSaleItemsForReturn(saleId, existingReturnItems = []) {
+        $('#returnItemsBody').html('<tr><td colspan="8" class="text-center py-3"><div class="spinner-border spinner-border-sm text-danger"></div> Memuat barang invoice...</td></tr>');
+
+        $.get("{{ url('/inventori/penjualan/retur/sale-items') }}/" + saleId, function(res) {
+            let html = '';
+            if (!res.items || res.items.length === 0) {
+                html = '<tr><td colspan="8" class="text-center py-3 text-muted">Tidak ada item barang pada invoice ini.</td></tr>';
+            } else {
+                res.items.forEach(function(item, idx) {
+                    let maxRet = item.qty_remaining; 
+                    let existing = existingReturnItems.find(x => x.sale_item_id === item.id);
+                    let qtyRetVal = existing ? existing.qty : 0;
+                    let conditionVal = existing ? existing.condition : 'good';
+
+                    html += `<tr class="item-row" data-sale-item-id="${item.id}" data-product-id="${item.product_id}" data-unit-id="${item.unit_id}" data-hpp-unit="${item.hpp_unit}" data-price="${item.unit_price}">
+                        <td class="fw-semibold">${item.product_name}</td>
+                        <td class="text-center">${item.qty_sale}</td>
+                        <td class="text-center fw-bold text-success">${item.qty_remaining}</td>
+                        <td>
+                            <input type="number" step="0.001" min="0" max="${maxRet}" class="form-control form-control-sm text-center input-qty-retur fw-bold" value="${qtyRetVal}">
+                        </td>
+                        <td class="small">${item.unit_name}</td>
+                        <td class="text-end">Rp ${formatRupiah(item.unit_price)}</td>
+                        <td class="text-end fw-bold text-danger cell-subtotal">Rp 0</td>
+                        <td>
+                            <select class="form-select form-select-sm select-condition">
+                                <option value="good" ${conditionVal === 'good' ? 'selected' : ''}>🟢 Bagus (Restock)</option>
+                                <option value="damaged" ${conditionVal === 'damaged' ? 'selected' : ''}>🔴 Rusak (Afkir)</option>
+                            </select>
+                        </td>
+                    </tr>`;
+                });
+            }
+            $('#returnItemsBody').html(html);
+            calculateGrandTotal();
+        });
+    }
+
+    // -----------------------------------------------------------------------
+    // 4. AUTO CALCULATE FORM RETUR
+    // -----------------------------------------------------------------------
+    $(document).on('keyup change input', '.input-qty-retur', function() {
+        calculateGrandTotal();
     });
+
+    function calculateGrandTotal() {
+        let totalRefund = 0;
+        let totalHppReversal = 0;
+        let count = 0;
+
+        $('.item-row').each(function() {
+            let qtyRet = parseFloat($(this).find('.input-qty-retur').val()) || 0;
+            let unitPrice = parseFloat($(this).data('price')) || 0;
+            let hppUnit = parseFloat($(this).data('hpp-unit')) || 0;
+
+            let subtotal = qtyRet * unitPrice;
+            let subtotalHpp = qtyRet * hppUnit;
+
+            $(this).find('.cell-subtotal').text('Rp ' + formatRupiah(subtotal));
+
+            if (qtyRet > 0) {
+                totalRefund += subtotal;
+                totalHppReversal += subtotalHpp;
+                count++;
+            }
+        });
+
+        $('#displayTotalReturn').text('Rp ' + formatRupiah(totalRefund));
+        $('#displayTotalHppReversal').text('Rp ' + formatRupiah(totalHppReversal));
+        $('#itemCountBadge').text(count + ' Item Diretur');
+    }
+
+    // -----------------------------------------------------------------------
+    // 5. TAMBAH & EDIT MODAL HANDLERS
+    // -----------------------------------------------------------------------
+    $('#btnCreateReturn').click(function() {
+        $('#returnForm')[0].reset();
+        $('#returnId').val('');
+        $('#modalReturnFormTitle').html('<i class="bi bi-arrow-return-left me-2"></i>Buat Retur Penjualan Baru');
+        $('#editReversalAlert').addClass('d-none');
+        $('#returnItemsBody').html('<tr><td colspan="8" class="text-center py-3 text-muted">Silakan cari dan pilih Invoice Penjualan Asal terlebih dahulu.</td></tr>');
+        $('#displayTotalReturn').text('Rp 0');
+        $('#modalReturnForm').modal('show');
+    });
+
+    $(document).on('click', '.btn-edit-return', function() {
+        let id = $(this).data('id');
+        $('#modalReturnFormTitle').html('<i class="bi bi-pencil-square me-2"></i>Koreksi / Edit Retur Penjualan');
+        $('#editReversalAlert').removeClass('d-none');
+
+        $.get("{{ url('/inventori/penjualan/retur') }}/" + id + "/edit", function(res) {
+            let data = res.data;
+            $('#returnId').val(data.id);
+            $('#saleId').val(data.sale_id);
+            $('#invoiceNoDisplay').val(data.sale.invoice_no);
+            $('#customerNameDisplay').val(data.customer ? data.customer.name : 'Pelanggan Umum');
+            $('#customerId').val(data.customer_id);
+            $('#businessUnitId').val(data.business_unit_id);
+            $('#returnDate').val(data.return_date_iso);
+            $('#warehouseId').val(data.warehouse_id);
+            $('#returnNo').val(data.return_no);
+            $('#returnReason').val(data.reason);
+
+            loadSaleItemsForReturn(data.sale_id, data.items);
+            $('#modalReturnForm').modal('show');
+        });
+    });
+
+    // -----------------------------------------------------------------------
+    // 6. SIMPAN RETUR (STORE / UPDATE WITH REVERSAL)
+    // -----------------------------------------------------------------------
+    $('#btnSaveReturn').click(function() {
+        let items = [];
+        $('.item-row').each(function() {
+            let qty = parseFloat($(this).find('.input-qty-retur').val()) || 0;
+            if (qty > 0) {
+                items.push({
+                    sale_item_id: $(this).data('sale-item-id'),
+                    product_id: $(this).data('product-id'),
+                    unit_id: $(this).data('unit-id'),
+                    qty: qty,
+                    unit_price: parseFloat($(this).data('price')),
+                    hpp_unit: parseFloat($(this).data('hpp-unit')),
+                    condition: $(this).find('.select-condition').val()
+                });
+            }
+        });
+
+        if (items.length === 0) {
+            alert('Peringatan: Minimal harus melengkapi 1 item barang yang diretur!');
+            return;
+        }
+
+        let payload = {
+            return_id: $('#returnId').val(),
+            entity_id: $('#entityId').val(),
+            business_unit_id: $('#businessUnitId').val(),
+            sale_id: $('#saleId').val(),
+            customer_id: $('#customerId').val(),
+            warehouse_id: $('#warehouseId').val(),
+            return_date: $('#returnDate').val(),
+            reason: $('#returnReason').val(),
+            items: items,
+            _token: "{{ csrf_token() }}"
+        };
+
+        let btn = $(this);
+        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Menyimpan...');
+
+        $.ajax({
+            url: "{{ url('/inventori/penjualan/retur/store') }}",
+            type: "POST",
+            data: JSON.stringify(payload),
+            contentType: "application/json",
+            success: function(res) {
+                btn.prop('disabled', false).html('<i class="bi bi-check-circle me-1"></i> Simpan & Post Retur');
+                if (res.success) {
+                    $('#modalReturnForm').modal('hide');
+                    returnTable.ajax.reload();
+                    alert(res.message || 'Retur penjualan dan koreksi jurnal berhasil diposting!');
+                } else {
+                    alert('Gagal: ' + res.message);
+                }
+            },
+            error: function(err) {
+                btn.prop('disabled', false).html('<i class="bi bi-check-circle me-1"></i> Simpan & Post Retur');
+                alert('Terjadi kesalahan sistem saat menyimpan retur.');
+            }
+        });
+    });
+
+    // -----------------------------------------------------------------------
+    // 7. CETAK NOTA KREDIT / RETUR
+    // -----------------------------------------------------------------------
+    $(document).on('click', '.btn-print-return', function() {
+        let id = $(this).data('id');
+        $.get("{{ url('/inventori/penjualan/retur') }}/" + id + "/print-data", function(res) {
+            let data = res.data;
+            $('#printReturnNo').text(data.return_no);
+            $('#printCustomerName').text(data.customer_name);
+            $('#printInvoiceNo').text(data.invoice_no);
+            $('#printReturnDate').text(data.return_date_formatted);
+            $('#printWarehouseName').text(data.warehouse_name);
+            $('#printReason').text(data.reason || '-');
+            $('#printGrandTotal').text('Rp ' + formatRupiah(data.total));
+
+            let html = '';
+            data.items.forEach(function(item) {
+                html += `<tr>
+                    <td>${item.product_name}</td>
+                    <td class="text-center">${item.qty} ${item.unit_name}</td>
+                    <td class="text-center">${item.condition === 'good' ? '🟢 BAGUS' : '🔴 RUSAK'}</td>
+                    <td class="text-end">Rp ${formatRupiah(item.unit_price)}</td>
+                    <td class="text-end">Rp ${formatRupiah(item.return_value)}</td>
+                </tr>`;
+            });
+            $('#printItemsBody').html(html);
+            $('#modalPrintReturn').modal('show');
+        });
+    });
+
+    // HELPER UTILITY FORMAT RUPIAH
+    function formatRupiah(num) {
+        return parseFloat(num || 0).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    }
 });
 </script>
-
-
 @endpush
