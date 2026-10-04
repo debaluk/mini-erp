@@ -289,7 +289,7 @@ document.addEventListener('DOMContentLoaded', function () {
             { data: 'return_qty', className: 'text-end', render: data => Number(data || 0).toLocaleString('id-ID') },
             { data: 'return_prices', className: 'text-end', defaultContent: '-', render: function (data) {
                 if (!data) return '-';
-                return String(data).split('\n').map(line => String(line).replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#039;'}[c]))).join('<br>');
+                return String(data).split('\\n').map(line => { const el = document.createElement('div'); el.textContent = line; return el.innerHTML; }).join('<br>');
             }},
             { data: 'warehouse_name', defaultContent: '-' },
             { data: 'total', className: 'text-end fw-semibold', render: data => 'Rp ' + Number(data || 0).toLocaleString('id-ID') },
