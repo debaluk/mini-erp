@@ -43,10 +43,11 @@
                         <th>Unit Bisnis</th>
                         <th class="text-end">Harga Jual</th>
                         <th class="text-center">Tgl. Update</th>
+                        <th class="text-center">Aksi</th>
                     </tr>
                 </thead>
                 <tbody id="priceTableBody">
-                    <tr><td colspan="6" class="text-center text-muted py-4">Memuat data...</td></tr>
+                    <tr><td colspan="7" class="text-center text-muted py-4">Memuat data...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -342,6 +343,15 @@
                 data: 'updated_price_date',
                 className: 'text-center',
                 render: data => data ? new Date(data).toLocaleDateString('id-ID') : '-'
+            },
+            {
+                data: null,
+                orderable: false,
+                searchable: false,
+                className: 'text-center text-nowrap',
+                render: () =>
+                    '<button type="button" class="btn btn-sm btn-outline-primary btn-setup-price">Setup / Edit</button> ' +
+                    '<button type="button" class="btn btn-sm btn-outline-secondary btn-history">History</button>'
             }
         ],
         createdRow: (row, data) => {
