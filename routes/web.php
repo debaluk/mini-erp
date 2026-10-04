@@ -281,6 +281,7 @@ Route::middleware(['auth', 'access:inventori'])->prefix('inventori/penyesuaian')
     Route::get('/produksi/work-order/create', [ProductionWorkOrderController::class, 'create'])->middleware('access:inventori')->name('produksi.work-order.create');
     Route::get('/produksi/work-order/{id}/edit', [ProductionWorkOrderController::class, 'edit'])->middleware('access:inventori')->name('produksi.work-order.edit');
     Route::post('/produksi/work-order', [ProductionWorkOrderController::class, 'store'])->middleware('access:inventori')->name('produksi.work-order.store');
+    Route::post('/produksi/work-order/{id}/approve', [ProductionWorkOrderController::class, 'approve'])->middleware('access:inventori')->name('produksi.work-order.approve');
     Route::put('/produksi/work-order/{id}', [ProductionWorkOrderController::class, 'update'])->middleware('access:inventori')->name('produksi.work-order.update');
     Route::delete('/produksi/work-order/{id}', [ProductionWorkOrderController::class, 'destroy'])->middleware('access:inventori')->name('produksi.work-order.destroy');
     Route::get('/produksi/work-order/bom/{bomId}/info', [ProductionWorkOrderController::class, 'bomInfo'])->middleware('access:inventori')->name('produksi.work-order.bom-info');
