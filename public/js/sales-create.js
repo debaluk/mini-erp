@@ -145,7 +145,7 @@
                     ${blank ? '<span class="text-muted">-</span>' : `<input type="number" min="1" step="1" class="form-control form-control-sm qty-input text-end" data-index="${index}" value="${Number(row.qty || 1)}">`}
                 </td>
                 <td style="min-width:145px">
-                    ${blank ? '<span class="text-muted">-</span>' : `<input type="text" class="form-control form-control-sm text-end" value="Rp ${money(row.price)}" readonly aria-label="Harga jual">`}
+                    ${blank ? '<span class="text-muted">-</span>' : `<input type="text" inputmode="numeric" class="form-control form-control-sm text-end price-row-input" data-index="${index}" value="${money(row.price)}" aria-label="Harga jual">`}
                 </td>
                 <td style="width:105px;max-width:105px">
                     ${blank ? '<span class="text-muted">-</span>' : `<input type="text" inputmode="numeric" class="form-control form-control-sm discount-row-input text-end" data-index="${index}" value="${money(row.discount)}" disabled>`}
