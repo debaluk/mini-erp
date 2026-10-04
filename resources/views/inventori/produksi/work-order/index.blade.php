@@ -23,7 +23,7 @@
                 <label class="form-label small">Status</label>
                 <select name="status" class="form-select">
                     <option value="">Semua</option>
-                    @foreach(['open'=>'Open','in_progress'=>'On Progress','completed'=>'Selesai'] as $key => $label)
+                    @foreach(['draft'=>'Draft','open'=>'Open','in_progress'=>'On Progress','completed'=>'Selesai'] as $key => $label)
                         <option value="{{ $key }}" @selected(request('status') === $key)>{{ $label }}</option>
                     @endforeach
                 </select>
@@ -62,8 +62,8 @@
                 <tbody>
                 @foreach($rows as $row)
                     @php
-                        $statusLabels=['open'=>'Open','in_progress'=>'On Progress','completed'=>'Selesai'];
-                        $statusClasses=['open'=>'primary','in_progress'=>'warning','completed'=>'success'];
+                        $statusLabels=['draft'=>'Draft','open'=>'Open','in_progress'=>'On Progress','completed'=>'Selesai'];
+                        $statusClasses=['draft'=>'secondary','open'=>'primary','in_progress'=>'warning','completed'=>'success'];
                     @endphp
                     <tr id="wo-row-{{ $row->id }}">
                         <td class="fw-semibold">{{ $row->wo_no }}</td>
@@ -75,9 +75,12 @@
                         <td class="text-center">{{ $workerCounts[$row->id] ?? 0 }}</td>
                         <td><span class="badge text-bg-{{ $statusClasses[$row->status] ?? 'secondary' }}">{{ $statusLabels[$row->status] ?? $row->status }}</span></td>
                         <td class="text-end text-nowrap">
-                            @if($row->status === 'open')
+                            @if($row->status === 'draft')
+                                <button type="button" class="btn btn-sm btn-outline-success btn-approve-wo" title="Setujui" data-id="{{ $row->id }}" data-no="{{ $row->wo_no }}"><i class="bi bi-check2-circle"></i></button>
                                 <button type="button" class="btn btn-sm btn-outline-primary btn-edit-wo" title="Edit" data-id="{{ $row->id }}"><i class="bi bi-pencil"></i></button>
                                 <button type="button" class="btn btn-sm btn-outline-danger btn-delete-wo" title="Hapus" data-id="{{ $row->id }}" data-no="{{ $row->wo_no }}"><i class="bi bi-trash"></i></button>
+                            @elseif($row->status === 'open')
+                                <a href="{{ route('produksi.work-order.show',$row->id) }}" class="btn btn-sm btn-outline-dark" title="View"><i class="bi bi-eye"></i></a>
                                 <a href="{{ route('produksi.work-order.print', $row->id) }}" target="_blank" class="btn btn-sm btn-outline-secondary" title="Cetak SPK"><i class="bi bi-printer"></i></a>
                             @else
                                 <a href="{{ route('produksi.work-order.show',$row->id) }}" class="btn btn-sm btn-outline-dark" title="View"><i class="bi bi-eye"></i></a>
@@ -397,9 +400,38 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.getElementById('btnCreateWorkOrder').addEventListener('click',openCreate);
     document.querySelectorAll('.btn-edit-wo').forEach(b=>b.addEventListener('click',()=>openEdit(b.dataset.id)));
+    document.querySelectorAll('.btn-approve-wo').forEach(b=>b.addEventListener('click',()=>approveWorkOrder(b.dataset.id,b.dataset.no)));
     fields.bu.addEventListener('change',()=>{filterSelect(fields.warehouse,fields.bu.value);filterSelect(fields.bom,fields.bu.value);loadBom()});
     fields.warehouse.addEventListener('change',loadBom);
     fields.bom.addEventListener('change',loadBom);
+
+    async function approveWorkOrder(id, no){
+        const result = await Swal.fire({
+            icon: 'question',
+            title: 'Setujui SPK?',
+            text: 'SPK '+no+' akan berubah dari Draft menjadi Open.',
+            showCancelButton: true,
+            confirmButtonText: 'Ya, Setujui',
+            cancelButtonText: 'Batal'
+        });
+        if(!result.isConfirmed) return;
+        $.ajax({
+            url: '{{ url('/produksi/work-order') }}/'+id+'/approve',
+            type: 'POST',
+            data: {_token: '{{ csrf_token() }}'},
+            headers: { 'Accept': 'application/json' },
+            success: function(res){
+                if(res.success){
+                    Swal.fire({icon:'success',title:'Berhasil!',text:res.message,timer:1500,showConfirmButton:false})
+                        .then(()=>window.location.reload());
+                }
+            },
+            error: function(xhr){
+                const response=xhr.responseJSON||{};
+                Swal.fire({icon:'error',title:'Gagal!',text:response.message||'Gagal menyetujui SPK.'});
+            }
+        });
+    }
 
     document.addEventListener('click',function(e){
         const add=e.target.closest('#workOrderModal .add-modal-cost');
@@ -480,9 +512,11 @@ document.addEventListener('DOMContentLoaded', function () {
             '<span class="d-block text-end">'+Number(row.target_output_qty || 0).toLocaleString('id-ID',{minimumFractionDigits:0,maximumFractionDigits:2})+'</span>',
             '<span class="d-block text-center">'+row.worker_count+'</span>',
             '<span class="badge text-bg-'+statusClass+'">'+statusLabel+'</span>',
-            row.status === 'open'
-                ? '<div class="text-end text-nowrap"><button type="button" class="btn btn-sm btn-outline-primary btn-edit-wo" title="Edit" data-id="'+row.id+'"><i class="bi bi-pencil"></i></button> <button type="button" class="btn btn-sm btn-outline-danger btn-delete-wo" title="Hapus" data-id="'+row.id+'" data-no="'+row.wo_no+'"><i class="bi bi-trash"></i></button> <a href="'+row.print_url+'" target="_blank" class="btn btn-sm btn-outline-secondary" title="Cetak SPK"><i class="bi bi-printer"></i></a></div>'
-                : '<div class="text-end text-nowrap"><a href="'+row.show_url+'" class="btn btn-sm btn-outline-dark" title="View"><i class="bi bi-eye"></i></a></div>'
+            row.status === 'draft'
+                ? '<div class="text-end text-nowrap"><button type="button" class="btn btn-sm btn-outline-success btn-approve-wo" title="Setujui" data-id="'+row.id+'" data-no="'+row.wo_no+'"><i class="bi bi-check2-circle"></i></button> <button type="button" class="btn btn-sm btn-outline-primary btn-edit-wo" title="Edit" data-id="'+row.id+'"><i class="bi bi-pencil"></i></button> <button type="button" class="btn btn-sm btn-outline-danger btn-delete-wo" title="Hapus" data-id="'+row.id+'" data-no="'+row.wo_no+'"><i class="bi bi-trash"></i></button></div>'
+                : row.status === 'open'
+                    ? '<div class="text-end text-nowrap"><a href="'+row.show_url+'" class="btn btn-sm btn-outline-dark" title="View"><i class="bi bi-eye"></i></a> <a href="'+row.print_url+'" target="_blank" class="btn btn-sm btn-outline-secondary" title="Cetak SPK"><i class="bi bi-printer"></i></a></div>'
+                    : '<div class="text-end text-nowrap"><a href="'+row.show_url+'" class="btn btn-sm btn-outline-dark" title="View"><i class="bi bi-eye"></i></a></div>'
         ];
 
         const existing = document.getElementById('wo-row-'+row.id);
