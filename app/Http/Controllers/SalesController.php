@@ -127,7 +127,6 @@ class SalesController extends Controller
                 'bu.name as unit_name',
                 DB::raw("(SELECT GROUP_CONCAT(DISTINCT p.method ORDER BY p.id SEPARATOR ', ') FROM payments p WHERE p.sale_id = s.id) as payment_methods")
             )
-            ->orderByDesc('s.sale_date')
             ->orderByDesc('s.id')
             ->get();
 
