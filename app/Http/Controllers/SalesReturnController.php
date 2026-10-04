@@ -9,6 +9,7 @@ use App\Models\Warehouse;
 use App\Models\BusinessUnit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
 
 class SalesReturnController extends Controller
@@ -174,10 +175,23 @@ class SalesReturnController extends Controller
                 'data' => $return
             ]);
         } catch (\Exception $e) {
+            Log::error('Gagal memproses retur penjualan', [
+                'sale_id' => $request->input('sale_id'),
+                'return_id' => $request->input('return_id'),
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            $message = match (true) {
+                str_contains($e->getMessage(), 'Tanggal retur') => $e->getMessage(),
+                str_contains($e->getMessage(), 'No query results') => 'Data retur atau transaksi penjualan tidak ditemukan.',
+                default => 'Retur penjualan belum berhasil disimpan. Silakan periksa kembali data retur dan coba lagi.',
+            };
+
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal memproses retur: ' . $e->getMessage()
-            ], 500);
+                'message' => $message,
+            ], 422);
         }
     }
 
