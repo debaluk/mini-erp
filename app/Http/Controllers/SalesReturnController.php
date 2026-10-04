@@ -230,6 +230,8 @@ class SalesReturnController extends Controller
             ? date('d/m/Y H:i', strtotime($return->return_date))
             : '-';
 
+        $data['items'] = $items;
+
         return response()->json(['success' => true, 'data' => $data, 'items' => $items]);
     }
 
