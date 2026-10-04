@@ -45,7 +45,7 @@ class SalesReturnService
                     'warehouse_id'     => $data['warehouse_id'],
                     'user_id'          => $userId,
                     'return_no'        => $returnNo,
-                    'return_date'      => $data['return_date'] . ' ' . date('H:i:s'),
+                    'return_date'      => $this->normalizeReturnDate($data['return_date'] ?? null),
                     'total'            => 0.00, // Will be updated
                     'reason'           => $data['reason'] ?? null,
                     'status'           => 'posted',
@@ -106,6 +106,27 @@ class SalesReturnService
 
             return $returnHeader;
         });
+    }
+
+    /**
+     * Normalisasi tanggal retur dari input date/datetime-local menjadi DATETIME MySQL.
+     */
+    private function normalizeReturnDate(?string $value): string
+    {
+        $value = trim((string) $value);
+
+        if ($value === '') {
+            throw new Exception('Tanggal retur wajib diisi.');
+        }
+
+        $value = str_replace('T', ' ', $value);
+        $timestamp = strtotime($value);
+
+        if ($timestamp === false) {
+            throw new Exception('Tanggal retur tidak valid. Silakan pilih tanggal dan waktu retur yang benar.');
+        }
+
+        return date('Y-m-d H:i:s', $timestamp);
     }
 
     /**
