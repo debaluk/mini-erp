@@ -60,7 +60,11 @@
                 </div>
                 <div class="modal-body">
                     <div class="row g-2 mb-3">
-                        <div class="col-md-8">
+                        <div class="col-md-4">
+                            <label class="form-label">Tanggal Retur</label>
+                            <input type="date" name="return_date" id="return-date" class="form-control" value="{{ now()->format('Y-m-d') }}" required>
+                        </div>
+                        <div class="col-md-4">
                             <label class="form-label">No. Struk</label>
                             <div class="input-group">
                                 <input type="text" id="return-invoice" class="form-control" placeholder="Ketik nomor struk" required>
@@ -284,7 +288,8 @@ document.addEventListener('DOMContentLoaded', function () {
             { data: 'product_names', defaultContent: '-' },
             { data: 'return_qty', className: 'text-end', render: data => Number(data || 0).toLocaleString('id-ID') },
             { data: 'return_prices', className: 'text-end', defaultContent: '-', render: function (data) {
-                return data ? String(data) : '-';
+                if (!data) return '-';
+                return String(data).split('\n').map(line => esc(line)).join('<br>');
             }},
             { data: 'warehouse_name', defaultContent: '-' },
             { data: 'total', className: 'text-end fw-semibold', render: data => 'Rp ' + Number(data || 0).toLocaleString('id-ID') },
