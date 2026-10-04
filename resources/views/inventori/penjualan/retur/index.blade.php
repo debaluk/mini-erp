@@ -204,7 +204,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('return-search').addEventListener('click', function () {
         const invoice = document.getElementById('return-invoice').value.trim();
         if (!invoice) return alert('Nomor struk wajib diisi.');
-        fetch(@json(route('inventori.penjualan.retur.lookup-invoices')) + '?invoice_no=' + encodeURIComponent(invoice), { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
+        fetch(@json(route('inventori.penjualan.retur.lookup')) + '?invoice_no=' + encodeURIComponent(invoice), { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
             .then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(new Error(e.message || 'Struk tidak ditemukan.'))))
             .then(payload => {
                 sale = payload.sale;
@@ -244,7 +244,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         fetch(form.action, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
             .then(r => {
-                if (r.ok) return window.location.href = @json(route('inventori.penjualan.retur.index'));
+                if (r.ok) return window.location.href = @json(route('inventori.penjualan.retur'));
                 return r.json().then(e => Promise.reject(new Error(e.message || 'Retur gagal diproses.')));
             })
             .catch(e => alert(e.message));
