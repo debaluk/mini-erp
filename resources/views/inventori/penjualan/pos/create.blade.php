@@ -43,8 +43,15 @@
         flex-direction: column;
         overflow: hidden;
         border: 0 !important;
-        border-radius: 0 !important;
-        box-shadow: none !important;
+        border-radius: .5rem !important;
+        box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075) !important;
+    }
+
+    .pos-card-header {
+        background: rgba(var(--bs-primary-rgb), .1);
+        color: var(--bs-primary);
+        border-bottom: 1px solid var(--bs-border-color);
+        padding: .75rem 1rem;
     }
 
     .pos-card-body {
@@ -53,7 +60,7 @@
         overflow: hidden;
         display: flex;
         flex-direction: column;
-        padding: 0 12px 12px 12px !important;
+        padding: 12px !important;
     }
 
     .pos-cart {
@@ -77,7 +84,7 @@
     .pos-total-card {
         background: #212529;
         color: #fff;
-        border-radius: .75rem;
+        border-radius: .5rem;
         padding: 12px 16px;
     }
 
@@ -89,6 +96,7 @@
         position: relative;
         z-index: 5;
         margin: 0 !important;
+        border-top: 1px solid var(--bs-border-color);
     }
 
     @media (max-width: 767.98px) {
@@ -103,6 +111,11 @@
 </style>
 <div class="pos-screen">
 <div class="card pos-card">
+    <div class="pos-card-header d-flex justify-content-between align-items-center">
+        <span class="fw-semibold"><i class="bi bi-cart3 me-2"></i>POS Kasir</span>
+        <span class="badge text-bg-light border text-secondary">Retail</span>
+    </div>
+
     <div class="card-body pos-card-body">
         <div class="row g-2">
             <div class="col-md-6">
@@ -148,15 +161,15 @@
 
         <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
             <div>
-                <h6 class="mb-0">Detil Penjualan</h6>
+                <h6 class="mb-0"><i class="bi bi-receipt me-2"></i>Detil Penjualan</h6>
                 <div class="small text-secondary">Masukkan barcode pada baris kosong untuk menambah barang.</div>
             </div>
             <span class="badge text-bg-light border text-secondary">Harga jual dari master</span>
         </div>
 
         <div class="table-responsive pos-cart">
-            <table class="table table-bordered align-middle mb-0" id="salesDetailTable">
-                <thead class="table-light">
+            <table class="table table-sm table-hover align-middle mb-0" id="salesDetailTable">
+                <thead class="table-primary">
                     <tr>
                         <th style="width:130px">Kode Barang</th>
                         <th style="min-width:280px">Nama Barang</th>
@@ -202,7 +215,7 @@
             </div>
 
             <div class="col-md-6 pos-summary">
-                <h6 class="mt-2">Ringkasan Transaksi</h6>
+                <h6 class="mt-2"><i class="bi bi-calculator me-2"></i>Ringkasan Transaksi</h6>
 
                 <div class="d-flex justify-content-between py-1">
                     <span>Subtotal</span>
@@ -245,9 +258,9 @@
 
 <div class="modal fade" id="customerModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h6 class="modal-title">Pilih Customer</h6>
+        <div class="modal-content border-0 shadow-sm">
+            <div class="modal-header bg-primary bg-opacity-10 text-primary border-bottom">
+                <h6 class="modal-title"><i class="bi bi-person me-2"></i>Pilih Customer</h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -274,9 +287,9 @@
 
 <div class="modal fade" id="productModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Pilih Barang</h5>
+        <div class="modal-content border-0 shadow-sm">
+            <div class="modal-header bg-primary bg-opacity-10 text-primary border-bottom">
+                <h5 class="modal-title"><i class="bi bi-box-seam me-2"></i>Pilih Barang</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
             </div>
 
@@ -290,7 +303,7 @@
 
                 <div class="table-responsive">
                     <table class="table table-sm table-hover align-middle">
-                        <thead>
+                        <thead class="table-primary">
                             <tr>
                                 <th>Kode</th>
                                 <th>Nama Barang</th>
@@ -311,10 +324,10 @@
 <div class="modal fade" id="saleSavedModal" tabindex="-1"
      aria-labelledby="saleSavedModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
+        <div class="modal-content border-0 shadow-sm">
+            <div class="modal-header bg-primary bg-opacity-10 text-primary border-bottom">
                 <h5 class="modal-title" id="saleSavedModalLabel">
-                    POS Berhasil
+                    <i class="bi bi-check-circle me-2"></i>POS Berhasil
                 </h5>
             </div>
 
