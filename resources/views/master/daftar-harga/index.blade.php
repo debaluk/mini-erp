@@ -28,14 +28,14 @@
         </div>
     </form>
 
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <span class="fw-semibold">Daftar Harga Jual</span>
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-primary bg-opacity-10 text-primary border-bottom d-flex justify-content-between align-items-center py-3">
+            <span class="fw-semibold"><i class="bi bi-tags me-2"></i>Daftar Harga Jual</span>
             <button type="button" id="priceSyncInitialSetup" class="btn btn-sm btn-outline-primary">Sync Setup Awal</button>
         </div>
         <div class="table-responsive">
-            <table class="table table-bordered table-hover mb-0 align-middle" id="priceDataTable" style="width:100%">
-                <thead>
+            <table class="table table-sm table-hover align-middle mb-0" id="priceDataTable" style="width:100%">
+                <thead class="table-primary">
                     <tr>
                         <th>Kode Barang</th>
                         <th>Nama Barang</th>
@@ -51,7 +51,7 @@
                 </tbody>
             </table>
         </div>
-        <div class="card-footer"></div>
+        
     </div>
 </div>
 
