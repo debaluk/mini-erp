@@ -57,15 +57,22 @@ return new class extends Migration
         DB::statement("ALTER TABLE products MODIFY item_type ENUM('barang','jasa','aset') NOT NULL DEFAULT 'barang'");
         DB::statement("ALTER TABLE products MODIFY type ENUM('raw_material','merchandise','wip','finished_goods','service','asset') NOT NULL DEFAULT 'merchandise'");
 
-        foreach (['purchase_items', 'sale_items'] as $table) {
-            if (!Schema::hasColumn($table, 'unit_id')) {
-                Schema::table($table, function (Blueprint $t) {
-                    $t->foreignId('unit_id')->nullable()->after('product_id')->constrained('units')->restrictOnDelete();
-                    $t->decimal('conversion_factor', 24, 9)->nullable()->after('qty');
-                    $t->decimal('base_qty', 24, 9)->nullable()->after('conversion_factor');
-                    $t->decimal('base_unit_cost', 24, 9)->nullable()->after('unit_cost');
-                });
-            }
+        if (!Schema::hasColumn('purchase_items', 'unit_id')) {
+            Schema::table('purchase_items', function (Blueprint $t) {
+                $t->foreignId('unit_id')->nullable()->after('product_id')->constrained('units')->restrictOnDelete();
+                $t->decimal('conversion_factor', 24, 9)->nullable()->after('qty');
+                $t->decimal('base_qty', 24, 9)->nullable()->after('conversion_factor');
+                $t->decimal('base_unit_cost', 24, 9)->nullable()->after('unit_cost');
+            });
+        }
+
+        if (!Schema::hasColumn('sale_items', 'unit_id')) {
+            Schema::table('sale_items', function (Blueprint $t) {
+                $t->foreignId('unit_id')->nullable()->after('product_id')->constrained('units')->restrictOnDelete();
+                $t->decimal('conversion_factor', 24, 9)->nullable()->after('qty');
+                $t->decimal('base_qty', 24, 9)->nullable()->after('conversion_factor');
+                $t->decimal('base_unit_cost', 24, 9)->nullable()->after('unit_price');
+            });
         }
 
         if (Schema::hasColumn('purchase_items', 'unit_id')) {
