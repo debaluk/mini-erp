@@ -218,10 +218,10 @@
                     <table class="table table-sm table-hover align-middle mb-0" id="salesDetailTable">
                         <thead class="table-primary">
                             <tr>
-                                <th style="width:60px">Kode Barang</th>
+                                <th style="width:70px">Kode Barang</th>
                                 <th style="min-width:220px">Nama Barang</th>
                                 <th style="width:120px">Satuan</th>
-                                <th style="width:150px" class="text-end">Qty</th>
+                                <th style="width:120px" class="text-end">Qty</th>
                                 <th style="width:160px" class="text-end">Harga</th>
                                 <th style="width:140px" class="text-end">Diskon</th>
                                 <th style="width:170px" class="text-end">Subtotal</th>
