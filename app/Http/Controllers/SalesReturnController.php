@@ -276,6 +276,13 @@ class SalesReturnController extends Controller
             ->get();
 
         $safe = fn ($v) => e((string) ($v ?? ''));
+        $date = fn ($v) => $v ? date('d/m/Y H:i', strtotime($v)) : '-';
+        $status = fn ($v) => match (strtolower((string) $v)) {
+            'posted' => 'Diposting',
+            'draft' => 'Draf',
+            'cancelled' => 'Dibatalkan',
+            default => $v ?: '-',
+        };
         $filename = 'retur-penjualan-' . $start . '-sd-' . $end . '.xls';
 
         $html = '<html><head><meta charset="UTF-8"></head><body>';
@@ -284,19 +291,19 @@ class SalesReturnController extends Controller
         if (!empty($entityData->phone)) $html .= '<tr><td colspan="8">Telp. ' . $safe($entityData->phone) . '</td></tr>';
         $html .= '<tr><th colspan="8">LAPORAN RETUR PENJUALAN</th></tr>';
         $html .= '<tr><td colspan="8">Periode: ' . $safe($start) . ' s/d ' . $safe($end) . '</td></tr>';
-        $html .= '<tr><th>No. Retur</th><th>Tanggal</th><th>No. Struk</th><th>Customer</th><th>Gudang</th><th>Total</th><th>User</th><th>Status</th></tr>';
+        $html .= '<tr><th>No. Retur</th><th>Tanggal</th><th>No. Struk</th><th>Pelanggan</th><th>Gudang</th><th>Total</th><th>Petugas</th><th>Status</th></tr>';
 
         foreach ($rows as $row) {
             $total = (float) $row->total;
             $html .= '<tr>';
             $html .= '<td>' . $safe($row->return_no) . '</td>';
-            $html .= '<td>' . $safe($row->return_date) . '</td>';
+            $html .= '<td>' . $safe($date($row->return_date)) . '</td>';
             $html .= '<td>' . $safe($row->invoice_no) . '</td>';
             $html .= '<td>' . $safe($row->customer_name) . '</td>';
             $html .= '<td>' . $safe($row->warehouse_name) . '</td>';
             $html .= '<td x:num="' . $total . '">' . $total . '</td>';
             $html .= '<td>' . $safe($row->user_name) . '</td>';
-            $html .= '<td>' . $safe($row->status) . '</td>';
+            $html .= '<td>' . $safe($status($row->status)) . '</td>';
             $html .= '</tr>';
         }
 
