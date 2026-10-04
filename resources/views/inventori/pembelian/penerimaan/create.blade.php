@@ -33,7 +33,7 @@
             <div class="row g-3">
                 <div class="col-md-3">
                     <label class="form-label">Tanggal</label>
-                    <input type="date" name="receipt_date" class="form-control" value="{{ now()->toDateString() }}" required>
+                    <x-date-input-id name="receipt_date" :value="now()->toDateString()" required />
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Nomor Penerimaan</label>
