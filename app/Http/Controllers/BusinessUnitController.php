@@ -89,12 +89,6 @@ class BusinessUnitController extends Controller
         $unit = BusinessUnit::where('entity_id', $entityId)->findOrFail($id);
 
         $data = $request->validate([
-            'code' => [
-                'required', 'string', 'max:50',
-                Rule::unique('business_units', 'code')
-                    ->ignore($unit->id)
-                    ->where(fn ($q) => $q->where('entity_id', $entityId)),
-            ],
             'name' => ['required', 'string', 'max:150'],
             'business_type' => ['required', Rule::in(['retail', 'production', 'service'])],
             'hpp_method' => ['required', Rule::in(['perpetual', 'periodic', 'direct_cost'])],
@@ -102,7 +96,6 @@ class BusinessUnitController extends Controller
         ]);
 
         $unit->update([
-            'code' => strtoupper(trim($data['code'])),
             'name' => trim($data['name']),
             'business_type' => $data['business_type'],
             'hpp_method' => $data['hpp_method'],
