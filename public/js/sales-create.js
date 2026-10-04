@@ -6,6 +6,7 @@
     const products = Array.isArray(config.products) ? config.products : [];
     const body = document.getElementById('detailBody');
     const unitSelect = document.getElementById('unitSelect');
+    const saleDate = document.getElementById('saleDate');
     const customerSearch = document.getElementById('customerSearch');
     const customerId = document.getElementById('customerId');
     const customerFilter = document.getElementById('customerFilter');
@@ -538,6 +539,7 @@
         }
 
         const payload = {
+            sale_date: saleDate?.value || '',
             customer_id: Number(selectedCustomerId || customerId?.value || 0) || null,
             business_unit_id: buId,
             payment_method: paymentMethod?.value || 'tunai',
