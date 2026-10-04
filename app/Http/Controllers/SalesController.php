@@ -1453,12 +1453,9 @@ class SalesController extends Controller
                 );
 
                 $transactionQty = (float) $item['qty'];
-                $transactionPrice = $this->resolveSalePrice(
-                    $product->id,
-                    (int) $unit->id,
-                    $uom['unit_id'],
-                    $entity
-                );
+                // Harga transaksi mengikuti harga yang dikirim dari frontend.
+                // Backend tetap memvalidasi angka dan tidak mengambil ulang harga master.
+                $transactionPrice = (float) $item['selling_price'];
                 $baseQty = round($transactionQty * $uom['factor'], 9);
                 $lineDiscount = min((float) ($item['discount'] ?? 0), $transactionQty * $transactionPrice);
                 $lineTotal = round(($transactionQty * $transactionPrice) - $lineDiscount, 2);
