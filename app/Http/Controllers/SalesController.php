@@ -29,19 +29,21 @@ class SalesController extends Controller
         };
     }
 
-    private function nextInvoiceNo(int $entity, object $businessUnit, \Carbon\Carbon $saleDate): string
+    private function nextInvoiceNo(int $entity, object $businessUnit, \\Carbon\\Carbon $saleDate): string
     {
         $prefix = $this->salesPrefix($businessUnit);
+        $businessUnitId = (int) $businessUnit->id;
         $monthKey = $saleDate->format('Ym');
         $dateKey = $saleDate->format('Ymd');
 
         $existingNumbers = DB::table('sales')
             ->where('entity_id', $entity)
-            ->where('invoice_no', 'like', $prefix . '-' . $monthKey . '%')
+            ->where('business_unit_id', $businessUnitId)
+            ->where('invoice_no', 'like', $prefix . '-' . $businessUnitId . '-' . $monthKey . '%')
             ->pluck('invoice_no');
 
         $lastSequence = 0;
-        $regex = '/^' . preg_quote($prefix, '/') . '-' . $monthKey . '[0-9]{2}([0-9]{5})(?:-[A-Z0-9]{3})?$/';
+        $regex = '/^' . preg_quote($prefix, '/') . '-' . $businessUnitId . '-' . $monthKey . '[0-9]{2}([0-9]{6})$/';
 
         foreach ($existingNumbers as $existingNumber) {
             if (preg_match($regex, (string) $existingNumber, $matches)) {
@@ -50,13 +52,9 @@ class SalesController extends Controller
         }
 
         $sequence = $lastSequence + 1;
-        abort_if($sequence > 99999, 422, 'Nomor urut penjualan bulan ini sudah mencapai batas 99999.');
+        abort_if($sequence > 999999, 422, 'Nomor urut penjualan bulan ini sudah mencapai batas 999999.');
 
-        $baseNumber = $prefix . '-' . $dateKey . str_pad((string) $sequence, 5, '0', STR_PAD_LEFT);
-
-        return $businessUnit->business_type === 'service'
-            ? $baseNumber
-            : $baseNumber . '-' . \Illuminate\Support\Str::upper(\Illuminate\Support\Str::random(3));
+        return $prefix . '-' . $businessUnitId . '-' . $dateKey . str_pad((string) $sequence, 6, '0', STR_PAD_LEFT);
     }
 
     private function resolveSalePrice(int $productId, int $businessUnitId, int $unitId, int $entity): float
