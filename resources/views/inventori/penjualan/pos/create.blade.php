@@ -47,13 +47,6 @@
         box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075) !important;
     }
 
-    .pos-card-header {
-        background: rgba(var(--bs-primary-rgb), .1);
-        color: var(--bs-primary);
-        border-bottom: 1px solid var(--bs-border-color);
-        padding: .75rem 1rem;
-    }
-
     .pos-card-body {
         flex: 1 1 auto;
         min-height: 0;
@@ -111,11 +104,6 @@
 </style>
 <div class="pos-screen">
 <div class="card pos-card">
-    <div class="pos-card-header d-flex justify-content-between align-items-center">
-        <span class="fw-semibold"><i class="bi bi-cart3 me-2"></i>POS Kasir</span>
-        <span class="badge text-bg-light border text-secondary">Retail</span>
-    </div>
-
     <div class="card-body pos-card-body">
         <div class="row g-2">
             <div class="col-md-6">
