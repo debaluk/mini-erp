@@ -1,23 +1,15 @@
-cd ~/workspace/mini-erp
+Mini ERP adalah solusi manajemen bisnis manufaktur dan perdagangan untuk UKM terpadu yang mengintegrasikan seluruh rantai operasional Sales & POS, Inventori Multi-Gudang, Produksi, hingga Keuangan & Akuntansi Otomatis (Auto-Posting GL) dalam satu sistem yang presisi, transparan, dan kedap bocor. Mendukung multi unit binis dan dapat ditentukan jenis bisnis yaitu: Ratil, Produksi atau Jasa. Pengelolaan Bisnis Multi Unit dan Pengelolaan User berbasis Unit Bisnis dalam arsitektur Mini ERP dibangun di atas prinsip Isolasi Data Multi-Tenant dan 2-Tier Access Control System.
 
-cat >> README.md <<'EOF'
+Engine HPP (Harga Pokok Penjualan) merupakan salah satu keunggulan utama dan "jantung kecerdasan" dari sistem Mini ERP. Engine ini dirancang secara modular dengan arsitektur decoupled untuk mengkalkulasi modal persediaan dan beban pokok secara otomatis, akurat, dan transparan di seluruh unit bisnis
 
----
+Module Utama
 
-# Mini ERP — Retail + Produksi Batako + Armada + Akuntansi
-
-## Akses Aplikasi
-
-**URL:**
-
-https://minierp.labku.biz.id
+Master Data
+Inventori
+Keuangan dan Akutansi
+Pengaturan
 
 ## Login Uji Coba
-
-Password seluruh akun uji coba:
-
-`password`
-
 | Role | Email | Password |
 |---|---|---|
 | Owner | owner@minierp.local | password |
