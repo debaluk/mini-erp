@@ -14,7 +14,7 @@
 <div class="card border-0 shadow-sm mb-3">
 <div class="card-header bg-primary bg-opacity-10 text-primary py-3 fw-semibold"><i class="bi bi-clipboard-plus me-2"></i>Informasi SPK</div>
 <div class="card-body"><div class="row g-3">
-<div class="col-md-3"><label class="form-label">Tanggal SPK</label><input type="date" name="wo_date" class="form-control" value="{{ old('wo_date',date('Y-m-d')) }}" required></div>
+<div class="col-md-3"><label class="form-label">Tanggal SPK</label><x-date-input-id name="wo_date" :value="old('wo_date', date('Y-m-d'))" required /></div>
 <div class="col-md-4"><label class="form-label">Business Unit</label><select name="business_unit_id" id="wo_bu" class="form-select" required><option value="">Pilih BU</option>@foreach($businessUnits as $bu)<option value="{{ $bu->id }}" @selected(old('business_unit_id') == $bu->id)>{{ $bu->code }} — {{ $bu->name }}</option>@endforeach</select></div>
 <div class="col-md-5"><label class="form-label">Gudang Produksi</label><select name="warehouse_id" id="wo_warehouse" class="form-select" required><option value="">Pilih gudang</option>@foreach($warehouses as $warehouse)<option value="{{ $warehouse->id }}" data-bu="{{ $warehouse->business_unit_id }}">{{ $warehouse->code }} — {{ $warehouse->name }}</option>@endforeach</select></div>
 <div class="col-12"><label class="form-label">BOM / Formula</label><select name="bom_id" id="wo_bom" class="form-select" required><option value="">Pilih BOM</option>@foreach($boms as $bom)<option value="{{ $bom->id }}" data-bu="{{ $bom->business_unit_id }}">{{ $bom->code }} — {{ $bom->name }} ({{ $bom->product_name }})</option>@endforeach</select></div>
