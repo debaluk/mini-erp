@@ -218,7 +218,7 @@
                     <table class="table table-sm table-hover align-middle mb-0" id="salesDetailTable">
                         <thead class="table-primary">
                             <tr>
-                                <th style="width:90px">Kode Barang</th>
+                                <th style="width:60px">Kode Barang</th>
                                 <th style="min-width:220px">Nama Barang</th>
                                 <th style="width:120px">Satuan</th>
                                 <th style="width:150px" class="text-end">Qty</th>
@@ -234,7 +234,6 @@
 
 
                                     <div class="mt-auto pt-3 border-top pos-summary">
-                        <h6 class="mb-2"><i class="bi bi-calculator me-2"></i>Ringkasan Transaksi</h6>
                         <div class="d-flex justify-content-between py-1 text-end">
                             <span class="flex-grow-1">Subtotal</span>
                             <strong id="subtotalAmount" style="min-width:160px">Rp 0</strong>
