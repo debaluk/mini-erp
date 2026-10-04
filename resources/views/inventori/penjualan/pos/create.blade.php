@@ -108,7 +108,7 @@
             <div class="col-md-6">
                 <div class="d-flex align-items-center">
                     <label class="form-label mb-0 me-3 text-nowrap" style="min-width:80px">Tanggal</label>
-                    <input type="date" class="form-control" value="{{ now()->toDateString() }}" readonly>
+                    <x-date-input-id name="sale_date" :value="now()->toDateString()" required />
                 </div>
             </div>
 
