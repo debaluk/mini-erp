@@ -10,31 +10,28 @@ class SalesReturnJournalService
 {
     public function reverse(int $returnId, int $userId): ?int
     {
-        // Ambil jurnal retur TERAKHIR untuk retur ini.
-        // Saat retur dikoreksi berkali-kali, setiap koreksi harus membalik
-        // jurnal retur terbaru, bukan selalu jurnal retur pertama.
-        $journal = DB::table('journals')
-            ->where('source_type', 'sales_return')
-            ->where('source_id', $returnId)
-            ->orderByDesc('id')
+        // Ambil jurnal retur TERAKHIR yang BELUM memiliki reversal.
+        // Satu sales_return dapat memiliki beberapa jurnal retur karena koreksi.
+        // Setiap koreksi harus membalik jurnal retur aktif terakhir, lalu membuat
+        // jurnal retur pengganti. Hubungan antar-jurnal saat ini ditelusuri
+        // melalui referensi journal_no pada description reversal, tanpa mengubah
+        // struktur Journal Engine.
+        $journal = DB::table('journals as j')
+            ->where('j.source_type', 'sales_return')
+            ->where('j.source_id', $returnId)
+            ->whereNotExists(function ($query) {
+                $query->select(DB::raw(1))
+                    ->from('journals as r')
+                    ->where('r.source_type', 'sales_return_reversal')
+                    ->whereColumn('r.source_id', 'j.source_id')
+                    ->where('r.description', 'like', DB::raw("CONCAT('%Jurnal #', j.journal_no, '%')"));
+            })
+            ->orderByDesc('j.id')
             ->lockForUpdate()
             ->first();
 
         if (!$journal) {
             return null;
-        }
-
-        // Cegah reversal ganda untuk jurnal yang sama.
-        $alreadyReversed = DB::table('journals')
-            ->where('source_type', 'sales_return_reversal')
-            ->where('source_id', $returnId)
-            ->where('description', 'like', '%Jurnal #' . $journal->journal_no . '%')
-            ->exists();
-
-        if ($alreadyReversed) {
-            throw new RuntimeException(
-                'Jurnal retur ' . $journal->journal_no . ' sudah memiliki reversal. Koreksi tidak boleh membuat reversal ganda.'
-            );
         }
 
         $entries = DB::table('journal_entries')
