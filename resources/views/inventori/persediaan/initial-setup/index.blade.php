@@ -22,6 +22,7 @@
             <div style="min-width: 260px;">
                 <label for="business-unit-filter" class="form-label small fw-semibold mb-1">Business Unit</label>
                 <select id="business-unit-filter" class="form-select form-select-sm">
+                    <option value="all" @selected($businessUnitId === null)>Semua Unit Bisnis</option>
                     @foreach($businessUnits as $businessUnit)
                         <option value="{{ $businessUnit->id }}"
                             @selected((int) $businessUnit->id === (int) $businessUnitId)>
@@ -36,37 +37,29 @@
         <table class="table table-sm table-hover align-middle mb-0" id="selling-price-table">
             <thead>
                 <tr>
-                    <th>Kode</th>
-                    <th>Item</th>
+                    <th>Unit Bisnis</th>
+                    <th>Kode Barang</th>
+                    <th>Nama Barang</th>
                     <th>Satuan</th>
-                    <th class="text-end">HPP Awal</th>
-                    <th class="text-end">UP %</th>
+                    <th class="text-end">Stok Awal (Qty)</th>
+                    <th class="text-end">Harga Beli / HPP Awal</th>
+                    <th class="text-end">Profit Markup (%)</th>
                     <th class="text-end">Harga Jual</th>
-                    <th class="text-end">Stok Awal</th>
-                    <th>Tgl Setup</th>
-                    <th class="text-center">Status</th>
                     <th class="text-center">Aksi</th>
                 </tr>
             </thead>
             <tbody>
             @foreach($rows as $row)
                 <tr>
+                    <td>{{ $row->business_unit_name }}</td>
                     <td class="fw-semibold">{{ $row->code }}</td>
                     <td>{{ $row->name }}</td>
                     <td>{{ $row->unit_code ?: '-' }}</td>
+                    <td class="text-end">{{ $row->initial_stock !== null ? rtrim(rtrim(number_format((float) $row->initial_stock, 3, ',', '.'), '0'), ',') : '-' }}</td>
                     <td class="text-end fw-semibold">{{ $row->initial_purchase_price !== null ? 'Rp '.number_format((float) $row->initial_purchase_price, 0, ',', '.') : '-' }}</td>
                     <td class="text-end">{{ $row->markup_percent !== null ? number_format((float) $row->markup_percent, 2, ',', '.') : '-' }}%</td>
                     <td class="text-end fw-semibold">{{ (float) $row->selling_price > 0 ? 'Rp '.number_format((float) $row->selling_price, 0, ',', '.') : '-' }}</td>
-                    <td class="text-end">{{ $row->initial_stock !== null ? rtrim(rtrim(number_format((float) $row->initial_stock, 3, ',', '.'), '0'), ',') : '-' }}</td>
-                    <td>{{ $row->setup_date ? date('d/m/Y', strtotime($row->setup_date)) : '-' }}</td>
                     <td class="text-center">
-@if($row->setup_date)
-<span class="badge text-bg-success">Sudah Setup</span>
-@else
-<span class="badge text-bg-secondary">Belum Setup</span>
-@endif
-</td>
-<td class="text-center">
 @if($row->setup_date)
 <button type="button" class="btn btn-outline-primary btn-sm btn-edit"
     data-id="{{ $row->id }}"
@@ -177,16 +170,16 @@
         window.location.href = url.toString();
     });
 
-    setupBusinessUnitId.value = businessUnitFilter.value;
+    setupBusinessUnitId.value = businessUnitFilter.value === 'all' ? '' : businessUnitFilter.value;
     const modalEl = document.getElementById('setupAwalModal');
     const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
     const detailModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('detailHargaJualModal'));
     const priceTable = new DataTable('#selling-price-table', {
-        pageLength: 10,
+        pageLength: 15,
         autoWidth: false,
-        lengthMenu: [10, 25, 50, 100],
-        order: [[1, 'asc']],
-        columnDefs: [{ targets: [3,4,5,6], className: 'text-end' }, { targets: [9], orderable: false, searchable: false }]
+        lengthMenu: [15, 25, 50, 100],
+        order: [[2, 'asc']],
+        columnDefs: [{ targets: [4,5,6,7], className: 'text-end' }, { targets: [8], orderable: false, searchable: false }]
     });
     const form = document.getElementById('setup-awal-form');
     const search = document.getElementById('setup-product-search');
@@ -224,18 +217,18 @@
         }
 
         const visibleRows = priceTable.rows({ search: 'applied' }).data().toArray();
-        const visibleCodes = new Set(visibleRows.map(r => String(r[0] ?? '').replace(/<[^>]*>/g, '').trim()));
+        const visibleCodes = new Set(visibleRows.map(r => String(r[1] ?? '').replace(/<[^>]*>/g, '').trim()));
         const data = exportRows
             .filter(r => visibleCodes.has(String(r.code ?? '').trim()))
             .map(r => [
+                String(r.business_unit_name ?? ''),
                 String(r.code ?? ''),
                 String(r.name ?? ''),
                 String(r.unit_code ?? '-'),
+                r.initial_stock === null ? null : Number(r.initial_stock),
                 r.initial_purchase_price === null ? null : Number(r.initial_purchase_price),
                 r.markup_percent === null ? null : Number(r.markup_percent) / 100,
-                Number(r.selling_price ?? 0) || null,
-                r.initial_stock === null ? null : Number(r.initial_stock),
-                r.setup_date ? String(r.setup_date).slice(0, 10) : ''
+                Number(r.selling_price ?? 0) || null
             ]);
 
         const printDate = new Intl.DateTimeFormat('id-ID', {
@@ -247,7 +240,7 @@
             ['Data Setup Awal Stok & Harga Jual'],
             ['Tgl Cetak : ' + printDate],
             [],
-            ['Kode','Item','Satuan','HPP Awal','UP (%)','Harga Jual','Stok Awal','Tgl Setup'],
+            ['Unit Bisnis','Kode Barang','Nama Barang','Satuan','Stok Awal (Qty)','Harga Beli / HPP Awal','Profit Markup (%)','Harga Jual'],
             ...data
         ]);
 
@@ -258,24 +251,16 @@
         ];
 
         ws['!cols'] = [
-            {wch:15},{wch:32},{wch:12},{wch:18},
-            {wch:12},{wch:18},{wch:14},{wch:14}
+            {wch:24},{wch:15},{wch:32},{wch:12},
+            {wch:16},{wch:22},{wch:18},{wch:18}
         ];
 
         data.forEach((row, i) => {
             const excelRow = i + 6;
-            if (row[3] !== null) ws['D'+excelRow].z = '#,##0';
-            if (row[4] !== null) ws['E'+excelRow].z = '0.00%';
+            if (row[4] !== null) ws['E'+excelRow].z = '#,##0.###';
             if (row[5] !== null) ws['F'+excelRow].z = '#,##0';
-            if (row[6] !== null) ws['G'+excelRow].z = '#,##0.###';
-            if (row[7]) {
-                const parts = row[7].split('/');
-                if (parts.length === 3) {
-                    ws['H'+excelRow].v = new Date(Number(parts[2]), Number(parts[1])-1, Number(parts[0]));
-                    ws['H'+excelRow].t = 'd';
-                    ws['H'+excelRow].z = 'dd/mm/yyyy';
-                }
-            }
+            if (row[6] !== null) ws['G'+excelRow].z = '0.00%';
+            if (row[7] !== null) ws['H'+excelRow].z = '#,##0';
         });
 
         const wb = XLSX.utils.book_new();

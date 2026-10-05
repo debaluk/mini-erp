@@ -19,6 +19,44 @@ class SalesController extends Controller
         return (int) (DB::table('entities')->value('id') ?? 1);
     }
 
+    private function salesPrefix(object $businessUnit): string
+    {
+        return match ($businessUnit->business_type) {
+            'retail' => 'RET',
+            'production' => 'PRO',
+            'service' => 'JAS',
+            default => throw new \RuntimeException('Jenis Business Unit tidak valid untuk nomor penjualan.'),
+        };
+    }
+
+    private function nextInvoiceNo(int $entity, object $businessUnit, \Carbon\Carbon $saleDate): string
+    {
+        $prefix = $this->salesPrefix($businessUnit);
+        $businessUnitId = (int) $businessUnit->id;
+        $monthKey = $saleDate->format('Ym');
+        $dateKey = $saleDate->format('Ymd');
+
+        $existingNumbers = DB::table('sales')
+            ->where('entity_id', $entity)
+            ->where('business_unit_id', $businessUnitId)
+            ->where('invoice_no', 'like', $prefix . '-' . $businessUnitId . '-' . $monthKey . '%')
+            ->pluck('invoice_no');
+
+        $lastSequence = 0;
+        $regex = '/^' . preg_quote($prefix, '/') . '-' . $businessUnitId . '-' . $monthKey . '[0-9]{2}([0-9]{6})$/';
+
+        foreach ($existingNumbers as $existingNumber) {
+            if (preg_match($regex, (string) $existingNumber, $matches)) {
+                $lastSequence = max($lastSequence, (int) $matches[1]);
+            }
+        }
+
+        $sequence = $lastSequence + 1;
+        abort_if($sequence > 999999, 422, 'Nomor urut penjualan bulan ini sudah mencapai batas 999999.');
+
+        return $prefix . '-' . $businessUnitId . '-' . $dateKey . str_pad((string) $sequence, 6, '0', STR_PAD_LEFT);
+    }
+
     private function resolveSalePrice(int $productId, int $businessUnitId, int $unitId, int $entity): float
     {
         $price = DB::table('product_prices as pp')
@@ -89,10 +127,8 @@ class SalesController extends Controller
                 'bu.name as unit_name',
                 DB::raw("(SELECT GROUP_CONCAT(DISTINCT p.method ORDER BY p.id SEPARATOR ', ') FROM payments p WHERE p.sale_id = s.id) as payment_methods")
             )
-            ->orderByDesc('s.sale_date')
             ->orderByDesc('s.id')
-            ->paginate(10)
-            ->withQueryString();
+            ->get();
 
         $units = DB::table('business_units')
             ->where('entity_id', $entity)
@@ -970,6 +1006,13 @@ class SalesController extends Controller
             default => $value ?: '-',
         };
 
+        $statusLabel = fn ($value) => match ($value) {
+            'posted' => 'Diposting',
+            'draft' => 'Draf',
+            'cancelled' => 'Dibatalkan',
+            default => $value ?: '-',
+        };
+
         $spreadsheet = new Spreadsheet();
 
         $spreadsheet->getProperties()
@@ -1262,7 +1305,7 @@ class SalesController extends Controller
         $customerHeader = $customerStart + 1;
 
         $sheet->fromArray([
-            ['Customer', 'Transaksi', 'Penjualan', 'Piutang'],
+            ['Pelanggan', 'Transaksi', 'Penjualan', 'Piutang'],
         ], null, 'A' . $customerHeader);
 
         $applyHeader($sheet, 'A' . $customerHeader . ':D' . $customerHeader);
@@ -1320,7 +1363,7 @@ class SalesController extends Controller
         $sheet->setCellValue('B5', $selectedUnitName);
 
         $sheet->fromArray([
-            ['Tanggal', 'No Faktur', 'Customer', 'Business Unit', 'Pembayaran', 'Total', 'Status'],
+            ['Tanggal', 'No Faktur', 'Pelanggan', 'Unit Bisnis', 'Pembayaran', 'Total', 'Status'],
         ], null, 'A7');
 
         $applyHeader($sheet, 'A7:G7');
@@ -1340,7 +1383,7 @@ class SalesController extends Controller
                     $item->unit_name,
                     $methods ?: '-',
                     (float) $item->total,
-                    $item->status ?? '-',
+                    $statusLabel($item->status),
                 ],
             ], null, 'A' . $row);
 
@@ -1393,6 +1436,7 @@ class SalesController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
+            'sale_date' => ['required', 'date_format:Y-m-d'],
             'customer_id' => ['nullable', 'integer'],
             'business_unit_id' => ['required', 'integer'],
             'payment_method' => ['required', 'in:Tunai,Transfer,QRIS,Kredit / Bon'],
@@ -1425,9 +1469,16 @@ class SalesController extends Controller
             abort_unless($customer, 422, 'Customer tidak valid.');
         }
 
-        $invoiceNo = 'INV-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4));
+        $saleDate = \Carbon\Carbon::createFromFormat('Y-m-d', $data['sale_date'])->startOfDay();
+        $prefix = $this->salesPrefix($unit);
+        $lockName = 'sales_no:' . $entity . ':' . $prefix . ':' . $saleDate->format('Ym');
+        $lock = DB::selectOne('SELECT GET_LOCK(?, 10) AS locked', [$lockName]);
 
-        $saleId = DB::transaction(function () use ($data, $entity, $unit, $invoiceNo): int {
+        abort_unless((int) ($lock->locked ?? 0) === 1, 503, 'Nomor penjualan sedang diproses. Silakan coba lagi.');
+
+        try {
+            $saleId = DB::transaction(function () use ($data, $entity, $unit, $saleDate): int {
+                $invoiceNo = $this->nextInvoiceNo($entity, $unit, $saleDate);
             $subtotal = 0.0;
             $lineItems = [];
 
@@ -1446,12 +1497,9 @@ class SalesController extends Controller
                 );
 
                 $transactionQty = (float) $item['qty'];
-                $transactionPrice = $this->resolveSalePrice(
-                    $product->id,
-                    (int) $unit->id,
-                    $uom['unit_id'],
-                    $entity
-                );
+                // Harga transaksi mengikuti harga yang dikirim dari frontend.
+                // Backend tetap memvalidasi angka dan tidak mengambil ulang harga master.
+                $transactionPrice = (float) $item['selling_price'];
                 $baseQty = round($transactionQty * $uom['factor'], 9);
                 $lineDiscount = min((float) ($item['discount'] ?? 0), $transactionQty * $transactionPrice);
                 $lineTotal = round(($transactionQty * $transactionPrice) - $lineDiscount, 2);
@@ -1496,7 +1544,7 @@ class SalesController extends Controller
                 'customer_id' => $data['customer_id'] ?? null,
                 'user_id' => auth()->id(),
                 'invoice_no' => $invoiceNo,
-                'sale_date' => now(),
+                'sale_date' => $saleDate,
                 'due_date' => $data['payment_method'] === 'Kredit / Bon' ? $data['due_date'] : null,
                 'subtotal' => $subtotal,
                 'discount' => $discount,
@@ -1543,7 +1591,7 @@ class SalesController extends Controller
                     'unit_cost' => $line['hpp_unit'],
                     'reference_type' => 'sale',
                     'reference_id' => $saleId,
-                    'occurred_at' => now(),
+                    'occurred_at' => $saleDate,
                     'created_by' => auth()->id(),
                     'created_at' => now(),
                     'updated_at' => now(),
@@ -1556,7 +1604,7 @@ class SalesController extends Controller
                     'business_unit_id' => $unit->id,
                     'sale_id' => $saleId,
                     'user_id' => auth()->id(),
-                    'payment_date' => now(),
+                    'payment_date' => $saleDate,
                     'method' => 'credit',
                     'amount' => 0,
                     'paid_amount' => 0,
@@ -1587,8 +1635,11 @@ class SalesController extends Controller
 
             app(SalesJournalService::class)->post($saleId, $entity);
 
-            return $saleId;
-        });
+                return $saleId;
+            });
+        } finally {
+            DB::selectOne('SELECT RELEASE_LOCK(?) AS released', [$lockName]);
+        }
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -1671,10 +1722,12 @@ class SalesController extends Controller
         $user = auth()->user();
 
         $units = DB::table('business_units as bu')
-            ->join('user_business_units as ubu', 'ubu.business_unit_id', '=', 'bu.id')
-            ->where('ubu.user_id', $user->id)
             ->where('bu.entity_id', $entity)
             ->where('bu.is_active', 1)
+            ->when($user->role !== 'owner', function ($query) use ($user) {
+                $query->join('user_business_units as ubu', 'ubu.business_unit_id', '=', 'bu.id')
+                    ->where('ubu.user_id', $user->id);
+            })
             ->orderBy('bu.name')
             ->get(['bu.id', 'bu.code', 'bu.name']);
 

@@ -79,9 +79,10 @@ class ProductPriceController extends Controller
                 'pp.selling_price as selling_price',
                 DB::raw('(SELECT MAX(h.change_date) FROM product_price_histories h WHERE h.product_price_id = pp.id) as updated_price_date')
             )
-            ->orderBy('bu.name')
+            ->orderBy('p.code')
             ->orderBy('p.name')
-            ->orderBy('u.name');
+            ->orderBy('u.name')
+            ->orderBy('bu.name');
 
         if ($request->expectsJson()) {
             if ($request->has('draw')) {
@@ -320,6 +321,80 @@ class ProductPriceController extends Controller
             'business_unit_name' => $businessUnitName,
             'rows' => $rows,
         ]);
+    }
+
+    public function syncInitialSetup(Request $request)
+    {
+        $entity = (int) auth()->user()->entity_id;
+        $businessUnitId = $request->filled('business_unit_id') ? (int) $request->business_unit_id : null;
+
+        $setups = DB::table('item_initial_setups as s')
+            ->join('products as p', 'p.id', '=', 's.product_id')
+            ->join('business_units as bu', 'bu.id', '=', 's.business_unit_id')
+            ->where('s.entity_id', $entity)
+            ->where('p.entity_id', $entity)
+            ->where('p.is_active', 1)
+            ->where('bu.entity_id', $entity)
+            ->where('bu.is_active', 1)
+            ->when($businessUnitId, fn ($q) => $q->where('s.business_unit_id', $businessUnitId))
+            ->select(
+                's.product_id',
+                's.business_unit_id',
+                'p.base_unit_id as unit_id',
+                's.setup_date',
+                's.selling_price'
+            )
+            ->get();
+
+        $created = 0;
+
+        DB::transaction(function () use ($setups, &$created): void {
+            foreach ($setups as $setup) {
+                $exists = DB::table('product_prices')
+                    ->where('product_id', $setup->product_id)
+                    ->where('business_unit_id', $setup->business_unit_id)
+                    ->where('unit_id', $setup->unit_id)
+                    ->where('price_type', 'retail')
+                    ->exists();
+
+                if ($exists) {
+                    continue;
+                }
+
+                $priceId = DB::table('product_prices')->insertGetId([
+                    'product_id' => $setup->product_id,
+                    'business_unit_id' => $setup->business_unit_id,
+                    'unit_id' => $setup->unit_id,
+                    'price_type' => 'retail',
+                    'selling_price' => $setup->selling_price,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                DB::table('product_price_histories')->insert([
+                    'product_price_id' => $priceId,
+                    'product_id' => $setup->product_id,
+                    'business_unit_id' => $setup->business_unit_id,
+                    'unit_id' => $setup->unit_id,
+                    'price_type' => 'retail',
+                    'change_date' => $setup->setup_date,
+                    'old_price' => null,
+                    'new_price' => $setup->selling_price,
+                    'change_percent' => null,
+                    'changed_by' => auth()->id(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                $created++;
+            }
+        });
+
+        $message = $created > 0
+            ? $created . ' harga jual berhasil disinkronkan dari Setup Awal.'
+            : 'Tidak ada harga jual baru yang perlu disinkronkan dari Setup Awal.';
+
+        return response()->json(['message' => $message, 'created' => $created]);
     }
 
     public function history(Request $request)

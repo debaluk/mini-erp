@@ -26,7 +26,7 @@
 
                     <div class="col-md-3">
                         <label class="form-label fw-bold">Tanggal Adjustment <span class="text-danger">*</span></label>
-                        <input type="date" name="adjustment_date" class="form-control" value="{{ $adj->adjustment_date }}" required>
+                        <x-date-input-id name="adjustment_date" :value="$adj->adjustment_date" required />
                     </div>
 
                     <div class="col-md-6">

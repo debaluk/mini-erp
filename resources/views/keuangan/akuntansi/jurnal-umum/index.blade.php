@@ -63,6 +63,7 @@
             <option value="">Semua Tipe Jurnal</option>
             <option value="sale" {{ request('source_type') == 'sale' ? 'selected' : '' }}>🛒 Penjualan</option>
             <option value="sales_return" {{ request('source_type') == 'sales_return' ? 'selected' : '' }}>🔄 Retur Penjualan</option>
+            <option value="sales_return_reversal" {{ request('source_type') == 'sales_return_reversal' ? 'selected' : '' }}>↩️ Koreksi Retur Penjualan</option>
             <option value="purchase" {{ request('source_type') == 'purchase' ? 'selected' : '' }}>📦 Pembelian</option>
             <option value="cash_in" {{ request('source_type') == 'cash_in' ? 'selected' : '' }}>💰 Penerimaan Kas</option>
             <option value="cash_out" {{ request('source_type') == 'cash_out' ? 'selected' : '' }}>💸 Pengeluaran Kas</option>
@@ -349,6 +350,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         manual: 'bg-dark',
                         sale: 'bg-primary',
                         sales_return: 'bg-warning text-dark',
+                        sales_return_reversal: 'bg-danger',
                         purchase: 'bg-info text-dark',
                         cash_in: 'bg-success',
                         cash_out: 'bg-danger',
@@ -357,7 +359,18 @@ document.addEventListener('DOMContentLoaded', function () {
                     return `<span class="badge ${badgeClass}">${st.toUpperCase()}</span>`;
                 }
             },
-            { data: 'source_id', className: 'font-monospace small text-muted', defaultContent: '-' },
+            {
+                data: 'source_id',
+                className: 'font-monospace small fw-semibold',
+                defaultContent: '-',
+                render: function (data, type, row) {
+                    if (!data) return '-';
+                    const st = String(row.source_type || '').toLowerCase();
+                    return st === 'sales_return_reversal'
+                        ? `<span class="text-danger" title="Jurnal pembalik / koreksi retur">↩️ ${data}</span>`
+                        : data;
+                }
+            },
             { data: 'description', className: 'text-wrap' },
             {
                 data: 'total_debit',

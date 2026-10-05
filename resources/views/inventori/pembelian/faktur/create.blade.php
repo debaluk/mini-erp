@@ -45,7 +45,7 @@
 
                     <div class="col-md-3">
                         <label class="form-label fw-bold">Tanggal Pembelian</label>
-                        <input type="date" name="purchase_date" class="form-control" value="{{ date('Y-m-d') }}" required>
+                        <x-date-input-id name="purchase_date" :value="date('Y-m-d')" required />
                     </div>
 
                     <div class="col-md-3">

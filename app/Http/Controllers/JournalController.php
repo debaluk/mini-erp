@@ -98,6 +98,8 @@ class JournalController extends Controller
             'purchase', 'po' => DB::table('purchases')->where('id', $journal->source_id)->value('purchase_no'),
             'receipt' => DB::table('receipts')->where('id', $journal->source_id)->value('receipt_no'),
             'purchase_return' => DB::table('purchase_returns')->where('id', $journal->source_id)->value('return_no'),
+            'sales_return' => DB::table('sales_returns')->where('id', $journal->source_id)->value('return_no'),
+            'sales_return_reversal' => ($ref = DB::table('sales_returns')->where('id', $journal->source_id)->value('return_no')) ? 'REV-' . $ref : null,
             'stock_adjustment_loss', 'stock_adjustment_gain' => DB::table('stock_adjustments')
                 ->where('id', $journal->source_id)
                 ->value('adjustment_no'),

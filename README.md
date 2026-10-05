@@ -20,6 +20,13 @@ Pengaturan
 | Inventori | inventori@minierp.local | password |
 | Akuntansi | akuntansi@minierp.local | password |
 
+Aturan NomorPenjualan :
+RET-1-20261004000001
+ |   │    │        └─ sequence 000001//reset setiap bulan
+ |   │    └────────── tanggal
+ |   └─────────────── business_unit_id
+ └─────────────────── business_tipe
+
 
 # Struktur Modul
 

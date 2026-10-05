@@ -1,40 +1,15 @@
 @extends('layouts.app')
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-3"><div><h4 class="mb-1">Penjualan</h4><div class="text-secondary small">Daftar transaksi penjualan</div></div><div class="d-flex gap-2"><button type="button" class="btn btn-success" id="btn-export-sales">↓ Export Excel</button><a href="{{ route('inventori.penjualan.create') }}" class="btn btn-primary">+ Tambah Penjualan</a></div></div>
-<div class="card shadow-sm"><div class="card-body border-bottom"><form method="GET" action="{{ route('inventori.penjualan') }}" class="row g-2 align-items-end"><div class="col-md-2"><label class="form-label">Tanggal Mulai</label><input type="date" name="start_date" value="{{ request('start_date', now()->startOfMonth()->toDateString()) }}" class="form-control"></div><div class="col-md-2"><label class="form-label">Tanggal Akhir</label><input type="date" name="end_date" value="{{ request('end_date', now()->endOfMonth()->toDateString()) }}" class="form-control"></div><div class="col-md-3"><label class="form-label">Customer</label><input name="customer" value="{{ request('customer') }}" class="form-control" placeholder="Cari customer..."></div><div class="col-md-2"><label class="form-label">Unit</label><select name="unit_id" class="form-select"><option value="">Semua Unit</option>@foreach($units as $u)<option value="{{ $u->id }}" @selected((string)request("unit_id") === (string)$u->id)>{{ $u->name }}</option>@endforeach</select></div><div class="col-md-2"><label class="form-label">Cara Bayar</label><select name="payment_method" class="form-select"><option value="">Semua</option><option value="cash" @selected(request('payment_method') === 'cash')>Tunai</option><option value="credit" @selected(request('payment_method') === 'credit')>Kredit / Bon</option><option value="transfer" @selected(request('payment_method') === 'transfer')>Transfer</option><option value="qris" @selected(request('payment_method') === 'qris')>QRIS</option></select></div><div class="col-md-1"><button type="submit" class="btn btn-outline-primary w-100">Cari</button></div></form></div>
-<div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead class="table-light"><tr><th>No. Penjualan</th><th>Tanggal</th><th>Customer</th><th>Unit</th><th>Cara Bayar</th><th>Jatuh Tempo</th><th class="text-end">Subtotal</th><th class="text-end">Diskon</th><th class="text-end">Total</th><th>Status</th><th class="text-end">Aksi</th></tr></thead><tbody>@forelse($rows as $r)<tr><td class="fw-semibold">{{ $r->invoice_no }}</td><td>{{ \Carbon\Carbon::parse($r->sale_date)->format('d/m/Y') }}</td><td>{{ $r->customer_name ?? 'Umum' }}</td><td>{{ $r->unit_name ?? '-' }}</td><td>{{ $r->payment_methods ?? '-' }}</td><td>{{ $r->due_date ? \Carbon\Carbon::parse($r->due_date)->format('d/m/Y') : '-' }}</td><td class="text-end">Rp {{ number_format((float)$r->subtotal,0,',','.') }}</td><td class="text-end">Rp {{ number_format((float)$r->discount,0,',','.') }}</td><td class="text-end">Rp {{ number_format((float)$r->total,0,',','.') }}</td><td><span class="badge text-bg-secondary">{{ $r->status }}</span></td><td class="text-end">
-    <button type="button"
-            class="btn btn-sm btn-outline-secondary btn-view-sale"
-            data-url="{{ route('inventori.penjualan.show', $r->id) }}"
-            data-print-url="{{ route('inventori.penjualan.print', $r->id) }}">
-        Lihat
-    </button>
+<div class="card shadow-sm"><div class="card-body border-bottom"><form method="GET" action="{{ route('inventori.penjualan') }}" class="row g-2 align-items-end"><div class="col-md-2"><label class="form-label">Tanggal Mulai</label><input type="date" name="start_date" value="{{ request('start_date', now()->startOfMonth()->toDateString()) }}" class="form-control"></div><div class="col-md-2"><label class="form-label">Tanggal Akhir</label><input type="date" name="end_date" value="{{ request('end_date', now()->endOfMonth()->toDateString()) }}" class="form-control"></div><div class="col-md-3"><label class="form-label">Pelanggan</label><input name="customer" value="{{ request('customer') }}" class="form-control" placeholder="Cari customer..."></div><div class="col-md-2"><label class="form-label">Unit</label><select name="unit_id" class="form-select"><option value="">Semua Unit</option>@foreach($units as $u)<option value="{{ $u->id }}" @selected((string)request("unit_id") === (string)$u->id)>{{ $u->name }}</option>@endforeach</select></div><div class="col-md-2"><label class="form-label">Cara Bayar</label><select name="payment_method" class="form-select"><option value="">Semua</option><option value="cash" @selected(request('payment_method') === 'cash')>Tunai</option><option value="credit" @selected(request('payment_method') === 'credit')>Kredit / Bon</option><option value="transfer" @selected(request('payment_method') === 'transfer')>Transfer</option><option value="qris" @selected(request('payment_method') === 'qris')>QRIS</option></select></div><div class="col-md-1"><button type="submit" class="btn btn-outline-primary w-100">Cari</button></div></form></div>
+<div class="table-responsive"><table id="salesTable" class="table table-hover align-middle mb-0"><thead class="table-light"><tr><th>No. Penjualan</th><th>Tanggal</th><th>Pelanggan</th><th>Unit</th><th>Cara Bayar</th><th>Jatuh Tempo</th><th class="text-end">Subtotal</th><th class="text-end">Diskon</th><th class="text-end">Total</th><th>Status</th><th class="text-end">Aksi</th></tr></thead><tbody>@forelse($rows as $r)<tr><td><a href="{{ route('inventori.penjualan.show', $r->id) }}" class="fw-semibold text-decoration-none">{{ $r->invoice_no }}</a></td><td>{{ \Carbon\Carbon::parse($r->sale_date)->format('d/m/Y') }}</td><td>{{ $r->customer_name ?? 'Umum' }}</td><td>{{ $r->unit_name ?? '-' }}</td><td>{{ collect(explode(', ', (string) $r->payment_methods))->map(fn($m) => match ($m) { 'cash' => 'Tunai', 'credit' => 'Kredit / Bon', 'transfer' => 'Transfer', 'qris' => 'QRIS', default => $m ?: '-' })->implode(', ') ?: '-' }}</td><td>{{ $r->due_date ? \Carbon\Carbon::parse($r->due_date)->format('d/m/Y') : '-' }}</td><td class="text-end">Rp {{ number_format((float)$r->subtotal,0,',','.') }}</td><td class="text-end">Rp {{ number_format((float)$r->discount,0,',','.') }}</td><td class="text-end">Rp {{ number_format((float)$r->total,0,',','.') }}</td><td><span class="badge {{ match (strtolower((string) $r->status)) { 'posted' => 'text-bg-success', 'draft' => 'text-bg-secondary', 'cancelled', 'canceled' => 'text-bg-danger', default => 'text-bg-secondary' } }}">{{ match (strtolower((string) $r->status)) { 'posted' => 'Diposting', 'draft' => 'Draf', 'cancelled', 'canceled' => 'Dibatalkan', default => $r->status ?: '-' } }}</span></td><td class="text-end">
+    <a href="{{ route('inventori.penjualan.print', $r->id) }}?print=1"
+       target="_blank"
+       class="text-secondary text-decoration-none"
+       style="font-size:11px;line-height:1;"
+       title="Cetak Nota"
+       aria-label="Cetak Nota">🖨️</a>
 </td></tr>@empty<tr><td colspan="11" class="text-center text-secondary py-4">Belum ada transaksi penjualan.</td></tr>@endforelse</tbody></table></div>
-<div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
-    <div class="small text-secondary">
-        @if($rows->total() > 0)
-            Menampilkan {{ $rows->firstItem() }}–{{ $rows->lastItem() }} dari {{ $rows->total() }} transaksi
-        @else
-            Tidak ada transaksi
-        @endif
-    </div>
-    @if($rows->lastPage() > 1)
-    <nav aria-label="Pagination Penjualan">
-        <ul class="pagination pagination-sm mb-0">
-            <li class="page-item {{ $rows->onFirstPage() ? 'disabled' : '' }}">
-                <a class="page-link" href="{{ $rows->previousPageUrl() ?? '#' }}">‹</a>
-            </li>
-            @foreach($rows->getUrlRange(max(1, $rows->currentPage()-2), min($rows->lastPage(), $rows->currentPage()+2)) as $page => $url)
-                <li class="page-item {{ $page == $rows->currentPage() ? 'active' : '' }}">
-                    <a class="page-link" href="{{ $url }}">{{ $page }}</a>
-                </li>
-            @endforeach
-            <li class="page-item {{ $rows->currentPage() >= $rows->lastPage() ? 'disabled' : '' }}">
-                <a class="page-link" href="{{ $rows->nextPageUrl() ?? '#' }}">›</a>
-            </li>
-        </ul>
-    </nav>
-    @endif
 </div>
 </div>
 
@@ -74,6 +49,27 @@
 @endsection
 
 @push('scripts')
+<script>
+$(function () {
+    if ($.fn.DataTable && $('#salesTable').length) {
+        $('#salesTable').DataTable({
+            pageLength: 15,
+            lengthMenu: [[15, 25, 50, 100], [15, 25, 50, 100]],
+            order: [],
+            language: {
+                search: 'Cari:',
+                lengthMenu: 'Tampilkan _MENU_ baris',
+                info: 'Menampilkan _START_ sampai _END_ dari _TOTAL_ transaksi',
+                infoEmpty: 'Tidak ada transaksi',
+                infoFiltered: '(difilter dari _MAX_ transaksi)',
+                zeroRecords: 'Data tidak ditemukan',
+                paginate: { previous: '‹', next: '›' }
+            }
+        });
+    }
+});
+</script>
+
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 
 <script>
@@ -231,7 +227,7 @@ document.getElementById('btn-export-sales')?.addEventListener('click', async fun
             ['Periode : ' + periode],
             ['Tgl Export : ' + exportDate],
             [],
-            ['No. Penjualan','Tanggal','Customer','Unit','Cara Bayar','Jatuh Tempo','Subtotal','Diskon','Total','Status'],
+            ['No. Penjualan','Tanggal','Pelanggan','Unit','Cara Bayar','Jatuh Tempo','Subtotal','Diskon','Total','Status'],
             ...data
         ]);
 

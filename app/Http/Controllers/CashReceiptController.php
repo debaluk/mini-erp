@@ -48,9 +48,17 @@ class CashReceiptController extends Controller
 
         // Base Query Filter
         $baseQuery = Journal::with(['businessUnit', 'entries.account'])
-            ->whereIn('source_type', ['CASH_IN', 'AR_PAYMENT'])
+            ->whereIn('source_type', ['CASH_IN', 'AR_PAYMENT', 'sale'])
             ->whereDate('journal_date', '>=', $startDate)
-            ->whereDate('journal_date', '<=', $endDate);
+            ->whereDate('journal_date', '<=', $endDate)
+            ->whereHas('entries', function ($q) {
+                $q->where('debit', '>', 0)
+                  ->whereHas('account', function ($account) {
+                      $account->where('is_cash_bank', 1)
+                          ->where('is_postable', 1)
+                          ->where('is_active', 1);
+                  });
+            });
 
         if (!empty($businessUnitId)) {
             $baseQuery->where('business_unit_id', $businessUnitId);

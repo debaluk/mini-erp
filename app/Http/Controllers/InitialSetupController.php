@@ -27,29 +27,37 @@ class InitialSetupController extends Controller
 
         abort_unless($businessUnits->isNotEmpty(), 422, 'Belum ada Business Unit aktif.');
 
-        $businessUnitId = (int) $request->input('business_unit_id', $businessUnits->first()->id);
+        $businessUnitParam = $request->input('business_unit_id', 'all');
+        $businessUnitId = $businessUnitParam === 'all' ? null : (int) $businessUnitParam;
 
-        abort_unless(
-            $businessUnits->contains(fn ($unit) => (int) $unit->id === $businessUnitId),
-            422,
-            'Business Unit tidak valid.'
-        );
+        if ($businessUnitId !== null) {
+            abort_unless(
+                $businessUnits->contains(fn ($unit) => (int) $unit->id === $businessUnitId),
+                422,
+                'Business Unit tidak valid.'
+            );
+        }
 
         $rows = DB::table('products as p')
             ->join('product_business_units as pu', function ($join) use ($businessUnitId) {
-                $join->on('pu.product_id', '=', 'p.id')
-                    ->where('pu.business_unit_id', $businessUnitId);
+                $join->on('pu.product_id', '=', 'p.id');
+                if ($businessUnitId !== null) {
+                    $join->where('pu.business_unit_id', $businessUnitId);
+                }
             })
+            ->join('business_units as bu', 'bu.id', '=', 'pu.business_unit_id')
             ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
-            ->leftJoin('item_initial_setups as s', function ($join) use ($entity, $businessUnitId) {
+            ->leftJoin('item_initial_setups as s', function ($join) use ($entity) {
                 $join->on('s.product_id', '=', 'p.id')
-                    ->where('s.entity_id', $entity)
-                    ->where('s.business_unit_id', $businessUnitId);
+                    ->whereColumn('s.business_unit_id', 'pu.business_unit_id')
+                    ->where('s.entity_id', $entity);
             })
             ->where('p.entity_id', $entity)
             ->where('p.is_active', 1)
             ->select(
                 'p.id',
+                'bu.id as business_unit_id',
+                'bu.name as business_unit_name',
                 'p.code',
                 'p.name',
                 'p.item_type',
@@ -62,14 +70,17 @@ class InitialSetupController extends Controller
                 's.initial_stock',
                 's.markup_percent'
             )
+            ->orderBy('bu.name')
             ->orderBy('p.name')
             ->distinct()
             ->get();
 
         $products = DB::table('products as p')
             ->join('product_business_units as pu', function ($join) use ($businessUnitId) {
-                $join->on('pu.product_id', '=', 'p.id')
-                    ->where('pu.business_unit_id', $businessUnitId);
+                $join->on('pu.product_id', '=', 'p.id');
+                if ($businessUnitId !== null) {
+                    $join->where('pu.business_unit_id', $businessUnitId);
+                }
             })
             ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
             ->where('p.entity_id', $entity)

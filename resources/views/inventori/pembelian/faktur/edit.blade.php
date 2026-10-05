@@ -22,7 +22,7 @@
                 <div class="row g-3">
                     <div class="col-md-4">
                         <label class="form-label">Tanggal Faktur</label>
-                        <input type="date" name="purchase_date" class="form-control" value="{{ \Carbon\Carbon::parse($p->purchase_date)->format('Y-m-d') }}" required>
+                        <x-date-input-id name="purchase_date" :value="$p->purchase_date" required />
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">No. Faktur Supplier</label>

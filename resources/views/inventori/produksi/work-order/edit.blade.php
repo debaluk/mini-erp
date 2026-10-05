@@ -28,7 +28,7 @@
             </div>
             <div class="col-md-3">
                 <label class="form-label">Tanggal SPK</label>
-                <input type="date" name="wo_date" class="form-control" value="{{ old('wo_date', $wo->wo_date) }}" required>
+                <x-date-input-id name="wo_date" :value="old('wo_date', $wo->wo_date)" required />
             </div>
             <div class="col-md-3">
                 <label class="form-label">Jumlah Batch</label>
@@ -144,7 +144,7 @@
                 </div>
                 <div class="modal-body">
                     <label for="started_at" class="form-label">Tanggal Mulai Kerja</label>
-                    <input type="date" name="started_at" id="started_at" class="form-control" value="{{ now()->toDateString() }}" required>
+                    <x-date-input-id name="started_at" id="started_at" :value="now()->toDateString()" required />
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>

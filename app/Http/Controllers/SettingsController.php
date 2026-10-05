@@ -120,6 +120,15 @@ class SettingsController extends Controller
             ->groupBy('user_id')
             ->map(fn ($rows) => $rows->pluck('business_unit_id')->values()->all());
 
+        // Owner selalu memiliki akses ke seluruh Business Unit aktif dalam entitas.
+        $allBusinessUnitIds = $businessUnits->pluck('id')->values()->all();
+        foreach ($users as $user) {
+            if ($user->role === 'owner') {
+                $userModules[$user->id] = ['pos', 'master', 'inventori', 'keuangan', 'pengaturan'];
+                $userBusinessUnits[$user->id] = $allBusinessUnitIds;
+            }
+        }
+
         return view('settings.users', compact(
             'users',
             'moduleCatalog',
