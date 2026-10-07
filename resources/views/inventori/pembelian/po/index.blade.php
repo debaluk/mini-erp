@@ -259,9 +259,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 className: 'text-center',
                 orderable: false,
                 render: function (data, type, row) {
-                    let actions = `<div class="btn-group btn-group-sm">
-                        <button type="button" class="btn btn-outline-info btn-view-po" data-id="${row.id}" title="Detail PO"><i class="bi bi-eye"></i></button>
-                        <a href="{{ url('/inventori/pembelian/po') }}/${row.id}/print" target="_blank" class="btn btn-outline-secondary" title="Cetak Nota PO"><i class="bi bi-printer"></i></a>`;
+                    let actions = `<div class="btn-group btn-group-sm">`;
+                    if (row.status !== 'draft') {
+                        actions += `<button type="button" class="btn btn-outline-info btn-view-po" data-id="${row.id}" title="Detail PO"><i class="bi bi-eye"></i></button>`;
+                    }
+                    actions += `<a href="{{ url('/inventori/pembelian/po') }}/${row.id}/print" target="_blank" class="btn btn-outline-secondary" title="Cetak Nota PO"><i class="bi bi-printer"></i></a>`;
                     if (row.status === 'draft') {
                         actions += `<button type="button" class="btn btn-success btn-approve-po" data-id="${row.id}" data-no="${row.po_no}" title="Approve PO"><i class="bi bi-check-circle"></i> Approve</button>`;
                         actions += `<button type="button" class="btn btn-outline-warning btn-edit-po" data-id="${row.id}" title="Edit Draft"><i class="bi bi-pencil"></i></button>`;
@@ -325,8 +327,14 @@ document.addEventListener('DOMContentLoaded', function () {
             <tr id="row-${rowId}">
                 <td><select name="products[]" class="form-select form-select-sm select-product" required>${productOptions}</select></td>
                 <td><input type="text" class="form-control form-control-sm text-center input-unit" value="" readonly></td>
-                <td><input type="number" name="qty[]" class="form-control form-control-sm text-center input-qty" step="0.01" value="${qty}" required></td>
-                <td><input type="number" name="unit_price[]" class="form-control form-control-sm text-end input-price" step="1" value="${price}" required></td>
+                <td>
+                    <input type="text" class="form-control form-control-sm text-center input-qty-display" inputmode="decimal" autocomplete="off" required>
+                    <input type="hidden" name="qty[]" class="input-qty">
+                </td>
+                <td>
+                    <input type="text" class="form-control form-control-sm text-end input-price-display" inputmode="numeric" autocomplete="off" required>
+                    <input type="hidden" name="unit_price[]" class="input-price">
+                </td>
                 <td><input type="number" name="discount[]" class="form-control form-control-sm text-end input-discount" step="0.01" value="${discount}"></td>
                 <td class="text-end font-monospace fw-bold cell-subtotal">Rp 0</td>
                 <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger btn-remove-row" title="Hapus item"><i class="bi bi-x"></i></button></td>
@@ -334,6 +342,10 @@ document.addEventListener('DOMContentLoaded', function () {
         $('#tbody-po-items').append(html);
         const row = $('#row-' + rowId);
         row.find('.input-unit').val(row.find('.select-product option:selected').data('unit') || '');
+        row.find('.input-qty').val(qty);
+        row.find('.input-price').val(price);
+        row.find('.input-qty-display').val(formatQty(qty));
+        row.find('.input-price-display').val(formatPrice(price));
         calcSubtotal(row);
     }
 
@@ -348,7 +360,54 @@ document.addEventListener('DOMContentLoaded', function () {
         calcSubtotal(row);
     });
 
-    $(document).on('input', '.input-qty, .input-price, .input-discount', function () {
+    function formatQty(value) {
+        const number = Number(value) || 0;
+        return new Intl.NumberFormat('id-ID', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2
+        }).format(number);
+    }
+
+    function formatPrice(value) {
+        const number = Number(value) || 0;
+        return new Intl.NumberFormat('id-ID', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(number);
+    }
+
+    function setFormattedNumber(input, hidden, formatter) {
+        const raw = String(input.val() || '').replace(/[^0-9,.-]/g, '').replace(',', '.');
+        const number = parseFloat(raw) || 0;
+        hidden.val(number);
+        input.val(formatter(number));
+    }
+
+    $(document).on('input', '.input-qty-display', function () {
+        const row = $(this).closest('tr');
+        const raw = $(this).val().replace(/[^0-9,.-]/g, '').replace(',', '.');
+        row.find('.input-qty').val(parseFloat(raw) || 0);
+        calcSubtotal(row);
+    });
+
+    $(document).on('blur', '.input-qty-display', function () {
+        const row = $(this).closest('tr');
+        $(this).val(formatQty(row.find('.input-qty').val()));
+    });
+
+    $(document).on('input', '.input-price-display', function () {
+        const row = $(this).closest('tr');
+        const raw = $(this).val().replace(/[^0-9]/g, '');
+        row.find('.input-price').val(parseFloat(raw) || 0);
+        calcSubtotal(row);
+    });
+
+    $(document).on('blur', '.input-price-display', function () {
+        const row = $(this).closest('tr');
+        $(this).val(formatPrice(row.find('.input-price').val()));
+    });
+
+    $(document).on('input', '.input-discount', function () {
         calcSubtotal($(this).closest('tr'));
     });
 
