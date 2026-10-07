@@ -752,6 +752,11 @@ class PurchaseInvoiceController extends Controller
                         DB::table('receipt_items')->where('receipt_id', $receiptId)->delete();
                         DB::table('receipts')->where('id', $receiptId)->delete();
                     }
+
+                    DB::table('purchase_price_histories')
+                        ->where('reference_id', $purchase->id)
+                        ->where('source', 'purchase')
+                        ->delete();
                 }
 
                 $invoiceJournalIds = DB::table('journals')
@@ -762,11 +767,6 @@ class PurchaseInvoiceController extends Controller
                     DB::table('journal_entries')->whereIn('journal_id', $invoiceJournalIds)->delete();
                     DB::table('journals')->whereIn('id', $invoiceJournalIds)->delete();
                 }
-
-                DB::table('purchase_price_histories')
-                    ->where('reference_id', $purchase->id)
-                    ->where('source', 'purchase')
-                    ->delete();
 
                 DB::table('purchases')
                     ->where('id', $purchase->id)
