@@ -9,7 +9,7 @@
     <!-- ========================================== -->
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-3">
-            <h5 class="mb-0 fw-bold"><i class="bi bi-receipt-cutoff me-2"></i>Daftar Faktur Pembelian (FB)</h5>
+            <h5 class="mb-0 fw-bold"><i class="bi bi-receipt-cutoff me-2"></i>Daftar Faktur Pembelian</h5>
             <div class="d-flex gap-2">
                 <button class="btn btn-light text-primary fw-semibold shadow-sm" onclick="exportExcel()">
                     <i class="bi bi-file-earmark-excel me-1 text-success"></i> Ekspor Excel
