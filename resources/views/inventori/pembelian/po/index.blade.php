@@ -75,7 +75,6 @@
                             <th style="width: 130px;">Gudang</th>
                             <th style="width: 120px;">Unit Bisnis</th>
                             <th style="width: 120px;">Total PO</th>
-                            <th style="width: 100px;">Penerimaan</th>
                             <th style="width: 90px;">Status</th>
                             <th class="text-center pe-3" style="width: 180px;">Aksi</th>
                         </tr>
