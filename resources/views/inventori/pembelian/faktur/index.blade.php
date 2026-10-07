@@ -3,12 +3,12 @@
 @section('title', 'Faktur Pembelian')
 
 @section('content')
-<div class="container-fluid py-0">
+<div class="container-fluid px-0 py-0">
     <!-- ========================================== -->
     <!-- HEADER BAR & FILTER UTAMA                  -->
     <!-- ========================================== -->
     <div class="card border-0 shadow-sm mb-3">
-        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-2 px-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
             <h6 class="mb-0 fw-bold"><i class="bi bi-receipt-cutoff me-2"></i>Daftar Faktur Pembelian</h6>
             <div class="d-flex gap-2">
                 <a href="javascript:void(0)" onclick="openModalNonPo()" class="btn btn-primary btn-sm px-3 fw-semibold shadow-sm">
