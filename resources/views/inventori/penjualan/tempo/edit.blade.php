@@ -265,6 +265,7 @@
     'requireCustomer' => true,
     'allowCredit' => true,
     'products' => $productCatalog,
+    'productionProductIds' => $productionProductIds,
     'storeUrl' => route('inventori.penjualan.store'),
     'updateUrl' => route('inventori.penjualan.update', $sale->id),
     'indexUrl' => route('inventori.penjualan'),
