@@ -474,7 +474,9 @@ $(document).ready(function() {
     function loadSaleItemsForReturn(saleId, existingReturnItems = []) {
         $('#returnItemsBody').html('<tr><td colspan="8" class="text-center py-3"><div class="spinner-border spinner-border-sm text-danger"></div> Memuat barang invoice...</td></tr>');
 
-        $.get("{{ url('/inventori/penjualan/retur/sale-items') }}/" + saleId, function(res) {
+        $.get("{{ url('/inventori/penjualan/retur/sale-items') }}/" + saleId, {
+            return_id: $('#returnId').val() || ''
+        }, function(res) {
             let html = '';
             if (!res.items || res.items.length === 0) {
                 html = '<tr><td colspan="8" class="text-center py-3 text-muted">Tidak ada item barang pada invoice ini.</td></tr>';
@@ -580,7 +582,7 @@ $(document).ready(function() {
     });
 
     // -----------------------------------------------------------------------
-    // 6. SIMPAN RETUR (STORE / UPDATE WITH REVERSAL)
+    // 6. SIMPAN RETUR (CREATE / UPDATE - TANPA JURNAL REVERSAL)
     // -----------------------------------------------------------------------
     $('#btnSaveReturn').click(function() {
         let items = [];
@@ -643,6 +645,40 @@ $(document).ready(function() {
             error: function(err) {
                 btn.prop('disabled', false).html('<i class="bi bi-check-circle me-1"></i> Simpan & Post Retur');
                 alert('Terjadi kesalahan sistem saat menyimpan retur.');
+            }
+        });
+    });
+
+    // -----------------------------------------------------------------------
+    // 7. HAPUS RETUR
+    // -----------------------------------------------------------------------
+    $(document).on('click', '.btn-delete-return', function() {
+        const id = $(this).data('id');
+
+        if (!confirm('Hapus retur ini? Jurnal dan efek stok retur juga akan dihapus.')) {
+            return;
+        }
+
+        const btn = $(this);
+        btn.prop('disabled', true);
+
+        $.ajax({
+            url: "{{ url('/inventori/penjualan/retur') }}/" + id,
+            type: "DELETE",
+            data: { _token: "{{ csrf_token() }}" },
+            success: function(res) {
+                if (res.success) {
+                    returnTable.ajax.reload(null, false);
+                    showReturnSuccessPopup('Retur Penjualan berhasil dihapus', 1800);
+                } else {
+                    alert(res.message || 'Retur belum berhasil dihapus.');
+                }
+            },
+            error: function(xhr) {
+                alert(xhr.responseJSON?.message || 'Retur tidak dapat dihapus. Periksa apakah periodenya sudah ditutup.');
+            },
+            complete: function() {
+                btn.prop('disabled', false);
             }
         });
     });
