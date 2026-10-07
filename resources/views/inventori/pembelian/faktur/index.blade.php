@@ -40,9 +40,11 @@
                             <th class="py-2 small text-uppercase">Jalur</th>
                             <th class="py-2 small text-uppercase">Supplier</th>
                             <th class="py-2">Unit Bisnis</th>
+                            <th class="py-2">Cara Bayar</th>
+                            <th class="py-2">Jatuh Tempo</th>
                             <th class="text-end py-2">Total Netto (Rp)</th>
                             <th class="text-center py-2">Status</th>
-                            <th class="text-center py-2" style="width: 120px;">Aksi</th>
+                            <th class="text-center py-2" style="width: 150px;">Aksi</th>
                         </tr>
                     </thead>
                     <tbody id="tbodyPurchases">
