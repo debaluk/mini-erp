@@ -270,7 +270,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                     actions += `<a href="{{ url('/inventori/pembelian/po') }}/${row.id}/print" target="_blank" class="btn btn-outline-secondary" title="Cetak Nota PO"><i class="bi bi-printer"></i></a>`;
                     if (row.status === 'draft') {
-                        actions += `<button type="button" class="btn btn-success btn-approve-po" data-id="${row.id}" data-no="${row.po_no}" <i class="bi bi-check-circle"></i></button>`;
                         actions += `<button type="button" class="btn btn-outline-warning btn-edit-po" data-id="${row.id}" title="Edit Draft"><i class="bi bi-pencil"></i></button>`;
                         actions += `<button type="button" class="btn btn-outline-danger btn-delete-po" data-id="${row.id}" data-no="${row.po_no}" title="Batalkan PO"><i class="bi bi-trash"></i></button>`;
                     }
@@ -472,74 +471,6 @@ document.addEventListener('DOMContentLoaded', function () {
             },
             error: function (xhr) {
                 Swal.fire({ icon: 'error', title: 'Gagal!', text: xhr.responseJSON?.message || 'Terjadi kesalahan sistem' });
-            }
-        });
-    });
-
-    $(document).on('click', '.btn-approve-po', function () {
-        const id = $(this).data('id');
-        const no = $(this).data('no');
-        Swal.fire({
-            title: 'Approve PO?',
-            text: `PO [${no}] akan di-approve untuk proses selanjutnya.`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Ya, Approve',
-            cancelButtonText: 'Batal'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                $.post(`{{ url('/inventori/pembelian/po') }}/${id}/approve`, { _token: '{{ csrf_token() }}' }, function (res) {
-                    if (res.success) {
-                        table.ajax.reload();
-                        Swal.fire({ icon: 'success', title: 'Berhasil!', text: res.message, timer: 1500, showConfirmButton: false });
-                    }
-                }).fail(function (xhr) {
-                    Swal.fire({ icon: 'error', title: 'Gagal!', text: xhr.responseJSON?.message || 'PO gagal di-approve' });
-                });
-            }
-        });
-    });
-
-    $(document).on('click', '.btn-edit-po', function () {
-        const id = $(this).data('id');
-        $.get(`{{ url('/inventori/pembelian/po') }}/${id}/edit-data`, function (res) {
-            if (res.success) {
-                $('#po-id').val(res.po.id);
-                $('#po-no').val(res.po.po_no);
-                $('#po-date').val(res.po.po_date.split(' ')[0]);
-                $('#business-unit-id').val(res.po.business_unit_id);
-                $('#warehouse-id').val(res.po.warehouse_id);
-                $('#supplier-id').val(res.po.supplier_id).trigger('change');
-                $('#po-memo').val(res.po.memo);
-                $('#tbody-po-items').empty();
-                res.items.forEach(i => addItemRow(i.product_id, i.qty, i.unit_price, i.discount));
-                $('#modal-po-title').html('<i class="bi bi-pencil-square me-2"></i>Edit Draft Purchase Order');
-                $('#modal-po').modal('show');
-            }
-        });
-    });
-
-    $(document).on('click', '.btn-close-po', function () {
-        const id = $(this).data('id');
-        const no = $(this).data('no');
-        Swal.fire({
-            title: 'Tutup / Close PO?',
-            text: `Apakah Anda yakin ingin menutup PO [${no}] secara permanen?`,
-            icon: 'warning',
-            input: 'text',
-            inputPlaceholder: 'Alasan penutupan PO (opsional)',
-            showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            confirmButtonText: 'Ya, Close PO!',
-            cancelButtonText: 'Batal'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                $.post(`{{ url('/inventori/pembelian/po') }}/${id}/close`, { _token: '{{ csrf_token() }}', reason: result.value }, function (res) {
-                    if (res.success) {
-                        table.ajax.reload();
-                        Swal.fire({ icon: 'success', title: 'Berhasil!', text: res.message, timer: 2000, showConfirmButton: false });
-                    }
-                });
             }
         });
     });
