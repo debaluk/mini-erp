@@ -146,10 +146,10 @@ Route::middleware(['auth', 'access:inventori'])->prefix('inventori/penjualan/ret
     Route::get('/{id}/print-data', [SalesReturnController::class, 'printData'])->name('inventori.penjualan.retur.print-data');
     Route::get('/export', [SalesReturnController::class, 'export'])->name('inventori.penjualan.retur.export');
 });
-    Route::get('/inventori/penjualan/{id}', [SalesController::class, 'show'])->middleware('access:inventori')->name('inventori.penjualan.show');
     Route::get('/inventori/penjualan/{id}/edit', [SalesController::class, 'edit'])->middleware('access:inventori')->name('inventori.penjualan.edit');
     Route::put('/inventori/penjualan/{id}', [SalesController::class, 'update'])->middleware('access:inventori')->name('inventori.penjualan.update');
     Route::delete('/inventori/penjualan/{id}', [SalesController::class, 'destroy'])->middleware('access:inventori')->name('inventori.penjualan.destroy');
+    Route::get('/inventori/penjualan/{id}', [SalesController::class, 'show'])->middleware('access:inventori')->name('inventori.penjualan.show');
     Route::get('/inventori/penjualan/{id}/print', [SalesController::class, 'print'])->middleware('access:inventori')->name('inventori.penjualan.print');
 
     Route::middleware(['auth', 'access:inventori'])->prefix('inventori/pembelian/retur')->name('inventori.pembelian.retur')->group(function () {
