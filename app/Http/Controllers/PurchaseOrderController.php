@@ -362,17 +362,28 @@ class PurchaseOrderController extends Controller
     }
 
     /**
-     * Hapus Draft PO
+     * Batalkan PO (soft-cancel, tanpa menghapus dokumen)
      */
     public function destroy($id)
     {
-        $po = DB::table('purchase_orders')->where('id', $id)->first();
-        if ($po && $po->status !== 'draft') {
-            return response()->json(['success' => false, 'message' => 'Hanya PO berstatus DRAFT yang dapat dihapus!'], 400);
+        $po = DB::table('purchase_orders')->where('id', $id)->whereNull('deleted_at')->first();
+        if (!$po) {
+            return response()->json(['success' => false, 'message' => 'Purchase Order tidak ditemukan.'], 404);
         }
 
-        DB::table('purchase_orders')->where('id', $id)->update(['deleted_at' => now()]);
-        return response()->json(['success' => true, 'message' => 'Draft Purchase Order berhasil dihapus.']);
+        if ($po->status !== 'draft') {
+            return response()->json(['success' => false, 'message' => 'Hanya PO berstatus DRAFT yang dapat dibatalkan.'], 400);
+        }
+
+        DB::table('purchase_orders')->where('id', $id)->update([
+            'status'              => 'canceled',
+            'cancellation_reason' => 'Dibatalkan oleh pengguna',
+            'cancelled_by'        => auth()->id(),
+            'cancelled_at'        => now(),
+            'updated_at'          => now(),
+        ]);
+
+        return response()->json(['success' => true, 'message' => "Purchase Order [{$po->po_no}] berhasil dibatalkan. Status menjadi CANCELED."]);
     }
 
     /**
