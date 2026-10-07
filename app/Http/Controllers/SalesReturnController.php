@@ -84,6 +84,7 @@ class SalesReturnController extends Controller
                 . '<button type="button" class="btn btn-outline-info btn-view-return" data-id="' . $row->id . '" title="Detail & Jurnal"><i class="bi bi-eye"></i></button>'
                 . '<button type="button" class="btn btn-outline-warning btn-edit-return" data-id="' . $row->id . '" title="Edit & Koreksi Jurnal"><i class="bi bi-pencil"></i></button>'
                 . '<button type="button" class="btn btn-outline-secondary btn-print-return" data-id="' . $row->id . '" title="Cetak Nota"><i class="bi bi-printer"></i></button>'
+                . '<button type="button" class="btn btn-outline-danger btn-delete-return" data-id="' . $row->id . '" title="Hapus Retur"><i class="bi bi-trash"></i></button>'
                 . '</div>',
         ])->values();
 
