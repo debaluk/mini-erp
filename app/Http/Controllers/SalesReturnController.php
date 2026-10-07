@@ -80,7 +80,7 @@ class SalesReturnController extends Controller
             'warehouse_name' => $row->warehouse_name ?? '-',
             'total_formatted' => 'Rp ' . number_format((float) $row->total, 2, ',', '.'),
             'status' => $row->status,
-            'actions' => '<div class="btn-group btn-group-sm">' . '<button type="button" class="btn btn-outline-info btn-view-return" data-id="' . $row->id . '" title="Detail & Jurnal"><i class="bi bi-eye"></i></button>' . ($row->status === 'posted' ? '<button type="button" class="btn btn-outline-warning btn-edit-return" data-id="' . $row->id . '" title="Edit & Koreksi Jurnal"><i class="bi bi-pencil"></i></button>' : '') . '<button type="button" class="btn btn-outline-secondary btn-print-return" data-id="' . $row->id . '" title="Cetak Nota"><i class="bi bi-printer"></i></button>' . ($row->status === 'posted' ? '<button type="button" class="btn btn-outline-danger btn-delete-return" data-id="' . $row->id . '" title="Cancel Retur"><i class="bi bi-x-circle"></i></button>' : '') . '</div>',
+            'actions' => '<div class="btn-group btn-group-sm">' . ($row->status === 'posted' ? '<button type="button" class="btn btn-outline-warning btn-edit-return" data-id="' . $row->id . '" title="Edit & Koreksi Jurnal"><i class="bi bi-pencil"></i></button>' : '') . '<button type="button" class="btn btn-outline-secondary btn-print-return" data-id="' . $row->id . '" title="Cetak Nota"><i class="bi bi-printer"></i></button>' . ($row->status === 'posted' ? '<button type="button" class="btn btn-outline-danger btn-delete-return" data-id="' . $row->id . '" title="Cancel Retur"><i class="bi bi-x-circle"></i></button>' : '') . '</div>',
         ])->values();
 
         return response()->json([
