@@ -196,11 +196,13 @@ Route::middleware(['auth', 'access:inventori'])->prefix('inventori/pembelian/po'
     Route::put('/{id}', [PurchaseOrderController::class, 'update'])->name('update');
     Route::delete('/{id}', [PurchaseOrderController::class, 'destroy'])->name('destroy');
 
-    // 3. Detail, Close PO, & Cetak Faktur PO
+    // 3. Export harus sebelum wildcard /{id}
+    Route::get('/export-excel', [PurchaseOrderController::class, 'exportExcel'])->name('export-excel');
+
+    // 4. Detail, Close PO, & Cetak PO
     Route::get('/{id}', [PurchaseOrderController::class, 'show'])->name('show');
     Route::post('/{id}/close', [PurchaseOrderController::class, 'closePo'])->name('close');
     Route::get('/{id}/print', [PurchaseOrderController::class, 'printPo'])->name('print');
-	Route::get('/export-excel', [PurchaseOrderController::class, 'exportExcel'])->name('export-excel');
 });
 
 Route::middleware(['auth', 'access:inventori'])->prefix('inventori/pembelian')->name('inventori.pembelian.')->group(function () {
