@@ -1861,14 +1861,14 @@ class SalesController extends Controller
     public function destroy(int $id)
     {
         $entity=$this->entityId();
-        DB::transaction(function() use($id,$entity){
+        $result=DB::transaction(function() use($id,$entity){
             $sale=DB::table('sales')->where('id',$id)->where('entity_id',$entity)->lockForUpdate()->first();
             abort_unless($sale,404); abort_if($sale->status==='cancelled',422,'Penjualan sudah dibatalkan.');
             $this->assertSalePeriodOpen(\Carbon\Carbon::parse($sale->sale_date)->toDateString());
 
             $payments=DB::table('payments')->where('sale_id',$id)->lockForUpdate()->get();
             $paid=(float)$payments->sum(fn($p)=>(float)$p->paid_amount);
-            abort_if($paid>0,422,'Penjualan sudah memiliki pembayaran. Gunakan pembatalan melalui proses pembayaran/reversal, bukan hapus transaksi.');
+            if($paid>0){ return 'paid'; }
 
             $movements=DB::table('stock_movements')->where('reference_type','sale')->where('reference_id',$id)->lockForUpdate()->get();
             foreach($movements as $movement){
@@ -1887,6 +1887,7 @@ class SalesController extends Controller
             DB::table('sales')->where('id',$id)->update(['status'=>'cancelled','updated_at'=>now()]);
             DB::table('payments')->where('sale_id',$id)->where('paid_amount',0)->delete();
         });
+        if($result==='paid') return back()->with('error','Penjualan sudah memiliki pembayaran. Gunakan pembatalan melalui proses pembayaran/reversal, bukan hapus transaksi.');
         return back()->with('success','Penjualan berhasil dibatalkan dan efek stok/jurnal telah dibalik.');
     }
 
