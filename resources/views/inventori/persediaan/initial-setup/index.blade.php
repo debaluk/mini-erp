@@ -64,6 +64,7 @@
 <button type="button" class="btn btn-outline-primary btn-sm btn-edit"
     data-id="{{ $row->id }}"
     data-name="{{ $row->name }}"
+    data-business-unit-id="{{ $row->business_unit_id }}"
     data-price="{{ (float) $row->selling_price }}"
     data-hpp="{{ (float) $row->initial_purchase_price }}"
     data-stock="{{ (float) $row->initial_stock }}"
@@ -72,7 +73,8 @@
 @else
 <button type="button" class="btn btn-primary btn-sm btn-setup"
     data-id="{{ $row->id }}"
-    data-name="{{ $row->name }}">Setup</button>
+    data-name="{{ $row->name }}"
+    data-business-unit-id="{{ $row->business_unit_id }}">Setup</button>
 @endif
 </td>
                 </tr>
@@ -366,6 +368,7 @@
             form.querySelector('[name="setup_date"]').value = '{{ now()->toDateString() }}';
             productId.value = btn.dataset.id;
             search.value = btn.dataset.name;
+            setupBusinessUnitId.value = btn.dataset.businessUnitId || '';
 
             setupPurchase.readOnly = false;
             initialStock.readOnly = false;
@@ -387,6 +390,7 @@
 
         productId.value = edit.dataset.id;
         search.value = edit.dataset.name;
+        setupBusinessUnitId.value = edit.dataset.businessUnitId || '';
 
         setupPurchase.value = fmtMoney(edit.dataset.hpp);
         initialStock.value = fmtNum(edit.dataset.stock);
@@ -408,6 +412,10 @@
 
     form.addEventListener('submit', async e => {
         e.preventDefault();
+        if (!setupBusinessUnitId.value) {
+            document.getElementById('setup-form-alert').innerHTML = '<div class="alert alert-warning py-2 small">Pilih Unit Bisnis terlebih dahulu sebelum melakukan Setup atau Edit Initial Setup.</div>';
+            return;
+        }
         if (!productId.value) {
             document.getElementById('setup-form-alert').innerHTML = '<div class="alert alert-danger py-2 small">Pilih barang dari popup pencarian.</div>';
             return;
@@ -429,7 +437,7 @@
                 const fd = new FormData(form);
                 if (editMode) fd.append('_method', 'PUT');
                 fd.set('product_id', productId.value);
-                fd.set('business_unit_id', businessUnitFilter.value);
+                fd.set('business_unit_id', setupBusinessUnitId.value);
                 fd.set('purchase_price', parseMoney(purchase.value));
                 fd.set('initial_stock', parseDecimal(initialStock.value));
                 fd.set('markup_percent', parseDecimal(markup.value));
