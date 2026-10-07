@@ -11,8 +11,8 @@
             <button type="button" class="btn btn-primary btn-sm px-3 fw-semibold shadow-sm" id="btn-add-po">
                 <i class="bi bi-plus-circle me-1"></i> + Buat PO Baru
             </button>
-            <a href="{{ route('inventori.pembelian.po.print-list', request()->all()) }}" target="_blank" class="btn btn-secondary btn-sm px-3 fw-semibold shadow-sm">
-                <i class="bi bi-printer me-1"></i> Cetak List PO
+            <a href="{{ route('inventori.pembelian.po.export-excel') }}" id="btn-export-po" class="btn btn-success btn-sm px-3 fw-semibold shadow-sm">
+                <i class="bi bi-file-earmark-excel me-1"></i> Export Excel
             </a>
         </div>
     </div>
@@ -260,12 +260,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 orderable: false,
                 render: function (data, type, row) {
                     let actions = `<div class="btn-group btn-group-sm">`;
+                    if (row.status === 'canceled') {
+                        actions += `<button type="button" class="btn btn-outline-info btn-view-po" data-id="${row.id}" title="Detail PO"><i class="bi bi-eye"></i></button>`;
+                        actions += '</div>';
+                        return actions;
+                    }
                     if (row.status !== 'draft') {
                         actions += `<button type="button" class="btn btn-outline-info btn-view-po" data-id="${row.id}" title="Detail PO"><i class="bi bi-eye"></i></button>`;
                     }
                     actions += `<a href="{{ url('/inventori/pembelian/po') }}/${row.id}/print" target="_blank" class="btn btn-outline-secondary" title="Cetak Nota PO"><i class="bi bi-printer"></i></a>`;
                     if (row.status === 'draft') {
-                        actions += `<button type="button" class="btn btn-success btn-approve-po" data-id="${row.id}" data-no="${row.po_no}" title="Approve PO"><i class="bi bi-check-circle"></i> Approve</button>`;
+                        actions += `<button type="button" class="btn btn-success btn-approve-po" data-id="${row.id}" data-no="${row.po_no}" title="Approve PO"><i class="bi bi-check-circle"></i></button>`;
                         actions += `<button type="button" class="btn btn-outline-warning btn-edit-po" data-id="${row.id}" title="Edit Draft"><i class="bi bi-pencil"></i></button>`;
                         actions += `<button type="button" class="btn btn-outline-danger btn-delete-po" data-id="${row.id}" data-no="${row.po_no}" title="Batalkan PO"><i class="bi bi-trash"></i></button>`;
                     }
@@ -283,6 +288,18 @@ document.addEventListener('DOMContentLoaded', function () {
     $('#btn-reset-filter').on('click', function () {
         $('#form-filter')[0].reset();
         table.ajax.reload();
+    });
+
+    $('#btn-export-po').on('click', function (e) {
+        e.preventDefault();
+        const params = new URLSearchParams({
+            start_date: $('#filter-start-date').val() || '',
+            end_date: $('#filter-end-date').val() || '',
+            business_unit_id: $('#filter-bu').val() || '',
+            supplier_id: $('#filter-supplier').val() || '',
+            warehouse_id: $('#filter-wh').val() || ''
+        });
+        window.location.href = `{{ route('inventori.pembelian.po.export-excel') }}?${params.toString()}`;
     });
 
     $('#supplier-id').on('change', function () {
