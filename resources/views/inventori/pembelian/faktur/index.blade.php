@@ -17,7 +17,7 @@
             </div>
         </div>
 
-        <div class="bg-light border rounded p-2 mt-3">
+        <div class="bg-white border rounded p-2 mt-3">
             <form id="formFilter" class="row g-2 align-items-end">
                 <div class="col-md-2"><label class="form-label mb-1 small fw-semibold">Mulai Tanggal</label><input type="date" id="filter-start-date" class="form-control form-control-sm" value="{{ $startDate }}"></div>
                 <div class="col-md-2"><label class="form-label mb-1 small fw-semibold">Sampai Tanggal</label><input type="date" id="filter-end-date" class="form-control form-control-sm" value="{{ $endDate }}"></div>
@@ -56,7 +56,7 @@
                 </table>
             </div>
         </div>
-        <div class="card-footer bg-white d-flex justify-content-between align-items-center py-2 px-3" id="paginationContainer"></div>
+        
     </div>
 </div>
 
@@ -434,84 +434,50 @@ function showToast(icon, message) {
     Toast.fire({ icon: icon, title: message });
 }
 
+const purchaseTable = new DataTable('#tablePurchases', {
+    processing: true,
+    serverSide: true,
+    pageLength: 15,
+    lengthMenu: [[15, 25, 50, 100], [15, 25, 50, 100]],
+    order: [[1, 'desc']],
+    language: {
+        lengthMenu: 'Tampilkan _MENU_ data per halaman',
+        search: 'Cari:',
+        info: 'Menampilkan _START_ sampai _END_ dari _TOTAL_ data',
+        infoEmpty: 'Tidak ada data',
+        infoFiltered: '(disaring dari _MAX_ data)',
+        zeroRecords: 'Data tidak ditemukan',
+        emptyTable: 'Belum ada data',
+        paginate: { first: '<<', last: '>>', next: '>', previous: '<' },
+        processing: 'Memuat...'
+    },
+    ajax: {
+        url: '{{ route('inventori.pembelian.faktur.data') }}',
+        type: 'GET',
+        data: function (d) {
+            d.start_date = document.getElementById('filter-start-date').value;
+            d.end_date = document.getElementById('filter-end-date').value;
+            d.business_unit_id = document.getElementById('filter-bu').value;
+            d.supplier_id = document.getElementById('filter-supplier').value;
+        },
+        dataSrc: 'data'
+    },
+    columns: [
+        { data: 'purchase_no', className: 'ps-3 fw-bold text-primary' },
+        { data: 'formatted_date' },
+        { data: 'source_type', render: data => data === 'po' ? '<span class="badge bg-info text-dark border">PO</span>' : '<span class="badge bg-secondary">DIRECT NON-PO</span>' },
+        { data: 'supplier_name', render: data => '<strong>' + (data || '-') + '</strong>' },
+        { data: 'bu_code', render: data => '<span class="badge bg-light text-dark border">' + (data || 'BU') + '</span>' },
+        { data: 'formatted_grand', className: 'text-end fw-bold' },
+        { data: 'status', className: 'text-center', render: data => data === 'draft' ? '<span class="badge bg-warning text-dark">DRAFT</span>' : '<span class="badge bg-success">APPROVED</span>' },
+        { data: 'id', orderable: false, searchable: false, className: 'text-center', render: id => '<button class="btn btn-sm btn-light border fw-semibold py-0" type="button" onclick="showPurchaseActions(' + id + ')">⚙️ Aksi</button>' }
+    ]
+});
+
 function loadData(page = 1) {
-    const startDate = document.getElementById('filter_start_date').value;
-    const endDate   = document.getElementById('filter_end_date').value;
-    const status    = document.getElementById('filter_status').value;
-    const supplierId= document.getElementById('filter_supplier_id').value;
-    const search    = document.getElementById('filter_search').value;
-
-    const url = `/inventori/pembelian/faktur?page=${page}&start_date=${startDate}&end_date=${endDate}&status=${status}&supplier_id=${supplierId}&search=${encodeURIComponent(search)}`;
-
-    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-    .then(res => res.json())
-    .then(res => {
-        if(res.status === 'success') {
-            renderTable(res.data.data);
-            renderPagination(res.data);
-        }
-    });
+    purchaseTable.ajax.reload();
 }
 
-function renderTable(data) {
-    const tbody = document.getElementById('tbodyPurchases');
-    if(!data || data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted extra-small">Belum ada data faktur pembelian.</td></tr>`;
-        return;
-    }
-
-    let html = '';
-    data.forEach(item => {
-        const isDraft = item.status === 'draft';
-        const statusBadge = isDraft 
-            ? `<span class="badge bg-warning text-dark px-2 py-1"><i class="bi bi-hourglass-split me-1"></i>DRAFT</span>` 
-            : `<span class="badge bg-success px-2 py-1"><i class="bi bi-check-circle me-1"></i>APPROVED</span>`;
-
-        const typeBadge = item.source_type === 'po'
-            ? `<span class="badge bg-info text-dark border px-2 py-1">PO (${item.po_no || '-'})</span>`
-            : `<span class="badge bg-secondary px-2 py-1">DIRECT NON-PO</span>`;
-
-        html += `
-        <tr>
-            <td class="ps-3 fw-bold text-primary">${item.purchase_no}</td>
-            <td>${item.purchase_date ? item.purchase_date.substring(0, 10) : '-'}</td>
-            <td>${typeBadge}</td>
-            <td><strong>${item.supplier_name || '-'}</strong></td>
-            <td><span class="badge bg-light text-dark border">${item.bu_code || 'BU'}</span></td>
-            <td class="text-end fw-bold">Rp ${(parseFloat(item.total) || 0).toLocaleString('id-ID')}</td>
-            <td class="text-center">${statusBadge}</td>
-            <td class="text-center">
-                <div class="dropdown">
-                    <button class="btn btn-sm btn-light border dropdown-toggle fw-semibold py-0" type="button" data-bs-toggle="dropdown">⚙️ Aksi</button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 py-1">
-                        <li><a class="dropdown-item py-1 small" href="javascript:void(0)" onclick="printFaktur(${item.id})"><i class="bi bi-printer me-2 text-primary"></i>Cetak Faktur Standar</a></li>
-                        ${isDraft ? `<li><a class="dropdown-item py-1 text-success fw-bold small" href="javascript:void(0)" onclick="approvePurchase(\${item.id})"><i class="bi bi-check2-circle me-2"></i>Approve Faktur</a></li>` : ''}
-                        ${isDraft ? `<li><a class="dropdown-item py-1 small" href="javascript:void(0)" onclick="openEditModal(\\({item.id}, '\\){item.source_type}')"><i class="bi bi-pencil me-2 text-warning"></i>Edit Nota</a></li>` : ''}
-                        ${!isDraft ? `<li><a class="dropdown-item py-1 text-warning fw-bold small" href="javascript:void(0)" onclick="openModalReturn(\${item.id})"><i class="bi bi-arrow-return-left me-2"></i>Retur Pembelian (RB)</a></li>` : ''}
-                        <li><hr class="dropdown-divider my-1"></li>
-                        <li><a class="dropdown-item py-1 text-danger small" href="javascript:void(0)" onclick="deletePurchase(${item.id})"><i class="bi bi-trash me-2"></i>Hapus Nota</a></li>
-                    </ul>
-                </div>
-            </td>
-        </tr>`;
-    });
-    tbody.innerHTML = html;
-}
-
-function renderPagination(data) {
-    const container = document.getElementById('paginationContainer');
-    if(!data.links) return;
-
-    let html = `<div><small class="text-muted">Menampilkan ${data.from || 0} - ${data.to || 0} dari ${data.total} data</small></div><ul class="pagination pagination-sm mb-0">`;
-    data.links.forEach(link => {
-        if(link.url) {
-            const page = new URL(link.url).searchParams.get('page');
-            html += `<li class="page-item ${link.active ? 'active' : ''}"><a class="page-link py-0 px-2" href="javascript:void(0)" onclick="loadData(${page})">${link.label}</a></li>`;
-        }
-    });
-    html += `</ul>`;
-    container.innerHTML = html;
-}
 
 function openModalNonPo() {
     document.getElementById('formNonPo').reset();
