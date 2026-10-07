@@ -23,6 +23,7 @@
                 <div class="d-flex align-items-center">
                     <label class="form-label mb-0 me-3 text-nowrap" style="min-width:80px">Pelanggan</label>
                     <div class="input-group">
+                        <input type="hidden" id="customerId" value="">
                         <input id="customerSearch" class="form-control" placeholder="Pilih pelanggan..." readonly>
                         <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#customerModal">Pilih</button>
                     </div>
