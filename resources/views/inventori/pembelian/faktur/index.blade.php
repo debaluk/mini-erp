@@ -5,7 +5,7 @@
 @section('content')
 <div class="container-fluid px-0 py-0">
     <div class="card border-0 shadow-sm mb-3">
-        <div class="card-body p-3">
+        <div class="card-body p-3 bg-light">
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
                 <div>
                     <h3 class="mb-1 fw-bold text-dark"><i class="bi bi-receipt-cutoff me-2 text-primary"></i>Faktur Pembelian</h3>
