@@ -121,8 +121,12 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-4">
-                                <label class="form-label extra-small fw-bold text-dark mb-1">Vendor / Supplier <span class="text-danger">*</span></label>
+                            <div class="col-md-3">
+                                <label class="form-label extra-small fw-bold text-dark mb-0">No. Faktur Supplier</label>
+                                <input type="text" class="form-control form-control-sm" id="nonpo_supplier_invoice_no" name="supplier_invoice_no" placeholder="Contoh: INV-SUP-9988">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label extra-small fw-bold text-dark mb-1">Supplier <span class="text-danger"></span></label>
                                 <select class="form-select form-select-sm fw-bold border-primary" id="nonpo_supplier_id" name="supplier_id" required>
                                     <option value="">-- Pilih Vendor / Supplier --</option>
                                     @foreach($suppliers as $s)
@@ -134,10 +138,7 @@
                         </div>
 
                         <div class="row g-2 mt-1">
-                            <div class="col-md-4">
-                                <label class="form-label extra-small fw-bold text-dark mb-0">No. Faktur Supplier</label>
-                                <input type="text" class="form-control form-control-sm" id="nonpo_supplier_invoice_no" name="supplier_invoice_no" placeholder="Contoh: INV-SUP-9988">
-                            </div>
+                            
                         </div>
                     </div>
 
