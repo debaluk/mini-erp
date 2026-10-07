@@ -470,7 +470,19 @@ const purchaseTable = new DataTable('#tablePurchases', {
         { data: 'bu_code', render: data => '<span class="badge bg-light text-dark border">' + (data || 'BU') + '</span>' },
         { data: 'formatted_grand', className: 'text-end fw-bold' },
         { data: 'status', className: 'text-center', render: data => data === 'draft' ? '<span class="badge bg-warning text-dark">DRAFT</span>' : '<span class="badge bg-success">APPROVED</span>' },
-        { data: 'id', orderable: false, searchable: false, className: 'text-center', render: id => '<button class="btn btn-sm btn-light border fw-semibold py-0" type="button" onclick="showPurchaseActions(' + id + ')">⚙️ Aksi</button>' }
+        { data: null, orderable: false, searchable: false, className: 'text-center', render: (data, type, row) => {
+            const draft = row.status === 'draft';
+            return '<div class="dropdown">' +
+                '<button class="btn btn-sm btn-light border dropdown-toggle fw-semibold py-0" type="button" data-bs-toggle="dropdown">⚙️ Aksi</button>' +
+                '<ul class="dropdown-menu dropdown-menu-end shadow border-0 py-1">' +
+                '<li><a class="dropdown-item py-1 small" href="javascript:void(0)" onclick="printFaktur(' + row.id + ')"><i class="bi bi-printer me-2 text-primary"></i>Cetak Faktur Standar</a></li>' +
+                (draft ? '<li><a class="dropdown-item py-1 text-success fw-bold small" href="javascript:void(0)" onclick="approvePurchase(' + row.id + ')"><i class="bi bi-check2-circle me-2"></i>Approve Faktur</a></li>' : '') +
+                (draft ? '<li><a class="dropdown-item py-1 small" href="javascript:void(0)" onclick="openEditModal(' + row.id + ', \'' + row.source_type + '\')"><i class="bi bi-pencil me-2 text-warning"></i>Edit Nota</a></li>' : '') +
+                (!draft ? '<li><a class="dropdown-item py-1 text-warning fw-bold small" href="javascript:void(0)" onclick="openModalReturn(' + row.id + ')"><i class="bi bi-arrow-return-left me-2"></i>Retur Pembelian (RB)</a></li>' : '') +
+                '<li><hr class="dropdown-divider my-1"></li>' +
+                '<li><a class="dropdown-item py-1 text-danger small" href="javascript:void(0)" onclick="deletePurchase(' + row.id + ')"><i class="bi bi-trash me-2"></i>Hapus Nota</a></li>' +
+                '</ul></div>';
+        }}
     ]
 });
 
