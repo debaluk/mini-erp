@@ -1887,7 +1887,7 @@ class SalesController extends Controller
             DB::table('sales')->where('id',$id)->update(['status'=>'cancelled','updated_at'=>now()]);
             DB::table('payments')->where('sale_id',$id)->where('paid_amount',0)->delete();
         });
-        if($result==='paid') return back()->with('error','Hapus gagal ! Penjualan sudah memiliki pembayaran');
+        if($result==='paid') return back()->with('error','Hapus gagal! Penjualan sudah memiliki pembayaran.');
         return back()->with('success','Penjualan berhasil dibatalkan dan efek stok/jurnal telah dibalik.');
     }
 
