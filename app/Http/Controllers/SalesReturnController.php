@@ -80,12 +80,7 @@ class SalesReturnController extends Controller
             'warehouse_name' => $row->warehouse_name ?? '-',
             'total_formatted' => 'Rp ' . number_format((float) $row->total, 2, ',', '.'),
             'status' => $row->status,
-            'actions' => '<div class="btn-group btn-group-sm">'
-                . '<button type="button" class="btn btn-outline-info btn-view-return" data-id="' . $row->id . '" title="Detail & Jurnal"><i class="bi bi-eye"></i></button>'
-                . '<button type="button" class="btn btn-outline-warning btn-edit-return" data-id="' . $row->id . '" title="Edit & Koreksi Jurnal"><i class="bi bi-pencil"></i></button>'
-                . '<button type="button" class="btn btn-outline-secondary btn-print-return" data-id="' . $row->id . '" title="Cetak Nota"><i class="bi bi-printer"></i></button>'
-                . '<button type="button" class="btn btn-outline-danger btn-delete-return" data-id="' . $row->id . '" title="Hapus Retur"><i class="bi bi-trash"></i></button>'
-                . '</div>',
+            'actions' => '<div class="btn-group btn-group-sm">' . '<button type="button" class="btn btn-outline-info btn-view-return" data-id="' . $row->id . '" title="Detail & Jurnal"><i class="bi bi-eye"></i></button>' . ($row->status === 'posted' ? '<button type="button" class="btn btn-outline-warning btn-edit-return" data-id="' . $row->id . '" title="Edit & Koreksi Jurnal"><i class="bi bi-pencil"></i></button>' : '') . '<button type="button" class="btn btn-outline-secondary btn-print-return" data-id="' . $row->id . '" title="Cetak Nota"><i class="bi bi-printer"></i></button>' . ($row->status === 'posted' ? '<button type="button" class="btn btn-outline-danger btn-delete-return" data-id="' . $row->id . '" title="Cancel Retur"><i class="bi bi-x-circle"></i></button>' : '') . '</div>',
         ])->values();
 
         return response()->json([
@@ -126,7 +121,7 @@ class SalesReturnController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Retur penjualan berhasil dihapus beserta jurnal dan efek stoknya.',
+                'message' => 'Retur penjualan berhasil di-cancel. Data transaksi tetap tersimpan untuk audit, sedangkan jurnal dan efek stoknya dihapus.',
             ]);
         } catch (\Throwable $e) {
             Log::error('Gagal menghapus retur penjualan', [
