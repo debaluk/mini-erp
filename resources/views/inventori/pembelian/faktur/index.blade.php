@@ -216,6 +216,14 @@
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+$(document).ready(function() {
+$('#btnFakturNonPO').click(function() {
+        $('#returnForm')[0].reset();
+        $('#returnId').val('');
+        $('#modalReturnFormTitle').html('<i class="bi bi-arrow-return-left me-2"></i>Faktur Pembelian');        
+        $('#modalReturnForm').modal('show');
+    });
+});
 document.addEventListener('DOMContentLoaded', function () {
 
     @if(session('swal_success'))
