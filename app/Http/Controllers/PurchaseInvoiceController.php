@@ -72,14 +72,16 @@ class PurchaseInvoiceController extends Controller
         $columns = [
             0 => 'p.purchase_no',
             1 => 'p.purchase_date',
-            2 => 'p.source_type',
+            2 => 'po.po_no',
             3 => 's.name',
             4 => 'bu.name',
-            5 => 'p.total',
-            6 => 'p.status',
+            5 => 'p.payment_method',
+            6 => 'p.due_date',
+            7 => 'p.total',
+            8 => 'p.status',
         ];
-        $orderColumn = $columns[(int) $request->input('order.0.column', 1)] ?? 'p.purchase_date';
-        $orderDir = $request->input('order.0.dir') === 'asc' ? 'asc' : 'desc';
+        $orderColumn = 'p.purchase_date';
+        $orderDir = 'desc';
 
         $start = max(0, (int) $request->input('start', 0));
         $length = (int) $request->input('length', 15);
