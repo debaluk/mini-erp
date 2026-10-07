@@ -622,15 +622,171 @@ class PurchaseInvoiceController extends Controller
         return view('inventori.pembelian.faktur.show', compact('p', 'items', 'journals', 'warehouse', 'purchaseReturns'));
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
-        $p = DB::table('purchases')->where('id', $id)->first();
-        if ($p && $p->status === 'posted') {
-            return redirect()->back()->with('swal_error', 'Faktur POSTED bersifat permanen dan tidak dapat dihapus!');
-        }
+        try {
+            $result = DB::transaction(function () use ($id) {
+                $entityId = (int) (auth()->user()->entity_id ?? 1);
 
-        DB::table('purchases')->where('id', $id)->update(['deleted_at' => now()]);
-        return redirect()->route('inventori.pembelian.index')->with('swal_success', 'Draft Faktur Pembelian berhasil dihapus.');
+                $purchase = DB::table('purchases')
+                    ->where('entity_id', $entityId)
+                    ->where('id', $id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$purchase) {
+                    throw new \RuntimeException('Faktur Pembelian tidak ditemukan.');
+                }
+
+                if ($purchase->status === 'cancelled') {
+                    throw new \RuntimeException('Faktur Pembelian sudah dibatalkan.');
+                }
+
+                $period = DB::table('accounting_periods')
+                    ->where('entity_id', $purchase->entity_id)
+                    ->where('period_year', Carbon::parse($purchase->purchase_date)->year)
+                    ->where('period_month', Carbon::parse($purchase->purchase_date)->month)
+                    ->first();
+
+                if ($period && in_array($period->status, ['closing', 'closed'], true)) {
+                    throw new \RuntimeException('Faktur tidak dapat dibatalkan karena periode akuntansi sudah dalam proses closing atau sudah closed.');
+                }
+
+                $returnExists = DB::table('purchase_return_items as pri')
+                    ->join('purchase_items as pi', 'pi.id', '=', 'pri.purchase_item_id')
+                    ->join('purchase_returns as pr', 'pr.id', '=', 'pri.purchase_return_id')
+                    ->where('pi.purchase_id', $purchase->id)
+                    ->where('pr.status', 'posted')
+                    ->exists();
+
+                if ($returnExists) {
+                    throw new \RuntimeException('Faktur tidak dapat dibatalkan karena sudah memiliki retur pembelian yang POSTED.');
+                }
+
+                $receiptIds = DB::table('receipts')
+                    ->where('purchase_id', $purchase->id)
+                    ->lockForUpdate()
+                    ->pluck('id');
+
+                // Non-PO/direct receipt masuk stok bersamaan dengan faktur.
+                // PO receipt tetap dipertahankan karena penerimaan barang merupakan dokumen terpisah.
+                if ($purchase->source_type !== 'po' && $receiptIds->isNotEmpty()) {
+                    foreach ($receiptIds as $receiptId) {
+                        $receiptItems = DB::table('receipt_items')
+                            ->where('receipt_id', $receiptId)
+                            ->get();
+
+                        foreach ($receiptItems as $item) {
+                            $qty = (float) $item->base_qty;
+                            if ($qty <= 0) {
+                                continue;
+                            }
+
+                            $stock = DB::table('warehouses_stocks')
+                                ->where('warehouse_id', $this->receiptWarehouseId($receiptId))
+                                ->where('product_id', $item->product_id)
+                                ->lockForUpdate()
+                                ->first();
+
+                            if (!$stock || (float) $stock->qty + 0.0000001 < $qty) {
+                                throw new \RuntimeException(
+                                    'Faktur tidak dapat dibatalkan karena stok ' . ($item->product_id) . ' pada gudang tidak mencukupi untuk membalik penerimaan.'
+                                );
+                            }
+
+                            $oldQty = (float) $stock->qty;
+                            $oldValue = $oldQty * (float) $stock->avg_cost;
+                            $removeValue = $qty * (float) $item->base_unit_cost;
+                            $newQty = $oldQty - $qty;
+                            $newValue = max(0, $oldValue - $removeValue);
+                            $newAvg = $newQty > 0 ? $newValue / $newQty : 0;
+
+                            DB::table('warehouses_stocks')
+                                ->where('id', $stock->id)
+                                ->update([
+                                    'qty' => $newQty,
+                                    'avg_cost' => round($newAvg, 9),
+                                    'updated_at' => now(),
+                                ]);
+
+                            DB::table('stock_movements')->insert([
+                                'entity_id' => $purchase->entity_id,
+                                'business_unit_id' => $purchase->business_unit_id,
+                                'warehouse_id' => $this->receiptWarehouseId($receiptId),
+                                'product_id' => $item->product_id,
+                                'unit_id' => $item->unit_id,
+                                'transaction_qty' => -$item->qty,
+                                'conversion_factor' => $item->conversion_factor,
+                                'movement_type' => 'purchase_cancel',
+                                'qty' => -$qty,
+                                'unit_cost' => $item->base_unit_cost,
+                                'reference_type' => 'purchase_cancel',
+                                'reference_id' => $purchase->id,
+                                'receipt_id' => $receiptId,
+                                'occurred_at' => now(),
+                                'created_by' => auth()->id(),
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]);
+                        }
+
+                        DB::table('journals')
+                            ->where('source_type', 'receipt')
+                            ->where('source_id', $receiptId)
+                            ->delete();
+
+                        DB::table('receipt_invoice_allocations')
+                            ->whereIn('receipt_item_id', function ($q) use ($receiptId) {
+                                $q->select('id')->from('receipt_items')->where('receipt_id', $receiptId);
+                            })
+                            ->delete();
+
+                        DB::table('receipt_items')->where('receipt_id', $receiptId)->delete();
+                        DB::table('receipts')->where('id', $receiptId)->delete();
+                    }
+                }
+
+                DB::table('journals')
+                    ->where('source_type', 'purchase_invoice')
+                    ->where('source_id', $purchase->id)
+                    ->delete();
+
+                DB::table('purchase_price_histories')
+                    ->where('reference_id', $purchase->id)
+                    ->where('source', 'purchase')
+                    ->delete();
+
+                DB::table('purchases')
+                    ->where('id', $purchase->id)
+                    ->update([
+                        'status' => 'cancelled',
+                        'updated_at' => now(),
+                    ]);
+
+                return $purchase->purchase_no;
+            });
+
+            $message = "Faktur Pembelian [{$result}] berhasil dibatalkan.";
+
+            if ($request->expectsJson()) {
+                return response()->json(['status' => 'success', 'message' => $message]);
+            }
+
+            return redirect()->route('inventori.pembelian.index')->with('swal_success', $message);
+        } catch (\Throwable $e) {
+            $message = 'Gagal membatalkan Faktur Pembelian: ' . $e->getMessage();
+
+            if ($request->expectsJson()) {
+                return response()->json(['status' => 'error', 'message' => $message], 422);
+            }
+
+            return redirect()->back()->with('swal_error', $message);
+        }
+    }
+
+    private function receiptWarehouseId($receiptId): int
+    {
+        return (int) DB::table('receipts')->where('id', $receiptId)->value('warehouse_id');
     }
 
     public function printInvoice($id)
