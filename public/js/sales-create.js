@@ -4,6 +4,7 @@
 
     const config = JSON.parse(dataNode.textContent || '{}');
     const products = Array.isArray(config.products) ? config.products : [];
+    const productionProductIds = config.productionProductIds || {};
     const body = document.getElementById('detailBody');
     const unitSelect = document.getElementById('unitSelect');
     const saleDate = document.querySelector('input[name="sale_date"]');
@@ -54,11 +55,17 @@
         return Number(unitSelect?.value || 0);
     }
 
+    function productAllowed(product) {
+        const allowed = productionProductIds[String(currentBusinessUnit())] || productionProductIds[currentBusinessUnit()];
+        if (!Array.isArray(allowed)) return true;
+        return allowed.map(Number).includes(Number(product?.id));
+    }
+
     function findProduct(value) {
         const needle = String(value ?? '').trim().toLowerCase();
         if (!needle) return null;
 
-        return products.find(product =>
+        return products.find(product => productAllowed(product) &&
             String(product.barcode ?? '').trim().toLowerCase() === needle
         ) || null;
     }
@@ -104,7 +111,7 @@
             return;
         }
 
-        const filtered = products.filter(product => [
+        const filtered = products.filter(product => productAllowed(product) && [
             product.code,
             product.name,
             product.barcode,
@@ -135,7 +142,7 @@
     }
 
     function addProduct(productId) {
-        const product = products.find(item => Number(item.id) === Number(productId));
+        const product = products.find(item => productAllowed(item) && Number(item.id) === Number(productId));
         if (!product) return;
 
         const existingIndex = rows.findIndex(row => Number(row.product_id) === Number(product.id));
@@ -233,6 +240,7 @@
         const needle = String(keyword).trim().toLowerCase();
 
         const filtered = products.filter(product => {
+            if (!productAllowed(product)) return false;
             if (!needle) return true;
 
             return [
