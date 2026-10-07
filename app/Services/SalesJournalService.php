@@ -104,7 +104,12 @@ class SalesJournalService
             $customer = trim((string) ($sale->customer_name ?? ''));
             $description = 'Penjualan #'.$sale->invoice_no.' an '.($customer !== '' ? $customer : 'Umum');
 
-            if (!$journalId) {
+            if ($journalId) {
+                DB::table('journals')->where('id', $journalId)->update([
+                    'description' => $description,
+                    'updated_at' => now(),
+                ]);
+            } else {
                 $journalId = DB::table('journals')->insertGetId([
                 'entity_id' => $entityId,
                 'business_unit_id' => $sale->business_unit_id,
