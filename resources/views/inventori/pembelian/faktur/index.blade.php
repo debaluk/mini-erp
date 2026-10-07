@@ -1,9 +1,9 @@
 @extends('layouts.app')
 
-@section('title', 'Faktur Pembelian (FB)')
+@section('title', 'Faktur Pembelian')
 
 @section('content')
-<div class="container-fluid py-3">
+<div class="container-fluid py-0">
     <!-- ========================================== -->
     <!-- HEADER BAR & FILTER UTAMA                  -->
     <!-- ========================================== -->
