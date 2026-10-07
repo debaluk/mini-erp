@@ -1695,7 +1695,17 @@ class SalesController extends Controller
                     ->where('ubu.user_id', $user->id);
             })->orderBy('bu.name')->get(['bu.id', 'bu.code', 'bu.name']);
 
-        $customers = DB::table('customers')->where('entity_id', $entity)->where('is_active', 1)->orderBy('name')->get(['id','name']);
+        $customers = DB::table('customers as c')
+            ->where('c.entity_id', $entity)
+            ->where('c.is_active', 1)
+            ->leftJoin(DB::raw('(SELECT s.customer_id, SUM(GREATEST(s.total - COALESCE(p.paid_amount,0),0)) AS outstanding
+                FROM sales s
+                LEFT JOIN (SELECT sale_id, SUM(COALESCE(paid_amount,0)) paid_amount FROM payments GROUP BY sale_id) p ON p.sale_id=s.id
+                WHERE s.entity_id='.$entity.' AND s.customer_id IS NOT NULL
+                AND EXISTS (SELECT 1 FROM payments cp WHERE cp.sale_id=s.id AND cp.method="credit")
+                GROUP BY s.customer_id) ob'), 'ob.customer_id', '=', 'c.id')
+            ->orderBy('c.name')
+            ->get(['c.id', 'c.name', DB::raw('COALESCE(ob.outstanding,0) as outstanding')]);
 
         $products = DB::table('products as p')
             ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
