@@ -1527,6 +1527,19 @@ class SalesController extends Controller
                     ->first();
                 abort_unless($product, 422, 'Item tidak valid.');
 
+                if ($unit->business_type === 'production') {
+                    abort_unless(
+                        DB::table('boms')
+                            ->where('entity_id', $entity)
+                            ->where('business_unit_id', $unit->id)
+                            ->where('is_active', 1)
+                            ->where('product_id', $product->id)
+                            ->exists(),
+                        422,
+                        'Produk penjualan Unit Produksi harus terdaftar sebagai Produk Jadi pada BOM aktif.'
+                    );
+                }
+
                 $uom = $this->resolveProductUnit(
                     $product->id,
                     isset($item['unit_id']) ? (int) $item['unit_id'] : null,
@@ -1818,6 +1831,13 @@ class SalesController extends Controller
             foreach($data['items'] as $item){
                 $product=DB::table('products')->where('id',$item['product_id'])->where('entity_id',$entity)->where('is_active',1)->first();
                 abort_unless($product,422,'Item tidak valid.');
+                if($unit->business_type === 'production'){
+                    abort_unless(
+                        DB::table('boms')->where('entity_id',$entity)->where('business_unit_id',$unit->id)
+                            ->where('is_active',1)->where('product_id',$product->id)->exists(),
+                        422,'Produk penjualan Unit Produksi harus terdaftar sebagai Produk Jadi pada BOM aktif.'
+                    );
+                }
                 $uom=$this->resolveProductUnit($product->id,isset($item['unit_id'])?(int)$item['unit_id']:null,$entity);
                 $qty=(float)$item['qty']; $price=(float)$item['selling_price'];
                 $lineDiscount=min((float)($item['discount']??0),$qty*$price);
