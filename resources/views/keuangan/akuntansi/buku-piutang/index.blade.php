@@ -7,7 +7,7 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
             <h3 class="mb-1 fw-bold text-dark">Buku Bantu Piutang (AR Sub-Ledger)</h3>
-            <div class="text-secondary small">Detail Tagihan, Umur Piutang, Kartu Piutang Pelanggan & Rekonsiliasi COA</div>
+            <div class="text-secondary small">Detail Tagihan, Umur Piutang & Kartu Piutang Pelanggan</div>
         </div>
         <div class="d-flex gap-2">
             <button type="button" class="btn btn-outline-success btn-sm px-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#modal-setup-saldo-awal">
@@ -143,11 +143,6 @@
                 <i class="bi bi-card-checklist me-1"></i> Kartu Piutang per Pelanggan
             </button>
         </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link fw-semibold" id="tab-reconcile" data-bs-toggle="tab" data-bs-target="#content-reconcile" type="button" role="tab">
-                <i class="bi bi-check2-circle me-1"></i> Rekonsiliasi COA (1000301)
-            </button>
-        </li>
     </ul>
 
     <div class="tab-content" id="arTabsContent">
@@ -205,7 +200,7 @@
                                                     data-bu="{{ $inv->business_unit_id }}"
                                                     data-cust="{{ $inv->customer_id }}"
                                                     data-inv="{{ $inv->invoice_no }}"
-                                                    data-date="{{ $inv->sale_date }}"
+                                                    data-date="{{ $inv->sale_date ? \Carbon\Carbon::parse($inv->sale_date)->format('Y-m-d') : '' }}"
                                                     data-due="{{ $inv->due_date }}"
                                                     data-amount="{{ $inv->total }}"
                                                     data-memo="{{ $inv->memo }}">
@@ -278,43 +273,7 @@
             </div>
         </div>
 
-        <!-- TAB 3: REKONSILIASI COA 1000301 -->
-        <div class="tab-pane fade" id="content-reconcile" role="tabpanel">
-            <div class="card shadow-sm border-0">
-                <div class="card-body p-4">
-                    <h5 class="fw-bold text-dark mb-3"><i class="bi bi-shield-check text-primary me-1"></i> Pengecekan Rekonsiliasi Akun Kontrol Piutang (COA 1000301)</h5>
-                    <p class="text-muted small">Membandingkan Total Sisa Piutang Sub-Ledger dengan Saldo Buku Besar COA `1000301 Piutang Usaha` pada Neraca Keuangan per tanggal {{ \Carbon\Carbon::parse($endDate)->format('d/m/Y') }}.</p>
 
-                    <div class="row g-3 my-2">
-                        <div class="col-md-4">
-                            <div class="p-3 border rounded bg-light">
-                                <div class="text-muted small">Total Sub-Ledger Piutang (Faktur Sisa)</div>
-                                <div class="fs-5 fw-bold text-primary">Rp {{ number_format($totalArAmount, 2, ',', '.') }}</div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="p-3 border rounded bg-light">
-                                <div class="text-muted small">Saldo Buku Besar COA 1000301</div>
-                                <div class="fs-5 fw-bold text-dark">Rp {{ number_format($coaBalance, 2, ',', '.') }}</div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="p-3 border rounded {{ abs($reconciliationDifference) < 0.01 ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger' }}">
-                                <div class="small fw-semibold">Status Selisih (Difference)</div>
-                                <div class="fs-5 fw-bold">Rp {{ number_format($reconciliationDifference, 2, ',', '.') }}</div>
-                                <div class="small mt-1">
-                                    @if(abs($reconciliationDifference) < 0.01)
-                                        <i class="bi bi-check-circle-fill me-1"></i> 100% RECONCILED (KLOP)
-                                    @else
-                                        <i class="bi bi-exclamation-triangle-fill me-1"></i> Terdapat Selisih Jurnal!
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
     </div>
 
