@@ -517,7 +517,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
             $('#form-po')[0].reset();
             $('#po-id').val(res.po.id);
-            $('#po-date').val(res.po.po_date);
+            const poDate = String(res.po.po_date || '').split(' ')[0];
+            $('#po-date').val(poDate).trigger('change');
+            $('#po-date_display').val(poDate ? formatDateId(poDate) : '');
             $('#business-unit-id').val(res.po.business_unit_id).trigger('change');
             $('#warehouse-id').val(res.po.warehouse_id);
             $('#supplier-id').val(res.po.supplier_id).trigger('change');
