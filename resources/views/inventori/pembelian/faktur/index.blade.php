@@ -1,15 +1,15 @@
 @extends('layouts.app')
 
-@section('title', 'Faktur Pembelian')
+@section('title', 'Faktur Pembelian (FB)')
 
 @section('content')
-<div class="container-fluid py-0">
+<div class="container-fluid py-3">
     <!-- ========================================== -->
     <!-- HEADER BAR & FILTER UTAMA                  -->
     <!-- ========================================== -->
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-3">
-            <h5 class="mb-0 fw-bold"><i class="bi bi-receipt-cutoff me-2"></i>Daftar Faktur Pembelian</h5>
+            <h5 class="mb-0 fw-bold"><i class="bi bi-receipt-cutoff me-2"></i>Daftar Faktur Pembelian (FB)</h5>
             <div class="d-flex gap-2">
                 <button class="btn btn-light text-primary fw-semibold shadow-sm" onclick="exportExcel()">
                     <i class="bi bi-file-earmark-excel me-1 text-success"></i> Ekspor Excel
@@ -163,12 +163,12 @@
                         </div>
                     </div>
 
-                    <!-- Section Item List -->
+                    <!-- Section Item List dengan DROPDOWN BARANG -->
                     <div class="card border-0 shadow-sm p-3 mb-3 bg-white">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <h6 class="fw-bold text-primary mb-0"><i class="bi bi-box-seam-fill me-1"></i>Rincian Barang Pembelian</h6>
-                            <button type="button" class="btn btn-sm btn-success fw-bold px-3 shadow-sm" onclick="openSearchProduct()">
-                                <i class="bi bi-plus-lg me-1"></i> Tambah Barang
+                            <button type="button" class="btn btn-sm btn-success fw-bold px-3 shadow-sm" onclick="addNonPoRow()">
+                                <i class="bi bi-plus-lg me-1"></i> Tambah Baris Barang
                             </button>
                         </div>
                         <div class="table-responsive">
@@ -176,19 +176,16 @@
                                 <thead class="table-dark">
                                     <tr>
                                         <th class="text-center" style="width: 40px;">#</th>
-                                        <th style="width: 15%;">Kode Barang</th>
-                                        <th style="width: 30%;">Nama Produk</th>
-                                        <th class="text-center" style="width: 10%;">Satuan</th>
-                                        <th style="width: 15%;">Qty</th>
-                                        <th style="width: 18%;">Harga Beli / Unit (Rp)</th>
-                                        <th class="text-end" style="width: 18%;">Subtotal (Rp)</th>
+                                        <th style="min-width: 280px;">Pilih Produk / Barang</th>
+                                        <th class="text-center" style="width: 90px;">Satuan</th>
+                                        <th style="width: 140px;">Qty</th>
+                                        <th style="width: 180px;">Harga Beli / Unit (Rp)</th>
+                                        <th class="text-end" style="width: 180px;">Subtotal (Rp)</th>
                                         <th class="text-center" style="width: 40px;"><i class="bi bi-trash"></i></th>
                                     </tr>
                                 </thead>
                                 <tbody id="tbodyNonPoItems">
-                                    <tr id="emptyNonPoRow">
-                                        <td colspan="8" class="text-center py-4 text-muted">Belum ada barang dipilih. Klik tombol <strong>"Tambah Barang"</strong> di atas.</td>
-                                    </tr>
+                                    <!-- Baris dinamis dengan Dropdown Select -->
                                 </tbody>
                             </table>
                         </div>
@@ -362,7 +359,7 @@
 </div>
 
 <!-- ================================================================================= -->
-<!-- MODAL LOOKUP SEARCH: VENDOR, PO, PRODUCT, RETURN                                 -->
+<!-- MODAL LOOKUP SEARCH: VENDOR, PO, RETURN                                         -->
 <!-- ================================================================================= -->
 <!-- Search Vendor -->
 <div class="modal fade" id="modalSearchVendor" tabindex="-1" aria-hidden="true">
@@ -414,35 +411,6 @@
                             </tr>
                         </thead>
                         <tbody id="tbodyPoApproved"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Search Product -->
-<div class="modal fade" id="modalSearchProduct" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-dark text-white py-2">
-                <h6 class="modal-title fw-bold"><i class="bi bi-search me-2"></i>Pencarian Master Produk / Barang</h6>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-3">
-                <input type="text" class="form-control mb-3" id="inputSearchProduct" placeholder="Ketik Kode atau Nama Barang..." oninput="fetchProducts()">
-                <div class="table-responsive" style="max-height: 300px;">
-                    <table class="table table-sm table-hover table-bordered align-middle mb-0">
-                        <thead class="table-secondary">
-                            <tr>
-                                <th>Kode</th>
-                                <th>Nama Produk</th>
-                                <th>Satuan</th>
-                                <th>Harga Beli Std</th>
-                                <th class="text-center">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbodyProducts"></tbody>
                     </table>
                 </div>
             </div>
@@ -512,18 +480,28 @@
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-let modalNonPo, modalPo, modalSearchVendor, modalSearchPoApproved, modalSearchProduct, modalReturn;
+let modalNonPo, modalPo, modalSearchVendor, modalSearchPoApproved, modalReturn;
+let allProductsList = [];
 
 document.addEventListener("DOMContentLoaded", function() {
     modalNonPo              = new bootstrap.Modal(document.getElementById('modalNonPo'));
     modalPo                 = new bootstrap.Modal(document.getElementById('modalPo'));
     modalSearchVendor       = new bootstrap.Modal(document.getElementById('modalSearchVendor'));
     modalSearchPoApproved   = new bootstrap.Modal(document.getElementById('modalSearchPoApproved'));
-    modalSearchProduct      = new bootstrap.Modal(document.getElementById('modalSearchProduct'));
     modalReturn             = new bootstrap.Modal(document.getElementById('modalReturn'));
 
     loadData(1);
+    preloadProducts();
 });
+
+// Preload Daftar Produk untuk Dropdown Select
+function preloadProducts() {
+    fetch('/inventori/pembelian/faktur/lookup/product?q=')
+    .then(res => res.json())
+    .then(res => {
+        allProductsList = res.data || [];
+    });
+}
 
 // Toast Auto-Close 2.5 Detik
 function showToast(icon, message) {
@@ -627,7 +605,10 @@ function openModalNonPo() {
     document.getElementById('formNonPo').reset();
     document.getElementById('nonpo_id').value = '';
     document.getElementById('nonpo_supplier_id').value = '';
-    document.getElementById('tbodyNonPoItems').innerHTML = `<tr id="emptyNonPoRow"><td colspan="8" class="text-center py-4 text-muted">Belum ada barang dipilih. Klik tombol <strong>"Tambah Barang"</strong> di atas.</td></tr>`;
+    document.getElementById('tbodyNonPoItems').innerHTML = '';
+    
+    // Otomatis tambahkan 1 baris kosong pertama dengan Dropdown
+    addNonPoRow();
     calculateTotalsNonPo();
     modalNonPo.show();
 }
@@ -639,6 +620,121 @@ function openModalPo() {
     document.getElementById('tbodyPoItems').innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">Silakan klik tombol <strong>"Pilih PO Approved"</strong> di atas untuk memuat daftar barang.</td></tr>`;
     calculateTotalsPo();
     modalPo.show();
+}
+
+// =================================================================================
+// EKSKLUSIF NON-PO: DROPDOWN ITEM TABLE LOGIC (TANPA POPUP)
+// =================================================================================
+function addNonPoRow(selectedProductId = '', selectedQty = 1, selectedCost = 0, selectedUnitId = '', selectedUnitName = '') {
+    const tbody = document.getElementById('tbodyNonPoItems');
+    const rowId = Date.now() + Math.random().toString(36).substring(2, 6);
+
+    const row = document.createElement('tr');
+    row.id = `nonpo_row_${rowId}`;
+    row.className = 'align-middle';
+
+    let optionsHtml = '<option value="">-- Pilih Barang / Produk --</option>';
+    allProductsList.forEach(p => {
+        const isSel = (p.id == selectedProductId) ? 'selected' : '';
+        optionsHtml += `<option value="${p.id}" ${isSel} data-code="${p.code || ''}" data-unit="${p.unit_name || 'PCS'}" data-unitid="${p.unit_id || ''}" data-cost="${p.purchase_cost || 0}">${p.code ? '['+p.code+'] ' : ''}${p.name}</option>`;
+    });
+
+    row.innerHTML = `
+        <td class="text-center fw-semibold text-muted small row-num"></td>
+        <td style="min-width: 280px;">
+            <select class="form-select form-select-sm fw-semibold border-primary product-select" name="items[${rowId}][product_id]" onchange="onProductSelect(this, '${rowId}')" required>
+                ${optionsHtml}
+            </select>
+            <input type="hidden" name="items[${rowId}][unit_id]" id="unit_id_${rowId}" value="${selectedUnitId}">
+        </td>
+        <td class="text-center">
+            <span class="badge bg-info text-dark fw-semibold px-2 py-1" id="unit_badge_${rowId}">${selectedUnitName || '-'}</span>
+        </td>
+        <td style="width: 140px;">
+            <div class="input-group input-group-sm">
+                <input type="number" step="0.001" class="form-control text-end fw-semibold" name="items[${rowId}][qty]" value="${selectedQty}" min="0.001" oninput="calculateTotalsNonPo()" required>
+                <span class="input-group-text bg-light text-muted px-1 small" id="qty_unit_${rowId}">${selectedUnitName || 'PCS'}</span>
+            </div>
+        </td>
+        <td style="width: 180px;">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text bg-light fw-bold text-muted">Rp</span>
+                <input type="number" step="100" class="form-control text-end fw-bold text-primary" name="items[${rowId}][unit_cost]" id="cost_${rowId}" value="${selectedCost}" min="0" oninput="calculateTotalsNonPo()" required>
+            </div>
+        </td>
+        <td class="text-end fw-bold text-primary fs-6" id="nonpo_subtotal_${rowId}">Rp 0</td>
+        <td class="text-center">
+            <button type="button" class="btn btn-sm btn-outline-danger border-0 p-1" onclick="removeNonPoRow('${rowId}')" title="Hapus Baris"><i class="bi bi-trash-fill"></i></button>
+        </td>
+    `;
+    tbody.appendChild(row);
+    reindexNonPoNumbers();
+    calculateTotalsNonPo();
+}
+
+function onProductSelect(selectElem, rowId) {
+    const selectedOpt = selectElem.options[selectElem.selectedIndex];
+    if(!selectedOpt || !selectedOpt.value) {
+        document.getElementById(`unit_id_${rowId}`).value = '';
+        document.getElementById(`unit_badge_${rowId}`).innerText = '-';
+        document.getElementById(`qty_unit_${rowId}`).innerText = 'PCS';
+        document.getElementById(`cost_${rowId}`).value = 0;
+    } else {
+        const unitId = selectedOpt.getAttribute('data-unitid') || '';
+        const unitName = selectedOpt.getAttribute('data-unit') || 'PCS';
+        const cost = parseFloat(selectedOpt.getAttribute('data-cost')) || 0;
+
+        document.getElementById(`unit_id_${rowId}`).value = unitId;
+        document.getElementById(`unit_badge_${rowId}`).innerText = unitName;
+        document.getElementById(`qty_unit_${rowId}`).innerText = unitName;
+        document.getElementById(`cost_${rowId}`).value = cost;
+    }
+    calculateTotalsNonPo();
+}
+
+function removeNonPoRow(rowId) {
+    const row = document.getElementById(`nonpo_row_${rowId}`);
+    if(row) {
+        row.remove();
+        reindexNonPoNumbers();
+        calculateTotalsNonPo();
+    }
+}
+
+function reindexNonPoNumbers() {
+    const rows = document.querySelectorAll('#tbodyNonPoItems tr');
+    rows.forEach((r, idx) => {
+        const numCell = r.querySelector('.row-num');
+        if(numCell) numCell.innerText = idx + 1;
+    });
+}
+
+function calculateTotalsNonPo() {
+    let subtotal = 0;
+    const rows = document.querySelectorAll('#tbodyNonPoItems tr');
+    rows.forEach(row => {
+        const qtyInput = row.querySelector('input[name*="[qty]"]');
+        const costInput = row.querySelector('input[name*="[unit_cost]"]');
+        if(qtyInput && costInput) {
+            const qty = parseFloat(qtyInput.value) || 0;
+            const cost = parseFloat(costInput.value) || 0;
+            const line = qty * cost;
+            subtotal += line;
+
+            const subCell = row.querySelector('td[id^="nonpo_subtotal_"]');
+            if(subCell) subCell.innerText = `Rp ${line.toLocaleString('id-ID')}`;
+        }
+    });
+
+    const discount = parseFloat(document.getElementById('nonpo_document_discount').value) || 0;
+    const isPpn = document.getElementById('nonpo_is_ppn').checked;
+    const taxable = Math.max(0, subtotal - discount);
+    const ppn = isPpn ? (taxable * 0.11) : 0;
+    const grand = taxable + ppn;
+
+    document.getElementById('nonpo_display_subtotal').innerText = `Rp ${subtotal.toLocaleString('id-ID')}`;
+    document.getElementById('nonpo_display_ppn').innerText = `Rp ${ppn.toLocaleString('id-ID')}`;
+    document.getElementById('nonpo_display_grand_total').innerText = `Rp ${grand.toLocaleString('id-ID')}`;
 }
 
 // Search Vendor Functions
@@ -792,120 +888,10 @@ function calculateTotalsPo() {
     document.getElementById('po_display_grand_total').innerText = `Rp ${grand.toLocaleString('id-ID')}`;
 }
 
-// Search Product Functions (Non-PO)
-function openSearchProduct() {
-    fetchProducts();
-    modalSearchProduct.show();
-}
-
-function fetchProducts() {
-    const q = document.getElementById('inputSearchProduct').value;
-    fetch(`/inventori/pembelian/faktur/lookup/product?q=${encodeURIComponent(q)}`)
-    .then(res => res.json())
-    .then(res => {
-        let html = '';
-        res.data.forEach(p => {
-            html += `<tr>
-                <td class="fw-bold">${p.code}</td>
-                <td><strong>${p.name}</strong></td>
-                <td>${p.unit_name || 'PCS'}</td>
-                <td>Rp ${(p.purchase_cost || 0).toLocaleString('id-ID')}</td>
-                <td class="text-center">
-                    <button type="button" class="btn btn-sm btn-success fw-bold" onclick="selectProduct(${p.id}, '${p.code || '-'}', '${p.name}', '${p.unit_name || 'PCS'}', ${p.unit_id || 'null'}, ${p.purchase_cost || 0})">Pilih</button>
-                </td>
-            </tr>`;
-        });
-        document.getElementById('tbodyProducts').innerHTML = html;
-    });
-}
-
-function selectProduct(productId, productCode, productName, unitName, unitId, purchaseCost) {
-    const emptyRow = document.getElementById('emptyNonPoRow');
-    if(emptyRow) emptyRow.remove();
-
-    const tbody = document.getElementById('tbodyNonPoItems');
-    const rowId = Date.now() + Math.random().toString(36).substring(2, 6);
-
-    const row = document.createElement('tr');
-    row.id = `nonpo_row_${rowId}`;
-    row.className = 'align-middle';
-    row.innerHTML = `
-        <td class="text-center fw-semibold text-muted small row-num"></td>
-        <td><span class="badge bg-light text-dark border font-monospace px-2 py-1">${productCode}</span></td>
-        <td>
-            <strong class="text-dark d-block">${productName}</strong>
-            <input type="hidden" name="items[${rowId}][product_id]" value="${productId}">
-            <input type="hidden" name="items[${rowId}][unit_id]" value="${unitId}">
-        </td>
-        <td class="text-center"><span class="badge bg-info text-dark fw-semibold px-2 py-1">${unitName}</span></td>
-        <td style="width: 140px;">
-            <div class="input-group input-group-sm">
-                <input type="number" step="0.001" class="form-control text-end fw-semibold" name="items[${rowId}][qty]" value="1" min="0.001" oninput="calculateTotalsNonPo()" required>
-                <span class="input-group-text bg-light text-muted px-1 small">${unitName}</span>
-            </div>
-        </td>
-        <td style="width: 170px;">
-            <div class="input-group input-group-sm">
-                <span class="input-group-text bg-light fw-bold text-muted">Rp</span>
-                <input type="number" step="100" class="form-control text-end fw-bold text-primary" name="items[${rowId}][unit_cost]" value="${purchaseCost}" min="0" oninput="calculateTotalsNonPo()" required>
-            </div>
-        </td>
-        <td class="text-end fw-bold text-primary fs-6" id="nonpo_subtotal_${rowId}">Rp ${(purchaseCost).toLocaleString('id-ID')}</td>
-        <td class="text-center">
-            <button type="button" class="btn btn-sm btn-outline-danger border-0 p-1" onclick="removeNonPoRow('${rowId}')"><i class="bi bi-trash-fill"></i></button>
-        </td>
-    `;
-    tbody.appendChild(row);
-    modalSearchProduct.hide();
-    reindexNonPoNumbers();
-    calculateTotalsNonPo();
-}
-
-function removeNonPoRow(rowId) {
-    const row = document.getElementById(`nonpo_row_${rowId}`);
-    if(row) {
-        row.remove();
-        reindexNonPoNumbers();
-        calculateTotalsNonPo();
-    }
-}
-
-function reindexNonPoNumbers() {
-    const rows = document.querySelectorAll('#tbodyNonPoItems tr:not(#emptyNonPoRow)');
-    rows.forEach((r, idx) => {
-        const numCell = r.querySelector('.row-num');
-        if(numCell) numCell.innerText = idx + 1;
-    });
-}
-
-function calculateTotalsNonPo() {
-    let subtotal = 0;
-    const rows = document.querySelectorAll('#tbodyNonPoItems tr:not(#emptyNonPoRow)');
-    rows.forEach(row => {
-        const qty = parseFloat(row.querySelector('input[name*="[qty]"]').value) || 0;
-        const cost = parseFloat(row.querySelector('input[name*="[unit_cost]"]').value) || 0;
-        const line = qty * cost;
-        subtotal += line;
-
-        const subCell = row.querySelector('td[id^="nonpo_subtotal_"]');
-        if(subCell) subCell.innerText = `Rp ${line.toLocaleString('id-ID')}`;
-    });
-
-    const discount = parseFloat(document.getElementById('nonpo_document_discount').value) || 0;
-    const isPpn = document.getElementById('nonpo_is_ppn').checked;
-    const taxable = Math.max(0, subtotal - discount);
-    const ppn = isPpn ? (taxable * 0.11) : 0;
-    const grand = taxable + ppn;
-
-    document.getElementById('nonpo_display_subtotal').innerText = `Rp ${subtotal.toLocaleString('id-ID')}`;
-    document.getElementById('nonpo_display_ppn').innerText = `Rp ${ppn.toLocaleString('id-ID')}`;
-    document.getElementById('nonpo_display_grand_total').innerText = `Rp ${grand.toLocaleString('id-ID')}`;
-}
-
 // Save Functions
 function saveNonPo(e) {
     e.preventDefault();
-    const rows = document.querySelectorAll('#tbodyNonPoItems tr:not(#emptyNonPoRow)');
+    const rows = document.querySelectorAll('#tbodyNonPoItems tr');
     if(rows.length === 0) {
         showToast('warning', 'Pilih minimal 1 barang pembelian!');
         return;
@@ -919,14 +905,25 @@ function saveNonPo(e) {
     payload.is_ppn = document.getElementById('nonpo_is_ppn').checked ? 1 : 0;
 
     payload.items = [];
+    let valid = true;
     rows.forEach(row => {
-        payload.items.push({
-            product_id: row.querySelector('input[name*="[product_id]"]').value,
-            unit_id: row.querySelector('input[name*="[unit_id]"]').value,
-            qty: row.querySelector('input[name*="[qty]"]').value,
-            unit_cost: row.querySelector('input[name*="[unit_cost]"]').value
-        });
+        const prodSelect = row.querySelector('select[name*="[product_id]"]');
+        if(!prodSelect || !prodSelect.value) {
+            valid = false;
+        } else {
+            payload.items.push({
+                product_id: prodSelect.value,
+                unit_id: row.querySelector('input[name*="[unit_id]"]').value,
+                qty: row.querySelector('input[name*="[qty]"]').value,
+                unit_cost: row.querySelector('input[name*="[unit_cost]"]').value
+            });
+        }
     });
+
+    if(!valid) {
+        showToast('warning', 'Pilih barang pada setiap baris terlebih dahulu!');
+        return;
+    }
 
     const id = document.getElementById('nonpo_id').value;
     const url = id ? `/inventori/pembelian/faktur/${id}` : '/inventori/pembelian/faktur/store-non-po';
@@ -1071,41 +1068,10 @@ function openEditModal(id, sourceType) {
                 document.getElementById('nonpo_document_discount').value = p.discount || 0;
                 document.getElementById('nonpo_is_ppn').checked = (p.ppn_amount > 0);
 
-                let html = '';
-                items.forEach((item, idx) => {
-                    const sub = item.qty * item.unit_cost;
-                    const rowId = Date.now() + idx;
-                    const unitName = item.unit_name || 'PCS';
-                    html += `
-                    <tr id="nonpo_row_${rowId}" class="align-middle">
-                        <td class="text-center fw-semibold text-muted small row-num">${idx + 1}</td>
-                        <td><span class="badge bg-light text-dark border font-monospace px-2 py-1">${item.product_code || '-'}</span></td>
-                        <td>
-                            <strong class="text-dark d-block">${item.product_name}</strong>
-                            <input type="hidden" name="items[${rowId}][product_id]" value="${item.product_id}">
-                            <input type="hidden" name="items[${rowId}][unit_id]" value="${item.unit_id || ''}">
-                        </td>
-                        <td class="text-center"><span class="badge bg-info text-dark fw-semibold px-2 py-1">${unitName}</span></td>
-                        <td style="width: 140px;">
-                            <div class="input-group input-group-sm">
-                                <input type="number" step="0.001" class="form-control text-end fw-semibold" name="items[${rowId}][qty]" value="${item.qty}" min="0.001" oninput="calculateTotalsNonPo()" required>
-                                <span class="input-group-text bg-light text-muted px-1 small">${unitName}</span>
-                            </div>
-                        </td>
-                        <td style="width: 170px;">
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text bg-light fw-bold text-muted">Rp</span>
-                                <input type="number" step="100" class="form-control text-end fw-bold text-primary" name="items[${rowId}][unit_cost]" value="${item.unit_cost}" min="0" oninput="calculateTotalsNonPo()" required>
-                            </div>
-                        </td>
-                        <td class="text-end fw-bold text-primary fs-6" id="nonpo_subtotal_${rowId}">Rp ${sub.toLocaleString('id-ID')}</td>
-                        <td class="text-center">
-                            <button type="button" class="btn btn-sm btn-outline-danger border-0 p-1" onclick="removeNonPoRow('${rowId}')"><i class="bi bi-trash-fill"></i></button>
-                        </td>
-                    </tr>`;
+                document.getElementById('tbodyNonPoItems').innerHTML = '';
+                items.forEach(item => {
+                    addNonPoRow(item.product_id, item.qty, item.unit_cost, item.unit_id, item.unit_name);
                 });
-                document.getElementById('tbodyNonPoItems').innerHTML = html;
-                calculateTotalsNonPo();
                 modalNonPo.show();
             }
         }
