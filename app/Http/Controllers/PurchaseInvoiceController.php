@@ -697,8 +697,12 @@ class PurchaseInvoiceController extends Controller
                             $oldQty = (float) $stock->qty;
                             $oldValue = $oldQty * (float) $stock->avg_cost;
                             $removeValue = $qty * (float) $item->base_unit_cost;
+                            if ($oldValue + 0.01 < $removeValue) {
+                                throw new \\RuntimeException('Faktur tidak dapat dibatalkan karena nilai stok saat ini tidak mencukupi untuk membalik nilai penerimaan.');
+                            }
+
                             $newQty = $oldQty - $qty;
-                            $newValue = max(0, $oldValue - $removeValue);
+                            $newValue = $oldValue - $removeValue;
                             $newAvg = $newQty > 0 ? $newValue / $newQty : 0;
 
                             DB::table('warehouses_stocks')
@@ -730,10 +734,14 @@ class PurchaseInvoiceController extends Controller
                             ]);
                         }
 
-                        DB::table('journals')
+                        $receiptJournalIds = DB::table('journals')
                             ->where('source_type', 'receipt')
                             ->where('source_id', $receiptId)
-                            ->delete();
+                            ->pluck('id');
+                        if ($receiptJournalIds->isNotEmpty()) {
+                            DB::table('journal_entries')->whereIn('journal_id', $receiptJournalIds)->delete();
+                            DB::table('journals')->whereIn('id', $receiptJournalIds)->delete();
+                        }
 
                         DB::table('receipt_invoice_allocations')
                             ->whereIn('receipt_item_id', function ($q) use ($receiptId) {
@@ -746,10 +754,14 @@ class PurchaseInvoiceController extends Controller
                     }
                 }
 
-                DB::table('journals')
+                $invoiceJournalIds = DB::table('journals')
                     ->where('source_type', 'purchase_invoice')
                     ->where('source_id', $purchase->id)
-                    ->delete();
+                    ->pluck('id');
+                if ($invoiceJournalIds->isNotEmpty()) {
+                    DB::table('journal_entries')->whereIn('journal_id', $invoiceJournalIds)->delete();
+                    DB::table('journals')->whereIn('id', $invoiceJournalIds)->delete();
+                }
 
                 DB::table('purchase_price_histories')
                     ->where('reference_id', $purchase->id)
