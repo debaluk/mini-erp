@@ -100,7 +100,7 @@
     <div class="modal-dialog modal-xl">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-primary text-white py-2 px-3">
-                <h6 class="modal-title fw-bold mb-0"><i class="bi bi-cart-plus-fill me-2"></i>1. Input Pembelian Langsung (Non-PO)</h6>
+                <h6 class="modal-title fw-bold mb-0"><i class="bi bi-cart-plus-fill me-2"></i>Pembelian Langsung (Non-PO)</h6>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form id="formNonPo" onsubmit="saveNonPo(event)">
@@ -109,6 +109,10 @@
                     <!-- Header Info -->
                     <div class="card border-0 shadow-sm p-2 mb-2 bg-white">
                         <div class="row g-2">
+                            <div class="col-md-3">
+                                <label class="form-label extra-small fw-bold text-dark mb-1">Tanggal Pembelian <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control form-control-sm fw-semibold" id="nonpo_purchase_date" name="purchase_date" value="{{ date('Y-m-d') }}" required>
+                            </div>
                             <div class="col-md-3">
                                 <label class="form-label extra-small fw-bold text-dark mb-1">Unit Bisnis <span class="text-danger">*</span></label>
                                 <select class="form-select form-select-sm fw-semibold" id="nonpo_business_unit_id" name="business_unit_id" required>
@@ -126,17 +130,7 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-3">
-                                <label class="form-label extra-small fw-bold text-dark mb-1">Tanggal Pembelian <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control form-control-sm fw-semibold" id="nonpo_purchase_date" name="purchase_date" value="{{ date('Y-m-d') }}" required>
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label extra-small fw-bold text-dark mb-1">Pintu Stok Fisik</label>
-                                <div class="form-check form-switch mt-1">
-                                    <input class="form-check-input" type="checkbox" id="nonpo_goods_received" name="goods_received" value="1" checked>
-                                    <label class="form-check-label fw-bold text-success extra-small" for="nonpo_goods_received">Diterima Langsung</label>
-                                </div>
-                            </div>
+                            
                         </div>
 
                         <div class="row g-2 mt-1">
@@ -212,7 +206,7 @@
     <div class="modal-dialog modal-xl">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-success text-white py-2 px-3">
-                <h6 class="modal-title fw-bold mb-0"><i class="bi bi-file-earmark-check-fill me-2"></i>2. Input Faktur Pembelian Berdasarkan PO Approved</h6>
+                <h6 class="modal-title fw-bold mb-0"><i class="bi bi-file-earmark-check-fill me-2"></i>Faktur Pembelian Berdasarkan PO</h6>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form id="formPo" onsubmit="savePo(event)">
@@ -224,7 +218,7 @@
                     <!-- Step 1: Select PO Header -->
                     <div class="card border-0 shadow-sm p-2 mb-2 bg-white">
                         <div class="row g-2 align-items-center">
-                            <div class="col-md-5">
+                            <div class="col-md-4">
                                 <label class="form-label extra-small fw-bold text-dark mb-1">Pilih Dokumen PO Approved <span class="text-danger">*</span></label>
                                 <select class="form-select form-select-sm fw-bold border-success text-success" id="po_purchase_order_id" name="purchase_order_id" onchange="onPoSelect(this.value)" required>
                                     <option value="">-- Pilih Nomor PO Approved --</option>
@@ -234,8 +228,8 @@
                                 <label class="form-label extra-small fw-bold text-muted mb-1">Vendor / Supplier (Auto PO)</label>
                                 <input type="text" class="form-control form-control-sm bg-light fw-bold" id="po_supplier_name" readonly placeholder="Terisi otomatis dari PO...">
                             </div>
-                            <div class="col-md-3">
-                                <label class="form-label extra-small fw-bold text-muted mb-1">Unit Bisnis & Gudang (Auto PO)</label>
+                            <div class="col-md-4">
+                                <label class="form-label extra-small fw-bold text-muted mb-1">Unit Bisnis</label>
                                 <input type="text" class="form-control form-control-sm bg-light fw-bold text-primary" id="po_bu_warehouse_display" readonly placeholder="Terisi otomatis dari PO...">
                             </div>
                         </div>
@@ -255,7 +249,7 @@
                             <div class="col-md-4">
                                 <label class="form-label extra-small fw-bold text-muted mb-1">Status Penerimaan Fisik Barang</label>
                                 <div class="alert alert-info py-1 px-2 mb-0 extra-small fw-bold text-dark border-0 bg-info-subtle">
-                                    <i class="bi bi-info-circle-fill me-1 text-primary"></i> PINTU GUDANG: Fisik barang diterima via Modul LPB Gudang.
+                                    <i class="bi bi-info-circle-fill me-1 text-primary"></i> Fisik barang diterima via Penerimaan.
                                 </div>
                             </div>
                         </div>
