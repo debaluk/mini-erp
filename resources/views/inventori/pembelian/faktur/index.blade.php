@@ -16,28 +16,16 @@
                 <a href="{{ route('inventori.pembelian.export-excel', request()->all()) }}" class="btn btn-success btn-sm px-3 fw-semibold"><i class="bi bi-file-earmark-excel me-1"></i>Export</a>
             </div>
         </div>
+
         <div class="bg-light border rounded p-2 mt-3">
             <form id="formFilter" class="row g-2 align-items-end">
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-                <div>
-                    <h3 class="mb-1 fw-bold text-dark"><i class="bi bi-receipt-cutoff me-2 text-primary"></i>Faktur Pembelian</h3>
-                    <div class="text-muted small">Daftar transaksi pembelian dan faktur supplier</div>
-                </div>
-                <div class="d-flex gap-2 flex-wrap">
-                    <a href="javascript:void(0)" onclick="openModalNonPo()" class="btn btn-primary btn-sm px-3 fw-semibold"><i class="bi bi-plus-circle me-1"></i>Pembelian Langsung</a>
-                    <a href="javascript:void(0)" onclick="openModalPo()" class="btn btn-primary btn-sm px-3 fw-semibold"><i class="bi bi-file-earmark-plus me-1"></i>Faktur dari PO</a>
-                    <a href="{{ route('inventori.pembelian.export-excel', request()->all()) }}" class="btn btn-success btn-sm px-3 fw-semibold"><i class="bi bi-file-earmark-excel me-1"></i>Export</a>
-                </div>
-            </div>
-            <div class="bg-light border rounded p-2">
-                <form id="formFilter" class="row g-2 align-items-end">
-                    <div class="col-md-2"><label class="form-label mb-1 small fw-semibold">Mulai Tanggal</label><input type="date" id="filter-start-date" class="form-control form-control-sm" value="{{ $startDate }}"></div>
-                    <div class="col-md-2"><label class="form-label mb-1 small fw-semibold">Sampai Tanggal</label><input type="date" id="filter-end-date" class="form-control form-control-sm" value="{{ $endDate }}"></div>
-                    <div class="col-md-3"><label class="form-label mb-1 small fw-semibold">Unit Bisnis</label><select id="filter-bu" class="form-select form-select-sm"><option value="">Semua Unit Bisnis</option>@foreach($businessUnits as $bu)<option value="{{ $bu->id }}">{{ $bu->code }} - {{ $bu->name }}</option>@endforeach</select></div>
-                    <div class="col-md-3"><label class="form-label mb-1 small fw-semibold">Supplier</label><select id="filter-supplier" class="form-select form-select-sm"><option value="">Semua Supplier</option>@foreach($suppliers as $s)<option value="{{ $s->id }}">{{ $s->name }}</option>@endforeach</select></div>
-                    <div class="col-md-2"><button type="button" class="btn btn-sm btn-primary w-100 fw-semibold" onclick="loadData(1)"><i class="bi bi-search me-1"></i>Tampilkan</button></div>
-                </form>
-            </div>
+                <div class="col-md-2"><label class="form-label mb-1 small fw-semibold">Mulai Tanggal</label><input type="date" id="filter-start-date" class="form-control form-control-sm" value="{{ $startDate }}"></div>
+                <div class="col-md-2"><label class="form-label mb-1 small fw-semibold">Sampai Tanggal</label><input type="date" id="filter-end-date" class="form-control form-control-sm" value="{{ $endDate }}"></div>
+                <div class="col-md-3"><label class="form-label mb-1 small fw-semibold">Unit Bisnis</label><select id="filter-bu" class="form-select form-select-sm"><option value="">Semua Unit Bisnis</option>@foreach($businessUnits as $bu)<option value="{{ $bu->id }}">{{ $bu->code }} - {{ $bu->name }}</option>@endforeach</select></div>
+                <div class="col-md-3"><label class="form-label mb-1 small fw-semibold">Supplier</label><select id="filter-supplier" class="form-select form-select-sm"><option value="">Semua Supplier</option>@foreach($suppliers as $s)<option value="{{ $s->id }}">{{ $s->name }}</option>@endforeach</select></div>
+                <div class="col-md-2"><button type="button" class="btn btn-sm btn-primary w-100 fw-semibold" onclick="loadData(1)"><i class="bi bi-search me-1"></i>Tampilkan</button></div>
+            </form>
+        </div>
     </div>
 
     <!-- TABEL UTAMA -->
