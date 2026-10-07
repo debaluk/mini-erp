@@ -158,7 +158,7 @@ class SalesReturnController extends Controller
             ->where('si.sale_id', $saleId)
             ->select('si.*', 'p.code as product_code', 'p.name as product_name', 'u.name as unit_name')
             ->get()
-            ->map(function ($item) {
+            ->map(function ($item) use ($returnId) {
                 $returnedQty = (float) DB::table('sales_return_items as sri')
                     ->join('sales_returns as sr', 'sr.id', '=', 'sri.sales_return_id')
                     ->where('sri.sale_item_id', $item->id)
