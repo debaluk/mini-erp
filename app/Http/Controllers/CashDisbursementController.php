@@ -48,7 +48,7 @@ class CashDisbursementController extends Controller
 
         // Base Query Filter
         $baseQuery = Journal::with(['businessUnit', 'entries.account'])
-            ->whereIn('source_type', ['CASH_OUT', 'AP_PAYMENT'])
+            ->whereIn('source_type', ['CASH_OUT', 'AP_PAYMENT', 'sales_return'])
             ->whereDate('journal_date', '>=', $startDate)
             ->whereDate('journal_date', '<=', $endDate);
 
