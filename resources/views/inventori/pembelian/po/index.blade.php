@@ -103,11 +103,7 @@
 
                 <div class="modal-body p-3">
                     {{-- HEADER PO --}}
-                    <div class="row g-2 mb-3 bg-light p-2 rounded border">
-                        <div class="col-md-3">
-                            <label class="form-label extra-small fw-bold text-muted mb-1">No. PO (Auto)</label>
-                            <input type="text" id="po-no" class="form-control form-control-sm font-monospace fw-bold bg-white" value="{{ $autoPoNo }}" readonly>
-                        </div>
+                    <div class="row g-2 mb-2 bg-light p-2 rounded border">
                         <div class="col-md-3">
                             <label class="form-label extra-small fw-bold text-muted mb-1">Tanggal PO *</label>
                             <x-date-input-id name="po_date" id="po-date" :value="date('Y-m-d')" required />
@@ -130,11 +126,7 @@
                                 @endforeach
                             </select>
                         </div>
-                    </div>
-
-                    {{-- SUPPLIER --}}
-                    <div class="row g-2 mb-3">
-                        <div class="col-md-6">
+                        <div class="col-md-3">
                             <label class="form-label extra-small fw-bold text-muted mb-1">Supplier / Vendor *</label>
                             <select id="supplier-id" name="supplier_id" class="form-select form-select-sm" required>
                                 <option value="">-- Pilih Supplier --</option>
@@ -143,8 +135,12 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-6">
-                            <div class="border rounded bg-light px-3 py-2 h-100" id="box-supplier-info">
+                    </div>
+
+                    {{-- INFO VENDOR --}}
+                    <div class="row g-2 mb-3">
+                        <div class="col-12">
+                            <div class="border rounded bg-light px-3 py-2" id="box-supplier-info">
                                 <div class="fw-bold small text-dark" id="info-supplier-name">Pilih vendor untuk melihat detail info...</div>
                                 <div class="small text-muted" id="info-supplier-address">-</div>
                                 <div class="small text-muted" id="info-supplier-phone">-</div>
