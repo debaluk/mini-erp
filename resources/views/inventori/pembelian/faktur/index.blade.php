@@ -452,7 +452,7 @@ const purchaseTable = new DataTable('#tablePurchases', {
         processing: 'Memuat...'
     },
     ajax: {
-        url: '{{ route('inventori.pembelian.faktur.data') }}',
+        url: '{{ route('inventori.pembelian.data') }}',
         type: 'GET',
         data: function (d) {
             d.start_date = document.getElementById('filter-start-date').value;
