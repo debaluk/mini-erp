@@ -118,8 +118,32 @@ class SalesReturnController extends Controller
         return response()->json(['success' => true, 'data' => $invoices]);
     }
 
+    public function destroy($id)
+    {
+        try {
+            $this->salesReturnService->deleteReturn((int) $id);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Retur penjualan berhasil dihapus beserta jurnal dan efek stoknya.',
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Gagal menghapus retur penjualan', [
+                'return_id' => $id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
     public function saleItems($saleId)
     {
+        $returnId = request()->integer('return_id');
         $entity = (int) (DB::table('entities')->value('id') ?? 1);
         $sale = DB::table('sales as s')
             ->leftJoin('customers as c', 'c.id', '=', 's.customer_id')
@@ -135,7 +159,11 @@ class SalesReturnController extends Controller
             ->select('si.*', 'p.code as product_code', 'p.name as product_name', 'u.name as unit_name')
             ->get()
             ->map(function ($item) {
-                $returnedQty = (float) DB::table('sales_return_items')->where('sale_item_id', $item->id)->sum('qty');
+                $returnedQty = (float) DB::table('sales_return_items as sri')
+                    ->join('sales_returns as sr', 'sr.id', '=', 'sri.sales_return_id')
+                    ->where('sri.sale_item_id', $item->id)
+                    ->when($returnId, fn ($q) => $q->where('sr.id', '<>', $returnId))
+                    ->sum('sri.qty');
                 return [
                     'id' => $item->id,
                     'sale_item_id' => $item->id,
