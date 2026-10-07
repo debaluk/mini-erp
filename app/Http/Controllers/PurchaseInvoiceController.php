@@ -87,11 +87,20 @@ class PurchaseInvoiceController extends Controller
 
         $rows = $query->select(
             'p.id', 'p.purchase_no', 'p.purchase_date', 'p.source_type', 'p.status', 'p.total',
+            'p.payment_method', 'p.due_date',
             'bu.code as bu_code', 'bu.name as business_unit_name', 's.name as supplier_name', 'po.po_no'
         )->orderBy($orderColumn, $orderDir)->offset($start)->limit($length)->get();
 
         $data = $rows->map(function ($item) {
             $item->formatted_date = $item->purchase_date ? Carbon::parse($item->purchase_date)->format('d/m/Y') : '-';
+            $item->formatted_due_date = $item->due_date ? Carbon::parse($item->due_date)->format('d/m/Y') : '-';
+            $item->payment_method_label = match ($item->payment_method) {
+                'credit' => 'Kredit',
+                'cash' => 'Tunai',
+                'transfer' => 'Transfer',
+                'qris' => 'QRIS',
+                default => $item->payment_method ?: '-',
+            };
             $item->formatted_grand = 'Rp ' . number_format((float) $item->total, 0, ',', '.');
             return $item;
         });
