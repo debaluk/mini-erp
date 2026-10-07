@@ -43,6 +43,16 @@ class SalesReturnService
                     throw new Exception('Invoice asal retur tidak boleh diganti saat edit.');
                 }
 
+                // Simpan pasangan gudang/item lama sebelum mutasi dihapus.
+                // Ini penting bila saat edit gudang atau item berubah.
+                $oldStockKeys = DB::table('stock_movements')
+                    ->where('reference_type', 'sales_return')
+                    ->where('reference_id', $existingReturn->id)
+                    ->where('qty', '>', 0)
+                    ->select('warehouse_id', 'product_id')
+                    ->distinct()
+                    ->get();
+
                 // Hapus efek stok lama. Saldo stok kemudian dihitung ulang
                 // dari seluruh mutasi agar moving average tetap konsisten.
                 DB::table('stock_movements')
@@ -93,6 +103,15 @@ class SalesReturnService
             $totalReturnValue = 0.0;
             $totalHppValue = 0.0;
             $stockKeys = [];
+
+            if ($isEdit) {
+                foreach ($oldStockKeys as $oldStock) {
+                    $stockKeys[$oldStock->warehouse_id . ':' . $oldStock->product_id] = [
+                        'warehouse_id' => (int) $oldStock->warehouse_id,
+                        'product_id' => (int) $oldStock->product_id,
+                    ];
+                }
+            }
 
             foreach ($data['items'] as $itemData) {
                 $saleItem = DB::table('sale_items')
