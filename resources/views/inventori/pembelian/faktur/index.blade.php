@@ -171,6 +171,10 @@
                     <!-- Summary Total (Ringkas & Tanpa PPN) -->
                     <div class="row justify-content-end g-2">
                         <div class="col-md-4">
+                        <label class="form-label">Memo</label>
+                            <textarea id="memoInput" class="form-control" rows="3"></textarea>
+                        </div>
+                        <div class="col-md-4">
                             <div class="card border-0 shadow-sm p-2 bg-white">
                                 <div class="d-flex justify-content-between mb-1 small">
                                     <span class="text-muted fw-semibold">Subtotal Items:</span>
@@ -185,6 +189,17 @@
                                     <span>GRAND TOTAL:</span>
                                     <span id="nonpo_display_grand_total" class="fs-6">Rp 0</span>
                                 </div>
+                                <label class="form-label">Cara Bayar</label>
+                                <select id="paymentMethod" class="form-select">
+                            <option value="Tunai">Tunai</option>
+                            <option value="Transfer">Transfer</option>
+                            <option value="QRIS">QRIS</option>
+                            <option value="Kredit / Bon">Kredit / Bon</option>
+                        </select>
+                                <div id="dueDate" class="col-md-6 d-none">
+                        <label class="form-label">Jatuh Tempo</label>
+                        <input type="date" class="form-control" disabled="">
+                    </div>
                             </div>
                         </div>
                     </div>
