@@ -23,6 +23,8 @@
     const productList = document.getElementById('productList');
     const posBarcodeSearch = document.getElementById('posBarcodeSearch');
     const posChooseProduct = document.getElementById('posChooseProduct');
+    const productSearch = document.getElementById('productSearch');
+    const productSearchResults = document.getElementById('productSearchResults');
 
     const mode = config.mode || 'tempo';
     const requireCustomer = config.requireCustomer !== false;
@@ -90,6 +92,67 @@
 
     function ensureBlankRow() {
         return;
+    }
+
+    function renderSearchResults(keyword = '') {
+        if (!productSearchResults) return;
+
+        const needle = String(keyword).trim().toLowerCase();
+        if (!needle) {
+            productSearchResults.innerHTML = '';
+            productSearchResults.classList.add('d-none');
+            return;
+        }
+
+        const filtered = products.filter(product => [
+            product.code,
+            product.name,
+            product.barcode,
+            product.sku
+        ].some(value => String(value ?? '').toLowerCase().includes(needle))).slice(0, 12);
+
+        productSearchResults.innerHTML = filtered.map(product => {
+            const price = getPrice(product);
+            return `<button type="button" class="list-group-item list-group-item-action product-search-choice" data-product-id="${product.id}">
+                <div class="d-flex justify-content-between align-items-center gap-3">
+                    <div>
+                        <div class="fw-semibold">${escapeHtml(product.name)}</div>
+                        <div class="small text-muted">${escapeHtml(product.code || '-')} · ${escapeHtml(product.barcode || product.sku || '-')}</div>
+                    </div>
+                    <div class="text-end text-nowrap">
+                        <div class="fw-semibold">Rp ${money(price)}</div>
+                        <div class="small text-muted">${escapeHtml(product.base_unit_code || product.base_unit_name || '-')}</div>
+                    </div>
+                </div>
+            </button>`;
+        }).join('');
+
+        if (!filtered.length) {
+            productSearchResults.innerHTML = '<div class="list-group-item text-muted">Barang tidak ditemukan.</div>';
+        }
+
+        productSearchResults.classList.remove('d-none');
+    }
+
+    function addProduct(productId) {
+        const product = products.find(item => Number(item.id) === Number(productId));
+        if (!product) return;
+
+        const existingIndex = rows.findIndex(row => Number(row.product_id) === Number(product.id));
+        if (existingIndex >= 0) {
+            rows[existingIndex].qty = Number(rows[existingIndex].qty || 0) + 1;
+            renderRows();
+            calculateTotals();
+        } else {
+            rows.push(createBlankRow());
+            fillRow(rows.length - 1, product);
+        }
+
+        if (productSearch) {
+            productSearch.value = '';
+            productSearch.focus();
+        }
+        renderSearchResults('');
     }
 
     function fillRow(index, product) {
@@ -373,6 +436,30 @@
 
     productFilter?.addEventListener('input', () => {
         renderProductList(productFilter.value);
+    });
+
+    productSearch?.addEventListener('input', () => {
+        renderSearchResults(productSearch.value);
+    });
+
+    productSearch?.addEventListener('keydown', event => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            const first = productSearchResults?.querySelector('.product-search-choice');
+            if (first) addProduct(Number(first.dataset.productId));
+        }
+    });
+
+    productSearchResults?.addEventListener('click', event => {
+        const choice = event.target.closest('.product-search-choice');
+        if (!choice) return;
+        addProduct(Number(choice.dataset.productId));
+    });
+
+    document.addEventListener('click', event => {
+        if (productSearch && productSearchResults && !productSearch.contains(event.target) && !productSearchResults.contains(event.target)) {
+            productSearchResults.classList.add('d-none');
+        }
     });
 
     posBarcodeSearch?.addEventListener('keydown', event => {
@@ -686,6 +773,7 @@
 
     renderRows();
     calculateTotals();
+    if (productSearch) productSearch.focus();
 
     if (mode === 'pos') setTimeout(() => focusFirstBarcode(), 150);
     updateDueDateState();
