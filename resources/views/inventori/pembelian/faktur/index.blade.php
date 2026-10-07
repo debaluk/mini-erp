@@ -95,14 +95,131 @@
 </div>
 
 {{-- ========================================================================= --}}
-{{-- MODAL 1: FORM NON PO --}}
+{{-- MODAL 2: FORM PO --}}
 {{-- ========================================================================= --}}
-<div class="modal fade" id="btnFakturNonPO" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="btnFakturPO" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-danger text-white py-2 px-3">
                 <h6 class="modal-title fw-bold" id="modalReturnFormTitle">
-                    <i class="bi bi-arrow-return-left me-2"></i>Faktur Pembelian Langsung
+                    <i class="bi bi-arrow-return-left me-2"></i>Faktur Pembelian (PO)
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-3">
+                <form id="returnForm">
+                    <input type="hidden" id="returnId" name="return_id">
+                    <input type="hidden" id="entityId" name="entity_id" value="{{ auth()->user()->entity_id ?? 1 }}">
+                    <input type="hidden" id="businessUnitId" name="business_unit_id">
+                    <input type="hidden" id="saleId" name="sale_id">
+                    <input type="hidden" id="customerId" name="customer_id">
+
+                    {{-- INFORMASI KOREKSI PADA MODE EDIT --}}
+                    <div class="alert alert-warning py-2 px-3 mb-3 d-none" id="editReversalAlert">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-exclamation-triangle-fill fs-5 me-2 text-warning"></i>
+                            <div class="small">
+                                <strong>Mode Koreksi / Edit Retur Posted:</strong>
+                                Perubahan data retur akan memperbarui mutasi stok dan isi jurnal pada dokumen retur yang sama. Tidak dibuat jurnal reversal.
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- HEADER SELECTION --}}
+                    <div class="row g-2 mb-3 bg-light p-2 rounded border">
+                        <div class="col-md-3">
+                            <label class="form-label extra-small fw-bold text-muted mb-1">Cari Ref. PO *</label>
+                            <div class="input-group input-group-sm">
+                                <input type="text" class="form-control fw-bold bg-white" id="invoiceNoDisplay" placeholder="Klik tombol cari..." readonly required>
+                                <button class="btn btn-danger" type="button" id="btnOpenSearchInvoice">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label extra-small fw-bold text-muted mb-1">Supplier</label>
+                            <input type="text" class="form-control form-control-sm bg-white" id="customerNameDisplay" placeholder="-" readonly>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label extra-small fw-bold text-muted mb-1">Tanggal Pembelian *</label>
+                            <input type="datetime-local" class="form-control form-control-sm" id="returnDate" name="return_date" required value="{{ date('Y-m-d\TH:i') }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label extra-small fw-bold text-muted mb-1">Gudang *</label>
+                            <select class="form-select form-select-sm" id="warehouseId" name="warehouse_id" required disabled>
+                                <option value="">-- Pilih Gudang --</option>
+                                @foreach($warehouses ?? [] as $wh)
+                                    <option value="{{ $wh->id }}">{{ $wh->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label extra-small fw-bold text-muted mb-1">No. Retur</label>
+                            <input type="text" class="form-control form-control-sm bg-white" id="returnNo" name="return_no" placeholder="[Auto Generated]" readonly>
+                        </div>
+                    </div>
+
+                    {{-- TABEL LINE ITEMS --}}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="fw-bold extra-small text-uppercase text-secondary">Rincian Barang yang Diretur</span>
+                            <span class="badge bg-secondary extra-small" id="itemCountBadge">0 Item</span>
+                        </div>
+                        <div class="table-responsive border rounded">
+                            <table class="table table-sm table-bordered align-middle mb-0" id="returnItemsTable">
+                                <thead class="bg-light text-muted extra-small">
+                                    <tr>
+                                        <th style="width: 250px;">Nama Produk</th>
+                                        <th style="width: 90px;" class="text-center">Qty Jual</th>
+                                        <th style="width: 90px;" class="text-center">Sisa Retur</th>
+                                        <th style="width: 100px;" class="text-center">Qty Retur *</th>
+                                        <th style="width: 100px;">Satuan</th>
+                                        <th style="width: 130px;" class="text-end">Harga Jual</th>
+                                       
+                                    </tr>
+                                </thead>
+                                <tbody id="returnItemsBody">
+                                   
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {{-- FOOTER / CATATAN & TOTAL --}}
+                    <div class="row g-3">
+                        <div class="col-md-7">
+                            <label class="form-label extra-small fw-bold text-muted mb-1">Alasan Retur / Catatan *</label>
+                            <textarea class="form-control form-control-sm" id="returnReason" name="reason" rows="2" placeholder="Contoh: Barang rusak saat pengiriman / Kuantitas semen kurang..." required></textarea>
+                        </div>
+                        <div class="col-md-5">
+                            <div class="card bg-light border-0">
+                                <div class="card-body p-2">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="small text-muted">Total Nilai Faktur:</span>
+                                        <span class="fw-bold text-danger h5 mb-0" id="displayTotalReturn">Rp 0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer py-2 px-3 bg-light">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-danger btn-sm fw-semibold" id="btnSaveReturn">
+                    <i class="bi bi-check-circle me-1"></i> Simpan
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalReturnForm" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white py-2 px-3">
+                <h6 class="modal-title fw-bold" id="modalReturnFormTitle">
+                    <i class="bi bi-arrow-return-left me-2"></i>Form Retur Penjualan (SAL-02)
                 </h6>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -175,11 +292,16 @@
                                         <th style="width: 100px;" class="text-center">Qty Retur *</th>
                                         <th style="width: 100px;">Satuan</th>
                                         <th style="width: 130px;" class="text-end">Harga Jual</th>
-                                       
+                                        <th style="width: 130px;" class="text-end">Total Refund</th>
+                                        <th style="width: 140px;">Kondisi Barang *</th>
                                     </tr>
                                 </thead>
                                 <tbody id="returnItemsBody">
-                                   
+                                    <tr>
+                                        <td colspan="8" class="text-center py-3 text-muted small">
+                                            Silakan cari dan pilih Invoice Penjualan Asal terlebih dahulu.
+                                        </td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -195,7 +317,7 @@
                             <div class="card bg-light border-0">
                                 <div class="card-body p-2">
                                     <div class="d-flex justify-content-between align-items-center mb-1">
-                                        <span class="small text-muted">Total Nilai Faktur:</span>
+                                        <span class="small text-muted">Total Nilai Retur:</span>
                                         <span class="fw-bold text-danger h5 mb-0" id="displayTotalReturn">Rp 0</span>
                                     </div>
                                 </div>
@@ -207,7 +329,7 @@
             <div class="modal-footer py-2 px-3 bg-light">
                 <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
                 <button type="button" class="btn btn-danger btn-sm fw-semibold" id="btnSaveReturn">
-                    <i class="bi bi-check-circle me-1"></i> Simpan
+                    <i class="bi bi-check-circle me-1"></i> Simpan &amp; Post Retur
                 </button>
             </div>
         </div>
@@ -216,14 +338,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-$(document).ready(function() {
-$('#btnFakturNonPO').click(function() {
-        $('#returnForm')[0].reset();
-        $('#returnId').val('');
-        $('#modalReturnFormTitle').html('<i class="bi bi-arrow-return-left me-2"></i>Faktur Pembelian');        
-        $('#modalReturnForm').modal('show');
-    });
-});
+
 document.addEventListener('DOMContentLoaded', function () {
 
     @if(session('swal_success'))
