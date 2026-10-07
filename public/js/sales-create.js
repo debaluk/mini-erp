@@ -611,6 +611,7 @@
     function hydrateEditForm() {
         if (mode !== 'edit') return;
         if (saleDate) saleDate.value = config.saleDate || '';
+        if (unitSelect && config.initialBusinessUnitId) unitSelect.value = config.initialBusinessUnitId;
         if (customerId) {
             customerId.value = config.initialCustomerId || '';
             selectedCustomerId = config.initialCustomerId || '';
