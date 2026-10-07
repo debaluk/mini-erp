@@ -17,30 +17,56 @@ class SalesReturnService
     }
 
     /**
-     * Orchestrator Utama: Simpan/Edit Retur + Reversal Jurnal & Stok
+     * Simpan / edit retur penjualan.
+     *
+     * Aturan:
+     * - selama periode masih open, retur boleh dibuat dan dikoreksi;
+     * - koreksi menghapus efek lama lalu membangun ulang transaksi pada jurnal
+     *   yang sama, tanpa membuat jurnal reversal;
+     * - periode closing/closed tidak boleh diubah.
      */
     public function processReturn(array $data, int $userId): SalesReturn
     {
         return DB::transaction(function () use ($data, $userId) {
             $isEdit = !empty($data['return_id']);
-
-            // 1. Jika mode EDIT, pertahankan tanggal transaksi retur asli.
-            // Koreksi hanya mengganti isi transaksi; tanggal tidak boleh bergeser
-            // ke tanggal saat koreksi dilakukan.
             $existingReturn = null;
+
             if ($isEdit) {
-                $existingReturn = SalesReturn::findOrFail($data['return_id']);
-                $this->rollbackPreviousTransactions($existingReturn);
+                $existingReturn = SalesReturn::whereKey((int) $data['return_id'])
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                $this->assertPeriodOpen($existingReturn->return_date);
+                $this->assertPeriodOpen($data['return_date'] ?? $existingReturn->return_date);
+
+                if ((int) $existingReturn->sale_id !== (int) $data['sale_id']) {
+                    throw new Exception('Invoice asal retur tidak boleh diganti saat edit.');
+                }
+
+                // Hapus efek stok lama. Saldo stok kemudian dihitung ulang
+                // dari seluruh mutasi agar moving average tetap konsisten.
+                DB::table('stock_movements')
+                    ->where('reference_type', 'sales_return')
+                    ->where('reference_id', $existingReturn->id)
+                    ->delete();
             }
 
-            // 2. Generate Nomor Retur jika baru
-            $sale = DB::table('sales')->where('id', $data['sale_id'])->first();
-            abort_unless($sale, 404);
-            $returnNo = $isEdit 
-                ? $existingReturn->return_no 
-                : $this->generateReturnNo($data['business_unit_id']);
+            $sale = DB::table('sales')
+                ->where('id', $data['sale_id'])
+                ->where('status', 'posted')
+                ->lockForUpdate()
+                ->first();
 
-            // 3. Simpan Header `sales_returns`
+            abort_unless($sale, 404);
+
+            if (!$isEdit) {
+                $this->assertPeriodOpen($data['return_date'] ?? null);
+            }
+
+            $returnNo = $isEdit
+                ? $existingReturn->return_no
+                : $this->generateReturnNo((int) $data['business_unit_id']);
+
             $returnHeader = SalesReturn::updateOrCreate(
                 ['id' => $data['return_id'] ?? null],
                 [
@@ -54,35 +80,47 @@ class SalesReturnService
                     'return_date'      => $isEdit
                         ? $existingReturn->return_date
                         : $this->normalizeReturnDate($data['return_date'] ?? null),
-                    'total'            => 0.00, // Will be updated
+                    'total'            => 0.00,
                     'reason'           => $data['reason'] ?? null,
                     'status'           => 'posted',
                 ]
             );
 
-            // 4. Hapus Item Lama jika Edit
             if ($isEdit) {
                 SalesReturnItem::where('sales_return_id', $returnHeader->id)->delete();
             }
 
-            // 5. Processing Items & Snapshot HPP
-            $totalReturnValue = 0;
-            $totalHppValue = 0;
+            $totalReturnValue = 0.0;
+            $totalHppValue = 0.0;
+            $stockKeys = [];
 
             foreach ($data['items'] as $itemData) {
-                $saleItem = DB::table('sale_items')->where('id', $itemData['sale_item_id'])->first();
-                abort_unless($saleItem, 404);
+                $saleItem = DB::table('sale_items')
+                    ->where('id', $itemData['sale_item_id'])
+                    ->where('sale_id', $sale->id)
+                    ->first();
 
-                $qty = (float)$itemData['qty'];
-                $unitPrice = (float)$saleItem->unit_price;
-                $returnValue = $qty * $unitPrice;
-                
-                // CRITICAL: HPP Snapshot dari sale_items.hpp_unit (Historical Cost)
-                $hppUnit = (float)$saleItem->hpp_unit;
-                $hppTotal = $qty * $hppUnit;
+                abort_unless($saleItem, 422, 'Item retur tidak sesuai dengan invoice asal.');
 
-                $conversionFactor = (float)($saleItem->conversion_factor ?? 1.0);
+                $qty = (float) $itemData['qty'];
+                $returnedQty = (float) DB::table('sales_return_items as sri')
+                    ->join('sales_returns as sr', 'sr.id', '=', 'sri.sales_return_id')
+                    ->where('sri.sale_item_id', $saleItem->id)
+                    ->where('sr.sale_id', $sale->id)
+                    ->when($isEdit, fn ($q) => $q->where('sr.id', '<>', $returnHeader->id))
+                    ->sum('sri.qty');
+
+                if ($returnedQty + $qty > (float) $saleItem->qty + 0.000001) {
+                    throw new Exception('Jumlah retur melebihi sisa item pada invoice.');
+                }
+
+                $unitPrice = (float) $saleItem->unit_price;
+                $hppUnit = (float) $saleItem->hpp_unit;
+                $conversionFactor = (float) ($saleItem->conversion_factor ?? 1.0);
                 $baseQty = $qty * $conversionFactor;
+                $returnValue = $qty * $unitPrice;
+                $hppTotal = $qty * $hppUnit;
+                $condition = $itemData['condition'] ?? 'good';
 
                 SalesReturnItem::create([
                     'sales_return_id'   => $returnHeader->id,
@@ -96,29 +134,123 @@ class SalesReturnService
                     'return_value'      => $returnValue,
                     'hpp_unit'          => $hppUnit,
                     'hpp_total'         => $hppTotal,
-                    'condition'         => $itemData['condition'], // good / damaged
+                    'condition'         => $condition,
                 ]);
 
-                // Record Mutasi Stok (IN)
-                $this->createStockMovement($returnHeader, $saleItem->product_id, $saleItem->unit_id, $qty, $conversionFactor, $baseQty, $hppUnit, $itemData['condition'], $userId);
+                $this->createStockMovement(
+                    $returnHeader,
+                    $saleItem->product_id,
+                    $saleItem->unit_id,
+                    $qty,
+                    $conversionFactor,
+                    $baseQty,
+                    $hppUnit,
+                    $condition,
+                    $userId
+                );
+
+                if ($condition === 'good') {
+                    $stockKeys[$returnHeader->warehouse_id . ':' . $saleItem->product_id] = [
+                        'warehouse_id' => (int) $returnHeader->warehouse_id,
+                        'product_id' => (int) $saleItem->product_id,
+                    ];
+                }
 
                 $totalReturnValue += $returnValue;
                 $totalHppValue += $hppTotal;
             }
 
-            // Update Total Header
             $returnHeader->update(['total' => $totalReturnValue]);
 
-            // 6. Post Auto-Journal ke GL Engine
-            $this->journalService->post($returnHeader, $sale, $totalReturnValue, $totalHppValue, $data['items']);
+            foreach ($stockKeys as $key) {
+                $this->rebuildStock((int) $returnHeader->entity_id, $key['warehouse_id'], $key['product_id']);
+            }
 
-            return $returnHeader;
+            // Journal header dipertahankan saat edit; hanya journal_entries yang
+            // dibangun ulang oleh Journal Service.
+            $this->journalService->post(
+                $returnHeader,
+                $sale,
+                $totalReturnValue,
+                $totalHppValue,
+                $data['items']
+            );
+
+            return $returnHeader->fresh();
         });
     }
 
     /**
-     * Normalisasi tanggal retur dari input date/datetime-local menjadi DATETIME MySQL.
+     * Hapus efek stok/jurnal retur lama sebelum transaksi diedit.
      */
+    public function deleteReturn(int $returnId): void
+    {
+        DB::transaction(function () use ($returnId) {
+            $return = SalesReturn::whereKey($returnId)->lockForUpdate()->firstOrFail();
+            $this->assertPeriodOpen($return->return_date);
+
+            $stockKeys = DB::table('sales_return_items')
+                ->where('sales_return_id', $return->id)
+                ->where('condition', 'good')
+                ->select('product_id')
+                ->distinct()
+                ->get()
+                ->mapWithKeys(fn ($row) => [
+                    $return->warehouse_id . ':' . $row->product_id => [
+                        'warehouse_id' => (int) $return->warehouse_id,
+                        'product_id' => (int) $row->product_id,
+                    ],
+                ])
+                ->all();
+
+            DB::table('stock_movements')
+                ->where('reference_type', 'sales_return')
+                ->where('reference_id', $return->id)
+                ->delete();
+
+            $journal = DB::table('journals')
+                ->where('entity_id', $return->entity_id)
+                ->where('source_type', 'sales_return')
+                ->where('source_id', $return->id)
+                ->lockForUpdate()
+                ->first();
+
+            if ($journal) {
+                DB::table('journal_entries')->where('journal_id', $journal->id)->delete();
+                DB::table('journals')->where('id', $journal->id)->delete();
+            }
+
+            DB::table('sales_return_items')->where('sales_return_id', $return->id)->delete();
+            DB::table('sales_returns')->where('id', $return->id)->delete();
+
+            foreach ($stockKeys as $key) {
+                $this->rebuildStock($return->entity_id, $key['warehouse_id'], $key['product_id']);
+            }
+        });
+    }
+
+    private function assertPeriodOpen($date): void
+    {
+        if (!$date) {
+            throw new Exception('Tanggal retur wajib diisi.');
+        }
+
+        $date = $date instanceof \DateTimeInterface
+            ? $date->format('Y-m-d')
+            : date('Y-m-d', strtotime((string) $date));
+
+        $period = DB::table('accounting_periods')
+            ->where('entity_id', (int) (DB::table('entities')->value('id') ?? 1))
+            ->whereDate('start_date', '<=', $date)
+            ->whereDate('end_date', '>=', $date)
+            ->orderByDesc('id')
+            ->first();
+
+        if ($period && $period->status !== 'open') {
+            throw new Exception('Periode akuntansi sudah ditutup atau sedang dalam proses closing. Retur penjualan tidak dapat diubah.');
+        }
+    }
+
     private function normalizeReturnDate(?string $value): string
     {
         $value = trim((string) $value);
@@ -127,8 +259,6 @@ class SalesReturnService
             throw new Exception('Tanggal retur wajib diisi.');
         }
 
-        // Input dari <input type="datetime-local"> berbentuk YYYY-MM-DDTHH:MM.
-        // Normalisasi eksplisit agar tidak pernah terjadi double time specification.
         $value = str_replace('T', ' ', $value);
 
         try {
@@ -140,48 +270,99 @@ class SalesReturnService
         return $date->format('Y-m-d H:i:s');
     }
 
-    /**
-     * Rollback Jurnal & Mutasi Stok Lama saat Edit
-     */
-    private function rollbackPreviousTransactions(SalesReturn $return)
-    {
-        // Reversal jurnal lama melalui Journal Service; jurnal lama tetap tersimpan sebagai audit trail.
-        $this->journalService->reverse($return->id, auth()->id());
-
-        // Hapus Mutasi Stok Lama
-        DB::table('stock_movements')
-            ->where('reference_type', 'sales_return')
-            ->where('reference_id', $return->id)
-            ->delete();
-    }
-
-    /**
-     * Record Mutasi Stok
-     */
-    private function createStockMovement($return, $productId, $unitId, $qty, $conversionFactor, $baseQty, $hppUnit, $condition, $userId)
-    {
-        // Movement Type: return_in (Menambah Stok Kembali)
+    private function createStockMovement(
+        SalesReturn $return,
+        int $productId,
+        int $unitId,
+        float $qty,
+        float $conversionFactor,
+        float $baseQty,
+        float $hppUnit,
+        string $condition,
+        int $userId
+    ): void {
         DB::table('stock_movements')->insert([
             'entity_id'         => $return->entity_id,
             'business_unit_id'  => $return->business_unit_id,
             'warehouse_id'      => $return->warehouse_id,
             'product_id'        => $productId,
             'unit_id'           => $unitId,
-            'movement_type'     => 'sales_return_in',
-            'qty'               => $qty,
+            'movement_type'     => $condition === 'good' ? 'sales_return_in' : 'sales_return_reject',
+            'qty'               => $condition === 'good' ? $baseQty : 0,
             'transaction_qty'   => $qty,
             'conversion_factor' => $conversionFactor,
             'unit_cost'         => $hppUnit,
             'reference_type'    => 'sales_return',
-            'reference_id'     => $return->id,
+            'reference_id'      => $return->id,
             'occurred_at'       => $return->return_date,
             'created_by'        => $userId,
+            'created_at'        => now(),
+            'updated_at'        => now(),
         ]);
     }
 
     /**
-     * Auto Generate Nomor Retur
+     * Bangun ulang qty + moving average dari seluruh mutasi item/gudang.
+     * Dipakai setelah retur edit/hapus agar tidak meninggalkan avg_cost lama.
      */
+    private function rebuildStock(int $entityId, int $warehouseId, int $productId): void
+    {
+        $movements = DB::table('stock_movements')
+            ->where('entity_id', $entityId)
+            ->where('warehouse_id', $warehouseId)
+            ->where('product_id', $productId)
+            ->orderBy('occurred_at')
+            ->orderBy('id')
+            ->get();
+
+        $qty = 0.0;
+        $avgCost = 0.0;
+
+        foreach ($movements as $movement) {
+            $movementQty = (float) $movement->qty;
+            $unitCost = (float) ($movement->unit_cost ?? 0);
+
+            if ($movementQty > 0) {
+                $newQty = $qty + $movementQty;
+                if ($newQty > 0) {
+                    $avgCost = (($qty * $avgCost) + ($movementQty * $unitCost)) / $newQty;
+                }
+                $qty = $newQty;
+            } elseif ($movementQty < 0) {
+                $qty += $movementQty;
+                if ($qty <= 0) {
+                    $qty = 0.0;
+                    $avgCost = 0.0;
+                }
+            }
+        }
+
+        $stock = DB::table('warehouses_stocks')
+            ->where('entity_id', $entityId)
+            ->where('warehouse_id', $warehouseId)
+            ->where('product_id', $productId)
+            ->lockForUpdate()
+            ->first();
+
+        if ($stock) {
+            DB::table('warehouses_stocks')->where('id', $stock->id)->update([
+                'qty' => round($qty, 6),
+                'avg_cost' => round($avgCost, 6),
+                'updated_at' => now(),
+            ]);
+        } else {
+            DB::table('warehouses_stocks')->insert([
+                'entity_id' => $entityId,
+                'warehouse_id' => $warehouseId,
+                'product_id' => $productId,
+                'qty' => round($qty, 6),
+                'avg_cost' => round($avgCost, 6),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+    }
+
     private function generateReturnNo($businessUnitId): string
     {
         $prefix = 'RET-202610' . date('d');
