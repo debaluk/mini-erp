@@ -8,67 +8,12 @@ use RuntimeException;
 
 class SalesReturnJournalService
 {
-    public function reverse(int $returnId, int $userId): ?int
-    {
-        // Ambil jurnal retur TERAKHIR yang BELUM memiliki reversal.
-        // Satu sales_return dapat memiliki beberapa jurnal retur karena koreksi.
-        // Setiap koreksi harus membalik jurnal retur aktif terakhir, lalu membuat
-        // jurnal retur pengganti. Hubungan antar-jurnal saat ini ditelusuri
-        // melalui referensi journal_no pada description reversal, tanpa mengubah
-        // struktur Journal Engine.
-        $journal = DB::table('journals as j')
-            ->where('j.source_type', 'sales_return')
-            ->where('j.source_id', $returnId)
-            ->whereNotExists(function ($query) {
-                $query->select(DB::raw(1))
-                    ->from('journals as r')
-                    ->where('r.source_type', 'sales_return_reversal')
-                    ->whereColumn('r.source_id', 'j.source_id')
-                    ->where('r.description', 'like', DB::raw("CONCAT('%Jurnal #', j.journal_no, '%')"));
-            })
-            ->orderByDesc('j.id')
-            ->lockForUpdate()
-            ->first();
-
-        if (!$journal) {
-            return null;
-        }
-
-        $entries = DB::table('journal_entries')
-            ->where('journal_id', $journal->id)
-            ->get();
-
-        if ($entries->isEmpty()) {
-            return null;
-        }
-
-        $reversalId = DB::table('journals')->insertGetId([
-            'entity_id' => $journal->entity_id,
-            'business_unit_id' => $journal->business_unit_id,
-            'journal_no' => 'JRN-REV-RET-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4)),
-            'journal_date' => $journal->journal_date,
-            'source_type' => 'sales_return_reversal',
-            'source_id' => $returnId,
-            'description' => 'Reversal jurnal retur penjualan ' . $returnId . ' (Jurnal #' . $journal->journal_no . ')',
-            'status' => 'posted',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        $rows = $entries->map(fn ($entry) => [
-            'journal_id' => $reversalId,
-            'account_id' => $entry->account_id,
-            'debit' => round((float) $entry->credit, 2),
-            'credit' => round((float) $entry->debit, 2),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ])->all();
-
-        DB::table('journal_entries')->insert($rows);
-
-        return (int) $reversalId;
-    }
-
+    /**
+     * Post / rebuild jurnal retur.
+     *
+     * Saat edit, header jurnal yang sama dipertahankan dan hanya
+     * journal_entries yang diganti. Tidak pernah membuat jurnal reversal.
+     */
     public function post(object $return, object $sale, float $totalRefund, float $totalHpp, array $itemsData): int
     {
         $businessType = (string) DB::table('business_units')
@@ -78,22 +23,12 @@ class SalesReturnJournalService
 
         $mappingKeys = match ($businessType) {
             'retail' => [
-                'receivable',
-                'cash',
-                'bank',
-                'sales_return_merchandise',
-                'inventory',
-                'cogs_merchandise',
-                'inventory_damage_loss',
+                'receivable', 'cash', 'bank', 'sales_return_merchandise',
+                'inventory', 'cogs_merchandise', 'inventory_damage_loss',
             ],
             'production' => [
-                'receivable',
-                'cash',
-                'bank',
-                'sales_return_finished_goods',
-                'inventory_finished_goods',
-                'cogs_finished_goods',
-                'inventory_damage_loss',
+                'receivable', 'cash', 'bank', 'sales_return_finished_goods',
+                'inventory_finished_goods', 'cogs_finished_goods', 'inventory_damage_loss',
             ],
             default => throw new RuntimeException('Jenis Unit Bisnis tidak didukung untuk jurnal retur penjualan.'),
         };
@@ -138,7 +73,11 @@ class SalesReturnJournalService
         $hppDamaged = 0.0;
 
         foreach ($itemsData as $item) {
-            $saleItem = DB::table('sale_items')->where('id', $item['sale_item_id'])->first();
+            $saleItem = DB::table('sale_items')
+                ->where('id', $item['sale_item_id'])
+                ->where('sale_id', $sale->id)
+                ->first();
+
             if (!$saleItem) {
                 throw new RuntimeException('Item penjualan untuk retur tidak ditemukan.');
             }
@@ -162,23 +101,48 @@ class SalesReturnJournalService
             $required[] = 'inventory_damage_loss';
         }
 
-        $missing = array_values(array_filter(array_unique($required), fn ($key) => !isset($mapped[$key])));
+        $missing = array_values(array_filter(
+            array_unique($required),
+            fn ($key) => !isset($mapped[$key])
+        ));
+
         if ($missing) {
             throw new RuntimeException('Mapping akun retur penjualan belum lengkap: ' . implode(', ', $missing) . '.');
         }
 
-        $journalId = DB::table('journals')->insertGetId([
-            'entity_id' => $return->entity_id,
-            'business_unit_id' => $return->business_unit_id,
-            'journal_no' => 'JRN-RET-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4)),
-            'journal_date' => date('Y-m-d', strtotime($return->return_date)),
-            'source_type' => 'sales_return',
-            'source_id' => $return->id,
-            'description' => 'Retur penjualan #' . $return->return_no . ' (Inv: ' . $sale->invoice_no . ')',
-            'status' => 'posted',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $journal = DB::table('journals')
+            ->where('entity_id', $return->entity_id)
+            ->where('source_type', 'sales_return')
+            ->where('source_id', $return->id)
+            ->lockForUpdate()
+            ->first();
+
+        if ($journal) {
+            $journalId = (int) $journal->id;
+
+            DB::table('journals')->where('id', $journalId)->update([
+                'business_unit_id' => $return->business_unit_id,
+                'journal_date' => date('Y-m-d', strtotime($return->return_date)),
+                'status' => 'posted',
+                'description' => 'Retur penjualan #' . $return->return_no . ' (Inv: ' . $sale->invoice_no . ')',
+                'updated_at' => now(),
+            ]);
+
+            DB::table('journal_entries')->where('journal_id', $journalId)->delete();
+        } else {
+            $journalId = (int) DB::table('journals')->insertGetId([
+                'entity_id' => $return->entity_id,
+                'business_unit_id' => $return->business_unit_id,
+                'journal_no' => 'JRN-RET-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4)),
+                'journal_date' => date('Y-m-d', strtotime($return->return_date)),
+                'source_type' => 'sales_return',
+                'source_id' => $return->id,
+                'description' => 'Retur penjualan #' . $return->return_no . ' (Inv: ' . $sale->invoice_no . ')',
+                'status' => 'posted',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
 
         $entries = [
             [
@@ -232,6 +196,6 @@ class SalesReturnJournalService
 
         DB::table('journal_entries')->insert($entries);
 
-        return (int) $journalId;
+        return $journalId;
     }
 }
