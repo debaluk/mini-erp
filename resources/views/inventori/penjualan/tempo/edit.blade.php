@@ -43,7 +43,7 @@
                     <select id="unitSelect" class="form-select" required>
                         <option value="">Pilih Unit Bisnis</option>
                         @foreach($units as $u)
-                            <option value="{{ $u->id }}" @selected((int) $defaultUnitId === (int) $u->id)>
+                            <option value="{{ $u->id }}" @selected((int) $sale->business_unit_id === (int) $u->id)>
                                 {{ $u->name }}
                             </option>
                         @endforeach
@@ -252,11 +252,12 @@
 @push('scripts')
 <script type="application/json" id="salesCreateData">{!! json_encode([
     'mode' => 'edit',
-    'saleDate' => CarbonCarbon::parse($sale->sale_date)->toDateString(),
+    'saleDate' => \Carbon\Carbon::parse($sale->sale_date)->toDateString(),
     'saleId' => (int) $sale->id,
     'initialCustomerId' => $sale->customer_id,
+    'initialBusinessUnitId' => (int) $sale->business_unit_id,
     'customers' => $customers,
-    'initialDueDate' => $sale->due_date ? CarbonCarbon::parse($sale->due_date)->toDateString() : null,
+    'initialDueDate' => $sale->due_date ? \Carbon\Carbon::parse($sale->due_date)->toDateString() : null,
     'initialMemo' => $sale->memo,
     'initialDiscount' => (float) $sale->discount,
     'initialPaymentMethod' => $paymentMethod,
