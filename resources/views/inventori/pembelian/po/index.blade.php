@@ -4,7 +4,7 @@
 <div class="container-fluid px-0 py-0">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <h3 class="mb-1 fw-bold text-dark"><i class="bi bi-receipt me-2 text-primary"></i>Purchase Order (PO)</h3>
+            <h3 class="mb-1 fw-bold text-dark"><i class="bi bi-receipt me-2 text-primary"></i>Purchase Order</h3>
             <div class="text-secondary small">Pengelolaan Pesanan Pembelian Barang Ke Supplier</div>
         </div>
         <div class="d-flex gap-2">
@@ -66,10 +66,10 @@
     <div class="card shadow-sm border-0">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table id="table-po" class="table table-hover table-striped align-middle w-100 mb-0" style="font-size:.88rem">
-                    <thead class="table-dark text-center">
+                <table id="table-po" class="table table-hover align-middle mb-0 w-100" style="font-size:.88rem">
+                    <thead class="bg-light text-muted extra-small text-uppercase">
                         <tr>
-                            <th style="width: 85px;">Tanggal</th>
+                            <th class="ps-3" style="width: 90px;">Tanggal</th>
                             <th style="width: 140px;">No. PO</th>
                             <th>Supplier</th>
                             <th style="width: 130px;">Gudang</th>
@@ -77,7 +77,7 @@
                             <th style="width: 120px;">Total PO</th>
                             <th style="width: 100px;">Penerimaan</th>
                             <th style="width: 90px;">Status</th>
-                            <th style="width: 210px;">Aksi</th>
+                            <th class="text-center pe-3" style="width: 180px;">Aksi</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -209,27 +209,15 @@
 
 {{-- MODAL VIEW DETAIL PO --}}
 <div class="modal fade" id="modal-detail-po" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-secondary text-white py-2 px-3">
+            <div class="modal-header bg-primary text-white py-2 px-3">
                 <h6 class="modal-title fw-bold"><i class="bi bi-file-earmark-text me-2"></i>Detail Purchase Order</h6>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-3" id="detail-po-body"></div>
-        </div>
-    </div>
-</div>
-
-{{-- MODAL PENERIMAAN BARANG --}}
-<div class="modal fade" id="modal-penerimaan-po" tabindex="-1" data-bs-backdrop="static" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-success text-white py-2 px-3">
-                <h6 class="modal-title fw-bold"><i class="bi bi-box-arrow-in-down me-2"></i>Penerimaan Barang</h6>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-3" id="penerimaan-po-body">
-                <div class="text-center py-5 text-muted"><div class="spinner-border spinner-border-sm me-2"></div>Memuat penerimaan...</div>
+            <div class="modal-footer py-2 px-3 bg-light">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
             </div>
         </div>
     </div>
@@ -258,7 +246,6 @@ document.addEventListener('DOMContentLoaded', function () {
             { data: 'warehouse_name' },
             { data: 'business_unit_name', className: 'text-center' },
             { data: 'formatted_total', className: 'text-end font-monospace fw-bold' },
-            { data: 'receipt_progress', className: 'text-center font-monospace small' },
             {
                 data: 'status',
                 className: 'text-center',
@@ -268,6 +255,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (data === 'partial') return '<span class="badge bg-warning text-dark">PARTIAL</span>';
                     if (data === 'completed') return '<span class="badge bg-success">COMPLETED</span>';
                     if (data === 'closed') return '<span class="badge bg-dark">CLOSED</span>';
+                    if (data === 'canceled') return '<span class="badge bg-danger">CANCELED</span>';
                     return `<span class="badge bg-danger">${data.toUpperCase()}</span>`;
                 }
             },
@@ -279,13 +267,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     let actions = `<div class="btn-group btn-group-sm">
                         <button type="button" class="btn btn-outline-info btn-view-po" data-id="${row.id}" title="Detail PO"><i class="bi bi-eye"></i></button>
                         <a href="{{ url('/inventori/pembelian/po') }}/${row.id}/print" target="_blank" class="btn btn-outline-secondary" title="Cetak Nota PO"><i class="bi bi-printer"></i></a>`;
-                    if (['approved', 'partial'].includes(row.status)) {
-                        actions += `<button type="button" class="btn btn-success btn-penerimaan-po" data-id="${row.id}" data-no="${row.po_no}" title="Terima Barang"><i class="bi bi-box-arrow-in-down"></i> Penerimaan</button>`;
-                    }
                     if (row.status === 'draft') {
                         actions += `<button type="button" class="btn btn-success btn-approve-po" data-id="${row.id}" data-no="${row.po_no}" title="Approve PO"><i class="bi bi-check-circle"></i> Approve</button>`;
                         actions += `<button type="button" class="btn btn-outline-warning btn-edit-po" data-id="${row.id}" title="Edit Draft"><i class="bi bi-pencil"></i></button>`;
-                        actions += `<button type="button" class="btn btn-outline-danger btn-delete-po" data-id="${row.id}" data-no="${row.po_no}" title="Hapus Draft"><i class="bi bi-trash"></i></button>`;
+                        actions += `<button type="button" class="btn btn-outline-danger btn-delete-po" data-id="${row.id}" data-no="${row.po_no}" title="Batalkan PO"><i class="bi bi-trash"></i></button>`;
                     }
                     if (!['completed', 'closed', 'draft'].includes(row.status)) {
                         actions += `<button type="button" class="btn btn-outline-dark btn-close-po" data-id="${row.id}" data-no="${row.po_no}" title="Tutup PO"><i class="bi bi-x-circle"></i> Close</button>`;
@@ -408,56 +393,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    $(document).on('click', '.btn-penerimaan-po', function () {
-        const id = $(this).data('id');
-        const modalEl = document.getElementById('modal-penerimaan-po');
-        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-        const body = $('#penerimaan-po-body');
-        body.html('<div class="text-center py-5 text-muted"><div class="spinner-border spinner-border-sm me-2"></div>Memuat penerimaan...</div>');
-        modal.show();
-
-        fetch(`{{ url('/inventori/penerimaan/create') }}?po_id=${id}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(response => response.text())
-            .then(html => {
-                const doc = new DOMParser().parseFromString(html, 'text/html');
-                const form = doc.querySelector('#receiptForm');
-                const error = doc.querySelector('.alert-danger');
-                if (!form) throw new Error('Form Penerimaan tidak ditemukan.');
-                body.html(form.outerHTML);
-                if (error) Swal.fire({ icon: 'error', title: 'Gagal', text: error.textContent.trim() });
-            })
-            .catch(error => {
-                body.html('<div class="alert alert-danger mb-0">Gagal memuat form penerimaan.</div>');
-                Swal.fire({ icon: 'error', title: 'Gagal', text: error.message });
-            });
-    });
-
-    $(document).on('submit', '#penerimaan-po-body #receiptForm', function (e) {
-        e.preventDefault();
-        const form = this;
-        const button = form.querySelector('#saveReceipt');
-        if (button) button.disabled = true;
-        fetch(form.action, { method: 'POST', body: new FormData(form), headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(response => response.text())
-            .then(html => {
-                const doc = new DOMParser().parseFromString(html, 'text/html');
-                const updatedForm = doc.querySelector('#receiptForm');
-                const error = doc.querySelector('.alert-danger');
-                if (updatedForm) {
-                    $('#penerimaan-po-body').html(updatedForm.outerHTML);
-                    if (error) Swal.fire({ icon: 'error', title: 'Gagal', text: error.textContent.trim() });
-                    return;
-                }
-                bootstrap.Modal.getOrCreateInstance(document.getElementById('modal-penerimaan-po')).hide();
-                table.ajax.reload(null, false);
-                Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Penerimaan berhasil diposting.', timer: 1800, showConfirmButton: false });
-            })
-            .catch(error => {
-                if (button) button.disabled = false;
-                Swal.fire({ icon: 'error', title: 'Gagal', text: error.message || 'Penerimaan gagal diproses.' });
-            });
-    });
-
     $(document).on('click', '.btn-approve-po', function () {
         const id = $(this).data('id');
         const no = $(this).data('no');
@@ -530,12 +465,12 @@ document.addEventListener('DOMContentLoaded', function () {
         const id = $(this).data('id');
         const no = $(this).data('no');
         Swal.fire({
-            title: 'Hapus Draft PO?',
-            text: `Draft PO [${no}] akan dihapus!`,
+            title: 'Batalkan Purchase Order?',
+            text: `PO [${no}] akan dibatalkan dan statusnya menjadi CANCELED.`,
             icon: 'error',
             showCancelButton: true,
             confirmButtonColor: '#d33',
-            confirmButtonText: 'Ya, Hapus!',
+            confirmButtonText: 'Ya, Batalkan!',
             cancelButtonText: 'Batal'
         }).then((result) => {
             if (result.isConfirmed) {
@@ -546,7 +481,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     success: function (res) {
                         if (res.success) {
                             table.ajax.reload();
-                            Swal.fire({ icon: 'success', title: 'Terhapus!', text: res.message, timer: 2000, showConfirmButton: false });
+                            Swal.fire({ icon: 'success', title: 'Dibatalkan!', text: res.message, timer: 2000, showConfirmButton: false });
                         }
                     }
                 });
@@ -573,7 +508,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     </div>
                     <div class="table-responsive border rounded">
                         <table class="table table-sm table-bordered align-middle mb-0">
-                            <thead class="bg-light text-muted extra-small text-center">
+                            <thead class="bg-light text-muted extra-small text-uppercase text-center">
                                 <tr><th>Kode</th><th>Barang</th><th>Qty</th><th>Harga</th><th>Subtotal</th></tr>
                             </thead>
                             <tbody>`;
