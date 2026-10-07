@@ -217,6 +217,12 @@ class SalesReturnController extends Controller
                     => 'Tanggal dan waktu retur tidak valid. Silakan pilih ulang tanggal dan waktu retur.',
                 str_contains($e->getMessage(), 'No query results')
                     => 'Data retur atau transaksi penjualan tidak ditemukan. Silakan muat ulang halaman dan coba lagi.',
+                str_contains($e->getMessage(), 'Periode akuntansi sudah ditutup')
+                    => $e->getMessage(),
+                str_contains($e->getMessage(), 'Jumlah retur melebihi')
+                    => $e->getMessage(),
+                str_contains($e->getMessage(), 'Invoice asal retur tidak boleh')
+                    => $e->getMessage(),
                 str_contains($e->getMessage(), 'Integrity constraint violation')
                     => 'Retur tidak dapat disimpan karena data transaksi belum lengkap atau tidak sesuai.',
                 default
