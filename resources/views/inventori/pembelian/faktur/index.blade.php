@@ -66,7 +66,7 @@
 <!-- MODAL 1: PEMBELIAN LANGSUNG (NON-PO)                                             -->
 <!-- ================================================================================= -->
 <div class="modal fade" id="modalNonPo" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-    <div class="modal-dialog modal-xl">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-primary text-white py-2 px-3">
                 <h6 class="modal-title fw-bold mb-0"><i class="bi bi-cart-plus-fill me-2"></i>Pembelian Langsung (Non-PO)</h6>
@@ -74,9 +74,9 @@
             </div>
             <form id="formNonPo" onsubmit="saveNonPo(event)">
                 <input type="hidden" id="nonpo_id" name="id">
-                <div class="modal-body bg-light p-2">
+                <div class="modal-body p-3">
                     <!-- Header Info -->
-                    <div class="card border-0 shadow-sm p-2 mb-2 bg-white">
+                    <div class="row g-2 mb-3 bg-light p-2 rounded border">
                         <div class="row g-2">
                             <div class="col-md-3">
                                 <label class="form-label extra-small fw-bold text-dark mb-1">Tanggal Pembelian <span class="text-danger">*</span></label>
@@ -112,7 +112,7 @@
                     </div>
 
                     <!-- Item List -->
-                    <div class="card border-0 shadow-sm p-2 mb-2 bg-white">
+                    <div class="mb-3">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <h6 class="fw-bold text-primary mb-0 small"><i class="bi bi-box-seam-fill me-1"></i>Rincian Barang Pembelian</h6>
                             <button type="button" class="btn btn-xs btn-success fw-bold px-2 py-1 shadow-sm" onclick="addNonPoRow()">
@@ -121,7 +121,7 @@
                         </div>
                         <div class="table-responsive">
                             <table class="table table-sm table-hover table-bordered align-middle mb-0" id="tableNonPoItems">
-                                <thead class="table-dark extra-small">
+                                <thead class="bg-light text-muted extra-small">
                                     <tr>
                                         <th class="text-center" style="width: 35px;">#</th>
                                         <th style="min-width: 280px;">Pilih Produk / Barang</th>
@@ -144,7 +144,7 @@
                             <textarea id="memoInput" class="form-control" rows="3"></textarea>
                         </div>
                         <div class="col-md-4">
-                            <div class="card border-0 shadow-sm p-2 bg-white">
+                            <div class="border rounded bg-light p-2">
                                 <div class="d-flex justify-content-between mb-1 small">
                                     <span class="text-muted fw-semibold">Subtotal Items:</span>
                                     <strong id="nonpo_display_subtotal">Rp 0</strong>
@@ -173,7 +173,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer bg-white py-2 px-3">
+                <div class="modal-footer py-2 px-3 bg-light">
                     <button type="button" class="btn btn-sm btn-secondary fw-semibold px-3" data-bs-dismiss="modal">Batal</button>
                     <button type="submit" class="btn btn-sm btn-primary fw-bold px-4">
                         <i class="bi bi-save me-1"></i> Simpan Sebagai DRAFT
@@ -188,9 +188,9 @@
 <!-- MODAL 2: PEMBELIAN BERDASARKAN PO APPROVED                                        -->
 <!-- ================================================================================= -->
 <div class="modal fade" id="modalPo" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-    <div class="modal-dialog modal-xl">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-success text-white py-2 px-3">
+            <div class="modal-header bg-primary text-white py-2 px-3">
                 <h6 class="modal-title fw-bold mb-0"><i class="bi bi-file-earmark-check-fill me-2"></i>Faktur Pembelian Berdasarkan PO</h6>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
@@ -201,7 +201,7 @@
 
                 <div class="modal-body bg-light p-2">
                     <!-- Step 1: Select PO Header -->
-                    <div class="card border-0 shadow-sm p-2 mb-2 bg-white">
+                    <div class="mb-3">
                         <div class="row g-2 align-items-center">
                             <div class="col-md-4">
                                 <label class="form-label extra-small fw-bold text-dark mb-1">Pilih Dokumen PO Approved <span class="text-danger">*</span></label>
@@ -307,7 +307,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer bg-white py-2 px-3">
+                <div class="modal-footer py-2 px-3 bg-light">
                     <button type="button" class="btn btn-sm btn-secondary fw-semibold px-3" data-bs-dismiss="modal">Batal</button>
                     <button type="submit" class="btn btn-sm btn-success fw-bold px-4">
                         <i class="bi bi-save me-1"></i> Simpan Sebagai DRAFT
