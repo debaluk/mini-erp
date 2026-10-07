@@ -429,7 +429,7 @@
                 const fd = new FormData(form);
                 if (editMode) fd.append('_method', 'PUT');
                 fd.set('product_id', productId.value);
-                fd.set('business_unit_id', businessUnitFilter.value);
+                fd.set('business_unit_id', setupBusinessUnitId.value);
                 fd.set('purchase_price', parseMoney(purchase.value));
                 fd.set('initial_stock', parseDecimal(initialStock.value));
                 fd.set('markup_percent', parseDecimal(markup.value));
