@@ -60,6 +60,16 @@
             <h6 class="mb-0 mt-3">Detail Penjualan</h6>
         </div>
 
+        <div class="position-relative mb-2">
+            <div class="input-group">
+                <span class="input-group-text">🔍</span>
+                <input type="text" id="productSearch" class="form-control" autocomplete="off"
+                       placeholder="Cari barang: kode, nama, barcode, atau SKU...">
+            </div>
+            <div id="productSearchResults" class="list-group position-absolute w-100 shadow-sm d-none"
+                 style="z-index:1050;max-height:360px;overflow-y:auto"></div>
+        </div>
+
         <div class="table-responsive">
             <table class="table table-bordered align-middle mb-0" id="salesDetailTable">
                 <thead class="table-light">
