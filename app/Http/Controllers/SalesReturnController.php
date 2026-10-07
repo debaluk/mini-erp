@@ -108,7 +108,14 @@ class SalesReturnController extends Controller
             });
         }
 
-        $invoices = $query->select('s.*', 'c.name as customer_name')
+        $invoices = $query
+            ->where('s.sale_date', '>=', now()->subDays(10))
+            ->where('s.sale_date', '<=', now())
+            ->select([
+                's.id', 's.invoice_no', 's.sale_date', 's.customer_id', 's.business_unit_id', 's.total',
+                'c.name as customer_name',
+            ])
+            ->selectRaw("DATE_FORMAT(s.sale_date, '%d/%m/%Y %H:%i') as sale_date_formatted")
             ->orderByDesc('s.sale_date')->limit(20)->get();
 
         return response()->json(['success' => true, 'data' => $invoices]);
