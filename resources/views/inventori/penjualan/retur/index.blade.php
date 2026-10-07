@@ -684,36 +684,6 @@ $(document).ready(function() {
     });
 
     // -----------------------------------------------------------------------
-    // 7. LIHAT DETAIL RETUR
-    // -----------------------------------------------------------------------
-    $(document).on('click', '.btn-view-return', function() {
-        let id = $(this).data('id');
-        $.get("{{ url('/inventori/penjualan/retur') }}/" + id + "/print-data", function(res) {
-            if (!res.success || !res.data) { alert('Data retur tidak ditemukan.'); return; }
-            let data = res.data;
-            $('#printReturnNo').text(data.return_no || '-');
-            $('#printCustomerName').text(data.customer_name || '-');
-            $('#printInvoiceNo').text(data.invoice_no || '-');
-            $('#printReturnDate').text(data.return_date_formatted || '-');
-            $('#printWarehouseName').text(data.warehouse_name || '-');
-            $('#printReason').text(data.reason || '-');
-            $('#printGrandTotal').text('Rp ' + formatRupiah(data.total));
-            let html = '';
-            (data.items || []).forEach(function(item) {
-                html += '<tr>' +
-                    '<td>' + (item.product_name || '-') + '</td>' +
-                    '<td class="text-center">' + (item.qty || 0) + ' ' + (item.unit_name || '') + '</td>' +
-                    '<td class="text-center">' + (item.condition === 'good' ? '🟢 BAGUS' : '🔴 RUSAK') + '</td>' +
-                    '<td class="text-end">Rp ' + formatRupiah(item.unit_price) + '</td>' +
-                    '<td class="text-end">Rp ' + formatRupiah(item.return_value) + '</td>' +
-                    '</tr>';
-            });
-            $('#printItemsBody').html(html || '<tr><td colspan="5" class="text-center text-muted">Tidak ada rincian item.</td></tr>');
-            $('#modalPrintReturn .modal-title').html('<i class="bi bi-eye me-2"></i>Detail Retur Penjualan');
-            $('#modalPrintReturn').modal('show');
-        }).fail(function() { alert('Gagal memuat detail retur.'); });
-    });
-    // -----------------------------------------------------------------------
     // 7. CETAK NOTA KREDIT / RETUR
     // -----------------------------------------------------------------------
     $(document).on('click', '.btn-print-return', function() {
