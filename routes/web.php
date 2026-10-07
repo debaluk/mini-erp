@@ -205,6 +205,22 @@ Route::middleware(['auth', 'access:inventori'])->prefix('inventori/pembelian/po'
     Route::get('/{id}/print', [PurchaseOrderController::class, 'printPo'])->name('print');
 });
 
+Route::middleware(['auth', 'access:inventori'])->prefix('inventori/pembelian/faktur')->name('inventori.pembelian.faktur.')->group(function () {
+    Route::get('/data', [PurchaseInvoiceController::class, 'data'])->name('data');
+    Route::get('/export-excel', [PurchaseInvoiceController::class, 'exportExcel'])->name('export-excel');
+    Route::get('/print-list', [PurchaseInvoiceController::class, 'printList'])->name('print-list');
+    Route::get('/po-items/{poId}', [PurchaseInvoiceController::class, 'getPoItems'])->name('po-items');
+    Route::get('/', [PurchaseInvoiceController::class, 'index'])->name('index');
+    Route::get('/create', [PurchaseInvoiceController::class, 'create'])->name('create');
+    Route::post('/', [PurchaseInvoiceController::class, 'store'])->name('store');
+    Route::get('/{id}/edit', [PurchaseInvoiceController::class, 'edit'])->name('edit');
+    Route::put('/{id}', [PurchaseInvoiceController::class, 'update'])->name('update');
+    Route::delete('/{id}', [PurchaseInvoiceController::class, 'destroy'])->name('destroy');
+    Route::post('/{id}/post', [PurchaseInvoiceController::class, 'post'])->name('post');
+    Route::get('/{id}/print', [PurchaseInvoiceController::class, 'printInvoice'])->name('print');
+    Route::get('/{id}', [PurchaseInvoiceController::class, 'show'])->name('show');
+});
+
 Route::middleware(['auth', 'access:inventori'])->prefix('inventori/pembelian')->name('inventori.pembelian.')->group(function () {
     // 1. Endpoint DataTables AJAX, Export Excel, & Cetak List Rekap
     Route::get('/data', [PurchaseInvoiceController::class, 'data'])->name('data');
