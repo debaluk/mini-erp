@@ -228,6 +228,10 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-3">
+                <div class="alert alert-warning py-2 px-3 mb-3 small">
+                    <i class="bi bi-info-circle me-1"></i>
+                    <strong>Catatan:</strong> Retur penjualan hanya dapat dilakukan maksimal <strong>10 hari</strong> sejak tanggal penjualan.
+                </div>
                 <div class="row g-2 mb-3">
                     <div class="col-md-8">
                         <input type="text" class="form-control form-control-sm" id="searchInvoiceKeyword" placeholder="Cari No Invoice / Nama Pelanggan...">
@@ -250,7 +254,7 @@
                             </tr>
                         </thead>
                         <tbody id="lookupInvoiceBody">
-                            <tr><td colspan="5" class="text-center py-3 text-muted">Ketik kata kunci untuk mencari invoice...</td></tr>
+                            <tr><td colspan="5" class="text-center py-3 text-muted">Invoice yang dapat diretur hanya penjualan dalam 10 hari terakhir.</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -426,7 +430,7 @@ $(document).ready(function() {
         let q = $('#searchInvoiceKeyword').val();
         $('#lookupInvoiceBody').html('<tr><td colspan="5" class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div> Memuat invoice...</td></tr>');
         
-        $.get("{{ url('/inventori/penjualan/retur/lookup-invoices') }}", { keyword: q }, function(res) {
+        $.get("{{ url('/inventori/penjualan/retur/lookup-invoices') }}", { search: q }, function(res) {
             let html = '';
             if (res.data.length === 0) {
                 html = '<tr><td colspan="5" class="text-center py-3 text-muted">Invoice tidak ditemukan.</td></tr>';
