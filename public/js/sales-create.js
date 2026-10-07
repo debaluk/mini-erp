@@ -608,6 +608,33 @@
 
     dueDate?.addEventListener('change', () => clearInvalid(dueDate));
 
+    function hydrateEditForm() {
+        if (mode !== 'edit') return;
+        if (saleDate) saleDate.value = config.saleDate || '';
+        if (customerId) {
+            customerId.value = config.initialCustomerId || '';
+            selectedCustomerId = config.initialCustomerId || '';
+        }
+        if (customerSearch && config.initialCustomerId) {
+            const customer = (config.customers || []).find(c => Number(c.id) === Number(config.initialCustomerId));
+            if (customer) customerSearch.value = customer.name || '';
+        }
+        if (discountInput) discountInput.value = Number(config.initialDiscount || 0);
+        if (memoInput) memoInput.value = config.initialMemo || '';
+        if (paymentMethod) paymentMethod.value = config.initialPaymentMethod || 'Tunai';
+        if (dueDate) dueDate.value = config.initialDueDate || '';
+        rows = (Array.isArray(config.initialItems) ? config.initialItems : []).map(item => {
+            const product = products.find(p => Number(p.id) === Number(item.product_id));
+            return {
+                product_id: Number(item.product_id), code: product?.code || '', name: product?.name || '',
+                barcode: product?.barcode || '', unit_id: Number(item.unit_id || product?.base_unit_id || 0),
+                unit_code: product?.base_unit_code || '', unit_name: product?.base_unit_name || '',
+                qty: Number(item.qty || 1), price: Number(item.price || 0), discount: Number(item.discount || 0)
+            };
+        });
+        renderRows(); calculateTotals(); updateDueDateState();
+    }
+
     async function submitSale() {
         const buId = currentBusinessUnit();
 
@@ -694,8 +721,8 @@
             document.querySelector('input[name="_token"]')?.value;
 
         try {
-            const response = await fetch(config.storeUrl, {
-                method: 'POST',
+            const response = await fetch(config.updateUrl || config.storeUrl, {
+                method: mode === 'edit' ? 'PUT' : 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
@@ -725,7 +752,7 @@
             const yesButton = document.getElementById('saleSavedYes');
 
             if (!modalElement || typeof bootstrap === 'undefined') {
-                window.location.href = config.createUrl || window.location.href;
+                window.location.href = config.indexUrl || config.createUrl || window.location.href;
                 return;
             }
 
@@ -773,6 +800,7 @@
 
     renderRows();
     calculateTotals();
+    hydrateEditForm();
     if (productSearch) productSearch.focus();
 
     if (mode === 'pos') setTimeout(() => focusFirstBarcode(), 150);
