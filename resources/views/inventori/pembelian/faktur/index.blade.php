@@ -35,10 +35,10 @@
                 <table class="table table-sm table-hover table-striped align-middle mb-0" id="tablePurchases">
                     <thead class="table-light">
                         <tr>
-                            <th class="ps-3 py-2 small text-uppercase">No. Faktur</th>
+                            <th class="ps-3 py-2 fw-semibold">No. Faktur</th>
                             <th class="py-2">Tanggal</th>
-                            <th class="py-2 small text-uppercase">Jalur</th>
-                            <th class="py-2 small text-uppercase">Supplier</th>
+                            <th class="py-2 fw-semibold">PO</th>
+                            <th class="py-2 fw-semibold">Supplier</th>
                             <th class="py-2">Unit Bisnis</th>
                             <th class="py-2">Cara Bayar</th>
                             <th class="py-2">Jatuh Tempo</th>
@@ -467,7 +467,7 @@ const purchaseTable = new DataTable('#tablePurchases', {
     columns: [
         { data: 'purchase_no', className: 'ps-3 fw-bold text-primary' },
         { data: 'formatted_date' },
-        { data: 'source_type', render: data => data === 'po' ? '<span class="badge bg-info text-dark border">PO</span>' : '<span class="badge bg-secondary">DIRECT NON-PO</span>' },
+        { data: 'po_no', render: data => data ? '<span class="fw-semibold">' + data + '</span>' : '-' },
         { data: 'supplier_name', render: data => '<strong>' + (data || '-') + '</strong>' },
         { data: 'business_unit_name', render: data => '<span class="fw-semibold">' + (data || '-') + '</span>' },
         { data: 'payment_method_label', render: data => '<span class="badge bg-light text-dark border">' + (data || '-') + '</span>' },
@@ -477,7 +477,7 @@ const purchaseTable = new DataTable('#tablePurchases', {
         { data: null, orderable: false, searchable: false, className: 'text-center', render: (data, type, row) => {
             const draft = row.status === 'draft';
             return '<div class="d-flex justify-content-center gap-1">' +
-                (draft ? '<button type="button" class="btn btn-sm btn-outline-warning p-1" title="Edit" onclick="openEditModal(' + row.id + ', \'\' + row.source_type + '\')"><i class="bi bi-pencil"></i></button>' : '') +
+                (draft ? '<button type="button" class="btn btn-sm btn-outline-warning p-1" title="Edit" onclick="openEditModal(' + row.id + ', row.source_type)"><i class="bi bi-pencil"></i></button>' : '') +
                 (draft ? '<button type="button" class="btn btn-sm btn-outline-success p-1" title="Approval" onclick="approvePurchase(' + row.id + ')"><i class="bi bi-check2-circle"></i></button>' : '') +
                 '<button type="button" class="btn btn-sm btn-outline-primary p-1" title="Cetak" onclick="printFaktur(' + row.id + ')"><i class="bi bi-printer"></i></button>' +
                 '<button type="button" class="btn btn-sm btn-outline-danger p-1" title="Hapus" onclick="deletePurchase(' + row.id + ')"><i class="bi bi-trash"></i></button>' +
