@@ -11,60 +11,47 @@
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-2 px-3">
             <h6 class="mb-0 fw-bold"><i class="bi bi-receipt-cutoff me-2"></i>Daftar Faktur Pembelian</h6>
             <div class="d-flex gap-2">
-                <button class="btn btn-sm btn-light text-primary fw-semibold shadow-sm" onclick="exportExcel()">
-                    <i class="bi bi-file-earmark-excel me-1 text-success"></i> Ekspor Excel
-                </button>
-                <div class="dropdown">
-                    <button class="btn btn-sm btn-warning fw-bold text-dark dropdown-toggle shadow-sm" type="button" data-bs-toggle="dropdown">
-                        <i class="bi bi-plus-circle-fill me-1"></i> Buat Pembelian Baru
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 py-1">
-                        <li>
-                            <a class="dropdown-item fw-bold text-primary py-1 px-3 small" href="javascript:void(0)" onclick="openModalNonPo()">
-                                <i class="bi bi-cart-plus-fill me-2"></i>1. Pembelian Langsung (Non-PO)
-                            </a>
-                        </li>
-                        <li><hr class="dropdown-divider my-1"></li>
-                        <li>
-                            <a class="dropdown-item fw-bold text-success py-1 px-3 small" href="javascript:void(0)" onclick="openModalPo()">
-                                <i class="bi bi-file-earmark-check-fill me-2"></i>2. Berdasarkan PO Approved
-                            </a>
-                        </li>
-                    </ul>
-                </div>
+                <a href="javascript:void(0)" onclick="openModalNonPo()" class="btn btn-primary btn-sm px-3 fw-semibold shadow-sm">
+                <i class="bi bi-plus-circle me-1"></i> + Pembelian Langsung
+                </a>
+                <a href="javascript:void(0)" onclick="openModalPo()"  class="btn btn-primary btn-sm px-3 fw-semibold shadow-sm">
+                    <i class="bi bi-plus-circle me-1"></i> + Faktur Pembelian PO
+                </a>
+                <a href="{{ route('inventori.pembelian.export-excel', request()->all()) }}" class="btn btn-success btn-sm px-3 fw-semibold shadow-sm">
+                    <i class="bi bi-file-earmark-excel me-1"></i> Export
+                </a>
+              
             </div>
         </div>
         <div class="card-body bg-light p-2">
             <form id="formFilter" class="row g-2 align-items-center">
-                <div class="col-md-3">
-                    <label class="form-label extra-small fw-bold text-muted mb-0">Periode Tanggal</label>
-                    <div class="input-group input-group-sm">
-                        <input type="date" class="form-control" id="filter_start_date" value="{{ date('Y-m-01') }}">
-                        <span class="input-group-text bg-white px-1">s/d</span>
-                        <input type="date" class="form-control" id="filter_end_date" value="{{ date('Y-m-d') }}">
-                    </div>
+                <div class="col-md-2">
+                    <label class="form-label mb-1 small fw-bold">Mulai Tanggal</label>
+                    <input type="date" id="filter-start-date" class="form-control form-control-sm" value="{{ $startDate }}">
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label extra-small fw-bold text-muted mb-0">Status Faktur</label>
-                    <select class="form-select form-select-sm" id="filter_status">
-                        <option value="">-- Semua Status --</option>
-                        <option value="draft">DRAFT (Belum Approve)</option>
-                        <option value="approved">APPROVED (Selesai)</option>
+                    <label class="form-label mb-1 small fw-bold">Sampai Tanggal</label>
+                    <input type="date" id="filter-end-date" class="form-control form-control-sm" value="{{ $endDate }}">
+                </div>
+               <div class="col-md-2">
+                    <label class="form-label mb-1 small fw-bold">Unit Bisnis</label>
+                    <select id="filter-bu" class="form-select form-select-sm">
+                        <option value="">Semua Unit Bisnis</option>
+                       @foreach($businessUnits as $bu)
+                                    <option value="{{ $bu->id }}">{{ $bu->code }} - {{ $bu->name }}</option>
+                                @endforeach
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label extra-small fw-bold text-muted mb-0">Vendor / Supplier</label>
-                    <select class="form-select form-select-sm" id="filter_supplier_id">
-                        <option value="">-- Semua Vendor --</option>
+              <div class="col-md-2">
+                    <label class="form-label mb-1 small fw-bold">Supplier</label>
+                    <select id="filter-supplier" class="form-select form-select-sm">
+                        <option value="">Semua Supplier</option>
                         @foreach($suppliers as $s)
-                            <option value="{{ $s->id }}">{{ $s->code }} - {{ $s->name }}</option>
-                        @endforeach
+                                    <option value="{{ $s->id }}">{{ $s->name }}</option>
+                                @endforeach
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label extra-small fw-bold text-muted mb-0">Pencarian Kata Kunci</label>
-                    <input type="text" class="form-control form-control-sm" id="filter_search" placeholder="No. FB / No. PO / Vendor...">
-                </div>
+               
                 <div class="col-md-1 d-flex align-items-end">
                     <button type="button" class="btn btn-sm btn-primary w-100 fw-bold" onclick="loadData(1)">
                         <i class="bi bi-search"></i>
