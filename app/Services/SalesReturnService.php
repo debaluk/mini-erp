@@ -73,6 +73,24 @@ class SalesReturnService
 
             abort_unless($sale, 404);
 
+            // Sumber gudang retur wajib mengikuti gudang yang dipakai invoice.
+            $saleWarehouseIds = DB::table('stock_movements')
+                ->where('reference_type', 'sale')
+                ->where('reference_id', $sale->id)
+                ->where('movement_type', 'sale_out')
+                ->distinct()
+                ->pluck('warehouse_id')
+                ->filter()
+                ->values();
+
+            if ($saleWarehouseIds->count() !== 1) {
+                throw new Exception($saleWarehouseIds->isEmpty()
+                    ? 'Gudang asal invoice tidak ditemukan dari mutasi stok penjualan.'
+                    : 'Invoice penjualan menggunakan lebih dari satu gudang. Retur harus diproses per gudang asal.');
+            }
+
+            $data['warehouse_id'] = (int) $saleWarehouseIds->first();
+
             if (!$isEdit) {
                 $this->assertPeriodOpen($data['return_date'] ?? null);
             }
