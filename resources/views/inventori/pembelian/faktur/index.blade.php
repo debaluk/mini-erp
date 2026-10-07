@@ -4,8 +4,20 @@
 
 @section('content')
 <div class="container-fluid px-0 py-0">
-    <div class="card border-0 shadow-sm mb-3">
-        <div class="card-body p-3 bg-light">
+    <div class="py-2 mb-2">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h3 class="mb-1 fw-bold text-dark"><i class="bi bi-receipt-cutoff me-2 text-primary"></i>Faktur Pembelian</h3>
+                <div class="text-muted small">Daftar transaksi pembelian dan faktur supplier</div>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="javascript:void(0)" onclick="openModalNonPo()" class="btn btn-primary btn-sm px-3 fw-semibold"><i class="bi bi-plus-circle me-1"></i>Pembelian Langsung</a>
+                <a href="javascript:void(0)" onclick="openModalPo()" class="btn btn-primary btn-sm px-3 fw-semibold"><i class="bi bi-file-earmark-plus me-1"></i>Faktur dari PO</a>
+                <a href="{{ route('inventori.pembelian.export-excel', request()->all()) }}" class="btn btn-success btn-sm px-3 fw-semibold"><i class="bi bi-file-earmark-excel me-1"></i>Export</a>
+            </div>
+        </div>
+        <div class="bg-light border rounded p-2 mt-3">
+            <form id="formFilter" class="row g-2 align-items-end">
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
                 <div>
                     <h3 class="mb-1 fw-bold text-dark"><i class="bi bi-receipt-cutoff me-2 text-primary"></i>Faktur Pembelian</h3>
@@ -26,7 +38,6 @@
                     <div class="col-md-2"><button type="button" class="btn btn-sm btn-primary w-100 fw-semibold" onclick="loadData(1)"><i class="bi bi-search me-1"></i>Tampilkan</button></div>
                 </form>
             </div>
-        </div>
     </div>
 
     <!-- TABEL UTAMA -->
