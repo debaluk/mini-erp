@@ -141,8 +141,8 @@
                             <input type="datetime-local" class="form-control form-control-sm" id="returnDate" name="return_date" required value="{{ date('Y-m-d\TH:i') }}">
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label extra-small fw-bold text-muted mb-1">Gudang Penerima *</label>
-                            <select class="form-select form-select-sm" id="warehouseId" name="warehouse_id" required>
+                            <label class="form-label extra-small fw-bold text-muted mb-1">Gudang Retur *</label>
+                            <select class="form-select form-select-sm" id="warehouseId" name="warehouse_id" required disabled>
                                 <option value="">-- Pilih Gudang --</option>
                                 @foreach($warehouses ?? [] as $wh)
                                     <option value="{{ $wh->id }}">{{ $wh->name }}</option>
@@ -473,6 +473,13 @@ $(document).ready(function() {
         $.get("{{ url('/inventori/penjualan/retur/sale-items') }}/" + saleId, {
             return_id: $('#returnId').val() || ''
         }, function(res) {
+            if (res.sale && res.sale.warehouse_id) {
+                $('#warehouseId').val(res.sale.warehouse_id).prop('disabled', true);
+            } else {
+                $('#warehouseId').val('').prop('disabled', true);
+                alert('Gudang asal invoice tidak ditemukan. Retur tidak dapat diproses.');
+            }
+
             let html = '';
             if (!res.items || res.items.length === 0) {
                 html = '<tr><td colspan="8" class="text-center py-3 text-muted">Tidak ada item barang pada invoice ini.</td></tr>';
