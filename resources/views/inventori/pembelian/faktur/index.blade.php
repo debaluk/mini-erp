@@ -111,19 +111,19 @@
 </div>
 
 <!-- ================================================================================= -->
-<!-- MODAL 1: PEMBELIAN LANGSUNG (NON-PO)                                             -->
+<!-- MODAL 1: PEMBELIAN LANGSUNG (NON-PO) - 100% INLINE DROPDOWN                       -->
 <!-- ================================================================================= -->
 <div class="modal fade" id="modalNonPo" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-xl">
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-header bg-primary text-white py-3">
-                <h5 class="modal-title fw-bold"><i class="bi bi-cart-plus-fill me-2"></i>1. Input Pembelian Langsung (Non-PO / Direct)</h5>
+                <h5 class="modal-title fw-bold"><i class="bi bi-cart-plus-fill me-2"></i>1. Input Pembelian Langsung (Non-PO)</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form id="formNonPo" onsubmit="saveNonPo(event)">
                 <input type="hidden" id="nonpo_id" name="id">
                 <div class="modal-body bg-light p-4">
-                    <!-- Section Header Info -->
+                    <!-- Header Info (Semua Pakai Dropdown Native) -->
                     <div class="card border-0 shadow-sm p-3 mb-3 bg-white">
                         <div class="row g-3">
                             <div class="col-md-3">
@@ -136,11 +136,12 @@
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label fw-bold text-dark small">Vendor / Supplier <span class="text-danger">*</span></label>
-                                <div class="input-group input-group-sm">
-                                    <input type="text" class="form-control bg-white fw-bold" id="nonpo_supplier_name" placeholder="Pilih Vendor..." readonly required>
-                                    <input type="hidden" id="nonpo_supplier_id" name="supplier_id" required>
-                                    <button class="btn btn-outline-primary fw-semibold" type="button" onclick="openSearchVendor()"><i class="bi bi-search"></i> Cari</button>
-                                </div>
+                                <select class="form-select form-select-sm fw-bold border-primary" id="nonpo_supplier_id" name="supplier_id" required>
+                                    <option value="">-- Pilih Vendor / Supplier --</option>
+                                    @foreach($suppliers as $s)
+                                        <option value="{{ $s->id }}">{{ $s->code }} - {{ $s->name }}</option>
+                                    @endforeach
+                                </select>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label fw-bold text-dark small">Tanggal Pembelian <span class="text-danger">*</span></label>
@@ -163,7 +164,7 @@
                         </div>
                     </div>
 
-                    <!-- Section Item List dengan DROPDOWN BARANG -->
+                    <!-- Item List dengan Dropdown Barang In-Table -->
                     <div class="card border-0 shadow-sm p-3 mb-3 bg-white">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <h6 class="fw-bold text-primary mb-0"><i class="bi bi-box-seam-fill me-1"></i>Rincian Barang Pembelian</h6>
@@ -176,7 +177,7 @@
                                 <thead class="table-dark">
                                     <tr>
                                         <th class="text-center" style="width: 40px;">#</th>
-                                        <th style="min-width: 280px;">Pilih Produk / Barang</th>
+                                        <th style="min-width: 300px;">Pilih Produk / Barang</th>
                                         <th class="text-center" style="width: 90px;">Satuan</th>
                                         <th style="width: 140px;">Qty</th>
                                         <th style="width: 180px;">Harga Beli / Unit (Rp)</th>
@@ -184,14 +185,12 @@
                                         <th class="text-center" style="width: 40px;"><i class="bi bi-trash"></i></th>
                                     </tr>
                                 </thead>
-                                <tbody id="tbodyNonPoItems">
-                                    <!-- Baris dinamis dengan Dropdown Select -->
-                                </tbody>
+                                <tbody id="tbodyNonPoItems"></tbody>
                             </table>
                         </div>
                     </div>
 
-                    <!-- Section Summary Total -->
+                    <!-- Summary Total -->
                     <div class="row justify-content-end">
                         <div class="col-md-5">
                             <div class="card border-0 shadow-sm p-3 bg-white">
@@ -231,7 +230,7 @@
 </div>
 
 <!-- ================================================================================= -->
-<!-- MODAL 2: PEMBELIAN BERDASARKAN PO APPROVED                                        -->
+<!-- MODAL 2: PEMBELIAN BERDASARKAN PO - 100% INLINE DROPDOWN SELECT PO               -->
 <!-- ================================================================================= -->
 <div class="modal fade" id="modalPo" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-xl">
@@ -242,20 +241,18 @@
             </div>
             <form id="formPo" onsubmit="savePo(event)">
                 <input type="hidden" id="po_purchase_id" name="id">
-                <input type="hidden" id="po_purchase_order_id" name="purchase_order_id" required>
-                <input type="hidden" id="po_business_unit_id" name="business_unit_id" required>
-                <input type="hidden" id="po_supplier_id" name="supplier_id" required>
+                <input type="hidden" id="po_business_unit_id" name="business_unit_id">
+                <input type="hidden" id="po_supplier_id" name="supplier_id">
 
                 <div class="modal-body bg-light p-4">
-                    <!-- Step 1: Select PO Header -->
+                    <!-- Step 1: Select PO dari Dropdown Langsung (NO POPUP) -->
                     <div class="card border-0 shadow-sm p-3 mb-3 bg-white">
                         <div class="row g-3 align-items-center">
                             <div class="col-md-5">
                                 <label class="form-label fw-bold text-dark small">Pilih Dokumen PO Approved <span class="text-danger">*</span></label>
-                                <div class="input-group input-group-sm">
-                                    <input type="text" class="form-control fw-bold text-success bg-white" id="po_no_display" placeholder="Klik tombol untuk memilih PO..." readonly required>
-                                    <button class="btn btn-success fw-bold px-3" type="button" onclick="openSearchPo()"><i class="bi bi-search me-1"></i> Pilih PO Approved</button>
-                                </div>
+                                <select class="form-select form-select-sm fw-bold border-success text-success" id="po_purchase_order_id" name="purchase_order_id" onchange="onPoSelect(this.value)" required>
+                                    <option value="">-- Pilih Nomor PO Approved --</option>
+                                </select>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label fw-bold text-muted small">Vendor / Supplier (Auto PO)</label>
@@ -268,7 +265,7 @@
                         </div>
                     </div>
 
-                    <!-- Step 2: Invoice Info Header -->
+                    <!-- Step 2: Invoice Info -->
                     <div class="card border-0 shadow-sm p-3 mb-3 bg-white">
                         <div class="row g-3">
                             <div class="col-md-4">
@@ -288,7 +285,7 @@
                         </div>
                     </div>
 
-                    <!-- Table Items from PO -->
+                    <!-- Table Items dari PO -->
                     <div class="card border-0 shadow-sm p-3 mb-3 bg-white">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <h6 class="fw-bold text-success mb-0"><i class="bi bi-list-check me-1"></i>Rincian Barang & Tagihan Faktur dari PO</h6>
@@ -311,7 +308,7 @@
                                 <tbody id="tbodyPoItems">
                                     <tr>
                                         <td colspan="8" class="text-center py-4 text-muted">
-                                            Silakan klik tombol <strong>"Pilih PO Approved"</strong> di atas untuk memuat daftar barang.
+                                            Silakan pilih Nomor PO pada dropdown di atas.
                                         </td>
                                     </tr>
                                 </tbody>
@@ -359,66 +356,8 @@
 </div>
 
 <!-- ================================================================================= -->
-<!-- MODAL LOOKUP SEARCH: VENDOR, PO, RETURN                                         -->
+<!-- MODAL RETUR PEMBELIAN (RB)                                                        -->
 <!-- ================================================================================= -->
-<!-- Search Vendor -->
-<div class="modal fade" id="modalSearchVendor" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-dark text-white py-2">
-                <h6 class="modal-title fw-bold"><i class="bi bi-search me-2"></i>Pencarian Master Vendor / Supplier</h6>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-3">
-                <input type="text" class="form-control mb-3" id="inputSearchVendor" placeholder="Ketik Kode, Nama, atau Telepon Vendor..." oninput="fetchVendors()">
-                <div class="table-responsive" style="max-height: 300px;">
-                    <table class="table table-sm table-hover table-bordered align-middle mb-0">
-                        <thead class="table-secondary">
-                            <tr>
-                                <th>Kode</th>
-                                <th>Nama Vendor</th>
-                                <th>Telepon</th>
-                                <th class="text-center">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbodyVendors"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Search PO Approved -->
-<div class="modal fade" id="modalSearchPoApproved" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-dark text-white py-2">
-                <h6 class="modal-title fw-bold"><i class="bi bi-search me-2"></i>Pencarian Purchase Order (PO) Approved</h6>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-3">
-                <input type="text" class="form-control mb-3" id="inputSearchPoApproved" placeholder="Ketik No. PO atau Nama Vendor..." oninput="fetchPoApproved()">
-                <div class="table-responsive" style="max-height: 300px;">
-                    <table class="table table-sm table-hover table-bordered align-middle mb-0">
-                        <thead class="table-secondary">
-                            <tr>
-                                <th>No. PO</th>
-                                <th>Tanggal PO</th>
-                                <th>Vendor</th>
-                                <th>Gudang Tujuan</th>
-                                <th class="text-center">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbodyPoApproved"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Retur Pembelian (RB) -->
 <div class="modal fade" id="modalReturn" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-lg">
         <div class="modal-content border-0 shadow-lg">
@@ -480,26 +419,39 @@
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-let modalNonPo, modalPo, modalSearchVendor, modalSearchPoApproved, modalReturn;
+let modalNonPo, modalPo, modalReturn;
 let allProductsList = [];
 
 document.addEventListener("DOMContentLoaded", function() {
-    modalNonPo              = new bootstrap.Modal(document.getElementById('modalNonPo'));
-    modalPo                 = new bootstrap.Modal(document.getElementById('modalPo'));
-    modalSearchVendor       = new bootstrap.Modal(document.getElementById('modalSearchVendor'));
-    modalSearchPoApproved   = new bootstrap.Modal(document.getElementById('modalSearchPoApproved'));
-    modalReturn             = new bootstrap.Modal(document.getElementById('modalReturn'));
+    modalNonPo  = new bootstrap.Modal(document.getElementById('modalNonPo'));
+    modalPo     = new bootstrap.Modal(document.getElementById('modalPo'));
+    modalReturn = new bootstrap.Modal(document.getElementById('modalReturn'));
 
     loadData(1);
     preloadProducts();
+    preloadApprovedPOs();
 });
 
-// Preload Daftar Produk untuk Dropdown Select
+// Preload Daftar Produk untuk Dropdown Select Table
 function preloadProducts() {
     fetch('/inventori/pembelian/faktur/lookup/product?q=')
     .then(res => res.json())
+    .then(res => { allProductsList = res.data || []; });
+}
+
+// Preload List PO Approved ke Dropdown Header
+function preloadApprovedPOs() {
+    fetch('/inventori/pembelian/faktur/lookup/po?q=')
+    .then(res => res.json())
     .then(res => {
-        allProductsList = res.data || [];
+        const select = document.getElementById('po_purchase_order_id');
+        let html = '<option value="">-- Pilih Nomor PO Approved --</option>';
+        if(res.data) {
+            res.data.forEach(po => {
+                html += `<option value="${po.id}">${po.po_no} - ${po.supplier_name} (${po.warehouse_name || 'Gudang'})</option>`;
+            });
+        }
+        select.innerHTML = html;
     });
 }
 
@@ -604,10 +556,7 @@ function renderPagination(data) {
 function openModalNonPo() {
     document.getElementById('formNonPo').reset();
     document.getElementById('nonpo_id').value = '';
-    document.getElementById('nonpo_supplier_id').value = '';
     document.getElementById('tbodyNonPoItems').innerHTML = '';
-    
-    // Otomatis tambahkan 1 baris kosong pertama dengan Dropdown
     addNonPoRow();
     calculateTotalsNonPo();
     modalNonPo.show();
@@ -616,14 +565,14 @@ function openModalNonPo() {
 function openModalPo() {
     document.getElementById('formPo').reset();
     document.getElementById('po_purchase_id').value = '';
-    document.getElementById('po_purchase_order_id').value = '';
-    document.getElementById('tbodyPoItems').innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">Silakan klik tombol <strong>"Pilih PO Approved"</strong> di atas untuk memuat daftar barang.</td></tr>`;
+    document.getElementById('tbodyPoItems').innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">Silakan pilih Nomor PO pada dropdown di atas.</td></tr>`;
+    preloadApprovedPOs();
     calculateTotalsPo();
     modalPo.show();
 }
 
 // =================================================================================
-// EKSKLUSIF NON-PO: DROPDOWN ITEM TABLE LOGIC (TANPA POPUP)
+// 1. NON-PO: LOGIKA INLINE DROPDOWN SELECT BARANG
 // =================================================================================
 function addNonPoRow(selectedProductId = '', selectedQty = 1, selectedCost = 0, selectedUnitId = '', selectedUnitName = '') {
     const tbody = document.getElementById('tbodyNonPoItems');
@@ -641,7 +590,7 @@ function addNonPoRow(selectedProductId = '', selectedQty = 1, selectedCost = 0, 
 
     row.innerHTML = `
         <td class="text-center fw-semibold text-muted small row-num"></td>
-        <td style="min-width: 280px;">
+        <td style="min-width: 300px;">
             <select class="form-select form-select-sm fw-semibold border-primary product-select" name="items[${rowId}][product_id]" onchange="onProductSelect(this, '${rowId}')" required>
                 ${optionsHtml}
             </select>
@@ -737,62 +686,20 @@ function calculateTotalsNonPo() {
     document.getElementById('nonpo_display_grand_total').innerText = `Rp ${grand.toLocaleString('id-ID')}`;
 }
 
-// Search Vendor Functions
-function openSearchVendor() {
-    fetchVendors();
-    modalSearchVendor.show();
-}
+// =================================================================================
+// 2. PO APPROVED: LOGIKA INLINE DROPDOWN SELECT PO (AUTO LOAD ITEM)
+// =================================================================================
+function onPoSelect(poId) {
+    if(!poId) {
+        document.getElementById('po_business_unit_id').value = '';
+        document.getElementById('po_supplier_id').value = '';
+        document.getElementById('po_supplier_name').value = '';
+        document.getElementById('po_bu_warehouse_display').value = '';
+        document.getElementById('tbodyPoItems').innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">Silakan pilih Nomor PO pada dropdown di atas.</td></tr>`;
+        calculateTotalsPo();
+        return;
+    }
 
-function fetchVendors() {
-    const q = document.getElementById('inputSearchVendor').value;
-    fetch(`/inventori/pembelian/faktur/lookup/vendor?q=${encodeURIComponent(q)}`)
-    .then(res => res.json())
-    .then(res => {
-        let html = '';
-        res.data.forEach(v => {
-            html += `<tr>
-                <td class="fw-bold">${v.code}</td>
-                <td><strong>${v.name}</strong></td>
-                <td>${v.phone || '-'}</td>
-                <td class="text-center"><button type="button" class="btn btn-sm btn-primary fw-bold" onclick="selectVendor(${v.id}, '${v.name}')">Pilih</button></td>
-            </tr>`;
-        });
-        document.getElementById('tbodyVendors').innerHTML = html;
-    });
-}
-
-function selectVendor(id, name) {
-    document.getElementById('nonpo_supplier_id').value = id;
-    document.getElementById('nonpo_supplier_name').value = name;
-    modalSearchVendor.hide();
-}
-
-// Search PO Functions
-function openSearchPo() {
-    fetchPoApproved();
-    modalSearchPoApproved.show();
-}
-
-function fetchPoApproved() {
-    const q = document.getElementById('inputSearchPoApproved').value;
-    fetch(`/inventori/pembelian/faktur/lookup/po?q=${encodeURIComponent(q)}`)
-    .then(res => res.json())
-    .then(res => {
-        let html = '';
-        res.data.forEach(po => {
-            html += `<tr>
-                <td class="fw-bold text-success">${po.po_no}</td>
-                <td>${po.po_date ? po.po_date.substring(0, 10) : '-'}</td>
-                <td><strong>${po.supplier_name}</strong></td>
-                <td>${po.warehouse_name || '-'}</td>
-                <td class="text-center"><button type="button" class="btn btn-sm btn-success fw-bold px-3" onclick="selectPoApproved(${po.id})"><i class="bi bi-check-lg me-1"></i> Pilih PO Ini</button></td>
-            </tr>`;
-        });
-        document.getElementById('tbodyPoApproved').innerHTML = html;
-    });
-}
-
-function selectPoApproved(poId) {
     fetch(`/inventori/pembelian/faktur/lookup/po-items/${poId}`)
     .then(res => res.json())
     .then(res => {
@@ -800,10 +707,8 @@ function selectPoApproved(poId) {
             const po = res.data.po;
             const items = res.data.items;
 
-            document.getElementById('po_purchase_order_id').value = po.id;
             document.getElementById('po_business_unit_id').value = po.business_unit_id;
             document.getElementById('po_supplier_id').value = po.supplier_id;
-            document.getElementById('po_no_display').value = po.po_no;
             document.getElementById('po_supplier_name').value = po.supplier_name;
             document.getElementById('po_bu_warehouse_display').value = `${po.bu_code} - ${po.warehouse_name}`;
 
@@ -827,7 +732,7 @@ function selectPoApproved(poId) {
                             <span class="input-group-text bg-light text-muted px-1 small">${unitName}</span>
                         </div>
                     </td>
-                    <td style="width: 170px;">
+                    <td style="width: 180px;">
                         <div class="input-group input-group-sm">
                             <span class="input-group-text bg-light fw-bold text-muted">Rp</span>
                             <input type="number" step="100" class="form-control text-end fw-bold text-primary" name="items[${idx}][unit_cost]" value="${item.unit_cost}" min="0" oninput="calculateTotalsPo()" required>
@@ -841,7 +746,6 @@ function selectPoApproved(poId) {
             });
 
             document.getElementById('tbodyPoItems').innerHTML = html;
-            modalSearchPoApproved.hide();
             calculateTotalsPo();
         }
     });
@@ -1014,7 +918,6 @@ function openEditModal(id, sourceType) {
                 document.getElementById('po_purchase_order_id').value = p.purchase_order_id;
                 document.getElementById('po_business_unit_id').value = p.business_unit_id;
                 document.getElementById('po_supplier_id').value = p.supplier_id;
-                document.getElementById('po_no_display').value = p.po_no || '-';
                 document.getElementById('po_supplier_name').value = p.supplier_name;
                 document.getElementById('po_bu_warehouse_display').value = `${p.bu_code} - ${p.bu_name}`;
                 document.getElementById('po_purchase_date').value = p.purchase_date ? p.purchase_date.substring(0, 10) : '';
@@ -1042,7 +945,7 @@ function openEditModal(id, sourceType) {
                                 <span class="input-group-text bg-light text-muted px-1 small">${unitName}</span>
                             </div>
                         </td>
-                        <td style="width: 170px;">
+                        <td style="width: 180px;">
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text bg-light fw-bold text-muted">Rp</span>
                                 <input type="number" step="100" class="form-control text-end fw-bold text-primary" name="items[${idx}][unit_cost]" value="${item.unit_cost}" min="0" oninput="calculateTotalsPo()" required>
@@ -1061,7 +964,6 @@ function openEditModal(id, sourceType) {
                 document.getElementById('nonpo_id').value = p.id;
                 document.getElementById('nonpo_business_unit_id').value = p.business_unit_id;
                 document.getElementById('nonpo_supplier_id').value = p.supplier_id;
-                document.getElementById('nonpo_supplier_name').value = p.supplier_name;
                 document.getElementById('nonpo_purchase_date').value = p.purchase_date ? p.purchase_date.substring(0, 10) : '';
                 document.getElementById('nonpo_supplier_invoice_no').value = p.supplier_invoice_no || '';
                 document.getElementById('nonpo_goods_received').checked = (p.goods_received == 1);
