@@ -93,6 +93,12 @@ class SalesReturnService
 
             if (!$isEdit) {
                 $this->assertPeriodOpen($data['return_date'] ?? null);
+
+                $returnAgeLimit = now()->subDays(10);
+                $saleDate = $sale->sale_date ? \Carbon\Carbon::parse($sale->sale_date) : null;
+                if (!$saleDate || $saleDate->lt($returnAgeLimit) || $saleDate->gt(now())) {
+                    throw new Exception('Retur penjualan hanya dapat dilakukan maksimal 10 hari sejak tanggal penjualan.');
+                }
             }
 
             $returnNo = $isEdit
