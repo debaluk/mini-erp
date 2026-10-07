@@ -1426,8 +1426,34 @@ class SalesController extends Controller
         );
     }
 
+    private function assertSalePeriodOpen(string $date): void
+    {
+        $entity = $this->entityId();
+        $period = DB::table('accounting_periods')
+            ->where('entity_id', $entity)
+            ->whereDate('start_date', '<=', $date)
+            ->whereDate('end_date', '>=', $date)
+            ->orderByDesc('id')
+            ->first();
+
+        if ($period && $period->status !== 'open') {
+            abort(422, 'Periode akuntansi sudah ditutup atau sedang dalam proses closing. Penjualan tidak dapat diubah.');
+        }
+    }
+
+    private function assertSalePeriodsOpen(string ...$dates): void
+    {
+        foreach (array_unique($dates) as $date) {
+            $this->assertSalePeriodOpen($date);
+        }
+    }
+
     public function postJournal(int $id)
     {
+        $sale = DB::table('sales')->where('id', $id)->where('entity_id', $this->entityId())->first();
+        abort_unless($sale, 404);
+        $this->assertSalePeriodOpen(CarbonCarbon::parse($sale->sale_date)->toDateString());
+
         $journalId = app(SalesJournalService::class)->post($id, $this->entityId());
 
         return back()->with('success', 'Jurnal penjualan berhasil diposting.');
@@ -1650,6 +1676,217 @@ class SalesController extends Controller
         }
 
         return redirect()->route('inventori.penjualan.show', $saleId)->with('success', 'Penjualan berhasil diposting.');
+    }
+
+    public function edit(int $id)
+    {
+        $entity = $this->entityId();
+        $sale = DB::table('sales')->where('id', $id)->where('entity_id', $entity)->first();
+        abort_unless($sale, 404);
+        abort_if($sale->status !== 'posted', 422, 'Hanya penjualan yang masih diposting yang dapat diedit.');
+        $this->assertSalePeriodOpen(\Carbon\Carbon::parse($sale->sale_date)->toDateString());
+
+        $user = auth()->user();
+        $units = DB::table('business_units as bu')
+            ->where('bu.entity_id', $entity)->where('bu.is_active', 1)
+            ->when($user->role !== 'owner', function ($query) use ($user) {
+                $query->join('user_business_units as ubu', 'ubu.business_unit_id', '=', 'bu.id')
+                    ->where('ubu.user_id', $user->id);
+            })->orderBy('bu.name')->get(['bu.id', 'bu.code', 'bu.name']);
+
+        $customers = DB::table('customers')->where('entity_id', $entity)->where('is_active', 1)->orderBy('name')->get(['id','name']);
+
+        $products = DB::table('products as p')
+            ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
+            ->where('p.entity_id', $entity)->where('p.is_active', 1)
+            ->select('p.id','p.code','p.sku','p.barcode','p.name','p.base_unit_id','u.code as base_unit_code','u.name as base_unit_name')
+            ->orderBy('p.name')->get();
+
+        $productPrices = DB::table('product_prices')
+            ->whereIn('product_id', $products->pluck('id'))->whereIn('business_unit_id', $units->pluck('id'))
+            ->where('price_type','retail')->get(['product_id','business_unit_id','unit_id','selling_price'])->groupBy('product_id');
+
+        $productConversions = DB::table('product_unit_conversions as puc')
+            ->join('units as u','u.id','=','puc.unit_id')
+            ->whereIn('puc.product_id',$products->pluck('id'))->where('puc.is_active',1)
+            ->orderBy('u.name')->get(['puc.product_id','puc.unit_id','puc.conversion_factor','puc.is_default_sale','u.code','u.name'])
+            ->groupBy('product_id');
+
+        $productCatalog = $products->map(function ($product) use ($productPrices, $productConversions) {
+            return [
+                'id'=>(int)$product->id,'code'=>$product->code,'sku'=>$product->sku,'barcode'=>$product->barcode,
+                'name'=>$product->name,'base_unit_id'=>(int)$product->base_unit_id,
+                'base_unit_code'=>$product->base_unit_code,'base_unit_name'=>$product->base_unit_name,
+                'prices'=>($productPrices[$product->id] ?? collect())->values(),
+                'conversions'=>($productConversions[$product->id] ?? collect())->values(),
+            ];
+        })->values();
+
+        $saleItems = DB::table('sale_items')->where('sale_id',$sale->id)->orderBy('id')
+            ->get(['product_id','unit_id','qty','unit_price','discount']);
+
+        $payments = DB::table('payments')->where('sale_id',$sale->id)->orderBy('id')->get();
+        $paymentMethod = match ($payments->first()->method ?? 'cash') {
+            'cash'=>'Tunai','transfer'=>'Transfer','qris'=>'QRIS','credit'=>'Kredit / Bon',default=>'Tunai',
+        };
+
+        $initialItems = $saleItems->map(fn ($item) => [
+            'product_id'=>(int)$item->product_id,'unit_id'=>(int)$item->unit_id,
+            'qty'=>(float)$item->qty,'price'=>(float)$item->unit_price,'discount'=>(float)$item->discount,
+        ])->values();
+
+        return view('inventori.penjualan.tempo.edit', compact(
+            'sale','units','customers','productCatalog','initialItems','paymentMethod'
+        ));
+    }
+
+    public function update(Request $request, int $id)
+    {
+        $data = $request->validate([
+            'sale_date'=>['required','date_format:Y-m-d'],'customer_id'=>['nullable','integer'],
+            'business_unit_id'=>['required','integer'],'payment_method'=>['required','in:Tunai,Transfer,QRIS,Kredit / Bon'],
+            'due_date'=>['nullable','date','required_if:payment_method,Kredit / Bon'],
+            'memo'=>['nullable','string','max:5000'],'discount'=>['nullable','numeric','min:0'],
+            'items'=>['required','array','min:1'],'items.*.product_id'=>['required','integer'],
+            'items.*.unit_id'=>['nullable','integer'],'items.*.qty'=>['required','numeric','gt:0'],
+            'items.*.selling_price'=>['required','numeric','min:0'],'items.*.discount'=>['nullable','numeric','min:0'],
+        ]);
+
+        $entity=$this->entityId();
+        $newDate=\Carbon\Carbon::createFromFormat('Y-m-d',$data['sale_date'])->startOfDay();
+
+        DB::transaction(function () use ($data,$id,$entity,$newDate) {
+            $sale=DB::table('sales')->where('id',$id)->where('entity_id',$entity)->lockForUpdate()->first();
+            abort_unless($sale,404);
+            abort_if($sale->status!=='posted',422,'Penjualan sudah dibatalkan dan tidak dapat diedit.');
+
+            $oldDate=\Carbon\Carbon::parse($sale->sale_date)->toDateString();
+            $this->assertSalePeriodsOpen($oldDate,$newDate->toDateString());
+
+            $unit=DB::table('business_units')->where('id',$data['business_unit_id'])->where('entity_id',$entity)->where('is_active',1)->first();
+            abort_unless($unit,422,'Business Unit tidak valid.');
+
+            if(!empty($data['customer_id'])){
+                abort_unless(DB::table('customers')->where('id',$data['customer_id'])->where('entity_id',$entity)->where('is_active',1)->exists(),422,'Customer tidak valid.');
+            }
+
+            $oldPayments=DB::table('payments')->where('sale_id',$id)->lockForUpdate()->get();
+            $paidAmount=(float)$oldPayments->sum(fn($p)=>(float)$p->paid_amount);
+            $oldMethod=$oldPayments->first()->method ?? 'cash';
+            $newMethod=match($data['payment_method']){
+                'Tunai'=>'cash','Transfer'=>'transfer','QRIS'=>'qris','Kredit / Bon'=>'credit',
+            };
+            if($paidAmount>0 && $oldMethod!==$newMethod){
+                abort(422,'Cara bayar tidak dapat diubah karena transaksi sudah memiliki pembayaran.');
+            }
+
+            $oldMovements=DB::table('stock_movements')->where('reference_type','sale')->where('reference_id',$id)->lockForUpdate()->get();
+            foreach($oldMovements as $movement){
+                $stock=DB::table('warehouses_stocks')->where('entity_id',$entity)->where('warehouse_id',$movement->warehouse_id)->where('product_id',$movement->product_id)->lockForUpdate()->first();
+                abort_unless($stock,422,'Stok transaksi lama tidak ditemukan untuk proses koreksi.');
+                DB::table('warehouses_stocks')->where('id',$stock->id)->update(['qty'=>(float)$stock->qty+abs((float)$movement->qty),'updated_at'=>now()]);
+            }
+            DB::table('stock_movements')->where('reference_type','sale')->where('reference_id',$id)->delete();
+
+            $subtotal=0.0; $lineItems=[];
+            foreach($data['items'] as $item){
+                $product=DB::table('products')->where('id',$item['product_id'])->where('entity_id',$entity)->where('is_active',1)->first();
+                abort_unless($product,422,'Item tidak valid.');
+                $uom=$this->resolveProductUnit($product->id,isset($item['unit_id'])?(int)$item['unit_id']:null,$entity);
+                $qty=(float)$item['qty']; $price=(float)$item['selling_price'];
+                $lineDiscount=min((float)($item['discount']??0),$qty*$price);
+                $lineTotal=round(($qty*$price)-$lineDiscount,2); $baseQty=round($qty*$uom['factor'],9);
+
+                $stock=DB::table('warehouses_stocks as ws')->join('warehouses as w','w.id','=','ws.warehouse_id')
+                    ->where('ws.entity_id',$entity)->where('ws.product_id',$product->id)->where('w.business_unit_id',$unit->id)
+                    ->lockForUpdate()->select('ws.*')->first();
+                abort_unless($stock && (float)$stock->qty >= $baseQty,422,'Stok '.$product->name.' tidak mencukupi.');
+                $hppUnit=(float)$stock->avg_cost; $hppTotal=round($baseQty*$hppUnit,2); $subtotal+=$lineTotal;
+                $lineItems[]=compact('product','uom','qty','price','lineDiscount','lineTotal','baseQty','stock','hppUnit','hppTotal');
+            }
+
+            $subtotal=round($subtotal,2);
+            $discount=round(min((float)($data['discount']??0),$subtotal),2);
+            $total=round($subtotal-$discount,2);
+            $nonCreditPaid=(float)$oldPayments->where('method','!=','credit')->sum(fn($p)=>(float)$p->paid_amount);
+            abort_if($total<$nonCreditPaid,422,'Total baru tidak boleh lebih kecil dari jumlah yang sudah dibayar.');
+
+            DB::table('sale_items')->where('sale_id',$id)->delete();
+            foreach($lineItems as $line){
+                DB::table('sale_items')->insert([
+                    'sale_id'=>$id,'product_id'=>$line['product']->id,'unit_id'=>$line['uom']['unit_id'],'qty'=>$line['qty'],
+                    'conversion_factor'=>$line['uom']['factor'],'base_qty'=>$line['baseQty'],'unit_price'=>$line['price'],
+                    'base_unit_cost'=>$line['hppUnit'],'discount'=>$line['lineDiscount'],'total'=>$line['lineTotal'],
+                    'hpp_unit'=>$line['hppUnit'],'hpp_total'=>$line['hppTotal'],'created_at'=>now(),'updated_at'=>now(),
+                ]);
+                DB::table('warehouses_stocks')->where('id',$line['stock']->id)->update(['qty'=>(float)$line['stock']->qty-$line['baseQty'],'updated_at'=>now()]);
+                DB::table('stock_movements')->insert([
+                    'entity_id'=>$entity,'business_unit_id'=>$unit->id,'warehouse_id'=>$line['stock']->warehouse_id,'product_id'=>$line['product']->id,
+                    'unit_id'=>$line['uom']['unit_id'],'transaction_qty'=>$line['qty'],'conversion_factor'=>$line['uom']['factor'],
+                    'movement_type'=>'sale_out','qty'=>-$line['baseQty'],'unit_cost'=>$line['hppUnit'],'reference_type'=>'sale','reference_id'=>$id,
+                    'occurred_at'=>$newDate,'created_by'=>auth()->id(),'created_at'=>now(),'updated_at'=>now(),
+                ]);
+            }
+
+            DB::table('sales')->where('id',$id)->update([
+                'business_unit_id'=>$unit->id,'customer_id'=>$data['customer_id']??null,'sale_date'=>$newDate,
+                'due_date'=>$newMethod==='credit'?$data['due_date']:null,'subtotal'=>$subtotal,'discount'=>$discount,'total'=>$total,
+                'memo'=>$data['memo']??null,'updated_at'=>now(),
+            ]);
+
+            $primary=$oldPayments->first();
+            if($primary){
+                $update=['business_unit_id'=>$unit->id,'method'=>$newMethod,'updated_at'=>now()];
+                if($newMethod==='credit'){
+                    $update['payment_date']=$newDate;$update['amount']=0;$update['paid_amount']=0;$update['change_amount']=0;
+                }else{
+                    $update['amount']=$total;$update['paid_amount']=$total;$update['change_amount']=0;
+                }
+                DB::table('payments')->where('id',$primary->id)->update($update);
+            }else{
+                DB::table('payments')->insert([
+                    'entity_id'=>$entity,'business_unit_id'=>$unit->id,'sale_id'=>$id,'user_id'=>auth()->id(),'payment_date'=>$newDate,
+                    'method'=>$newMethod,'amount'=>$newMethod==='credit'?0:$total,'paid_amount'=>$newMethod==='credit'?0:$total,'change_amount'=>0,
+                    'created_at'=>now(),'updated_at'=>now(),
+                ]);
+            }
+
+            app(SalesJournalService::class)->post($id,$entity);
+        });
+
+        return response()->json(['ok'=>true,'sale_id'=>$id,'redirect'=>route('inventori.penjualan.show',$id)]);
+    }
+
+    public function destroy(int $id)
+    {
+        $entity=$this->entityId();
+        DB::transaction(function() use($id,$entity){
+            $sale=DB::table('sales')->where('id',$id)->where('entity_id',$entity)->lockForUpdate()->first();
+            abort_unless($sale,404); abort_if($sale->status==='cancelled',422,'Penjualan sudah dibatalkan.');
+            $this->assertSalePeriodOpen(\Carbon\Carbon::parse($sale->sale_date)->toDateString());
+
+            $payments=DB::table('payments')->where('sale_id',$id)->lockForUpdate()->get();
+            $paid=(float)$payments->sum(fn($p)=>(float)$p->paid_amount);
+            abort_if($paid>0,422,'Penjualan sudah memiliki pembayaran. Gunakan pembatalan melalui proses pembayaran/reversal, bukan hapus transaksi.');
+
+            $movements=DB::table('stock_movements')->where('reference_type','sale')->where('reference_id',$id)->lockForUpdate()->get();
+            foreach($movements as $movement){
+                $stock=DB::table('warehouses_stocks')->where('entity_id',$entity)->where('warehouse_id',$movement->warehouse_id)->where('product_id',$movement->product_id)->lockForUpdate()->first();
+                abort_unless($stock,422,'Stok transaksi tidak ditemukan untuk pembatalan.');
+                DB::table('warehouses_stocks')->where('id',$stock->id)->update(['qty'=>(float)$stock->qty+abs((float)$movement->qty),'updated_at'=>now()]);
+            }
+            DB::table('stock_movements')->where('reference_type','sale')->where('reference_id',$id)->delete();
+
+            $journal=DB::table('journals')->where('entity_id',$entity)->where('source_type','sale')->where('source_id',$id)->lockForUpdate()->first();
+            if($journal){
+                DB::table('journal_entries')->where('journal_id',$journal->id)->delete();
+                DB::table('journals')->where('id',$journal->id)->delete();
+            }
+
+            DB::table('sales')->where('id',$id)->update(['status'=>'cancelled','updated_at'=>now()]);
+            DB::table('payments')->where('sale_id',$id)->where('paid_amount',0)->delete();
+        });
+        return back()->with('success','Penjualan berhasil dibatalkan dan efek stok/jurnal telah dibalik.');
     }
 
     public function show($id)
