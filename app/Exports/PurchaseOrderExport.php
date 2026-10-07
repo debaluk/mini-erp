@@ -27,7 +27,7 @@ class PurchaseOrderExport implements FromCollection, WithHeadings, WithMapping, 
         $this->request = $request;
     }
 
-    public function collection()
+    public function collection(): \Illuminate\Support\Enumerable
     {
         $startDate      = $this->request->query('start_date', now()->startOfMonth()->format('Y-m-d'));
         $endDate        = $this->request->query('end_date', now()->endOfMonth()->format('Y-m-d'));
