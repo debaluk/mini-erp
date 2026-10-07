@@ -3,6 +3,13 @@
 <div class="d-flex justify-content-between align-items-center mb-3"><div><h4 class="mb-1">Penjualan</h4><div class="text-secondary small">Daftar transaksi penjualan</div></div><div class="d-flex gap-2"><button type="button" class="btn btn-success" id="btn-export-sales">↓ Export Excel</button><a href="{{ route('inventori.penjualan.create') }}" class="btn btn-primary">+ Tambah Penjualan</a></div></div>
 <div class="card shadow-sm"><div class="card-body border-bottom"><form method="GET" action="{{ route('inventori.penjualan') }}" class="row g-2 align-items-end"><div class="col-md-2"><label class="form-label">Tanggal Mulai</label><input type="date" name="start_date" value="{{ request('start_date', now()->startOfMonth()->toDateString()) }}" class="form-control"></div><div class="col-md-2"><label class="form-label">Tanggal Akhir</label><input type="date" name="end_date" value="{{ request('end_date', now()->endOfMonth()->toDateString()) }}" class="form-control"></div><div class="col-md-3"><label class="form-label">Pelanggan</label><input name="customer" value="{{ request('customer') }}" class="form-control" placeholder="Cari customer..."></div><div class="col-md-2"><label class="form-label">Unit</label><select name="unit_id" class="form-select"><option value="">Semua Unit</option>@foreach($units as $u)<option value="{{ $u->id }}" @selected((string)request("unit_id") === (string)$u->id)>{{ $u->name }}</option>@endforeach</select></div><div class="col-md-2"><label class="form-label">Cara Bayar</label><select name="payment_method" class="form-select"><option value="">Semua</option><option value="cash" @selected(request('payment_method') === 'cash')>Tunai</option><option value="credit" @selected(request('payment_method') === 'credit')>Kredit / Bon</option><option value="transfer" @selected(request('payment_method') === 'transfer')>Transfer</option><option value="qris" @selected(request('payment_method') === 'qris')>QRIS</option></select></div><div class="col-md-1"><button type="submit" class="btn btn-outline-primary w-100">Cari</button></div></form></div>
 <div class="table-responsive"><table id="salesTable" class="table table-hover align-middle mb-0"><thead class="table-light"><tr><th>No. Penjualan</th><th>Tanggal</th><th>Pelanggan</th><th>Unit</th><th>Cara Bayar</th><th>Jatuh Tempo</th><th class="text-end">Subtotal</th><th class="text-end">Diskon</th><th class="text-end">Total</th><th>Status</th><th class="text-end">Aksi</th></tr></thead><tbody>@forelse($rows as $r)<tr><td><a href="{{ route('inventori.penjualan.show', $r->id) }}" class="fw-semibold text-decoration-none">{{ $r->invoice_no }}</a></td><td>{{ \Carbon\Carbon::parse($r->sale_date)->format('d/m/Y') }}</td><td>{{ $r->customer_name ?? 'Umum' }}</td><td>{{ $r->unit_name ?? '-' }}</td><td>{{ collect(explode(', ', (string) $r->payment_methods))->map(fn($m) => match ($m) { 'cash' => 'Tunai', 'credit' => 'Kredit / Bon', 'transfer' => 'Transfer', 'qris' => 'QRIS', default => $m ?: '-' })->implode(', ') ?: '-' }}</td><td>{{ $r->due_date ? \Carbon\Carbon::parse($r->due_date)->format('d/m/Y') : '-' }}</td><td class="text-end">Rp {{ number_format((float)$r->subtotal,0,',','.') }}</td><td class="text-end">Rp {{ number_format((float)$r->discount,0,',','.') }}</td><td class="text-end">Rp {{ number_format((float)$r->total,0,',','.') }}</td><td><span class="badge {{ match (strtolower((string) $r->status)) { 'posted' => 'text-bg-success', 'draft' => 'text-bg-secondary', 'cancelled', 'canceled' => 'text-bg-danger', default => 'text-bg-secondary' } }}">{{ match (strtolower((string) $r->status)) { 'posted' => 'Diposting', 'draft' => 'Draf', 'cancelled', 'canceled' => 'Dibatalkan', default => $r->status ?: '-' } }}</span></td><td class="text-end">
+    @if(strtolower((string)$r->status) === 'posted')
+        <a href="{{ route('inventori.penjualan.edit', $r->id) }}" class="btn btn-sm btn-outline-primary py-0 px-2 me-1">Edit</a>
+        <form method="POST" action="{{ route('inventori.penjualan.destroy', $r->id) }}" class="d-inline form-cancel-sale">
+            @csrf @method('DELETE')
+            <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2 me-1">Hapus</button>
+        </form>
+    @endif
     <a href="{{ route('inventori.penjualan.print', $r->id) }}?print=1"
        target="_blank"
        class="text-secondary text-decoration-none"
@@ -51,6 +58,11 @@
 @push('scripts')
 <script>
 $(function () {
+    document.querySelectorAll('.form-cancel-sale').forEach(form => {
+        form.addEventListener('submit', e => {
+            if (!confirm('Batalkan penjualan ini? Stok dan jurnal akan dibalik.')) e.preventDefault();
+        });
+    });
     if ($.fn.DataTable && $('#salesTable').length) {
         $('#salesTable').DataTable({
             pageLength: 15,
