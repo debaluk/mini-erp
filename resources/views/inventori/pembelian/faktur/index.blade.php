@@ -480,7 +480,7 @@ const purchaseTable = new DataTable('#tablePurchases', {
                 (draft ? '<button type="button" class="btn btn-outline-warning" title="Edit" onclick="openEditModal(' + row.id + ', row.source_type)"><i class="bi bi-pencil"></i></button>' : '') +
                 (draft ? '<button type="button" class="btn btn-outline-success" title="Approval" onclick="approvePurchase(' + row.id + ')"><i class="bi bi-check-circle"></i></button>' : '') +
                 '<button type="button" class="btn btn-outline-secondary" title="Cetak" onclick="printFaktur(' + row.id + ')"><i class="bi bi-printer"></i></button>' +
-                '<button type="button" class="btn btn-outline-danger" title="Hapus" onclick="deletePurchase(' + row.id + ')"><i class="bi bi-trash"></i></button>' +
+                (row.status !== 'cancelled' ? '<button type="button" class="btn btn-outline-danger" title="Batalkan" onclick="deletePurchase(' + row.id + ')"><i class="bi bi-trash"></i></button>' : '') +
                 '</div>';
         }}
     ]
