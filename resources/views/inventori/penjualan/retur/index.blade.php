@@ -110,13 +110,13 @@
                     <input type="hidden" id="saleId" name="sale_id">
                     <input type="hidden" id="customerId" name="customer_id">
 
-                    {{-- INFORMASI REVERSAL WARNING PADA MODE EDIT --}}
+                    {{-- INFORMASI KOREKSI PADA MODE EDIT --}}
                     <div class="alert alert-warning py-2 px-3 mb-3 d-none" id="editReversalAlert">
                         <div class="d-flex align-items-center">
                             <i class="bi bi-exclamation-triangle-fill fs-5 me-2 text-warning"></i>
                             <div class="small">
                                 <strong>Mode Koreksi / Edit Retur Posted:</strong>
-                                Perubahan data retur ini secara otomatis akan membalikkan (reversal) jurnal GL &amp; mutasi stok lama, lalu menerbitkan jurnal koreksi baru yang presisi.
+                                Perubahan data retur akan memperbarui mutasi stok dan isi jurnal pada dokumen retur yang sama. Tidak dibuat jurnal reversal.
                             </div>
                         </div>
                     </div>
