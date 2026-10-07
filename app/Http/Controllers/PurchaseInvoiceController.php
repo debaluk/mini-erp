@@ -698,7 +698,7 @@ class PurchaseInvoiceController extends Controller
                             $oldValue = $oldQty * (float) $stock->avg_cost;
                             $removeValue = $qty * (float) $item->base_unit_cost;
                             if ($oldValue + 0.01 < $removeValue) {
-                                throw new \\RuntimeException('Faktur tidak dapat dibatalkan karena nilai stok saat ini tidak mencukupi untuk membalik nilai penerimaan.');
+                                throw new \RuntimeException('Faktur tidak dapat dibatalkan karena nilai stok saat ini tidak mencukupi untuk membalik nilai penerimaan.');
                             }
 
                             $newQty = $oldQty - $qty;
