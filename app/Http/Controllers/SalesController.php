@@ -697,8 +697,7 @@ class SalesController extends Controller
             ->whereBetween('s.sale_date', [
                 $startDate . ' 00:00:00',
                 $endDate . ' 23:59:59',
-            ])
-            ->when($businessUnitId, fn ($q) =>
+            ])            ->when($businessUnitId, fn ($q) =>
                 $q->where('s.business_unit_id', $businessUnitId)
             )
             ->sum('si.hpp_total');
@@ -1398,7 +1397,6 @@ class SalesController extends Controller
             $sheet->getStyle('F8:F' . ($row - 1))
                 ->getNumberFormat()->setFormatCode($moneyFormat);
         }
-
         $sheet->freezePane('A8');
         $sheet->setAutoFilter('A7:G' . $detailEnd);
 
@@ -1424,6 +1422,18 @@ class SalesController extends Controller
                 'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             ]
         );
+    }
+
+    private function productionProductIds(int $entity, int $businessUnitId): array
+    {
+        return DB::table('boms')
+            ->where('entity_id', $entity)
+            ->where('business_unit_id', $businessUnitId)
+            ->where('is_active', 1)
+            ->pluck('product_id')
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
     }
 
     private function assertSalePeriodOpen(string $date): void
@@ -1693,7 +1703,7 @@ class SalesController extends Controller
             ->when($user->role !== 'owner', function ($query) use ($user) {
                 $query->join('user_business_units as ubu', 'ubu.business_unit_id', '=', 'bu.id')
                     ->where('ubu.user_id', $user->id);
-            })->orderBy('bu.name')->get(['bu.id', 'bu.code', 'bu.name']);
+            })->orderBy('bu.name')->get(['bu.id', 'bu.code', 'bu.name', 'bu.business_type']);
 
         $customers = DB::table('customers as c')
             ->where('c.entity_id', $entity)
@@ -1712,6 +1722,11 @@ class SalesController extends Controller
             ->where('p.entity_id', $entity)->where('p.is_active', 1)
             ->select('p.id','p.code','p.sku','p.barcode','p.name','p.base_unit_id','u.code as base_unit_code','u.name as base_unit_name')
             ->orderBy('p.name')->get();
+
+        $productionProductIds = $units
+            ->filter(fn ($unit) => $unit->business_type === 'production')
+            ->mapWithKeys(fn ($unit) => [$unit->id => $this->productionProductIds($entity, (int) $unit->id)])
+            ->all();
 
         $productPrices = DB::table('product_prices')
             ->whereIn('product_id', $products->pluck('id'))->whereIn('business_unit_id', $units->pluck('id'))
@@ -1747,7 +1762,7 @@ class SalesController extends Controller
         ])->values();
 
         return view('inventori.penjualan.tempo.edit', compact(
-            'sale','units','customers','productCatalog','initialItems','paymentMethod'
+            'sale','units','customers','productCatalog','initialItems','paymentMethod','productionProductIds'
         ));
     }
 
@@ -1978,7 +1993,7 @@ class SalesController extends Controller
                     ->where('ubu.user_id', $user->id);
             })
             ->orderBy('bu.name')
-            ->get(['bu.id', 'bu.code', 'bu.name']);
+            ->get(['bu.id', 'bu.code', 'bu.name', 'bu.business_type']);
 
         $defaultUnitId = $user->default_business_unit_id;
         if ($defaultUnitId && !$units->contains('id', (int) $defaultUnitId)) {
@@ -2004,6 +2019,11 @@ class SalesController extends Controller
             ->select('p.id', 'p.code', 'p.sku', 'p.barcode', 'p.name', 'p.base_unit_id', 'u.code as base_unit_code', 'u.name as base_unit_name')
             ->orderBy('p.name')
             ->get();
+
+        $productionProductIds = $units
+            ->filter(fn ($unit) => $unit->business_type === 'production')
+            ->mapWithKeys(fn ($unit) => [$unit->id => $this->productionProductIds($entity, (int) $unit->id)])
+            ->all();
 
         $productPrices = DB::table('product_prices')
             ->whereIn('product_id', $products->pluck('id'))
@@ -2039,7 +2059,8 @@ class SalesController extends Controller
             'units',
             'defaultUnitId',
             'customers',
-            'productCatalog'
+            'productCatalog',
+            'productionProductIds'
         ));
     }
 }
