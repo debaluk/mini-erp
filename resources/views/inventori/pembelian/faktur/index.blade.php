@@ -4,64 +4,28 @@
 
 @section('content')
 <div class="container-fluid px-0 py-0">
-    <!-- ========================================== -->
-    <!-- HEADER BAR & FILTER UTAMA                  -->
-    <!-- ========================================== -->
     <div class="card border-0 shadow-sm mb-3">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <div>
-            <h3 class="mb-1 fw-bold text-dark"><i class="bi bi-receipt-cutoff me-2 text-primary"></i>Faktur Pembelian</h3>
-            <div class="text-secondary small">Daftar Faktur Pembelian</div>
-        </div>
-           
-            <div class="d-flex gap-2">
-                <a href="javascript:void(0)" onclick="openModalNonPo()" class="btn btn-primary btn-sm px-3 fw-semibold shadow-sm">
-                <i class="bi bi-plus-circle me-1"></i> + Pembelian Langsung
-                </a>
-                <a href="javascript:void(0)" onclick="openModalPo()"  class="btn btn-primary btn-sm px-3 fw-semibold shadow-sm">
-                    <i class="bi bi-plus-circle me-1"></i> + Faktur Pembelian PO
-                </a>
-                <a href="{{ route('inventori.pembelian.export-excel', request()->all()) }}" class="btn btn-success btn-sm px-3 fw-semibold shadow-sm">
-                    <i class="bi bi-file-earmark-excel me-1"></i> Export
-                </a>
-              
+        <div class="card-body p-3">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                <div>
+                    <h3 class="mb-1 fw-bold text-dark"><i class="bi bi-receipt-cutoff me-2 text-primary"></i>Faktur Pembelian</h3>
+                    <div class="text-muted small">Daftar transaksi pembelian dan faktur supplier</div>
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="javascript:void(0)" onclick="openModalNonPo()" class="btn btn-primary btn-sm px-3 fw-semibold"><i class="bi bi-plus-circle me-1"></i>Pembelian Langsung</a>
+                    <a href="javascript:void(0)" onclick="openModalPo()" class="btn btn-primary btn-sm px-3 fw-semibold"><i class="bi bi-file-earmark-plus me-1"></i>Faktur dari PO</a>
+                    <a href="{{ route('inventori.pembelian.export-excel', request()->all()) }}" class="btn btn-success btn-sm px-3 fw-semibold"><i class="bi bi-file-earmark-excel me-1"></i>Export</a>
+                </div>
             </div>
-        </div>
-        <div class="card-body bg-light p-2">
-            <form id="formFilter" class="row g-2 align-items-center">
-                <div class="col-md-2">
-                    <label class="form-label mb-1 small fw-bold">Mulai Tanggal</label>
-                    <input type="date" id="filter-start-date" class="form-control form-control-sm" value="{{ $startDate }}">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label mb-1 small fw-bold">Sampai Tanggal</label>
-                    <input type="date" id="filter-end-date" class="form-control form-control-sm" value="{{ $endDate }}">
-                </div>
-               <div class="col-md-2">
-                    <label class="form-label mb-1 small fw-bold">Unit Bisnis</label>
-                    <select id="filter-bu" class="form-select form-select-sm">
-                        <option value="">Semua Unit Bisnis</option>
-                       @foreach($businessUnits as $bu)
-                                    <option value="{{ $bu->id }}">{{ $bu->code }} - {{ $bu->name }}</option>
-                                @endforeach
-                    </select>
-                </div>
-              <div class="col-md-2">
-                    <label class="form-label mb-1 small fw-bold">Supplier</label>
-                    <select id="filter-supplier" class="form-select form-select-sm">
-                        <option value="">Semua Supplier</option>
-                        @foreach($suppliers as $s)
-                                    <option value="{{ $s->id }}">{{ $s->name }}</option>
-                                @endforeach
-                    </select>
-                </div>
-               
-                <div class="col-md-1 d-flex align-items-end">
-                    <button type="button" class="btn btn-sm btn-primary w-100 fw-bold" onclick="loadData(1)">
-                        <i class="bi bi-search"></i>
-                    </button>
-                </div>
-            </form>
+            <div class="bg-light border rounded p-2">
+                <form id="formFilter" class="row g-2 align-items-end">
+                    <div class="col-md-2"><label class="form-label mb-1 small fw-semibold">Mulai Tanggal</label><input type="date" id="filter-start-date" class="form-control form-control-sm" value="{{ $startDate }}"></div>
+                    <div class="col-md-2"><label class="form-label mb-1 small fw-semibold">Sampai Tanggal</label><input type="date" id="filter-end-date" class="form-control form-control-sm" value="{{ $endDate }}"></div>
+                    <div class="col-md-3"><label class="form-label mb-1 small fw-semibold">Unit Bisnis</label><select id="filter-bu" class="form-select form-select-sm"><option value="">Semua Unit Bisnis</option>@foreach($businessUnits as $bu)<option value="{{ $bu->id }}">{{ $bu->code }} - {{ $bu->name }}</option>@endforeach</select></div>
+                    <div class="col-md-3"><label class="form-label mb-1 small fw-semibold">Supplier</label><select id="filter-supplier" class="form-select form-select-sm"><option value="">Semua Supplier</option>@foreach($suppliers as $s)<option value="{{ $s->id }}">{{ $s->name }}</option>@endforeach</select></div>
+                    <div class="col-md-2"><button type="button" class="btn btn-sm btn-primary w-100 fw-semibold" onclick="loadData(1)"><i class="bi bi-search me-1"></i>Tampilkan</button></div>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -70,12 +34,12 @@
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-sm table-hover table-striped align-middle mb-0" id="tablePurchases">
-                    <thead class="table-dark">
+                    <thead class="table-light">
                         <tr>
-                            <th class="ps-3 py-2">No. Faktur (FB)</th>
+                            <th class="ps-3 py-2 small text-uppercase">No. Faktur</th>
                             <th class="py-2">Tanggal</th>
-                            <th class="py-2">Jalur Transaksi</th>
-                            <th class="py-2">Vendor / Supplier</th>
+                            <th class="py-2 small text-uppercase">Jalur</th>
+                            <th class="py-2 small text-uppercase">Supplier</th>
                             <th class="py-2">Unit Bisnis</th>
                             <th class="text-end py-2">Total Netto (Rp)</th>
                             <th class="text-center py-2">Status</th>
