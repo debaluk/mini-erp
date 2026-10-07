@@ -441,12 +441,13 @@ class PurchaseOrderController extends Controller
     {
         $dateStr = date('Ymd');
         $last    = DB::table('purchase_orders')
-            ->where('po_no', 'LIKE', "PO-{$dateStr}-%")
+            ->where('po_no', 'LIKE', "PO-{$dateStr}%")
             ->orderBy('id', 'desc')
             ->first();
 
-        $nextSeq = $last ? ((int) substr($last->po_no, -3)) + 1 : 1;
-        return 'PO-' . $dateStr . '-' . str_pad($nextSeq, 3, '0', STR_PAD_LEFT);
+        $nextSeq = $last ? ((int) substr($last->po_no, -5)) + 1 : 1;
+
+        return 'PO-' . $dateStr . str_pad($nextSeq, 5, '0', STR_PAD_LEFT);
     }
 	
 	public function exportExcel(Request $request)
