@@ -1496,6 +1496,7 @@ class SalesController extends Controller
         }
 
         $saleDate = \Carbon\Carbon::createFromFormat('Y-m-d', $data['sale_date'])->startOfDay();
+        $this->assertSalePeriodOpen($saleDate->toDateString());
         $prefix = $this->salesPrefix($unit);
         $lockName = 'sales_no:' . $entity . ':' . $prefix . ':' . $saleDate->format('Ym');
         $lock = DB::selectOne('SELECT GET_LOCK(?, 10) AS locked', [$lockName]);
