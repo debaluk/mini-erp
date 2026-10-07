@@ -223,6 +223,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const confirmNo = document.getElementById('erpConfirmNo');
     let confirmResolve = null;
 
+    let messageNotifyTimer = null;
     window.erpNotify = (message, type = 'success') => {
         const titles = {success:'Berhasil', danger:'Gagal', warning:'Peringatan', info:'Informasi'};
         const buttons = {success:'btn-primary', danger:'btn-danger', warning:'btn-warning', info:'btn-primary'};
@@ -238,7 +239,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const okButton = messageEl.querySelector('.modal-footer button');
         okButton.className = 'btn btn-sm ' + (buttons[type] || buttons.info);
+        if (messageNotifyTimer) clearTimeout(messageNotifyTimer);
         messageModal.show();
+        messageNotifyTimer = setTimeout(() => messageModal.hide(), 3000);
     };
 
     window.erpConfirm = (message = 'Apakah Anda yakin?', title = 'Konfirmasi') => new Promise(resolve => {
