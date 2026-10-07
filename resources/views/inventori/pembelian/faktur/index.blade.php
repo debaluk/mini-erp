@@ -473,7 +473,7 @@ const purchaseTable = new DataTable('#tablePurchases', {
         { data: 'payment_method_label', render: data => '<span class="badge bg-light text-dark border">' + (data || '-') + '</span>' },
         { data: 'formatted_due_date' },
         { data: 'formatted_grand', className: 'text-end fw-bold' },
-        { data: 'status', className: 'text-center', render: data => data === 'draft' ? '<span class="badge bg-warning text-dark">DRAFT</span>' : '<span class="badge bg-success">APPROVED</span>' },
+        { data: 'status', className: 'text-center', render: data => data === 'draft' ? '<span class="badge bg-warning text-dark">DRAFT</span>' : (data === 'cancelled' ? '<span class="badge bg-secondary">CANCEL</span>' : '<span class="badge bg-success">APPROVED</span>') },
         { data: null, orderable: false, searchable: false, className: 'text-center', render: (data, type, row) => {
             const draft = row.status === 'draft';
             return '<div class="btn-group btn-group-sm">' +
@@ -929,11 +929,11 @@ function approvePurchase(id) {
 
 function deletePurchase(id) {
     Swal.fire({
-        title: 'Hapus Faktur Pembelian?',
-        text: 'Faktur yang dihapus tidak akan tampil pada daftar pembelian.',
+        title: 'Batalkan Faktur Pembelian?',
+        text: 'Faktur akan berstatus CANCEL. Jika merupakan pembelian langsung (Non-PO), stok dan jurnal penerimaan juga akan dibalik. Pastikan transaksi belum termasuk periode closing.',
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonText: 'Ya, Hapus',
+        confirmButtonText: 'Ya, Batalkan',
         cancelButtonText: 'Batal'
     }).then((result) => {
         if (result.isConfirmed) {
@@ -941,14 +941,31 @@ function deletePurchase(id) {
                 method: 'DELETE',
                 headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'X-Requested-With': 'XMLHttpRequest' }
             })
-            .then(res => res.json())
-            .then(res => {
-                if(res.status === 'success') {
-                    showToast('success', res.message);
-                    loadData(1);
+            .then(async res => {
+                const data = await res.json();
+                if (res.ok && data.status === 'success') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil!',
+                        text: data.message,
+                        timer: 1800,
+                        showConfirmButton: false
+                    });
+                    purchaseTable.ajax.reload(null, false);
                 } else {
-                    showToast('error', res.message);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal!',
+                        text: data.message || 'Terjadi kesalahan sistem'
+                    });
                 }
+            })
+            .catch(() => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal!',
+                    text: 'Terjadi kesalahan sistem'
+                });
             });
         }
     });
