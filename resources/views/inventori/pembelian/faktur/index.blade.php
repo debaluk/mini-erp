@@ -477,10 +477,10 @@ const purchaseTable = new DataTable('#tablePurchases', {
         { data: null, orderable: false, searchable: false, className: 'text-center', render: (data, type, row) => {
             const draft = row.status === 'draft';
             return '<div class="d-flex justify-content-center">' +
-                (draft ? '<button type="button" class="btn btn-outline-warning px-2" title="Edit" onclick="openEditModal(' + row.id + ', row.source_type)"><i class="bi bi-pencil"></i></button>' : '') +
-                (draft ? '<button type="button" class="btn btn-outline-success px-2" title="Approval" onclick="approvePurchase(' + row.id + ')"><i class="bi bi-check2-circle"></i></button>' : '') +
-                '<button type="button" class="btn btn-outline-secondary px-2" title="Cetak" onclick="printFaktur(' + row.id + ')"><i class="bi bi-printer"></i></button>' +
-                '<button type="button" class="btn btn-outline-danger px-2" title="Hapus" onclick="deletePurchase(' + row.id + ')"><i class="bi bi-trash"></i></button>' +
+                (draft ? '<button type="button" class="btn btn-outline-warning" title="Edit" onclick="openEditModal(' + row.id + ', row.source_type)"><i class="bi bi-pencil"></i></button>' : '') +
+                (draft ? '<button type="button" class="btn btn-outline-success" title="Approval" onclick="approvePurchase(' + row.id + ')"><i class="bi bi-check2-circle"></i></button>' : '') +
+                '<button type="button" class="btn btn-outline-secondary" title="Cetak" onclick="printFaktur(' + row.id + ')"><i class="bi bi-printer"></i></button>' +
+                '<button type="button" class="btn btn-outline-danger" title="Hapus" onclick="deletePurchase(' + row.id + ')"><i class="bi bi-trash"></i></button>' +
                 '</div>';
         }}
     ]
