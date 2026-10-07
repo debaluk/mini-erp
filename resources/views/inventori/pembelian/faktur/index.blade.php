@@ -170,7 +170,7 @@
 
                     <!-- Summary Total (Ringkas & Tanpa PPN) -->
                     <div class="row justify-content-end g-2">
-                        <div class="col-md-4">
+                        <div class="col-md-8">
                         <label class="form-label">Memo</label>
                             <textarea id="memoInput" class="form-control" rows="3"></textarea>
                         </div>
