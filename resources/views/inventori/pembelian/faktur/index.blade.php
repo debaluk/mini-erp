@@ -9,7 +9,11 @@
     <!-- ========================================== -->
     <div class="card border-0 shadow-sm mb-3">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h6 class="mb-0 fw-bold"><i class="bi bi-receipt-cutoff me-2"></i>Daftar Faktur Pembelian</h6>
+            <div>
+            <h3 class="mb-1 fw-bold text-dark"><i class="bi bi-receipt-cutoff me-2 text-primary"></i>Purchase Order</h3>
+            <div class="text-secondary small">Daftar Faktur Pembelian</div>
+        </div>
+           
             <div class="d-flex gap-2">
                 <a href="javascript:void(0)" onclick="openModalNonPo()" class="btn btn-primary btn-sm px-3 fw-semibold shadow-sm">
                 <i class="bi bi-plus-circle me-1"></i> + Pembelian Langsung
