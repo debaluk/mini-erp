@@ -770,7 +770,7 @@ function saveNonPo(e) {
             showToast('success', res.message);
             loadData(1);
         } else {
-            showToast('error', res.message);
+            Swal.fire({ icon: 'error', title: 'Gagal!', text: res.message });
         }
     });
 }
@@ -903,12 +903,11 @@ function openEditModal(id, sourceType) {
 function approvePurchase(id) {
     Swal.fire({
         title: 'Approve Faktur Pembelian?',
-        text: 'Setelah di-approve, status nota menjadi APPROVED dan resmi terikat di sistem!',
+        text: `Faktur [${id}] akan di-approve untuk proses pembelian selanjutnya.`,
         icon: 'question',
         showCancelButton: true,
-        confirmButtonColor: '#198754',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Ya, Approve Now!'
+        confirmButtonText: 'Ya, Approve',
+        cancelButtonText: 'Batal'
     }).then((result) => {
         if (result.isConfirmed) {
             fetch(`/inventori/pembelian/faktur/${id}/approve`, {
@@ -918,8 +917,8 @@ function approvePurchase(id) {
             .then(res => res.json())
             .then(res => {
                 if(res.status === 'success') {
-                    showToast('success', res.message);
-                    loadData(1);
+                    Swal.fire({ icon: 'success', title: 'Berhasil!', text: res.message, timer: 1800, showConfirmButton: false });
+                    purchaseTable.ajax.reload(null, false);
                 } else {
                     showToast('error', res.message);
                 }
@@ -931,12 +930,11 @@ function approvePurchase(id) {
 function deletePurchase(id) {
     Swal.fire({
         title: 'Hapus Faktur Pembelian?',
-        text: 'Tindakan ini memerlukan wewenang Manager/Admin!',
+        text: 'Faktur yang dihapus tidak akan tampil pada daftar pembelian.',
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Ya, Hapus!'
+        confirmButtonText: 'Ya, Hapus',
+        cancelButtonText: 'Batal'
     }).then((result) => {
         if (result.isConfirmed) {
             fetch(`/inventori/pembelian/faktur/${id}`, {
