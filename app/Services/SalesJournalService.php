@@ -33,15 +33,19 @@ class SalesJournalService
                 ->lockForUpdate()
                 ->first();
 
-            if ($existing) {
-                if ($existing->status !== 'posted') {
-                    DB::table('journals')->where('id', $existing->id)->update([
-                        'status' => 'posted',
-                        'updated_at' => now(),
-                    ]);
-                }
+            $journalId = null;
 
-                return (int) $existing->id;
+            if ($existing) {
+                $journalId = (int) $existing->id;
+
+                DB::table('journals')->where('id', $journalId)->update([
+                    'business_unit_id' => $sale->business_unit_id,
+                    'journal_date' => date('Y-m-d', strtotime($sale->sale_date)),
+                    'status' => 'posted',
+                    'updated_at' => now(),
+                ]);
+
+                DB::table('journal_entries')->where('journal_id', $journalId)->delete();
             }
 
             $mappingKeys = match ($sale->business_type) {
@@ -100,7 +104,8 @@ class SalesJournalService
             $customer = trim((string) ($sale->customer_name ?? ''));
             $description = 'Penjualan #'.$sale->invoice_no.' an '.($customer !== '' ? $customer : 'Umum');
 
-            $journalId = DB::table('journals')->insertGetId([
+            if (!$journalId) {
+                $journalId = DB::table('journals')->insertGetId([
                 'entity_id' => $entityId,
                 'business_unit_id' => $sale->business_unit_id,
                 'journal_no' => 'JRN-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4)),
@@ -111,7 +116,8 @@ class SalesJournalService
                 'status' => 'posted',
                 'created_at' => now(),
                 'updated_at' => now(),
-            ]);
+                ]);
+            }
 
             $entries = [
                 [
