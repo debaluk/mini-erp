@@ -1,305 +1,320 @@
 @extends('layouts.app')
 
+@section('title', 'Faktur Pembelian (FB)')
+
 @section('content')
-<div class="container-fluid px-0 py-0">
-
-    <!-- Header & Actions -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-            <h3 class="mb-1 fw-bold text-dark"><i class="bi bi-receipt me-2 text-primary"></i>Faktur Pembelian</h3>
-            <div class="text-secondary small">Pencatatan Pembelian Barang, Pengakuan Hutang Usaha</div>
+<div class="container-fluid py-3">
+    <!-- ========================================== -->
+    <!-- HEADER BAR & FILTER UTAMA                  -->
+    <!-- ========================================== -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-3">
+            <h5 class="mb-0 fw-bold"><i class="bi bi-receipt-cutoff me-2"></i>Daftar Faktur Pembelian (FB)</h5>
+            <div class="d-flex gap-2">
+                <button class="btn btn-light text-primary fw-semibold shadow-sm" onclick="exportExcel()">
+                    <i class="bi bi-file-earmark-excel me-1 text-success"></i> Ekspor Excel
+                </button>
+                <div class="dropdown">
+                    <button class="btn btn-warning fw-bold text-dark dropdown-toggle shadow-sm" type="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-plus-circle-fill me-1"></i> Buat Pembelian Baru
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                        <li>
+                            <a class="dropdown-item fw-bold text-primary py-2" href="javascript:void(0)" onclick="openModalNonPo()">
+                                <i class="bi bi-cart-plus-fill me-2 fs-6"></i>1. Pembelian Langsung (Non-PO)
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <li>
+                            <a class="dropdown-item fw-bold text-success py-2" href="javascript:void(0)" onclick="openModalPo()">
+                                <i class="bi bi-file-earmark-check-fill me-2 fs-6"></i>2. Berdasarkan PO Approved
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
         </div>
-        <div class="d-flex gap-2">
-            <a href="#" class="btn btn-primary btn-sm px-3 fw-semibold shadow-sm" id="btnFakturNonPO">
-                <i class="bi bi-plus-circle me-1"></i> + Pembelian Langsung
-            </a>
-            <a href="#" class="btn btn-primary btn-sm px-3 fw-semibold shadow-sm" id="btnFakturPO">
-                <i class="bi bi-plus-circle me-1"></i> + Faktur Pembelian PO
-            </a>
-            <a href="{{ route('inventori.pembelian.export-excel', request()->all()) }}" class="btn btn-success btn-sm px-3 fw-semibold shadow-sm">
-                <i class="bi bi-file-earmark-excel me-1"></i> Export
-            </a>
-        </div>
-    </div>
-
-    <!-- Filter Card -->
-    <div class="card shadow-sm border-0 mb-2">
-        <div class="card-body p-3">
-            <form id="form-filter" class="row g-2 align-items-end">
-                <div class="col-md-2">
-                    <label class="form-label mb-1 small fw-bold">Mulai Tanggal</label>
-                    <input type="date" id="filter-start-date" class="form-control form-control-sm" value="{{ $startDate }}">
+        <div class="card-body bg-light">
+            <form id="formFilter" class="row g-3 align-items-center">
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted mb-1">Periode Tanggal</label>
+                    <div class="input-group input-group-sm">
+                        <input type="date" class="form-control" id="filter_start_date" value="{{ date('Y-m-01') }}">
+                        <span class="input-group-text bg-white border-start-0 border-end-0">s/d</span>
+                        <input type="date" class="form-control" id="filter_end_date" value="{{ date('Y-m-d') }}">
+                    </div>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label mb-1 small fw-bold">Sampai Tanggal</label>
-                    <input type="date" id="filter-end-date" class="form-control form-control-sm" value="{{ $endDate }}">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label mb-1 small fw-bold">Unit Bisnis</label>
-                    <select id="filter-bu" class="form-select form-select-sm">
-                        <option value="">Semua Unit Bisnis</option>
-                       @foreach($businessUnits as $bu)
-                                    <option value="{{ $bu->id }}">{{ $bu->code }} - {{ $bu->name }}</option>
-                                @endforeach
+                    <label class="form-label small fw-bold text-muted mb-1">Status Faktur</label>
+                    <select class="form-select form-select-sm" id="filter_status">
+                        <option value="">-- Semua Status --</option>
+                        <option value="draft">DRAFT (Belum Approve)</option>
+                        <option value="approved">APPROVED (Selesai)</option>
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label mb-1 small fw-bold">Supplier</label>
-                    <select id="filter-supplier" class="form-select form-select-sm">
-                        <option value="">Semua Supplier</option>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted mb-1">Vendor / Supplier</label>
+                    <select class="form-select form-select-sm" id="filter_supplier_id">
+                        <option value="">-- Semua Vendor --</option>
                         @foreach($suppliers as $s)
-                                    <option value="{{ $s->id }}">{{ $s->name }}</option>
-                                @endforeach
+                            <option value="{{ $s->id }}">{{ $s->code }} - {{ $s->name }}</option>
+                        @endforeach
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label mb-1 small fw-bold">Cara Bayar</label>
-                    <select id="filter-payment" class="form-select form-select-sm">
-                        <option value="">Semua Cara Bayar</option>
-                        <option value="cash">Tunai / Cash</option>
-                        <option value="credit">Kredit (Tempo)</option>
-                    </select>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted mb-1">Pencarian Kata Kunci</label>
+                    <input type="text" class="form-control form-control-sm" id="filter_search" placeholder="No. FB / No. PO / Vendor...">
                 </div>
-                <div class="col-md-2 d-flex gap-1">
-                    <button type="button" id="btn-apply-filter" class="btn btn-primary btn-sm w-100"><i class="bi bi-search me-1"></i> Tampil</button>
-                    <button type="button" id="btn-reset-filter" class="btn btn-outline-secondary btn-sm">Reset</button>
+                <div class="col-md-1 d-flex align-items-end">
+                    <button type="button" class="btn btn-sm btn-primary w-100 fw-bold" onclick="loadData(1)">
+                        <i class="bi bi-search me-1"></i> Cari
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- DataTables Table -->
-    <div class="card shadow-sm border-0">
+    <!-- ========================================== -->
+    <!-- TABEL UTAMA DAFTAR FAKTUR PEMBELIAN        -->
+    <!-- ========================================== -->
+    <div class="card border-0 shadow-sm">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table id="table-pembelian" class="table table-hover table-striped align-middle w-100" style="font-size: 0.88rem;">
-                    <thead class="table-dark text-center">
+                <table class="table table-hover table-striped align-middle mb-0" id="tablePurchases">
+                    <thead class="table-dark">
                         <tr>
-                            <th style="width: 140px;">No. Bukti</th>
-                            <th style="width: 85px;">Tanggal</th>
-                            <th>Supplier</th>
-                            <th style="width: 140px;">Faktur Supplier</th>
-                            <th style="width: 110px;">Cara Bayar</th>
-                            <th style="width: 90px;">Stok</th>
-                            <th style="width: 130px;">Jumlah</th>
-                            <th style="width: 90px;">Status</th>
-                            <th style="width: 130px;">Aksi</th>
+                            <th class="ps-3 py-3">No. Faktur (FB)</th>
+                            <th class="py-3">Tanggal</th>
+                            <th class="py-3">Jalur Transaksi</th>
+                            <th class="py-3">Vendor / Supplier</th>
+                            <th class="py-3">Unit Bisnis</th>
+                            <th class="text-end py-3">Total Netto (Rp)</th>
+                            <th class="text-center py-3">Status</th>
+                            <th class="text-center py-3" style="width: 140px;">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody></tbody>
+                    <tbody id="tbodyPurchases">
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                                Memuat data faktur pembelian...
+                            </td>
+                        </tr>
+                    </tbody>
                 </table>
             </div>
         </div>
+        <div class="card-footer bg-white d-flex justify-content-between align-items-center py-3" id="paginationContainer">
+            <!-- Pagination Render via JS -->
+        </div>
     </div>
-
 </div>
 
-{{-- ========================================================================= --}}
-{{-- MODAL 2: FORM PO --}}
-{{-- ========================================================================= --}}
-<div class="modal fade" id="btnFakturPO" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-danger text-white py-2 px-3">
-                <h6 class="modal-title fw-bold" id="modalReturnFormTitle">
-                    <i class="bi bi-arrow-return-left me-2"></i>Faktur Pembelian (PO)
-                </h6>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+<!-- ================================================================================= -->
+<!-- MODAL 1: PEMBELIAN LANGSUNG (NON-PO)                                             -->
+<!-- ================================================================================= -->
+<div class="modal fade" id="modalNonPo" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white py-3">
+                <h5 class="modal-title fw-bold"><i class="bi bi-cart-plus-fill me-2"></i>1. Input Pembelian Langsung (Non-PO / Direct)</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body p-3">
-                <form id="returnForm">
-                    <input type="hidden" id="returnId" name="return_id">
-                    <input type="hidden" id="entityId" name="entity_id" value="{{ auth()->user()->entity_id ?? 1 }}">
-                    <input type="hidden" id="businessUnitId" name="business_unit_id">
-                    <input type="hidden" id="saleId" name="sale_id">
-                    <input type="hidden" id="customerId" name="customer_id">
+            <form id="formNonPo" onsubmit="saveNonPo(event)">
+                <input type="hidden" id="nonpo_id" name="id">
+                <div class="modal-body bg-light p-4">
+                    <!-- Section Header Info -->
+                    <div class="card border-0 shadow-sm p-3 mb-3 bg-white">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold text-dark small">Unit Bisnis <span class="text-danger">*</span></label>
+                                <select class="form-select form-select-sm fw-semibold" id="nonpo_business_unit_id" name="business_unit_id" required>
+                                    @foreach($businessUnits as $bu)
+                                        <option value="{{ $bu->id }}">{{ $bu->code }} - {{ $bu->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold text-dark small">Vendor / Supplier <span class="text-danger">*</span></label>
+                                <div class="input-group input-group-sm">
+                                    <input type="text" class="form-control bg-white fw-bold" id="nonpo_supplier_name" placeholder="Pilih Vendor..." readonly required>
+                                    <input type="hidden" id="nonpo_supplier_id" name="supplier_id" required>
+                                    <button class="btn btn-outline-primary fw-semibold" type="button" onclick="openSearchVendor()"><i class="bi bi-search"></i> Cari</button>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold text-dark small">Tanggal Pembelian <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control form-control-sm fw-semibold" id="nonpo_purchase_date" name="purchase_date" value="{{ date('Y-m-d') }}" required>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label fw-bold text-dark small">Pintu Stok Fisik</label>
+                                <div class="form-check form-switch mt-1">
+                                    <input class="form-check-input" type="checkbox" id="nonpo_goods_received" name="goods_received" value="1" checked>
+                                    <label class="form-check-label fw-bold text-success small" for="nonpo_goods_received">Diterima Langsung</label>
+                                </div>
+                            </div>
+                        </div>
 
-                    {{-- INFORMASI KOREKSI PADA MODE EDIT --}}
-                    <div class="alert alert-warning py-2 px-3 mb-3 d-none" id="editReversalAlert">
-                        <div class="d-flex align-items-center">
-                            <i class="bi bi-exclamation-triangle-fill fs-5 me-2 text-warning"></i>
-                            <div class="small">
-                                <strong>Mode Koreksi / Edit Retur Posted:</strong>
-                                Perubahan data retur akan memperbarui mutasi stok dan isi jurnal pada dokumen retur yang sama. Tidak dibuat jurnal reversal.
+                        <div class="row g-3 mt-1">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold text-dark small">No. Faktur Supplier</label>
+                                <input type="text" class="form-control form-control-sm" id="nonpo_supplier_invoice_no" name="supplier_invoice_no" placeholder="Contoh: INV-SUP-9988">
                             </div>
                         </div>
                     </div>
 
-                    {{-- HEADER SELECTION --}}
-                    <div class="row g-2 mb-3 bg-light p-2 rounded border">
-                        <div class="col-md-3">
-                            <label class="form-label extra-small fw-bold text-muted mb-1">Cari Ref. PO *</label>
-                            <div class="input-group input-group-sm">
-                                <input type="text" class="form-control fw-bold bg-white" id="invoiceNoDisplay" placeholder="Klik tombol cari..." readonly required>
-                                <button class="btn btn-danger" type="button" id="btnOpenSearchInvoice">
-                                    <i class="bi bi-search"></i>
-                                </button>
-                            </div>
+                    <!-- Section Item List -->
+                    <div class="card border-0 shadow-sm p-3 mb-3 bg-white">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="fw-bold text-primary mb-0"><i class="bi bi-box-seam-fill me-1"></i>Rincian Barang Pembelian</h6>
+                            <button type="button" class="btn btn-sm btn-success fw-bold px-3 shadow-sm" onclick="openSearchProduct()">
+                                <i class="bi bi-plus-lg me-1"></i> Tambah Barang
+                            </button>
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label extra-small fw-bold text-muted mb-1">Supplier</label>
-                            <input type="text" class="form-control form-control-sm bg-white" id="customerNameDisplay" placeholder="-" readonly>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label extra-small fw-bold text-muted mb-1">Tanggal Pembelian *</label>
-                            <input type="datetime-local" class="form-control form-control-sm" id="returnDate" name="return_date" required value="{{ date('Y-m-d\TH:i') }}">
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label extra-small fw-bold text-muted mb-1">Gudang *</label>
-                            <select class="form-select form-select-sm" id="warehouseId" name="warehouse_id" required disabled>
-                                <option value="">-- Pilih Gudang --</option>
-                                @foreach($warehouses ?? [] as $wh)
-                                    <option value="{{ $wh->id }}">{{ $wh->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label extra-small fw-bold text-muted mb-1">No. Retur</label>
-                            <input type="text" class="form-control form-control-sm bg-white" id="returnNo" name="return_no" placeholder="[Auto Generated]" readonly>
-                        </div>
-                    </div>
-
-                    {{-- TABEL LINE ITEMS --}}
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="fw-bold extra-small text-uppercase text-secondary">Rincian Barang yang Diretur</span>
-                            <span class="badge bg-secondary extra-small" id="itemCountBadge">0 Item</span>
-                        </div>
-                        <div class="table-responsive border rounded">
-                            <table class="table table-sm table-bordered align-middle mb-0" id="returnItemsTable">
-                                <thead class="bg-light text-muted extra-small">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-bordered align-middle mb-0" id="tableNonPoItems">
+                                <thead class="table-dark">
                                     <tr>
-                                        <th style="width: 250px;">Nama Produk</th>
-                                        <th style="width: 90px;" class="text-center">Qty Jual</th>
-                                        <th style="width: 90px;" class="text-center">Sisa Retur</th>
-                                        <th style="width: 100px;" class="text-center">Qty Retur *</th>
-                                        <th style="width: 100px;">Satuan</th>
-                                        <th style="width: 130px;" class="text-end">Harga Jual</th>
-                                       
+                                        <th class="text-center" style="width: 40px;">#</th>
+                                        <th style="width: 15%;">Kode Barang</th>
+                                        <th style="width: 30%;">Nama Produk</th>
+                                        <th class="text-center" style="width: 10%;">Satuan</th>
+                                        <th style="width: 15%;">Qty</th>
+                                        <th style="width: 18%;">Harga Beli / Unit (Rp)</th>
+                                        <th class="text-end" style="width: 18%;">Subtotal (Rp)</th>
+                                        <th class="text-center" style="width: 40px;"><i class="bi bi-trash"></i></th>
                                     </tr>
                                 </thead>
-                                <tbody id="returnItemsBody">
-                                   
+                                <tbody id="tbodyNonPoItems">
+                                    <tr id="emptyNonPoRow">
+                                        <td colspan="8" class="text-center py-4 text-muted">Belum ada barang dipilih. Klik tombol <strong>"Tambah Barang"</strong> di atas.</td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
                     </div>
 
-                    {{-- FOOTER / CATATAN & TOTAL --}}
-                    <div class="row g-3">
-                        <div class="col-md-7">
-                            <label class="form-label extra-small fw-bold text-muted mb-1">Alasan Retur / Catatan *</label>
-                            <textarea class="form-control form-control-sm" id="returnReason" name="reason" rows="2" placeholder="Contoh: Barang rusak saat pengiriman / Kuantitas semen kurang..." required></textarea>
-                        </div>
+                    <!-- Section Summary Total -->
+                    <div class="row justify-content-end">
                         <div class="col-md-5">
-                            <div class="card bg-light border-0">
-                                <div class="card-body p-2">
-                                    <div class="d-flex justify-content-between align-items-center mb-1">
-                                        <span class="small text-muted">Total Nilai Faktur:</span>
-                                        <span class="fw-bold text-danger h5 mb-0" id="displayTotalReturn">Rp 0</span>
+                            <div class="card border-0 shadow-sm p-3 bg-white">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted fw-semibold">Subtotal Items:</span>
+                                    <strong id="nonpo_display_subtotal" class="fs-6">Rp 0</strong>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="text-muted fw-semibold">Diskon Nota (Rp):</span>
+                                    <input type="number" class="form-control form-control-sm text-end w-50 fw-bold" id="nonpo_document_discount" name="document_discount" value="0" min="0" oninput="calculateTotalsNonPo()">
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="nonpo_is_ppn" name="is_ppn" value="1" onchange="calculateTotalsNonPo()">
+                                        <label class="form-check-label fw-semibold" for="nonpo_is_ppn">Kenakan PPN (11%)</label>
                                     </div>
+                                    <strong id="nonpo_display_ppn">Rp 0</strong>
+                                </div>
+                                <hr class="my-2">
+                                <div class="d-flex justify-content-between h5 text-primary fw-bold mb-0">
+                                    <span>GRAND TOTAL:</span>
+                                    <span id="nonpo_display_grand_total">Rp 0</span>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </form>
-            </div>
-            <div class="modal-footer py-2 px-3 bg-light">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
-                <button type="button" class="btn btn-danger btn-sm fw-semibold" id="btnSaveReturn">
-                    <i class="bi bi-check-circle me-1"></i> Simpan
-                </button>
-            </div>
+                </div>
+                <div class="modal-footer bg-white py-3">
+                    <button type="button" class="btn btn-secondary fw-semibold px-3" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary fw-bold px-4">
+                        <i class="bi bi-save me-1"></i> Simpan Sebagai DRAFT
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 
-<div class="modal fade" id="modalReturnForm" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-danger text-white py-2 px-3">
-                <h6 class="modal-title fw-bold" id="modalReturnFormTitle">
-                    <i class="bi bi-arrow-return-left me-2"></i>Form Retur Penjualan (SAL-02)
-                </h6>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+<!-- ================================================================================= -->
+<!-- MODAL 2: PEMBELIAN BERDASARKAN PO APPROVED                                        -->
+<!-- ================================================================================= -->
+<div class="modal fade" id="modalPo" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-success text-white py-3">
+                <h5 class="modal-title fw-bold"><i class="bi bi-file-earmark-check-fill me-2"></i>2. Input Faktur Pembelian Berdasarkan PO Approved</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body p-3">
-                <form id="returnForm">
-                    <input type="hidden" id="returnId" name="return_id">
-                    <input type="hidden" id="entityId" name="entity_id" value="{{ auth()->user()->entity_id ?? 1 }}">
-                    <input type="hidden" id="businessUnitId" name="business_unit_id">
-                    <input type="hidden" id="saleId" name="sale_id">
-                    <input type="hidden" id="customerId" name="customer_id">
+            <form id="formPo" onsubmit="savePo(event)">
+                <input type="hidden" id="po_purchase_id" name="id">
+                <input type="hidden" id="po_purchase_order_id" name="purchase_order_id" required>
+                <input type="hidden" id="po_business_unit_id" name="business_unit_id" required>
+                <input type="hidden" id="po_supplier_id" name="supplier_id" required>
 
-                    {{-- INFORMASI KOREKSI PADA MODE EDIT --}}
-                    <div class="alert alert-warning py-2 px-3 mb-3 d-none" id="editReversalAlert">
-                        <div class="d-flex align-items-center">
-                            <i class="bi bi-exclamation-triangle-fill fs-5 me-2 text-warning"></i>
-                            <div class="small">
-                                <strong>Mode Koreksi / Edit Retur Posted:</strong>
-                                Perubahan data retur akan memperbarui mutasi stok dan isi jurnal pada dokumen retur yang sama. Tidak dibuat jurnal reversal.
+                <div class="modal-body bg-light p-4">
+                    <!-- Step 1: Select PO Header -->
+                    <div class="card border-0 shadow-sm p-3 mb-3 bg-white">
+                        <div class="row g-3 align-items-center">
+                            <div class="col-md-5">
+                                <label class="form-label fw-bold text-dark small">Pilih Dokumen PO Approved <span class="text-danger">*</span></label>
+                                <div class="input-group input-group-sm">
+                                    <input type="text" class="form-control fw-bold text-success bg-white" id="po_no_display" placeholder="Klik tombol untuk memilih PO..." readonly required>
+                                    <button class="btn btn-success fw-bold px-3" type="button" onclick="openSearchPo()"><i class="bi bi-search me-1"></i> Pilih PO Approved</button>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold text-muted small">Vendor / Supplier (Auto PO)</label>
+                                <input type="text" class="form-control form-control-sm bg-light fw-bold" id="po_supplier_name" readonly placeholder="Terisi otomatis dari PO...">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold text-muted small">Unit Bisnis & Gudang (Auto PO)</label>
+                                <input type="text" class="form-control form-control-sm bg-light fw-bold text-primary" id="po_bu_warehouse_display" readonly placeholder="Terisi otomatis dari PO...">
                             </div>
                         </div>
                     </div>
 
-                    {{-- HEADER SELECTION --}}
-                    <div class="row g-2 mb-3 bg-light p-2 rounded border">
-                        <div class="col-md-3">
-                            <label class="form-label extra-small fw-bold text-muted mb-1">Cari Invoice Penjualan Asal *</label>
-                            <div class="input-group input-group-sm">
-                                <input type="text" class="form-control fw-bold bg-white" id="invoiceNoDisplay" placeholder="Klik tombol cari..." readonly required>
-                                <button class="btn btn-danger" type="button" id="btnOpenSearchInvoice">
-                                    <i class="bi bi-search"></i>
-                                </button>
+                    <!-- Step 2: Invoice Info Header -->
+                    <div class="card border-0 shadow-sm p-3 mb-3 bg-white">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold text-dark small">Tanggal Pembelian <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control form-control-sm fw-semibold" id="po_purchase_date" name="purchase_date" value="{{ date('Y-m-d') }}" required>
                             </div>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label extra-small fw-bold text-muted mb-1">Pelanggan</label>
-                            <input type="text" class="form-control form-control-sm bg-white" id="customerNameDisplay" placeholder="-" readonly>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label extra-small fw-bold text-muted mb-1">Tanggal Retur *</label>
-                            <input type="datetime-local" class="form-control form-control-sm" id="returnDate" name="return_date" required value="{{ date('Y-m-d\TH:i') }}">
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label extra-small fw-bold text-muted mb-1">Gudang Retur *</label>
-                            <select class="form-select form-select-sm" id="warehouseId" name="warehouse_id" required disabled>
-                                <option value="">-- Pilih Gudang --</option>
-                                @foreach($warehouses ?? [] as $wh)
-                                    <option value="{{ $wh->id }}">{{ $wh->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label extra-small fw-bold text-muted mb-1">No. Retur</label>
-                            <input type="text" class="form-control form-control-sm bg-white" id="returnNo" name="return_no" placeholder="[Auto Generated]" readonly>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold text-dark small">No. Faktur Supplier</label>
+                                <input type="text" class="form-control form-control-sm fw-semibold" id="po_supplier_invoice_no" name="supplier_invoice_no" placeholder="Contoh: INV-SUP-9988">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold text-muted small">Status Penerimaan Fisik Barang</label>
+                                <div class="alert alert-info py-1 px-2 mb-0 small fw-bold text-dark border-0 bg-info-subtle">
+                                    <i class="bi bi-info-circle-fill me-1 text-primary"></i> PINTU GUDANG: Fisik barang diterima via Modul LPB Gudang.
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    {{-- TABEL LINE ITEMS --}}
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="fw-bold extra-small text-uppercase text-secondary">Rincian Barang yang Diretur</span>
-                            <span class="badge bg-secondary extra-small" id="itemCountBadge">0 Item</span>
+                    <!-- Table Items from PO -->
+                    <div class="card border-0 shadow-sm p-3 mb-3 bg-white">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="fw-bold text-success mb-0"><i class="bi bi-list-check me-1"></i>Rincian Barang & Tagihan Faktur dari PO</h6>
+                            <span class="badge bg-success-subtle text-success fw-bold border border-success-subtle px-2 py-1">Mode Tagihan PO</span>
                         </div>
-                        <div class="table-responsive border rounded">
-                            <table class="table table-sm table-bordered align-middle mb-0" id="returnItemsTable">
-                                <thead class="bg-light text-muted extra-small">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-bordered align-middle mb-0" id="tablePoItems">
+                                <thead class="table-dark">
                                     <tr>
-                                        <th style="width: 250px;">Nama Produk</th>
-                                        <th style="width: 90px;" class="text-center">Qty Jual</th>
-                                        <th style="width: 90px;" class="text-center">Sisa Retur</th>
-                                        <th style="width: 100px;" class="text-center">Qty Retur *</th>
-                                        <th style="width: 100px;">Satuan</th>
-                                        <th style="width: 130px;" class="text-end">Harga Jual</th>
-                                        <th style="width: 130px;" class="text-end">Total Refund</th>
-                                        <th style="width: 140px;">Kondisi Barang *</th>
+                                        <th class="text-center" style="width: 40px;">#</th>
+                                        <th style="width: 15%;">Kode Barang</th>
+                                        <th style="width: 30%;">Nama Produk</th>
+                                        <th class="text-center" style="width: 10%;">Satuan</th>
+                                        <th style="width: 15%;">Qty Tagihan</th>
+                                        <th style="width: 18%;">Harga Beli / Unit (Rp)</th>
+                                        <th class="text-end" style="width: 18%;">Subtotal (Rp)</th>
+                                        <th class="text-center" style="width: 40px;"><i class="bi bi-trash"></i></th>
                                     </tr>
                                 </thead>
-                                <tbody id="returnItemsBody">
+                                <tbody id="tbodyPoItems">
                                     <tr>
-                                        <td colspan="8" class="text-center py-3 text-muted small">
-                                            Silakan cari dan pilih Invoice Penjualan Asal terlebih dahulu.
+                                        <td colspan="8" class="text-center py-4 text-muted">
+                                            Silakan klik tombol <strong>"Pilih PO Approved"</strong> di atas untuk memuat daftar barang.
                                         </td>
                                     </tr>
                                 </tbody>
@@ -307,201 +322,932 @@
                         </div>
                     </div>
 
-                    {{-- FOOTER / CATATAN & TOTAL --}}
-                    <div class="row g-3">
-                        <div class="col-md-7">
-                            <label class="form-label extra-small fw-bold text-muted mb-1">Alasan Retur / Catatan *</label>
-                            <textarea class="form-control form-control-sm" id="returnReason" name="reason" rows="2" placeholder="Contoh: Barang rusak saat pengiriman / Kuantitas semen kurang..." required></textarea>
-                        </div>
+                    <!-- Summary Totals -->
+                    <div class="row justify-content-end">
                         <div class="col-md-5">
-                            <div class="card bg-light border-0">
-                                <div class="card-body p-2">
-                                    <div class="d-flex justify-content-between align-items-center mb-1">
-                                        <span class="small text-muted">Total Nilai Retur:</span>
-                                        <span class="fw-bold text-danger h5 mb-0" id="displayTotalReturn">Rp 0</span>
+                            <div class="card border-0 shadow-sm p-3 bg-white">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted fw-semibold">Subtotal Items:</span>
+                                    <strong id="po_display_subtotal" class="fs-6">Rp 0</strong>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="text-muted fw-semibold">Diskon Nota (Rp):</span>
+                                    <input type="number" class="form-control form-control-sm text-end w-50 fw-bold" id="po_document_discount" name="document_discount" value="0" min="0" oninput="calculateTotalsPo()">
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="po_is_ppn" name="is_ppn" value="1" onchange="calculateTotalsPo()">
+                                        <label class="form-check-label fw-semibold" for="po_is_ppn">Kenakan PPN (11%)</label>
                                     </div>
+                                    <strong id="po_display_ppn">Rp 0</strong>
+                                </div>
+                                <hr class="my-2">
+                                <div class="d-flex justify-content-between h5 text-success fw-bold mb-0">
+                                    <span>GRAND TOTAL:</span>
+                                    <span id="po_display_grand_total">Rp 0</span>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </form>
+                </div>
+                <div class="modal-footer bg-white py-3">
+                    <button type="button" class="btn btn-secondary fw-semibold px-3" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-success fw-bold px-4">
+                        <i class="bi bi-save me-1"></i> Simpan Sebagai DRAFT
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ================================================================================= -->
+<!-- MODAL LOOKUP SEARCH: VENDOR, PO, PRODUCT, RETURN                                 -->
+<!-- ================================================================================= -->
+<!-- Search Vendor -->
+<div class="modal fade" id="modalSearchVendor" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-dark text-white py-2">
+                <h6 class="modal-title fw-bold"><i class="bi bi-search me-2"></i>Pencarian Master Vendor / Supplier</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-footer py-2 px-3 bg-light">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
-                <button type="button" class="btn btn-danger btn-sm fw-semibold" id="btnSaveReturn">
-                    <i class="bi bi-check-circle me-1"></i> Simpan &amp; Post Retur
-                </button>
+            <div class="modal-body p-3">
+                <input type="text" class="form-control mb-3" id="inputSearchVendor" placeholder="Ketik Kode, Nama, atau Telepon Vendor..." oninput="fetchVendors()">
+                <div class="table-responsive" style="max-height: 300px;">
+                    <table class="table table-sm table-hover table-bordered align-middle mb-0">
+                        <thead class="table-secondary">
+                            <tr>
+                                <th>Kode</th>
+                                <th>Nama Vendor</th>
+                                <th>Telepon</th>
+                                <th class="text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyVendors"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Search PO Approved -->
+<div class="modal fade" id="modalSearchPoApproved" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-dark text-white py-2">
+                <h6 class="modal-title fw-bold"><i class="bi bi-search me-2"></i>Pencarian Purchase Order (PO) Approved</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-3">
+                <input type="text" class="form-control mb-3" id="inputSearchPoApproved" placeholder="Ketik No. PO atau Nama Vendor..." oninput="fetchPoApproved()">
+                <div class="table-responsive" style="max-height: 300px;">
+                    <table class="table table-sm table-hover table-bordered align-middle mb-0">
+                        <thead class="table-secondary">
+                            <tr>
+                                <th>No. PO</th>
+                                <th>Tanggal PO</th>
+                                <th>Vendor</th>
+                                <th>Gudang Tujuan</th>
+                                <th class="text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyPoApproved"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search Product -->
+<div class="modal fade" id="modalSearchProduct" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-dark text-white py-2">
+                <h6 class="modal-title fw-bold"><i class="bi bi-search me-2"></i>Pencarian Master Produk / Barang</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-3">
+                <input type="text" class="form-control mb-3" id="inputSearchProduct" placeholder="Ketik Kode atau Nama Barang..." oninput="fetchProducts()">
+                <div class="table-responsive" style="max-height: 300px;">
+                    <table class="table table-sm table-hover table-bordered align-middle mb-0">
+                        <thead class="table-secondary">
+                            <tr>
+                                <th>Kode</th>
+                                <th>Nama Produk</th>
+                                <th>Satuan</th>
+                                <th>Harga Beli Std</th>
+                                <th class="text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyProducts"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Retur Pembelian (RB) -->
+<div class="modal fade" id="modalReturn" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-warning py-3">
+                <h5 class="modal-title fw-bold text-dark"><i class="bi bi-arrow-return-left me-2"></i>Retur Pembelian (RB)</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formReturn" onsubmit="saveReturn(event)">
+                <input type="hidden" id="ret_purchase_id" name="purchase_id">
+                <div class="modal-body bg-light p-4">
+                    <div class="card border-0 shadow-sm p-3 mb-3 bg-white">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small text-muted">No. Ref. Faktur (FB)</label>
+                                <input type="text" class="form-control form-control-sm bg-light fw-bold text-primary" id="ret_purchase_no" readonly>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small text-muted">Vendor / Supplier</label>
+                                <input type="text" class="form-control form-control-sm bg-light fw-bold" id="ret_supplier_name" readonly>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small text-dark">Alasan Utama Retur <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm" id="ret_reason" name="reason" placeholder="Contoh: Barang cacat / Rusak" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 shadow-sm p-3 bg-white">
+                        <h6 class="fw-bold text-dark mb-2">Pilih Item & Input Qty Retur</h6>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover align-middle mb-0">
+                                <thead class="table-secondary">
+                                    <tr>
+                                        <th>Nama Produk</th>
+                                        <th class="text-center">Qty Beli</th>
+                                        <th class="text-center text-danger">Sisa Max Retur</th>
+                                        <th style="width: 150px;">Qty Retur Sekarang</th>
+                                        <th class="text-end">Harga Beli (Rp)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbodyReturnItems"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-white py-3">
+                    <button type="button" class="btn btn-secondary fw-semibold px-3" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-warning fw-bold text-dark px-4">
+                        <i class="bi bi-check-circle-fill me-1"></i> Memproses Retur (RB)
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@endsection
+
+@push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+let modalNonPo, modalPo, modalSearchVendor, modalSearchPoApproved, modalSearchProduct, modalReturn;
 
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener("DOMContentLoaded", function() {
+    modalNonPo              = new bootstrap.Modal(document.getElementById('modalNonPo'));
+    modalPo                 = new bootstrap.Modal(document.getElementById('modalPo'));
+    modalSearchVendor       = new bootstrap.Modal(document.getElementById('modalSearchVendor'));
+    modalSearchPoApproved   = new bootstrap.Modal(document.getElementById('modalSearchPoApproved'));
+    modalSearchProduct      = new bootstrap.Modal(document.getElementById('modalSearchProduct'));
+    modalReturn             = new bootstrap.Modal(document.getElementById('modalReturn'));
 
-    @if(session('swal_success'))
-        Swal.fire({ icon: 'success', title: 'Berhasil!', text: "{{ session('swal_success') }}", timer: 2500, showConfirmButton: false });
-    @endif
-    @if(session('swal_error'))
-        Swal.fire({ icon: 'error', title: 'Gagal!', text: "{{ session('swal_error') }}", confirmButtonColor: '#d33' });
-    @endif
-
-    const table = $('#table-pembelian').DataTable({
-        processing: true,
-        serverSide: false,
-        ajax: {
-            url: "{{ route('inventori.pembelian.data') }}",
-            data: function (d) {
-                d.start_date       = $('#filter-start-date').val();
-                d.end_date         = $('#filter-end-date').val();
-                d.business_unit_id = $('#filter-bu').val();
-                d.supplier_id      = $('#filter-supplier').val();
-                d.payment_type     = $('#filter-payment').val();
-            }
-        },
-        columns: [
-            { data: 'invoice_no', className: 'text-center font-monospace fw-bold text-primary' },
-            { data: 'formatted_date', className: 'text-center' },
-            { data: 'supplier_name', className: 'fw-semibold text-dark' },
-            { data: 'supplier_invoice_no', className: 'text-center font-monospace' },
-            {
-                data: 'payment_type',
-                className: 'text-center',
-                render: function (data, type, row) {
-                    return data === 'cash'
-                        ? '<span class="badge bg-success">CASH</span>'
-                        : `<span class="badge bg-warning text-dark">KREDIT</span><div class="small text-muted font-monospace">${row.formatted_due}</div>`;
-                }
-            },
-            {
-                data: 'goods_received',
-                className: 'text-center',
-                render: function (data) {
-                    return data == 1
-                        ? '<span class="badge bg-info text-dark"><i class="bi bi-box-seam me-1"></i> YA</span>'
-                        : '<span class="badge bg-secondary">TIDAK</span>';
-                }
-            },
-            { data: 'formatted_grand', className: 'text-end font-monospace fw-bold' },
-            {
-                data: 'status',
-                className: 'text-center',
-                render: function (data) {
-                    return data === 'draft'
-                        ? '<span class="badge bg-secondary">DRAFT</span>'
-                        : '<span class="badge bg-success"><i class="bi bi-check-all me-1"></i> POSTED</span>';
-                }
-            },
-            {
-                data: null,
-                className: 'text-center',
-                orderable: false,
-                render: function (data, type, row) {
-                    let actions = `
-                        <div class="btn-group btn-group-sm">
-                            <a href="{{ url('/inventori/pembelian') }}/${row.id}" class="btn btn-outline-info" title="Detail"><i class="bi bi-eye"></i></a>
-                            <a href="{{ url('/inventori/pembelian') }}/${row.id}/print-invoice" target="_blank" class="btn btn-outline-secondary" title="Cetak Dotmatrix"><i class="bi bi-printer"></i></a>
-                    `;
-
-                    if (row.status === 'draft') {
-                        actions += `
-                            <a href="{{ url('/inventori/pembelian') }}/${row.id}/edit" class="btn btn-outline-warning" title="Edit Draft"><i class="bi bi-pencil"></i></a>
-                            <button type="button" class="btn btn-success btn-post-item" data-id="${row.id}" data-no="${row.invoice_no}" data-goods-received="${row.goods_received}" title="Post"><i class="bi bi-check-circle"></i></button>
-                            <button type="button" class="btn btn-outline-danger btn-delete-item" data-id="${row.id}" data-no="${row.invoice_no}" title="Hapus"><i class="bi bi-trash"></i></button>
-                        `;
-                    }
-
-                    actions += `</div>`;
-                    return actions;
-                }
-            }
-        ]
-    });
-
-     $('#btn-apply-filter').on('click', function () { table.ajax.reload(); });
-     $('#btn-reset-filter').on('click', function () {
-         $('#form-filter').reset();
-        table.ajax.reload();
-    });
-
-     $(document).on('click', '.btn-post-item', function () {
-        const id = $(this).data('id');
-        const no = $(this).data('no');
-        const goodsReceived = Number($(this).data('goods-received')) === 1;
-
-        let warehouseField = '';
-        if (goodsReceived) {
-            warehouseField = `
-                <select id="post-warehouse-id" class="form-select text-start">
-                    <option value="">-- Pilih Gudang --</option>
-                    @foreach($warehouses as $warehouse)
-                        <option value="{{ $warehouse->id }}">{{ $warehouse->name }}</option>
-                    @endforeach
-                </select>`;
-        }
-
-        Swal.fire({
-            title: 'Posting Faktur Pembelian?',
-            html: goodsReceived
-                ? `Posting [<strong>${no}</strong>] akan menerima barang ke gudang.<br><div class="mt-3">${warehouseField}</div>`
-                : `Posting [<strong>${no}</strong>] akan menerbitkan Jurnal Keuangan GL.`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#198754',
-            confirmButtonText: 'Ya, Post Sekarang!',
-            cancelButtonText: 'Batal',
-            preConfirm: () => {
-                if (goodsReceived) {
-                    const warehouseId = document.getElementById('post-warehouse-id')?.value;
-                    if (!warehouseId) {
-                        Swal.showValidationMessage('Gudang wajib dipilih.');
-                        return false;
-                    }
-                    return warehouseId;
-                }
-                return null;
-            }
-        }).then((result) => {
-            if (result.isConfirmed) {
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = `{{ url('/inventori/pembelian') }}/${id}/post`;
-                form.innerHTML = `@csrf`;
-                if (result.value) {
-                    form.insertAdjacentHTML('beforeend', `<input type="hidden" name="warehouse_id" value="${result.value}">`);
-                }
-                document.body.appendChild(form);
-                form.submit();
-            }
-        });
-    });
-
-     $(document).on('click', '.btn-delete-item', function () {
-        const id =  $(this).data('id');
-        const no =  $(this).data('no');
-
-        Swal.fire({
-            title: 'Hapus Draft Faktur?',
-            text: `Draft Faktur [${no}] akan dihapus!`,
-            icon: 'error',
-            showCancelButton: true,
-            confirmButtonColor: '#dc3545',
-            confirmButtonText: 'Ya, Hapus!',
-            cancelButtonText: 'Batal'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = `{{ url('/inventori/pembelian') }}/${id}`;
-                form.innerHTML = `@csrf @method('DELETE')`;
-                document.body.appendChild(form);
-                form.submit();
-            }
-        });
-    });
-
+    loadData(1);
 });
+
+// Toast Auto-Close 2.5 Detik
+function showToast(icon, message) {
+    const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 2500,
+        timerProgressBar: true,
+        didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer);
+            toast.addEventListener('mouseleave', Swal.resumeTimer);
+        }
+    });
+
+    Toast.fire({ icon: icon, title: message });
+}
+
+// Load List Data via AJAX
+function loadData(page = 1) {
+    const startDate = document.getElementById('filter_start_date').value;
+    const endDate   = document.getElementById('filter_end_date').value;
+    const status    = document.getElementById('filter_status').value;
+    const supplierId= document.getElementById('filter_supplier_id').value;
+    const search    = document.getElementById('filter_search').value;
+
+    const url = `/inventori/pembelian/faktur?page=${page}&start_date=${startDate}&end_date=${endDate}&status=${status}&supplier_id=${supplierId}&search=${encodeURIComponent(search)}`;
+
+    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+    .then(res => res.json())
+    .then(res => {
+        if(res.status === 'success') {
+            renderTable(res.data.data);
+            renderPagination(res.data);
+        }
+    });
+}
+
+function renderTable(data) {
+    const tbody = document.getElementById('tbodyPurchases');
+    if(!data || data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-5 text-muted">Belum ada data faktur pembelian.</td></tr>`;
+        return;
+    }
+
+    let html = '';
+    data.forEach(item => {
+        const isDraft = item.status === 'draft';
+        const statusBadge = isDraft 
+            ? `<span class="badge bg-warning text-dark px-2 py-1"><i class="bi bi-hourglass-split me-1"></i>DRAFT</span>` 
+            : `<span class="badge bg-success px-2 py-1"><i class="bi bi-check-circle me-1"></i>APPROVED</span>`;
+
+        const typeBadge = item.source_type === 'po'
+            ? `<span class="badge bg-info text-dark border px-2 py-1">PO (${item.po_no || '-'})</span>`
+            : `<span class="badge bg-secondary px-2 py-1">DIRECT NON-PO</span>`;
+
+        html += `
+        <tr>
+            <td class="ps-3 fw-bold text-primary">${item.purchase_no}</td>
+            <td>${item.purchase_date ? item.purchase_date.substring(0, 10) : '-'}</td>
+            <td>${typeBadge}</td>
+            <td><strong>${item.supplier_name || '-'}</strong></td>
+            <td><span class="badge bg-light text-dark border">${item.bu_code || 'BU'}</span></td>
+            <td class="text-end fw-bold">Rp ${(parseFloat(item.total) || 0).toLocaleString('id-ID')}</td>
+            <td class="text-center">${statusBadge}</td>
+            <td class="text-center">
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-light border dropdown-toggle fw-semibold" type="button" data-bs-toggle="dropdown">⚙️ Aksi</button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                        <li><a class="dropdown-item py-2" href="javascript:void(0)" onclick="printFaktur(${item.id})"><i class="bi bi-printer me-2 text-primary"></i>Cetak Faktur Standar</a></li>
+                        ${isDraft ? `<li><a class="dropdown-item py-2 text-success fw-bold" href="javascript:void(0)" onclick="approvePurchase(\${item.id})"><i class="bi bi-check2-circle me-2"></i>Approve Faktur</a></li>` : ''}
+                        ${isDraft ? `<li><a class="dropdown-item py-2" href="javascript:void(0)" onclick="openEditModal(\\({item.id}, '\\){item.source_type}')"><i class="bi bi-pencil me-2 text-warning"></i>Edit Nota</a></li>` : ''}
+                        ${!isDraft ? `<li><a class="dropdown-item py-2 text-warning fw-bold" href="javascript:void(0)" onclick="openModalReturn(\${item.id})"><i class="bi bi-arrow-return-left me-2"></i>Retur Pembelian (RB)</a></li>` : ''}
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <li><a class="dropdown-item py-2 text-danger" href="javascript:void(0)" onclick="deletePurchase(${item.id})"><i class="bi bi-trash me-2"></i>Hapus Nota</a></li>
+                    </ul>
+                </div>
+            </td>
+        </tr>`;
+    });
+    tbody.innerHTML = html;
+}
+
+function renderPagination(data) {
+    const container = document.getElementById('paginationContainer');
+    if(!data.links) return;
+
+    let html = `<div><small class="text-muted">Menampilkan ${data.from || 0} - ${data.to || 0} dari ${data.total} data</small></div><ul class="pagination pagination-sm mb-0">`;
+    data.links.forEach(link => {
+        if(link.url) {
+            const page = new URL(link.url).searchParams.get('page');
+            html += `<li class="page-item ${link.active ? 'active' : ''}"><a class="page-link" href="javascript:void(0)" onclick="loadData(${page})">${link.label}</a></li>`;
+        }
+    });
+    html += `</ul>`;
+    container.innerHTML = html;
+}
+
+// Open Form Modals
+function openModalNonPo() {
+    document.getElementById('formNonPo').reset();
+    document.getElementById('nonpo_id').value = '';
+    document.getElementById('nonpo_supplier_id').value = '';
+    document.getElementById('tbodyNonPoItems').innerHTML = `<tr id="emptyNonPoRow"><td colspan="8" class="text-center py-4 text-muted">Belum ada barang dipilih. Klik tombol <strong>"Tambah Barang"</strong> di atas.</td></tr>`;
+    calculateTotalsNonPo();
+    modalNonPo.show();
+}
+
+function openModalPo() {
+    document.getElementById('formPo').reset();
+    document.getElementById('po_purchase_id').value = '';
+    document.getElementById('po_purchase_order_id').value = '';
+    document.getElementById('tbodyPoItems').innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">Silakan klik tombol <strong>"Pilih PO Approved"</strong> di atas untuk memuat daftar barang.</td></tr>`;
+    calculateTotalsPo();
+    modalPo.show();
+}
+
+// Search Vendor Functions
+function openSearchVendor() {
+    fetchVendors();
+    modalSearchVendor.show();
+}
+
+function fetchVendors() {
+    const q = document.getElementById('inputSearchVendor').value;
+    fetch(`/inventori/pembelian/faktur/lookup/vendor?q=${encodeURIComponent(q)}`)
+    .then(res => res.json())
+    .then(res => {
+        let html = '';
+        res.data.forEach(v => {
+            html += `<tr>
+                <td class="fw-bold">${v.code}</td>
+                <td><strong>${v.name}</strong></td>
+                <td>${v.phone || '-'}</td>
+                <td class="text-center"><button type="button" class="btn btn-sm btn-primary fw-bold" onclick="selectVendor(${v.id}, '${v.name}')">Pilih</button></td>
+            </tr>`;
+        });
+        document.getElementById('tbodyVendors').innerHTML = html;
+    });
+}
+
+function selectVendor(id, name) {
+    document.getElementById('nonpo_supplier_id').value = id;
+    document.getElementById('nonpo_supplier_name').value = name;
+    modalSearchVendor.hide();
+}
+
+// Search PO Functions
+function openSearchPo() {
+    fetchPoApproved();
+    modalSearchPoApproved.show();
+}
+
+function fetchPoApproved() {
+    const q = document.getElementById('inputSearchPoApproved').value;
+    fetch(`/inventori/pembelian/faktur/lookup/po?q=${encodeURIComponent(q)}`)
+    .then(res => res.json())
+    .then(res => {
+        let html = '';
+        res.data.forEach(po => {
+            html += `<tr>
+                <td class="fw-bold text-success">${po.po_no}</td>
+                <td>${po.po_date ? po.po_date.substring(0, 10) : '-'}</td>
+                <td><strong>${po.supplier_name}</strong></td>
+                <td>${po.warehouse_name || '-'}</td>
+                <td class="text-center"><button type="button" class="btn btn-sm btn-success fw-bold px-3" onclick="selectPoApproved(${po.id})"><i class="bi bi-check-lg me-1"></i> Pilih PO Ini</button></td>
+            </tr>`;
+        });
+        document.getElementById('tbodyPoApproved').innerHTML = html;
+    });
+}
+
+function selectPoApproved(poId) {
+    fetch(`/inventori/pembelian/faktur/lookup/po-items/${poId}`)
+    .then(res => res.json())
+    .then(res => {
+        if(res.status === 'success') {
+            const po = res.data.po;
+            const items = res.data.items;
+
+            document.getElementById('po_purchase_order_id').value = po.id;
+            document.getElementById('po_business_unit_id').value = po.business_unit_id;
+            document.getElementById('po_supplier_id').value = po.supplier_id;
+            document.getElementById('po_no_display').value = po.po_no;
+            document.getElementById('po_supplier_name').value = po.supplier_name;
+            document.getElementById('po_bu_warehouse_display').value = `${po.bu_code} - ${po.warehouse_name}`;
+
+            let html = '';
+            items.forEach((item, idx) => {
+                const sub = item.qty * item.unit_cost;
+                const unitName = item.unit_name || 'PCS';
+                html += `
+                <tr id="po_row_${idx}" class="align-middle">
+                    <td class="text-center fw-semibold text-muted small">${idx + 1}</td>
+                    <td><span class="badge bg-light text-dark border font-monospace px-2 py-1">${item.product_code || '-'}</span></td>
+                    <td>
+                        <strong class="text-dark d-block">${item.product_name}</strong>
+                        <input type="hidden" name="items[${idx}][product_id]" value="${item.product_id}">
+                        <input type="hidden" name="items[${idx}][unit_id]" value="${item.unit_id || ''}">
+                    </td>
+                    <td class="text-center"><span class="badge bg-info text-dark fw-semibold px-2 py-1">${unitName}</span></td>
+                    <td style="width: 140px;">
+                        <div class="input-group input-group-sm">
+                            <input type="number" step="0.001" class="form-control text-end fw-semibold" name="items[${idx}][qty]" value="${item.qty}" min="0.001" oninput="calculateTotalsPo()" required>
+                            <span class="input-group-text bg-light text-muted px-1 small">${unitName}</span>
+                        </div>
+                    </td>
+                    <td style="width: 170px;">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-light fw-bold text-muted">Rp</span>
+                            <input type="number" step="100" class="form-control text-end fw-bold text-primary" name="items[${idx}][unit_cost]" value="${item.unit_cost}" min="0" oninput="calculateTotalsPo()" required>
+                        </div>
+                    </td>
+                    <td class="text-end fw-bold text-success fs-6" id="po_subtotal_${idx}">Rp ${sub.toLocaleString('id-ID')}</td>
+                    <td class="text-center">
+                        <button type="button" class="btn btn-sm btn-outline-danger border-0 p-1" onclick="removePoRow(this)"><i class="bi bi-trash-fill"></i></button>
+                    </td>
+                </tr>`;
+            });
+
+            document.getElementById('tbodyPoItems').innerHTML = html;
+            modalSearchPoApproved.hide();
+            calculateTotalsPo();
+        }
+    });
+}
+
+function removePoRow(btn) {
+    const row = btn.closest('tr');
+    if(row) {
+        row.remove();
+        calculateTotalsPo();
+        const rows = document.querySelectorAll('#tbodyPoItems tr');
+        rows.forEach((r, idx) => {
+            const numCell = r.querySelector('td:first-child');
+            if(numCell) numCell.innerText = idx + 1;
+        });
+    }
+}
+
+function calculateTotalsPo() {
+    let subtotal = 0;
+    const rows = document.querySelectorAll('#tbodyPoItems tr');
+    rows.forEach((row, idx) => {
+        const qtyInput = row.querySelector('input[name*="[qty]"]');
+        const costInput = row.querySelector('input[name*="[unit_cost]"]');
+        if(qtyInput && costInput) {
+            const qty = parseFloat(qtyInput.value) || 0;
+            const cost = parseFloat(costInput.value) || 0;
+            const line = qty * cost;
+            subtotal += line;
+
+            const subCell = row.querySelector('td[id^="po_subtotal_"]');
+            if(subCell) subCell.innerText = `Rp ${line.toLocaleString('id-ID')}`;
+        }
+    });
+
+    const discount = parseFloat(document.getElementById('po_document_discount').value) || 0;
+    const isPpn = document.getElementById('po_is_ppn').checked;
+    const taxable = Math.max(0, subtotal - discount);
+    const ppn = isPpn ? (taxable * 0.11) : 0;
+    const grand = taxable + ppn;
+
+    document.getElementById('po_display_subtotal').innerText = `Rp ${subtotal.toLocaleString('id-ID')}`;
+    document.getElementById('po_display_ppn').innerText = `Rp ${ppn.toLocaleString('id-ID')}`;
+    document.getElementById('po_display_grand_total').innerText = `Rp ${grand.toLocaleString('id-ID')}`;
+}
+
+// Search Product Functions (Non-PO)
+function openSearchProduct() {
+    fetchProducts();
+    modalSearchProduct.show();
+}
+
+function fetchProducts() {
+    const q = document.getElementById('inputSearchProduct').value;
+    fetch(`/inventori/pembelian/faktur/lookup/product?q=${encodeURIComponent(q)}`)
+    .then(res => res.json())
+    .then(res => {
+        let html = '';
+        res.data.forEach(p => {
+            html += `<tr>
+                <td class="fw-bold">${p.code}</td>
+                <td><strong>${p.name}</strong></td>
+                <td>${p.unit_name || 'PCS'}</td>
+                <td>Rp ${(p.purchase_cost || 0).toLocaleString('id-ID')}</td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-success fw-bold" onclick="selectProduct(${p.id}, '${p.code || '-'}', '${p.name}', '${p.unit_name || 'PCS'}', ${p.unit_id || 'null'}, ${p.purchase_cost || 0})">Pilih</button>
+                </td>
+            </tr>`;
+        });
+        document.getElementById('tbodyProducts').innerHTML = html;
+    });
+}
+
+function selectProduct(productId, productCode, productName, unitName, unitId, purchaseCost) {
+    const emptyRow = document.getElementById('emptyNonPoRow');
+    if(emptyRow) emptyRow.remove();
+
+    const tbody = document.getElementById('tbodyNonPoItems');
+    const rowId = Date.now() + Math.random().toString(36).substring(2, 6);
+
+    const row = document.createElement('tr');
+    row.id = `nonpo_row_${rowId}`;
+    row.className = 'align-middle';
+    row.innerHTML = `
+        <td class="text-center fw-semibold text-muted small row-num"></td>
+        <td><span class="badge bg-light text-dark border font-monospace px-2 py-1">${productCode}</span></td>
+        <td>
+            <strong class="text-dark d-block">${productName}</strong>
+            <input type="hidden" name="items[${rowId}][product_id]" value="${productId}">
+            <input type="hidden" name="items[${rowId}][unit_id]" value="${unitId}">
+        </td>
+        <td class="text-center"><span class="badge bg-info text-dark fw-semibold px-2 py-1">${unitName}</span></td>
+        <td style="width: 140px;">
+            <div class="input-group input-group-sm">
+                <input type="number" step="0.001" class="form-control text-end fw-semibold" name="items[${rowId}][qty]" value="1" min="0.001" oninput="calculateTotalsNonPo()" required>
+                <span class="input-group-text bg-light text-muted px-1 small">${unitName}</span>
+            </div>
+        </td>
+        <td style="width: 170px;">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text bg-light fw-bold text-muted">Rp</span>
+                <input type="number" step="100" class="form-control text-end fw-bold text-primary" name="items[${rowId}][unit_cost]" value="${purchaseCost}" min="0" oninput="calculateTotalsNonPo()" required>
+            </div>
+        </td>
+        <td class="text-end fw-bold text-primary fs-6" id="nonpo_subtotal_${rowId}">Rp ${(purchaseCost).toLocaleString('id-ID')}</td>
+        <td class="text-center">
+            <button type="button" class="btn btn-sm btn-outline-danger border-0 p-1" onclick="removeNonPoRow('${rowId}')"><i class="bi bi-trash-fill"></i></button>
+        </td>
+    `;
+    tbody.appendChild(row);
+    modalSearchProduct.hide();
+    reindexNonPoNumbers();
+    calculateTotalsNonPo();
+}
+
+function removeNonPoRow(rowId) {
+    const row = document.getElementById(`nonpo_row_${rowId}`);
+    if(row) {
+        row.remove();
+        reindexNonPoNumbers();
+        calculateTotalsNonPo();
+    }
+}
+
+function reindexNonPoNumbers() {
+    const rows = document.querySelectorAll('#tbodyNonPoItems tr:not(#emptyNonPoRow)');
+    rows.forEach((r, idx) => {
+        const numCell = r.querySelector('.row-num');
+        if(numCell) numCell.innerText = idx + 1;
+    });
+}
+
+function calculateTotalsNonPo() {
+    let subtotal = 0;
+    const rows = document.querySelectorAll('#tbodyNonPoItems tr:not(#emptyNonPoRow)');
+    rows.forEach(row => {
+        const qty = parseFloat(row.querySelector('input[name*="[qty]"]').value) || 0;
+        const cost = parseFloat(row.querySelector('input[name*="[unit_cost]"]').value) || 0;
+        const line = qty * cost;
+        subtotal += line;
+
+        const subCell = row.querySelector('td[id^="nonpo_subtotal_"]');
+        if(subCell) subCell.innerText = `Rp ${line.toLocaleString('id-ID')}`;
+    });
+
+    const discount = parseFloat(document.getElementById('nonpo_document_discount').value) || 0;
+    const isPpn = document.getElementById('nonpo_is_ppn').checked;
+    const taxable = Math.max(0, subtotal - discount);
+    const ppn = isPpn ? (taxable * 0.11) : 0;
+    const grand = taxable + ppn;
+
+    document.getElementById('nonpo_display_subtotal').innerText = `Rp ${subtotal.toLocaleString('id-ID')}`;
+    document.getElementById('nonpo_display_ppn').innerText = `Rp ${ppn.toLocaleString('id-ID')}`;
+    document.getElementById('nonpo_display_grand_total').innerText = `Rp ${grand.toLocaleString('id-ID')}`;
+}
+
+// Save Functions
+function saveNonPo(e) {
+    e.preventDefault();
+    const rows = document.querySelectorAll('#tbodyNonPoItems tr:not(#emptyNonPoRow)');
+    if(rows.length === 0) {
+        showToast('warning', 'Pilih minimal 1 barang pembelian!');
+        return;
+    }
+
+    const formData = new FormData(e.target);
+    const payload = {};
+    formData.forEach((value, key) => { if(!key.includes('[')) payload[key] = value; });
+
+    payload.goods_received = document.getElementById('nonpo_goods_received').checked ? 1 : 0;
+    payload.is_ppn = document.getElementById('nonpo_is_ppn').checked ? 1 : 0;
+
+    payload.items = [];
+    rows.forEach(row => {
+        payload.items.push({
+            product_id: row.querySelector('input[name*="[product_id]"]').value,
+            unit_id: row.querySelector('input[name*="[unit_id]"]').value,
+            qty: row.querySelector('input[name*="[qty]"]').value,
+            unit_cost: row.querySelector('input[name*="[unit_cost]"]').value
+        });
+    });
+
+    const id = document.getElementById('nonpo_id').value;
+    const url = id ? `/inventori/pembelian/faktur/${id}` : '/inventori/pembelian/faktur/store-non-po';
+    const method = id ? 'PUT' : 'POST';
+
+    fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'X-Requested-With': 'XMLHttpRequest' },
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(res => {
+        if(res.status === 'success') {
+            modalNonPo.hide();
+            showToast('success', res.message);
+            loadData(1);
+        } else {
+            showToast('error', res.message);
+        }
+    });
+}
+
+function savePo(e) {
+    e.preventDefault();
+    const poId = document.getElementById('po_purchase_order_id').value;
+    if(!poId) {
+        showToast('warning', 'Pilih dokumen PO Approved terlebih dahulu!');
+        return;
+    }
+
+    const formData = new FormData(e.target);
+    const payload = {};
+    formData.forEach((value, key) => { if(!key.includes('[')) payload[key] = value; });
+
+    payload.is_ppn = document.getElementById('po_is_ppn').checked ? 1 : 0;
+
+    payload.items = [];
+    const rows = document.querySelectorAll('#tbodyPoItems tr');
+    rows.forEach(row => {
+        const prodId = row.querySelector('input[name*="[product_id]"]');
+        if(prodId) {
+            payload.items.push({
+                product_id: prodId.value,
+                unit_id: row.querySelector('input[name*="[unit_id]"]').value,
+                qty: row.querySelector('input[name*="[qty]"]').value,
+                unit_cost: row.querySelector('input[name*="[unit_cost]"]').value
+            });
+        }
+    });
+
+    if(payload.items.length === 0) {
+        showToast('warning', 'Daftar barang tidak boleh kosong!');
+        return;
+    }
+
+    const id = document.getElementById('po_purchase_id').value;
+    const url = id ? `/inventori/pembelian/faktur/${id}` : '/inventori/pembelian/faktur/store-po';
+    const method = id ? 'PUT' : 'POST';
+
+    fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'X-Requested-With': 'XMLHttpRequest' },
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(res => {
+        if(res.status === 'success') {
+            modalPo.hide();
+            showToast('success', res.message);
+            loadData(1);
+        } else {
+            showToast('error', res.message);
+        }
+    });
+}
+
+// Edit Modal Loader
+function openEditModal(id, sourceType) {
+    fetch(`/inventori/pembelian/faktur/${id}`)
+    .then(res => res.json())
+    .then(res => {
+        if(res.status === 'success') {
+            const p = res.data.purchase;
+            const items = res.data.items;
+
+            if(sourceType === 'po') {
+                document.getElementById('po_purchase_id').value = p.id;
+                document.getElementById('po_purchase_order_id').value = p.purchase_order_id;
+                document.getElementById('po_business_unit_id').value = p.business_unit_id;
+                document.getElementById('po_supplier_id').value = p.supplier_id;
+                document.getElementById('po_no_display').value = p.po_no || '-';
+                document.getElementById('po_supplier_name').value = p.supplier_name;
+                document.getElementById('po_bu_warehouse_display').value = `${p.bu_code} - ${p.bu_name}`;
+                document.getElementById('po_purchase_date').value = p.purchase_date ? p.purchase_date.substring(0, 10) : '';
+                document.getElementById('po_supplier_invoice_no').value = p.supplier_invoice_no || '';
+                document.getElementById('po_document_discount').value = p.discount || 0;
+                document.getElementById('po_is_ppn').checked = (p.ppn_amount > 0);
+
+                let html = '';
+                items.forEach((item, idx) => {
+                    const sub = item.qty * item.unit_cost;
+                    const unitName = item.unit_name || 'PCS';
+                    html += `
+                    <tr id="po_row_${idx}" class="align-middle">
+                        <td class="text-center fw-semibold text-muted small">${idx + 1}</td>
+                        <td><span class="badge bg-light text-dark border font-monospace px-2 py-1">${item.product_code || '-'}</span></td>
+                        <td>
+                            <strong class="text-dark d-block">${item.product_name}</strong>
+                            <input type="hidden" name="items[${idx}][product_id]" value="${item.product_id}">
+                            <input type="hidden" name="items[${idx}][unit_id]" value="${item.unit_id || ''}">
+                        </td>
+                        <td class="text-center"><span class="badge bg-info text-dark fw-semibold px-2 py-1">${unitName}</span></td>
+                        <td style="width: 140px;">
+                            <div class="input-group input-group-sm">
+                                <input type="number" step="0.001" class="form-control text-end fw-semibold" name="items[${idx}][qty]" value="${item.qty}" min="0.001" oninput="calculateTotalsPo()" required>
+                                <span class="input-group-text bg-light text-muted px-1 small">${unitName}</span>
+                            </div>
+                        </td>
+                        <td style="width: 170px;">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-light fw-bold text-muted">Rp</span>
+                                <input type="number" step="100" class="form-control text-end fw-bold text-primary" name="items[${idx}][unit_cost]" value="${item.unit_cost}" min="0" oninput="calculateTotalsPo()" required>
+                            </div>
+                        </td>
+                        <td class="text-end fw-bold text-success fs-6" id="po_subtotal_${idx}">Rp ${sub.toLocaleString('id-ID')}</td>
+                        <td class="text-center">
+                            <button type="button" class="btn btn-sm btn-outline-danger border-0 p-1" onclick="removePoRow(this)"><i class="bi bi-trash-fill"></i></button>
+                        </td>
+                    </tr>`;
+                });
+                document.getElementById('tbodyPoItems').innerHTML = html;
+                calculateTotalsPo();
+                modalPo.show();
+            } else {
+                document.getElementById('nonpo_id').value = p.id;
+                document.getElementById('nonpo_business_unit_id').value = p.business_unit_id;
+                document.getElementById('nonpo_supplier_id').value = p.supplier_id;
+                document.getElementById('nonpo_supplier_name').value = p.supplier_name;
+                document.getElementById('nonpo_purchase_date').value = p.purchase_date ? p.purchase_date.substring(0, 10) : '';
+                document.getElementById('nonpo_supplier_invoice_no').value = p.supplier_invoice_no || '';
+                document.getElementById('nonpo_goods_received').checked = (p.goods_received == 1);
+                document.getElementById('nonpo_document_discount').value = p.discount || 0;
+                document.getElementById('nonpo_is_ppn').checked = (p.ppn_amount > 0);
+
+                let html = '';
+                items.forEach((item, idx) => {
+                    const sub = item.qty * item.unit_cost;
+                    const rowId = Date.now() + idx;
+                    const unitName = item.unit_name || 'PCS';
+                    html += `
+                    <tr id="nonpo_row_${rowId}" class="align-middle">
+                        <td class="text-center fw-semibold text-muted small row-num">${idx + 1}</td>
+                        <td><span class="badge bg-light text-dark border font-monospace px-2 py-1">${item.product_code || '-'}</span></td>
+                        <td>
+                            <strong class="text-dark d-block">${item.product_name}</strong>
+                            <input type="hidden" name="items[${rowId}][product_id]" value="${item.product_id}">
+                            <input type="hidden" name="items[${rowId}][unit_id]" value="${item.unit_id || ''}">
+                        </td>
+                        <td class="text-center"><span class="badge bg-info text-dark fw-semibold px-2 py-1">${unitName}</span></td>
+                        <td style="width: 140px;">
+                            <div class="input-group input-group-sm">
+                                <input type="number" step="0.001" class="form-control text-end fw-semibold" name="items[${rowId}][qty]" value="${item.qty}" min="0.001" oninput="calculateTotalsNonPo()" required>
+                                <span class="input-group-text bg-light text-muted px-1 small">${unitName}</span>
+                            </div>
+                        </td>
+                        <td style="width: 170px;">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-light fw-bold text-muted">Rp</span>
+                                <input type="number" step="100" class="form-control text-end fw-bold text-primary" name="items[${rowId}][unit_cost]" value="${item.unit_cost}" min="0" oninput="calculateTotalsNonPo()" required>
+                            </div>
+                        </td>
+                        <td class="text-end fw-bold text-primary fs-6" id="nonpo_subtotal_${rowId}">Rp ${sub.toLocaleString('id-ID')}</td>
+                        <td class="text-center">
+                            <button type="button" class="btn btn-sm btn-outline-danger border-0 p-1" onclick="removeNonPoRow('${rowId}')"><i class="bi bi-trash-fill"></i></button>
+                        </td>
+                    </tr>`;
+                });
+                document.getElementById('tbodyNonPoItems').innerHTML = html;
+                calculateTotalsNonPo();
+                modalNonPo.show();
+            }
+        }
+    });
+}
+
+// Approve & Delete Actions
+function approvePurchase(id) {
+    Swal.fire({
+        title: 'Approve Faktur Pembelian?',
+        text: 'Setelah di-approve, status nota menjadi APPROVED dan resmi terikat di sistem!',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#198754',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Ya, Approve Now!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/inventori/pembelian/faktur/${id}/approve`, {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(res => res.json())
+            .then(res => {
+                if(res.status === 'success') {
+                    showToast('success', res.message);
+                    loadData(1);
+                } else {
+                    showToast('error', res.message);
+                }
+            });
+        }
+    });
+}
+
+function deletePurchase(id) {
+    Swal.fire({
+        title: 'Hapus Faktur Pembelian?',
+        text: 'Tindakan ini memerlukan wewenang Manager/Admin!',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Ya, Hapus!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/inventori/pembelian/faktur/${id}`, {
+                method: 'DELETE',
+                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(res => res.json())
+            .then(res => {
+                if(res.status === 'success') {
+                    showToast('success', res.message);
+                    loadData(1);
+                } else {
+                    showToast('error', res.message);
+                }
+            });
+        }
+    });
+}
+
+// Return Modal Functions
+function openModalReturn(id) {
+    fetch(`/inventori/pembelian/faktur/${id}`)
+    .then(res => res.json())
+    .then(res => {
+        if(res.status === 'success') {
+            const p = res.data.purchase;
+            const items = res.data.items;
+
+            document.getElementById('ret_purchase_id').value = p.id;
+            document.getElementById('ret_purchase_no').value = p.purchase_no;
+            document.getElementById('ret_supplier_name').value = p.supplier_name;
+
+            let html = '';
+            items.forEach(item => {
+                html += `
+                <tr class="align-middle">
+                    <td><strong>${item.product_name}</strong></td>
+                    <td class="text-center">${item.qty}</td>
+                    <td class="text-center fw-bold text-danger">${item.max_returnable}</td>
+                    <td>
+                        <input type="number" step="0.001" class="form-control form-control-sm text-end fw-bold" name="return_items[${item.id}][qty]" max="${item.max_returnable}" min="0" value="0">
+                        <input type="hidden" name="return_items[${item.id}][id]" value="${item.id}">
+                    </td>
+                    <td class="text-end fw-semibold">Rp ${(parseFloat(item.unit_cost) || 0).toLocaleString('id-ID')}</td>
+                </tr>`;
+            });
+            document.getElementById('tbodyReturnItems').innerHTML = html;
+            modalReturn.show();
+        }
+    });
+}
+
+function saveReturn(e) {
+    e.preventDefault();
+    const purchaseId = document.getElementById('ret_purchase_id').value;
+    const reason = document.getElementById('ret_reason').value;
+
+    const returnItems = [];
+    const rows = document.querySelectorAll('#tbodyReturnItems tr');
+    rows.forEach(row => {
+        const itemId = row.querySelector('input[name*="[id]"]')?.value;
+        const qty = row.querySelector('input[name*="[qty]"]')?.value;
+        if(itemId && parseFloat(qty) > 0) {
+            returnItems.push({ id: itemId, qty: qty });
+        }
+    });
+
+    if(returnItems.length === 0) {
+        showToast('warning', 'Pilih minimal 1 item untuk diretur!');
+        return;
+    }
+
+    fetch('/inventori/pembelian/faktur/store-return', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'X-Requested-With': 'XMLHttpRequest' },
+        body: JSON.stringify({ purchase_id: purchaseId, reason: reason, return_items: returnItems })
+    })
+    .then(res => res.json())
+    .then(res => {
+        if(res.status === 'success') {
+            modalReturn.hide();
+            showToast('success', res.message);
+            loadData(1);
+        } else {
+            showToast('error', res.message);
+        }
+    });
+}
+
+// Print & Export
+function printFaktur(id) { window.open(`/inventori/pembelian/faktur/${id}/print`, '_blank'); }
+function exportExcel() {
+    const startDate = document.getElementById('filter_start_date').value;
+    const endDate   = document.getElementById('filter_end_date').value;
+    const status    = document.getElementById('filter_status').value;
+    const supplierId= document.getElementById('filter_supplier_id').value;
+
+    window.open(`/inventori/pembelian/faktur/export-excel?start_date=${startDate}&end_date=${endDate}&status=${status}&supplier_id=${supplierId}`, '_blank');
+}
 </script>
-@endsection
+@endpush
