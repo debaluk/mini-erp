@@ -38,12 +38,8 @@ class PurchaseInvoiceController extends Controller
      */
     public function data(Request $request)
     {
-        $startDate      = $request->query('start_date', now()->startOfMonth()->format('Y-m-d'));
-        $endDate        = $request->query('end_date', now()->endOfMonth()->format('Y-m-d'));
-        $businessUnitId = $request->query('business_unit_id');
-        $supplierId     = $request->query('supplier_id');
-        $paymentType    = $request->query('payment_type');
-        $statusFilter   = $request->query('status');
+        $startDate = $request->query('start_date', now()->startOfMonth()->format('Y-m-d'));
+        $endDate = $request->query('end_date', now()->endOfMonth()->format('Y-m-d'));
 
         $query = DB::table('purchases as p')
             ->leftJoin('business_units as bu', 'bu.id', '=', 'p.business_unit_id')
@@ -54,30 +50,58 @@ class PurchaseInvoiceController extends Controller
             ->whereDate('p.purchase_date', '>=', $startDate)
             ->whereDate('p.purchase_date', '<=', $endDate);
 
-        if ($businessUnitId) $query->where('p.business_unit_id', $businessUnitId);
-        if ($supplierId) $query->where('p.supplier_id', $supplierId);
-        if ($paymentType) $query->where('p.payment_method', $paymentType);
-        if ($statusFilter) $query->where('p.status', $statusFilter);
+        if ($request->filled('business_unit_id')) $query->where('p.business_unit_id', $request->business_unit_id);
+        if ($request->filled('supplier_id')) $query->where('p.supplier_id', $request->supplier_id);
+        if ($request->filled('payment_type')) $query->where('p.payment_method', $request->payment_type);
+        if ($request->filled('status')) $query->where('p.status', $request->status);
 
-        $data = $query->select(
-            'p.*',
-            'p.purchase_no as invoice_no',
-            'p.payment_method as payment_type',
-            'p.total as grand_total',
-            'bu.name as business_unit_name',
-            's.name as supplier_name',
-            'po.po_no',
-            'u.name as creator_name'
-        )->orderBy('p.created_at', 'desc')->get();
+        $recordsTotal = (clone $query)->count();
 
-        foreach ($data as $item) {
-            $item->formatted_date = Carbon::parse($item->purchase_date)->format('d/m/Y');
-            $item->formatted_due  = $item->due_date ? Carbon::parse($item->due_date)->format('d/m/Y') : '-';
-            $item->formatted_grand = 'Rp ' . number_format($item->grand_total, 0, ',', '.');
-            $item->warehouse_name = '-';
+        $search = trim((string) $request->input('search.value', ''));
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('p.purchase_no', 'like', "%{$search}%")
+                  ->orWhere('s.name', 'like', "%{$search}%")
+                  ->orWhere('bu.name', 'like', "%{$search}%")
+                  ->orWhere('po.po_no', 'like', "%{$search}%");
+            });
         }
 
-        return response()->json(['data' => $data]);
+        $recordsFiltered = (clone $query)->count();
+
+        $columns = [
+            0 => 'p.purchase_no',
+            1 => 'p.purchase_date',
+            2 => 'p.source_type',
+            3 => 's.name',
+            4 => 'bu.name',
+            5 => 'p.total',
+            6 => 'p.status',
+        ];
+        $orderColumn = $columns[(int) $request->input('order.0.column', 1)] ?? 'p.purchase_date';
+        $orderDir = $request->input('order.0.dir') === 'asc' ? 'asc' : 'desc';
+
+        $start = max(0, (int) $request->input('start', 0));
+        $length = (int) $request->input('length', 15);
+        $length = $length > 0 ? min($length, 100) : 15;
+
+        $rows = $query->select(
+            'p.id', 'p.purchase_no', 'p.purchase_date', 'p.source_type', 'p.status', 'p.total',
+            'bu.code as bu_code', 'bu.name as business_unit_name', 's.name as supplier_name', 'po.po_no'
+        )->orderBy($orderColumn, $orderDir)->offset($start)->limit($length)->get();
+
+        $data = $rows->map(function ($item) {
+            $item->formatted_date = $item->purchase_date ? Carbon::parse($item->purchase_date)->format('d/m/Y') : '-';
+            $item->formatted_grand = 'Rp ' . number_format((float) $item->total, 0, ',', '.');
+            return $item;
+        });
+
+        return response()->json([
+            'draw' => (int) $request->input('draw', 0),
+            'recordsTotal' => $recordsTotal,
+            'recordsFiltered' => $recordsFiltered,
+            'data' => $data,
+        ]);
     }
 
     /**
