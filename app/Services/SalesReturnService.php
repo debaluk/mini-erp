@@ -36,6 +36,10 @@ class SalesReturnService
                     ->lockForUpdate()
                     ->firstOrFail();
 
+                if ($existingReturn->status === 'cancelled') {
+                    throw new Exception('Retur penjualan yang sudah cancelled tidak dapat diedit.');
+                }
+
                 $this->assertPeriodOpen($existingReturn->return_date);
                 $this->assertPeriodOpen($data['return_date'] ?? $existingReturn->return_date);
 
@@ -200,12 +204,18 @@ class SalesReturnService
     }
 
     /**
-     * Hapus efek stok/jurnal retur lama sebelum transaksi diedit.
+     * Cancel retur sebelum closing.
+     * Data header/item tetap dipertahankan untuk audit; efek stok dan jurnal dihapus.
      */
     public function deleteReturn(int $returnId): void
     {
         DB::transaction(function () use ($returnId) {
             $return = SalesReturn::whereKey($returnId)->lockForUpdate()->firstOrFail();
+
+            if ($return->status === 'cancelled') {
+                throw new Exception('Retur penjualan sudah cancelled.');
+            }
+
             $this->assertPeriodOpen($return->return_date);
 
             $stockKeys = DB::table('sales_return_items')
@@ -239,8 +249,10 @@ class SalesReturnService
                 DB::table('journals')->where('id', $journal->id)->delete();
             }
 
-            DB::table('sales_return_items')->where('sales_return_id', $return->id)->delete();
-            DB::table('sales_returns')->where('id', $return->id)->delete();
+            DB::table('sales_returns')->where('id', $return->id)->update([
+                'status' => 'cancelled',
+                'updated_at' => now(),
+            ]);
 
             foreach ($stockKeys as $key) {
                 $this->rebuildStock($return->entity_id, $key['warehouse_id'], $key['product_id']);
