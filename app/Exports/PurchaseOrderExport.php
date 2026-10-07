@@ -156,9 +156,9 @@ class PurchaseOrderExport implements FromCollection, WithHeadings, WithMapping, 
                 // 2. FORMAT DATA TABLE & ANGKA
                 $sheet->getStyle("G{$dataStartRow}:G{$lastDataRow}")->getNumberFormat()->setFormatCode('"Rp "#,##0');
                 $sheet->getStyle("A{$dataStartRow}:B{$lastDataRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                $sheet->getStyle("C{$dataStartRow}:C{$lastDataRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->getFont()->setBold(true);
+                $sheet->getStyle("C{$dataStartRow}:C{$lastDataRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);\n                $sheet->getStyle("C{$dataStartRow}:C{$lastDataRow}")->getFont()->setBold(true);
                 $sheet->getStyle("F{$dataStartRow}:F{$lastDataRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                $sheet->getStyle("H{$dataStartRow}:H{$lastDataRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->getFont()->setBold(true);
+                $sheet->getStyle("H{$dataStartRow}:H{$lastDataRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);\n                $sheet->getStyle("H{$dataStartRow}:H{$lastDataRow}")->getFont()->setBold(true);
 
                 // Border Data
                 $sheet->getStyle("A11:H{$lastDataRow}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setARGB('D9D9D9');
