@@ -199,10 +199,6 @@
                                         <span class="small text-muted">Total Nilai Retur:</span>
                                         <span class="fw-bold text-danger h5 mb-0" id="displayTotalReturn">Rp 0</span>
                                     </div>
-                                    <div class="d-flex justify-content-between align-items-center extra-small text-muted">
-                                        <span>Reversal Beban HPP (Est):</span>
-                                        <span id="displayTotalHppReversal">Rp 0</span>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -520,7 +516,6 @@ $(document).ready(function() {
 
     function calculateGrandTotal() {
         let totalRefund = 0;
-        let totalHppReversal = 0;
         let count = 0;
 
         $('.item-row').each(function() {
@@ -535,13 +530,11 @@ $(document).ready(function() {
 
             if (qtyRet > 0) {
                 totalRefund += subtotal;
-                totalHppReversal += subtotalHpp;
                 count++;
             }
         });
 
         $('#displayTotalReturn').text('Rp ' + formatRupiah(totalRefund));
-        $('#displayTotalHppReversal').text('Rp ' + formatRupiah(totalHppReversal));
         $('#itemCountBadge').text(count + ' Item Diretur');
     }
 
