@@ -1,9 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid px-0 py-0"> 
-
-    <!-- Header & Action Buttons -->
+<div class="container-fluid px-0 py-0">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
             <h3 class="mb-1 fw-bold text-dark"><i class="bi bi-receipt me-2 text-primary"></i>Purchase Order (PO)</h3>
@@ -19,7 +17,6 @@
         </div>
     </div>
 
-    <!-- Filter Card -->
     <div class="card shadow-sm border-0 mb-2">
         <div class="card-body p-3">
             <form id="form-filter" class="row g-2 align-items-end">
@@ -61,13 +58,11 @@
                 <div class="col-md-2 d-flex gap-1">
                     <button type="button" id="btn-apply-filter" class="btn btn-primary btn-sm w-100"><i class="bi bi-search me-1"></i>Tampilkan</button>
                     <button type="button" id="btn-reset-filter" class="btn btn-outline-secondary btn-sm">Reset</button>
-					
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- DataTables Table -->
     <div class="card shadow-sm border-0">
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -90,35 +85,37 @@
             </div>
         </div>
     </div>
-
 </div>
 
-<!-- MODAL INPUT/EDIT PO KEREN -->
-<div class="modal fade" id="modal-po" tabindex="-1" data-bs-backdrop="static">
-    <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content shadow-lg border-0">
-            <div class="modal-header bg-primary text-white py-3">
-                <h5 class="modal-title fw-bold" id="modal-po-title"><i class="bi bi-cart-plus me-2 text-primary"></i> Buat Purchase Order Baru</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+{{-- MODAL INPUT / EDIT PO --}}
+<div class="modal fade" id="modal-po" tabindex="-1" data-bs-backdrop="static" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white py-2 px-3">
+                <h6 class="modal-title fw-bold" id="modal-po-title">
+                    <i class="bi bi-cart-plus me-2"></i>Buat Purchase Order Baru
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
+
             <form id="form-po">
                 @csrf
                 <input type="hidden" id="po-id" name="po_id">
-                <div class="modal-body p-4">
-                    
-                    <!-- Form Header -->
-                    <div class="row g-3 mb-3">
+
+                <div class="modal-body p-3">
+                    {{-- HEADER PO --}}
+                    <div class="row g-2 mb-3 bg-light p-2 rounded border">
                         <div class="col-md-3">
-                            <label class="form-label fw-bold">No. PO (Auto)</label>
-                            <input type="text" id="po-no" class="form-control font-monospace fw-bold bg-light" value="{{ $autoPoNo }}" readonly>
+                            <label class="form-label extra-small fw-bold text-muted mb-1">No. PO (Auto)</label>
+                            <input type="text" id="po-no" class="form-control form-control-sm font-monospace fw-bold bg-white" value="{{ $autoPoNo }}" readonly>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label fw-bold">Tanggal PO <span class="text-danger">*</span></label>
+                            <label class="form-label extra-small fw-bold text-muted mb-1">Tanggal PO *</label>
                             <x-date-input-id name="po_date" id="po-date" :value="date('Y-m-d')" required />
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label fw-bold">Unit Bisnis <span class="text-danger">*</span></label>
-                            <select id="business-unit-id" name="business_unit_id" class="form-select" required>
+                            <label class="form-label extra-small fw-bold text-muted mb-1">Unit Bisnis *</label>
+                            <select id="business-unit-id" name="business_unit_id" class="form-select form-select-sm" required>
                                 <option value="">-- Pilih Unit Bisnis --</option>
                                 @foreach($businessUnits as $bu)
                                     <option value="{{ $bu->id }}">{{ $bu->code }} - {{ $bu->name }}</option>
@@ -126,8 +123,8 @@
                             </select>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label fw-bold">Gudang Tujuan <span class="text-danger">*</span></label>
-                            <select id="warehouse-id" name="warehouse_id" class="form-select" required>
+                            <label class="form-label extra-small fw-bold text-muted mb-1">Gudang Tujuan *</label>
+                            <select id="warehouse-id" name="warehouse_id" class="form-select form-select-sm" required>
                                 <option value="">-- Pilih Gudang --</option>
                                 @foreach($warehouses as $w)
                                     <option value="{{ $w->id }}">{{ $w->name }}</option>
@@ -136,11 +133,11 @@
                         </div>
                     </div>
 
-                    <!-- Vendor Selection & Info Box Dynamic -->
-                    <div class="row g-3 mb-4">
+                    {{-- SUPPLIER --}}
+                    <div class="row g-2 mb-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Pilih Vendor / Supplier <span class="text-danger">*</span></label>
-                            <select id="supplier-id" name="supplier_id" class="form-select" required>
+                            <label class="form-label extra-small fw-bold text-muted mb-1">Supplier / Vendor *</label>
+                            <select id="supplier-id" name="supplier_id" class="form-select form-select-sm" required>
                                 <option value="">-- Pilih Supplier --</option>
                                 @foreach($suppliers as $s)
                                     <option value="{{ $s->id }}">{{ $s->name }}</option>
@@ -148,111 +145,110 @@
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <div class="card bg-light border-primary border-start border-4 shadow-sm p-2" id="box-supplier-info">
-                                <div class="d-flex align-items-center">
-                                    
-                                    <div>
-                                        <div class="fw-bold text-dark" id="info-supplier-name">Pilih vendor untuk melihat detail info...</div>
-                                        <div class="small text-muted" id="info-supplier-address">-</div>
-                                        <div class="small text-muted" id="info-supplier-phone">-</div>
-                                    </div>
-                                </div>
+                            <div class="border rounded bg-light px-3 py-2 h-100" id="box-supplier-info">
+                                <div class="fw-bold small text-dark" id="info-supplier-name">Pilih vendor untuk melihat detail info...</div>
+                                <div class="small text-muted" id="info-supplier-address">-</div>
+                                <div class="small text-muted" id="info-supplier-phone">-</div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Items Table -->
-                    <div class="card border mb-3">
-                        <div class="card-header bg-secondary text-white py-2 d-flex justify-content-between align-items-center">
-                            <span class="fw-bold small"><i class="bi bi-box-seam me-1"></i> Rincian Item Barang Yang Dipesan</span>
-                            <button type="button" class="btn btn-sm btn-light font-monospace fw-bold" id="btn-add-item-row">+ Tambah Item</button>
+                    {{-- ITEM --}}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="fw-bold extra-small text-uppercase text-secondary">
+                                <i class="bi bi-box-seam me-1"></i>Rincian Item Barang Yang Dipesan
+                            </span>
+                            <button type="button" class="btn btn-primary btn-sm fw-semibold" id="btn-add-item-row">
+                                <i class="bi bi-plus-lg me-1"></i>Tambah Item
+                            </button>
                         </div>
-                        <div class="card-body p-0">
-                            <div class="table-responsive">
-                                <table class="table table-bordered align-middle mb-0" id="table-po-items" style="font-size: 0.88rem;">
-                                    <thead class="table-light text-center">
-                                        <tr>
-                                            <th>Produk / Barang</th>
-                                    <th style="width: 100px;">Satuan</th>
-                                            <th style="width: 110px;">Qty Order</th>
-                                            <th style="width: 140px;">Harga Satuan</th>
-                                            <th style="width: 120px;">Diskon</th>
-                                            <th style="width: 150px;">Subtotal (Rp)</th>
-                                            <th style="width: 50px;">Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="tbody-po-items"></tbody>
-                                    <tfoot class="table-light fw-bold">
-                                        <tr>
-                                            <td colspan="4" class="text-end">TOTAL PEMBELIAN:</td>
-                                            <td colspan="2" class="text-end font-monospace fs-6 text-primary" id="footer-grand-total">Rp 0</td>
-                                            <td></td>
-                                        </tr>
-                                    </tfoot>
-                                </table>
-                            </div>
+
+                        <div class="table-responsive border rounded">
+                            <table class="table table-sm table-bordered align-middle mb-0" id="table-po-items">
+                                <thead class="bg-light text-muted extra-small">
+                                    <tr>
+                                        <th>Produk / Barang</th>
+                                        <th style="width: 90px;" class="text-center">Satuan</th>
+                                        <th style="width: 100px;" class="text-center">Qty Order</th>
+                                        <th style="width: 130px;" class="text-end">Harga Satuan</th>
+                                        <th style="width: 110px;" class="text-end">Diskon</th>
+                                        <th style="width: 140px;" class="text-end">Subtotal (Rp)</th>
+                                        <th style="width: 45px;" class="text-center">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-po-items"></tbody>
+                                <tfoot class="bg-light fw-bold">
+                                    <tr>
+                                        <td colspan="5" class="text-end small">TOTAL PEMBELIAN:</td>
+                                        <td class="text-end font-monospace text-primary" id="footer-grand-total">Rp 0</td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
                         </div>
                     </div>
 
-                    <div class="mb-2">
-                        <label class="form-label fw-bold">Catatan / Memo PO</label>
-                        <input type="text" id="po-memo" name="memo" class="form-control" placeholder="Catatan khusus ke supplier (opsional)">
+                    {{-- CATATAN --}}
+                    <div>
+                        <label class="form-label extra-small fw-bold text-muted mb-1">Catatan / Memo PO</label>
+                        <input type="text" id="po-memo" name="memo" class="form-control form-control-sm" placeholder="Catatan khusus ke supplier (opsional)">
                     </div>
-
                 </div>
-                <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary px-4 fw-bold" id="btn-save-po"><i class="bi bi-save me-1"></i> Simpan Purchase Order</button>
+
+                <div class="modal-footer py-2 px-3 bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary btn-sm fw-semibold px-3" id="btn-save-po">
+                        <i class="bi bi-check-circle me-1"></i>Simpan Purchase Order
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- MODAL VIEW DETAIL PO -->
-<div class="modal fade" id="modal-detail-po" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header bg-dark text-white py-2">
-                <h5 class="modal-title fw-bold"><i class="bi bi-file-earmark-text me-2 text-info"></i> Detail Purchase Order</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+{{-- MODAL VIEW DETAIL PO --}}
+<div class="modal fade" id="modal-detail-po" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-secondary text-white py-2 px-3">
+                <h6 class="modal-title fw-bold"><i class="bi bi-file-earmark-text me-2"></i>Detail Purchase Order</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body p-4" id="detail-po-body"></div>
+            <div class="modal-body p-3" id="detail-po-body"></div>
         </div>
     </div>
 </div>
 
-<!-- MODAL PENERIMAAN BARANG -->
-<div class="modal fade" id="modal-penerimaan-po" tabindex="-1" data-bs-backdrop="static">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header bg-success text-white py-2">
-                <h5 class="modal-title fw-bold"><i class="bi bi-box-arrow-in-down me-2"></i> Penerimaan Barang</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+{{-- MODAL PENERIMAAN BARANG --}}
+<div class="modal fade" id="modal-penerimaan-po" tabindex="-1" data-bs-backdrop="static" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-success text-white py-2 px-3">
+                <h6 class="modal-title fw-bold"><i class="bi bi-box-arrow-in-down me-2"></i>Penerimaan Barang</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body p-4" id="penerimaan-po-body">
-                <div class="text-center py-5 text-muted"><div class="spinner-border spinner-border-sm me-2"></div> Memuat penerimaan...</div>
+            <div class="modal-body p-3" id="penerimaan-po-body">
+                <div class="text-center py-5 text-muted"><div class="spinner-border spinner-border-sm me-2"></div>Memuat penerimaan...</div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- SweetAlert2 & DataTables JS -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-
-    const table =  $('#table-po').DataTable({
+    const table = $('#table-po').DataTable({
         processing: true,
         serverSide: false,
         ajax: {
             url: "{{ route('inventori.pembelian.po.data') }}",
             data: function (d) {
-                d.start_date       =  $('#filter-start-date').val();
-                d.end_date         =  $('#filter-end-date').val();
-                d.business_unit_id =  $('#filter-bu').val();
-                d.supplier_id      =  $('#filter-supplier').val();
-                d.warehouse_id     =  $('#filter-wh').val();
+                d.start_date = $('#filter-start-date').val();
+                d.end_date = $('#filter-end-date').val();
+                d.business_unit_id = $('#filter-bu').val();
+                d.supplier_id = $('#filter-supplier').val();
+                d.warehouse_id = $('#filter-wh').val();
             }
         },
         columns: [
@@ -267,11 +263,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 data: 'status',
                 className: 'text-center',
                 render: function (data) {
-                    if (data === 'draft')     return '<span class="badge bg-secondary">DRAFT</span>';
-                    if (data === 'approved')  return '<span class="badge bg-primary">APPROVED</span>';
-                    if (data === 'partial')   return '<span class="badge bg-warning text-dark">PARTIAL</span>';
+                    if (data === 'draft') return '<span class="badge bg-secondary">DRAFT</span>';
+                    if (data === 'approved') return '<span class="badge bg-primary">APPROVED</span>';
+                    if (data === 'partial') return '<span class="badge bg-warning text-dark">PARTIAL</span>';
                     if (data === 'completed') return '<span class="badge bg-success">COMPLETED</span>';
-                    if (data === 'closed')    return '<span class="badge bg-dark">CLOSED</span>';
+                    if (data === 'closed') return '<span class="badge bg-dark">CLOSED</span>';
                     return `<span class="badge bg-danger">${data.toUpperCase()}</span>`;
                 }
             },
@@ -283,164 +279,125 @@ document.addEventListener('DOMContentLoaded', function () {
                     let actions = `<div class="btn-group btn-group-sm">
                         <button type="button" class="btn btn-outline-info btn-view-po" data-id="${row.id}" title="Detail PO"><i class="bi bi-eye"></i></button>
                         <a href="{{ url('/inventori/pembelian/po') }}/${row.id}/print" target="_blank" class="btn btn-outline-secondary" title="Cetak Nota PO"><i class="bi bi-printer"></i></a>`;
-
-                    // Tombol Penerimaan Barang (Trigger jika status Approved / Partial)
                     if (['approved', 'partial'].includes(row.status)) {
                         actions += `<button type="button" class="btn btn-success btn-penerimaan-po" data-id="${row.id}" data-no="${row.po_no}" title="Terima Barang"><i class="bi bi-box-arrow-in-down"></i> Penerimaan</button>`;
                     }
-
-                    // Tombol Approve (Hanya Draft)
                     if (row.status === 'draft') {
                         actions += `<button type="button" class="btn btn-success btn-approve-po" data-id="${row.id}" data-no="${row.po_no}" title="Approve PO"><i class="bi bi-check-circle"></i> Approve</button>`;
-                    }
-
-                    // Tombol Edit (Hanya Draft)
-                    if (row.status === 'draft') {
                         actions += `<button type="button" class="btn btn-outline-warning btn-edit-po" data-id="${row.id}" title="Edit Draft"><i class="bi bi-pencil"></i></button>`;
                         actions += `<button type="button" class="btn btn-outline-danger btn-delete-po" data-id="${row.id}" data-no="${row.po_no}" title="Hapus Draft"><i class="bi bi-trash"></i></button>`;
                     }
-
-                    // Tombol Force Close PO (Jika belum completed/closed)
                     if (!['completed', 'closed', 'draft'].includes(row.status)) {
                         actions += `<button type="button" class="btn btn-outline-dark btn-close-po" data-id="${row.id}" data-no="${row.po_no}" title="Tutup PO"><i class="bi bi-x-circle"></i> Close</button>`;
                     }
-
-                    actions += `</div>`;
+                    actions += '</div>';
                     return actions;
                 }
             }
         ]
     });
 
-     $('#btn-apply-filter').on('click', function () { table.ajax.reload(); });
-     $('#btn-reset-filter').on('click', function () {
-         $('#form-filter')[0].reset();
+    $('#btn-apply-filter').on('click', function () { table.ajax.reload(); });
+    $('#btn-reset-filter').on('click', function () {
+        $('#form-filter')[0].reset();
         table.ajax.reload();
     });
 
-    // Auto-Fetch Info Supplier saat Select Vendor Berubah
-     $('#supplier-id').on('change', function () {
-        const suppId =  $(this).val();
+    $('#supplier-id').on('change', function () {
+        const suppId = $(this).val();
         if (suppId) {
-             $.get(`{{ url('/inventori/pembelian/po/supplier-info') }}/${suppId}`, function (res) {
+            $.get(`{{ url('/inventori/pembelian/po/supplier-info') }}/${suppId}`, function (res) {
                 if (res.success) {
-                     $('#info-supplier-name').text(res.data.name);
-                     $('#info-supplier-address').text('Alamat: ' + res.data.address);
-                     $('#info-supplier-phone').text('Telp: ' + res.data.phone);
+                    $('#info-supplier-name').text(res.data.name);
+                    $('#info-supplier-address').text('Alamat: ' + res.data.address);
+                    $('#info-supplier-phone').text('Telp: ' + res.data.phone);
                 }
             });
         } else {
-             $('#info-supplier-name').text('Pilih vendor untuk melihat detail info...');
-             $('#info-supplier-address').text('-');
-             $('#info-supplier-phone').text('-');
+            $('#info-supplier-name').text('Pilih vendor untuk melihat detail info...');
+            $('#info-supplier-address').text('-');
+            $('#info-supplier-phone').text('-');
         }
     });
 
-    // Dinamis Item Row PO
-     $('#btn-add-item-row').on('click', function () {
-        addItemRow();
-    });
-
-    
+    $('#btn-add-item-row').on('click', function () { addItemRow(); });
 
     async function addItemRow(prodId = '', qty = 1, price = 0, discount = 0) {
         let productOptions = '<option value="">-- Pilih Barang --</option>';
-
         @foreach($products as $p)
-            productOptions += `<option value="{{ $p->id }}" data-unit="{{ $p->unit_code ?? '' }}"${String({{ $p->id }}) === String(prodId) ? ' selected' : ''}>{{ $p->code }} - {{ $p->name }}</option>`;
+            productOptions += `<option value="{{ $p->id }}" data-unit="{{ $p->unit_code ?? '' }}" ${String({{ $p->id }}) === String(prodId) ? 'selected' : ''}>{{ $p->code }} - {{ $p->name }}</option>`;
         @endforeach
 
         const rowId = Date.now();
         const html = `
             <tr id="row-${rowId}">
-                <td>
-                    <select name="products[]" class="form-select form-select-sm select-product" required>
-                        ${productOptions}
-                    </select>
-                </td>
-                <td>
-                    <input type="text" class="form-control form-control-sm text-center input-unit" value="" readonly>
-                </td>
+                <td><select name="products[]" class="form-select form-select-sm select-product" required>${productOptions}</select></td>
+                <td><input type="text" class="form-control form-control-sm text-center input-unit" value="" readonly></td>
                 <td><input type="number" name="qty[]" class="form-control form-control-sm text-center input-qty" step="0.01" value="${qty}" required></td>
                 <td><input type="number" name="unit_price[]" class="form-control form-control-sm text-end input-price" step="1" value="${price}" required></td>
                 <td><input type="number" name="discount[]" class="form-control form-control-sm text-end input-discount" step="0.01" value="${discount}"></td>
                 <td class="text-end font-monospace fw-bold cell-subtotal">Rp 0</td>
-                <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger btn-remove-row"><i class="bi bi-x"></i></button></td>
-            </tr>
-        `;
-
+                <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger btn-remove-row" title="Hapus item"><i class="bi bi-x"></i></button></td>
+            </tr>`;
         $('#tbody-po-items').append(html);
-
         const row = $('#row-' + rowId);
-        const selected = row.find('.select-product option:selected');
-        row.find('.input-unit').val(selected.data('unit') || '');
-
+        row.find('.input-unit').val(row.find('.select-product option:selected').data('unit') || '');
         calcSubtotal(row);
     }
 
-     $(document).on('click', '.btn-remove-row', function () {
-         $(this).closest('tr').remove();
+    $(document).on('click', '.btn-remove-row', function () {
+        $(this).closest('tr').remove();
         calcGrandTotal();
     });
 
-     $(document).on('change', '.select-product', function () {
+    $(document).on('change', '.select-product', function () {
         const row = $(this).closest('tr');
-        const selected = $(this).find(':selected');
-
-        row.find('.input-unit').val(selected.data('unit') || '');
+        row.find('.input-unit').val($(this).find(':selected').data('unit') || '');
         calcSubtotal(row);
     });
 
-     $(document).on('input', '.input-qty, .input-price, .input-discount', function () {
-        calcSubtotal( $(this).closest('tr'));
+    $(document).on('input', '.input-qty, .input-price, .input-discount', function () {
+        calcSubtotal($(this).closest('tr'));
     });
 
     function calcSubtotal(row) {
-        const qty   = parseFloat(row.find('.input-qty').val()) || 0;
+        const qty = parseFloat(row.find('.input-qty').val()) || 0;
         const price = parseFloat(row.find('.input-price').val()) || 0;
-        const disc  = parseFloat(row.find('.input-discount').val()) || 0;
-        const sub   = (qty * price) - disc;
-
-        row.find('.cell-subtotal').text('Rp ' + sub.toLocaleString('id-ID'));
+        const disc = parseFloat(row.find('.input-discount').val()) || 0;
+        row.find('.cell-subtotal').text('Rp ' + ((qty * price) - disc).toLocaleString('id-ID'));
         calcGrandTotal();
     }
 
     function calcGrandTotal() {
         let grand = 0;
-         $('#tbody-po-items tr').each(function () {
-            const qty   = parseFloat( $(this).find('.input-qty').val()) || 0;
-            const price = parseFloat( $(this).find('.input-price').val()) || 0;
-            const disc  = parseFloat( $(this).find('.input-discount').val()) || 0;
-            grand += (qty * price) - disc;
+        $('#tbody-po-items tr').each(function () {
+            grand += (parseFloat($(this).find('.input-qty').val()) || 0) * (parseFloat($(this).find('.input-price').val()) || 0) - (parseFloat($(this).find('.input-discount').val()) || 0);
         });
-         $('#footer-grand-total').text('Rp ' + grand.toLocaleString('id-ID'));
+        $('#footer-grand-total').text('Rp ' + grand.toLocaleString('id-ID'));
     }
 
-    // Modal Add PO Trigger
-     $('#btn-add-po').on('click', function () {
-         $('#form-po')[0].reset();
-         $('#po-id').val('');
-         $('#po-no').val('{{  $autoPoNo }}');
-         $('#tbody-po-items').empty();
+    $('#btn-add-po').on('click', function () {
+        $('#form-po')[0].reset();
+        $('#po-id').val('');
+        $('#po-no').val('{{ $autoPoNo }}');
+        $('#tbody-po-items').empty();
         addItemRow();
-         $('#modal-po-title').html('<i class="bi bi-cart-plus me-2 text-primary"></i> Buat Purchase Order Baru');
-         $('#modal-po').modal('show');
+        $('#modal-po-title').html('<i class="bi bi-cart-plus me-2"></i>Buat Purchase Order Baru');
+        $('#modal-po').modal('show');
     });
 
-    // Form Submit (Store / Update) AJAX
-     $('#form-po').on('submit', function (e) {
+    $('#form-po').on('submit', function (e) {
         e.preventDefault();
-        const poId =  $('#po-id').val();
-        const url  = poId ? `{{ url('/inventori/pembelian/po') }}/${poId}` : `{{ route('inventori.pembelian.po.store') }}`;
+        const poId = $('#po-id').val();
+        const url = poId ? `{{ url('/inventori/pembelian/po') }}/${poId}` : `{{ route('inventori.pembelian.po.store') }}`;
         const type = poId ? 'PUT' : 'POST';
-
-         $.ajax({
+        $.ajax({
             url: url,
             type: type,
-            data:  $(this).serialize(),
+            data: $(this).serialize(),
             success: function (res) {
                 if (res.success) {
-                     $('#modal-po').modal('hide');
+                    $('#modal-po').modal('hide');
                     table.ajax.reload();
                     Swal.fire({ icon: 'success', title: 'Berhasil!', text: res.message, timer: 2000, showConfirmButton: false });
                 }
@@ -451,15 +408,12 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Action Penerimaan Barang - buka sebagai modal, bukan halaman detail
     $(document).on('click', '.btn-penerimaan-po', function () {
         const id = $(this).data('id');
-        const no = $(this).data('no');
         const modalEl = document.getElementById('modal-penerimaan-po');
         const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
         const body = $('#penerimaan-po-body');
-
-        body.html('<div class="text-center py-5 text-muted"><div class="spinner-border spinner-border-sm me-2"></div> Memuat penerimaan...</div>');
+        body.html('<div class="text-center py-5 text-muted"><div class="spinner-border spinner-border-sm me-2"></div>Memuat penerimaan...</div>');
         modal.show();
 
         fetch(`{{ url('/inventori/penerimaan/create') }}?po_id=${id}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
@@ -468,16 +422,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 const doc = new DOMParser().parseFromString(html, 'text/html');
                 const form = doc.querySelector('#receiptForm');
                 const error = doc.querySelector('.alert-danger');
-
-                if (!form) {
-                    throw new Error('Form Penerimaan tidak ditemukan.');
-                }
-
+                if (!form) throw new Error('Form Penerimaan tidak ditemukan.');
                 body.html(form.outerHTML);
-
-                if (error) {
-                    Swal.fire({ icon: 'error', title: 'Gagal', text: error.textContent.trim() });
-                }
+                if (error) Swal.fire({ icon: 'error', title: 'Gagal', text: error.textContent.trim() });
             })
             .catch(error => {
                 body.html('<div class="alert alert-danger mb-0">Gagal memuat form penerimaan.</div>');
@@ -485,48 +432,35 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     });
 
-    // Submit Penerimaan dari modal
     $(document).on('submit', '#penerimaan-po-body #receiptForm', function (e) {
         e.preventDefault();
         const form = this;
         const button = form.querySelector('#saveReceipt');
         if (button) button.disabled = true;
-
-        fetch(form.action, {
-            method: 'POST',
-            body: new FormData(form),
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        })
-        .then(response => response.text())
-        .then(html => {
-            const doc = new DOMParser().parseFromString(html, 'text/html');
-            const updatedForm = doc.querySelector('#receiptForm');
-            const error = doc.querySelector('.alert-danger');
-
-            if (updatedForm) {
-                body = $('#penerimaan-po-body');
-                body.html(updatedForm.outerHTML);
-                if (error) {
-                    Swal.fire({ icon: 'error', title: 'Gagal', text: error.textContent.trim() });
+        fetch(form.action, { method: 'POST', body: new FormData(form), headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(response => response.text())
+            .then(html => {
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                const updatedForm = doc.querySelector('#receiptForm');
+                const error = doc.querySelector('.alert-danger');
+                if (updatedForm) {
+                    $('#penerimaan-po-body').html(updatedForm.outerHTML);
+                    if (error) Swal.fire({ icon: 'error', title: 'Gagal', text: error.textContent.trim() });
+                    return;
                 }
-                return;
-            }
-
-            bootstrap.Modal.getOrCreateInstance(document.getElementById('modal-penerimaan-po')).hide();
-            table.ajax.reload(null, false);
-            Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Penerimaan berhasil diposting.', timer: 1800, showConfirmButton: false });
-        })
-        .catch(error => {
-            if (button) button.disabled = false;
-            Swal.fire({ icon: 'error', title: 'Gagal', text: error.message || 'Penerimaan gagal diproses.' });
-        });
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('modal-penerimaan-po')).hide();
+                table.ajax.reload(null, false);
+                Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Penerimaan berhasil diposting.', timer: 1800, showConfirmButton: false });
+            })
+            .catch(error => {
+                if (button) button.disabled = false;
+                Swal.fire({ icon: 'error', title: 'Gagal', text: error.message || 'Penerimaan gagal diproses.' });
+            });
     });
 
-    // Action Approve PO
     $(document).on('click', '.btn-approve-po', function () {
         const id = $(this).data('id');
         const no = $(this).data('no');
-
         Swal.fire({
             title: 'Approve PO?',
             text: `PO [${no}] akan di-approve untuk proses selanjutnya.`,
@@ -536,9 +470,7 @@ document.addEventListener('DOMContentLoaded', function () {
             cancelButtonText: 'Batal'
         }).then((result) => {
             if (result.isConfirmed) {
-                $.post(`{{ url('/inventori/pembelian/po') }}/${id}/approve`, {
-                    _token: '{{ csrf_token() }}'
-                }, function (res) {
+                $.post(`{{ url('/inventori/pembelian/po') }}/${id}/approve`, { _token: '{{ csrf_token() }}' }, function (res) {
                     if (res.success) {
                         table.ajax.reload();
                         Swal.fire({ icon: 'success', title: 'Berhasil!', text: res.message, timer: 1500, showConfirmButton: false });
@@ -550,35 +482,28 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Action Edit PO Modal Populating
-     $(document).on('click', '.btn-edit-po', function () {
-        const id =  $(this).data('id');
-         $.get(`{{ url('/inventori/pembelian/po') }}/${id}/edit-data`, function (res) {
+    $(document).on('click', '.btn-edit-po', function () {
+        const id = $(this).data('id');
+        $.get(`{{ url('/inventori/pembelian/po') }}/${id}/edit-data`, function (res) {
             if (res.success) {
-                 $('#po-id').val(res.po.id);
-                 $('#po-no').val(res.po.po_no);
-                 $('#po-date').val(res.po.po_date.split(' ')[0]);
-                 $('#business-unit-id').val(res.po.business_unit_id);
-                 $('#warehouse-id').val(res.po.warehouse_id);
-                 $('#supplier-id').val(res.po.supplier_id).trigger('change');
-                 $('#po-memo').val(res.po.memo);
-
-                 $('#tbody-po-items').empty();
-                res.items.forEach(i => {
-                    addItemRow(i.product_id, i.qty, i.unit_price, i.discount);
-                });
-
-                 $('#modal-po-title').html('<i class="bi bi-pencil-square me-2 text-warning"></i> Edit Draft Purchase Order');
-                 $('#modal-po').modal('show');
+                $('#po-id').val(res.po.id);
+                $('#po-no').val(res.po.po_no);
+                $('#po-date').val(res.po.po_date.split(' ')[0]);
+                $('#business-unit-id').val(res.po.business_unit_id);
+                $('#warehouse-id').val(res.po.warehouse_id);
+                $('#supplier-id').val(res.po.supplier_id).trigger('change');
+                $('#po-memo').val(res.po.memo);
+                $('#tbody-po-items').empty();
+                res.items.forEach(i => addItemRow(i.product_id, i.qty, i.unit_price, i.discount));
+                $('#modal-po-title').html('<i class="bi bi-pencil-square me-2"></i>Edit Draft Purchase Order');
+                $('#modal-po').modal('show');
             }
         });
     });
 
-    // Action Force Close PO (SweetAlert2)
-     $(document).on('click', '.btn-close-po', function () {
-        const id =  $(this).data('id');
-        const no =  $(this).data('no');
-
+    $(document).on('click', '.btn-close-po', function () {
+        const id = $(this).data('id');
+        const no = $(this).data('no');
         Swal.fire({
             title: 'Tutup / Close PO?',
             text: `Apakah Anda yakin ingin menutup PO [${no}] secara permanen?`,
@@ -591,10 +516,7 @@ document.addEventListener('DOMContentLoaded', function () {
             cancelButtonText: 'Batal'
         }).then((result) => {
             if (result.isConfirmed) {
-                 $.post(`{{ url('/inventori/pembelian/po') }}/${id}/close`, {
-                    _token: '{{ csrf_token() }}',
-                    reason: result.value
-                }, function (res) {
+                $.post(`{{ url('/inventori/pembelian/po') }}/${id}/close`, { _token: '{{ csrf_token() }}', reason: result.value }, function (res) {
                     if (res.success) {
                         table.ajax.reload();
                         Swal.fire({ icon: 'success', title: 'Berhasil!', text: res.message, timer: 2000, showConfirmButton: false });
@@ -604,11 +526,9 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Action Delete Draft PO
-     $(document).on('click', '.btn-delete-po', function () {
-        const id =  $(this).data('id');
-        const no =  $(this).data('no');
-
+    $(document).on('click', '.btn-delete-po', function () {
+        const id = $(this).data('id');
+        const no = $(this).data('no');
         Swal.fire({
             title: 'Hapus Draft PO?',
             text: `Draft PO [${no}] akan dihapus!`,
@@ -619,7 +539,7 @@ document.addEventListener('DOMContentLoaded', function () {
             cancelButtonText: 'Batal'
         }).then((result) => {
             if (result.isConfirmed) {
-                 $.ajax({
+                $.ajax({
                     url: `{{ url('/inventori/pembelian/po') }}/${id}`,
                     type: 'DELETE',
                     data: { _token: '{{ csrf_token() }}' },
@@ -634,29 +554,29 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Modal Detail PO View
-     $(document).on('click', '.btn-view-po', function () {
-        const id =  $(this).data('id');
-         $.get(`{{ url('/inventori/pembelian/po') }}/${id}`, function (res) {
+    $(document).on('click', '.btn-view-po', function () {
+        const id = $(this).data('id');
+        $.get(`{{ url('/inventori/pembelian/po') }}/${id}`, function (res) {
             if (res.success) {
                 let html = `
-                    <div class="row g-2 mb-3">
+                    <div class="row g-2 mb-3 bg-light p-2 rounded border">
                         <div class="col-6">
-                            <div class="small text-muted">No. PO</div><div class="fw-bold font-monospace text-primary">${res.po.po_no}</div>
-                            <div class="small text-muted mt-2">Supplier</div><div class="fw-bold">${res.po.supplier_name}</div>
-                            <div class="small text-muted">${res.po.supplier_address}</div>
+                            <div class="extra-small text-muted">No. PO</div><div class="fw-bold font-monospace text-primary">${res.po.po_no}</div>
+                            <div class="extra-small text-muted mt-2">Supplier</div><div class="fw-bold">${res.po.supplier_name}</div>
+                            <div class="extra-small text-muted">${res.po.supplier_address || '-'}</div>
                         </div>
                         <div class="col-6">
-                            <div class="small text-muted">Gudang Tujuan</div><div class="fw-bold">${res.po.warehouse_name}</div>
-                            <div class="small text-muted mt-2">Unit Bisnis</div><div class="fw-bold">${res.po.business_unit_name || '-'}</div>
-                            <div class="small text-muted mt-2">Status</div><div><span class="badge bg-primary">${res.po.status.toUpperCase()}</span></div>
+                            <div class="extra-small text-muted">Gudang Tujuan</div><div class="fw-bold">${res.po.warehouse_name}</div>
+                            <div class="extra-small text-muted mt-2">Unit Bisnis</div><div class="fw-bold">${res.po.business_unit_name || '-'}</div>
+                            <div class="extra-small text-muted mt-2">Status</div><div><span class="badge bg-primary">${res.po.status.toUpperCase()}</span></div>
                         </div>
                     </div>
-                    <table class="table table-sm table-bordered align-middle">
-                        <thead class="table-light text-center">
-                            <tr><th>Kode</th><th>Barang</th><th>Qty</th><th>Harga</th><th>Subtotal</th></tr>
-                        </thead>
-                        <tbody>`;
+                    <div class="table-responsive border rounded">
+                        <table class="table table-sm table-bordered align-middle mb-0">
+                            <thead class="bg-light text-muted extra-small text-center">
+                                <tr><th>Kode</th><th>Barang</th><th>Qty</th><th>Harga</th><th>Subtotal</th></tr>
+                            </thead>
+                            <tbody>`;
                 let total = 0;
                 res.items.forEach(i => {
                     total += parseFloat(i.total);
@@ -668,14 +588,12 @@ document.addEventListener('DOMContentLoaded', function () {
                         <td class="text-end font-monospace fw-bold">Rp ${parseFloat(i.total).toLocaleString('id-ID')}</td>
                     </tr>`;
                 });
-                html += `</tbody><tfoot class="table-light fw-bold"><tr><td colspan="4" class="text-end">TOTAL:</td><td class="text-end font-monospace">Rp ${total.toLocaleString('id-ID')}</td></tr></tfoot></table>`;
-
-                 $('#detail-po-body').html(html);
-                 $('#modal-detail-po').modal('show');
+                html += `</tbody><tfoot class="bg-light fw-bold"><tr><td colspan="4" class="text-end">TOTAL:</td><td class="text-end font-monospace">Rp ${total.toLocaleString('id-ID')}</td></tr></tfoot></table></div>`;
+                $('#detail-po-body').html(html);
+                $('#modal-detail-po').modal('show');
             }
         });
     });
-
 });
 </script>
 @endsection
