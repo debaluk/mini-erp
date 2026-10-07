@@ -142,6 +142,7 @@ Route::middleware(['auth', 'access:inventori'])->prefix('inventori/penjualan/ret
     Route::get('/lookup-invoices', [SalesReturnController::class, 'lookupInvoices'])->name('inventori.penjualan.retur.lookup-invoices');
     Route::get('/sale-items/{saleId}', [SalesReturnController::class, 'saleItems'])->name('inventori.penjualan.retur.sale-items');
     Route::post('/store', [SalesReturnController::class, 'store'])->name('inventori.penjualan.retur.store');
+    Route::delete('/{id}', [SalesReturnController::class, 'destroy'])->name('inventori.penjualan.retur.destroy');
     Route::get('/{id}/edit', [SalesReturnController::class, 'edit'])->name('inventori.penjualan.retur.edit');
     Route::get('/{id}/print-data', [SalesReturnController::class, 'printData'])->name('inventori.penjualan.retur.print-data');
     Route::get('/export', [SalesReturnController::class, 'export'])->name('inventori.penjualan.retur.export');
