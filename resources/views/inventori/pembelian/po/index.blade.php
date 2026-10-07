@@ -300,6 +300,18 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    // Mapping Gudang sudah mengikuti Unit Bisnis (1 BU : 1 Gudang).
+    $('#business-unit-id').on('change', function () {
+        const businessUnitId = $(this).val();
+        const warehouseSelect = $('#warehouse-id');
+
+        warehouseSelect.val('');
+
+        if (businessUnitId) {
+            warehouseSelect.val(businessUnitId);
+        }
+    });
+
     $('#btn-add-item-row').on('click', function () { addItemRow(); });
 
     async function addItemRow(prodId = '', qty = 1, price = 0, discount = 0) {
