@@ -1,51 +1,51 @@
 @extends('layouts.app')
 
-@section('title', 'Faktur Pembelian (FB)')
+@section('title', 'Faktur Pembelian')
 
 @section('content')
-<div class="container-fluid py-3">
+<div class="container-fluid py-0">
     <!-- ========================================== -->
     <!-- HEADER BAR & FILTER UTAMA                  -->
     <!-- ========================================== -->
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-3">
-            <h5 class="mb-0 fw-bold"><i class="bi bi-receipt-cutoff me-2"></i>Daftar Faktur Pembelian (FB)</h5>
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-2 px-3">
+            <h6 class="mb-0 fw-bold"><i class="bi bi-receipt-cutoff me-2"></i>Daftar Faktur Pembelian</h6>
             <div class="d-flex gap-2">
-                <button class="btn btn-light text-primary fw-semibold shadow-sm" onclick="exportExcel()">
+                <button class="btn btn-sm btn-light text-primary fw-semibold shadow-sm" onclick="exportExcel()">
                     <i class="bi bi-file-earmark-excel me-1 text-success"></i> Ekspor Excel
                 </button>
                 <div class="dropdown">
-                    <button class="btn btn-warning fw-bold text-dark dropdown-toggle shadow-sm" type="button" data-bs-toggle="dropdown">
+                    <button class="btn btn-sm btn-warning fw-bold text-dark dropdown-toggle shadow-sm" type="button" data-bs-toggle="dropdown">
                         <i class="bi bi-plus-circle-fill me-1"></i> Buat Pembelian Baru
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 py-1">
                         <li>
-                            <a class="dropdown-item fw-bold text-primary py-2" href="javascript:void(0)" onclick="openModalNonPo()">
-                                <i class="bi bi-cart-plus-fill me-2 fs-6"></i>1. Pembelian Langsung (Non-PO)
+                            <a class="dropdown-item fw-bold text-primary py-1 px-3 small" href="javascript:void(0)" onclick="openModalNonPo()">
+                                <i class="bi bi-cart-plus-fill me-2"></i>1. Pembelian Langsung (Non-PO)
                             </a>
                         </li>
                         <li><hr class="dropdown-divider my-1"></li>
                         <li>
-                            <a class="dropdown-item fw-bold text-success py-2" href="javascript:void(0)" onclick="openModalPo()">
-                                <i class="bi bi-file-earmark-check-fill me-2 fs-6"></i>2. Berdasarkan PO Approved
+                            <a class="dropdown-item fw-bold text-success py-1 px-3 small" href="javascript:void(0)" onclick="openModalPo()">
+                                <i class="bi bi-file-earmark-check-fill me-2"></i>2. Berdasarkan PO Approved
                             </a>
                         </li>
                     </ul>
                 </div>
             </div>
         </div>
-        <div class="card-body bg-light">
-            <form id="formFilter" class="row g-3 align-items-center">
+        <div class="card-body bg-light p-2">
+            <form id="formFilter" class="row g-2 align-items-center">
                 <div class="col-md-3">
-                    <label class="form-label small fw-bold text-muted mb-1">Periode Tanggal</label>
+                    <label class="form-label extra-small fw-bold text-muted mb-0">Periode Tanggal</label>
                     <div class="input-group input-group-sm">
                         <input type="date" class="form-control" id="filter_start_date" value="{{ date('Y-m-01') }}">
-                        <span class="input-group-text bg-white border-start-0 border-end-0">s/d</span>
+                        <span class="input-group-text bg-white px-1">s/d</span>
                         <input type="date" class="form-control" id="filter_end_date" value="{{ date('Y-m-d') }}">
                     </div>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label small fw-bold text-muted mb-1">Status Faktur</label>
+                    <label class="form-label extra-small fw-bold text-muted mb-0">Status Faktur</label>
                     <select class="form-select form-select-sm" id="filter_status">
                         <option value="">-- Semua Status --</option>
                         <option value="draft">DRAFT (Belum Approve)</option>
@@ -53,7 +53,7 @@
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label small fw-bold text-muted mb-1">Vendor / Supplier</label>
+                    <label class="form-label extra-small fw-bold text-muted mb-0">Vendor / Supplier</label>
                     <select class="form-select form-select-sm" id="filter_supplier_id">
                         <option value="">-- Semua Vendor --</option>
                         @foreach($suppliers as $s)
@@ -62,40 +62,38 @@
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label small fw-bold text-muted mb-1">Pencarian Kata Kunci</label>
+                    <label class="form-label extra-small fw-bold text-muted mb-0">Pencarian Kata Kunci</label>
                     <input type="text" class="form-control form-control-sm" id="filter_search" placeholder="No. FB / No. PO / Vendor...">
                 </div>
                 <div class="col-md-1 d-flex align-items-end">
                     <button type="button" class="btn btn-sm btn-primary w-100 fw-bold" onclick="loadData(1)">
-                        <i class="bi bi-search me-1"></i> Cari
+                        <i class="bi bi-search"></i>
                     </button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- ========================================== -->
-    <!-- TABEL UTAMA DAFTAR FAKTUR PEMBELIAN        -->
-    <!-- ========================================== -->
+    <!-- TABEL UTAMA -->
     <div class="card border-0 shadow-sm">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover table-striped align-middle mb-0" id="tablePurchases">
+                <table class="table table-sm table-hover table-striped align-middle mb-0" id="tablePurchases">
                     <thead class="table-dark">
                         <tr>
-                            <th class="ps-3 py-3">No. Faktur (FB)</th>
-                            <th class="py-3">Tanggal</th>
-                            <th class="py-3">Jalur Transaksi</th>
-                            <th class="py-3">Vendor / Supplier</th>
-                            <th class="py-3">Unit Bisnis</th>
-                            <th class="text-end py-3">Total Netto (Rp)</th>
-                            <th class="text-center py-3">Status</th>
-                            <th class="text-center py-3" style="width: 140px;">Aksi</th>
+                            <th class="ps-3 py-2">No. Faktur (FB)</th>
+                            <th class="py-2">Tanggal</th>
+                            <th class="py-2">Jalur Transaksi</th>
+                            <th class="py-2">Vendor / Supplier</th>
+                            <th class="py-2">Unit Bisnis</th>
+                            <th class="text-end py-2">Total Netto (Rp)</th>
+                            <th class="text-center py-2">Status</th>
+                            <th class="text-center py-2" style="width: 120px;">Aksi</th>
                         </tr>
                     </thead>
                     <tbody id="tbodyPurchases">
                         <tr>
-                            <td colspan="8" class="text-center py-5 text-muted">
+                            <td colspan="8" class="text-center py-4 text-muted">
                                 <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
                                 Memuat data faktur pembelian...
                             </td>
@@ -104,30 +102,28 @@
                 </table>
             </div>
         </div>
-        <div class="card-footer bg-white d-flex justify-content-between align-items-center py-3" id="paginationContainer">
-            <!-- Pagination Render via JS -->
-        </div>
+        <div class="card-footer bg-white d-flex justify-content-between align-items-center py-2 px-3" id="paginationContainer"></div>
     </div>
 </div>
 
 <!-- ================================================================================= -->
-<!-- MODAL 1: PEMBELIAN LANGSUNG (NON-PO) - 100% INLINE DROPDOWN                       -->
+<!-- MODAL 1: PEMBELIAN LANGSUNG (NON-PO)                                             -->
 <!-- ================================================================================= -->
 <div class="modal fade" id="modalNonPo" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-xl">
-        <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header bg-primary text-white py-3">
-                <h5 class="modal-title fw-bold"><i class="bi bi-cart-plus-fill me-2"></i>1. Input Pembelian Langsung (Non-PO)</h5>
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white py-2 px-3">
+                <h6 class="modal-title fw-bold mb-0"><i class="bi bi-cart-plus-fill me-2"></i>1. Input Pembelian Langsung (Non-PO)</h6>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form id="formNonPo" onsubmit="saveNonPo(event)">
                 <input type="hidden" id="nonpo_id" name="id">
-                <div class="modal-body bg-light p-4">
-                    <!-- Header Info (Semua Pakai Dropdown Native) -->
-                    <div class="card border-0 shadow-sm p-3 mb-3 bg-white">
-                        <div class="row g-3">
+                <div class="modal-body bg-light p-2">
+                    <!-- Header Info -->
+                    <div class="card border-0 shadow-sm p-2 mb-2 bg-white">
+                        <div class="row g-2">
                             <div class="col-md-3">
-                                <label class="form-label fw-bold text-dark small">Unit Bisnis <span class="text-danger">*</span></label>
+                                <label class="form-label extra-small fw-bold text-dark mb-1">Unit Bisnis <span class="text-danger">*</span></label>
                                 <select class="form-select form-select-sm fw-semibold" id="nonpo_business_unit_id" name="business_unit_id" required>
                                     @foreach($businessUnits as $bu)
                                         <option value="{{ $bu->id }}">{{ $bu->code }} - {{ $bu->name }}</option>
@@ -135,7 +131,7 @@
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label fw-bold text-dark small">Vendor / Supplier <span class="text-danger">*</span></label>
+                                <label class="form-label extra-small fw-bold text-dark mb-1">Vendor / Supplier <span class="text-danger">*</span></label>
                                 <select class="form-select form-select-sm fw-bold border-primary" id="nonpo_supplier_id" name="supplier_id" required>
                                     <option value="">-- Pilih Vendor / Supplier --</option>
                                     @foreach($suppliers as $s)
@@ -144,45 +140,45 @@
                                 </select>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label fw-bold text-dark small">Tanggal Pembelian <span class="text-danger">*</span></label>
+                                <label class="form-label extra-small fw-bold text-dark mb-1">Tanggal Pembelian <span class="text-danger">*</span></label>
                                 <input type="date" class="form-control form-control-sm fw-semibold" id="nonpo_purchase_date" name="purchase_date" value="{{ date('Y-m-d') }}" required>
                             </div>
                             <div class="col-md-2">
-                                <label class="form-label fw-bold text-dark small">Pintu Stok Fisik</label>
+                                <label class="form-label extra-small fw-bold text-dark mb-1">Pintu Stok Fisik</label>
                                 <div class="form-check form-switch mt-1">
                                     <input class="form-check-input" type="checkbox" id="nonpo_goods_received" name="goods_received" value="1" checked>
-                                    <label class="form-check-label fw-bold text-success small" for="nonpo_goods_received">Diterima Langsung</label>
+                                    <label class="form-check-label fw-bold text-success extra-small" for="nonpo_goods_received">Diterima Langsung</label>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="row g-3 mt-1">
+                        <div class="row g-2 mt-1">
                             <div class="col-md-4">
-                                <label class="form-label fw-bold text-dark small">No. Faktur Supplier</label>
+                                <label class="form-label extra-small fw-bold text-dark mb-0">No. Faktur Supplier</label>
                                 <input type="text" class="form-control form-control-sm" id="nonpo_supplier_invoice_no" name="supplier_invoice_no" placeholder="Contoh: INV-SUP-9988">
                             </div>
                         </div>
                     </div>
 
-                    <!-- Item List dengan Dropdown Barang In-Table -->
-                    <div class="card border-0 shadow-sm p-3 mb-3 bg-white">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h6 class="fw-bold text-primary mb-0"><i class="bi bi-box-seam-fill me-1"></i>Rincian Barang Pembelian</h6>
-                            <button type="button" class="btn btn-sm btn-success fw-bold px-3 shadow-sm" onclick="addNonPoRow()">
+                    <!-- Item List -->
+                    <div class="card border-0 shadow-sm p-2 mb-2 bg-white">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <h6 class="fw-bold text-primary mb-0 small"><i class="bi bi-box-seam-fill me-1"></i>Rincian Barang Pembelian</h6>
+                            <button type="button" class="btn btn-xs btn-success fw-bold px-2 py-1 shadow-sm" onclick="addNonPoRow()">
                                 <i class="bi bi-plus-lg me-1"></i> Tambah Baris Barang
                             </button>
                         </div>
                         <div class="table-responsive">
-                            <table class="table table-hover table-bordered align-middle mb-0" id="tableNonPoItems">
-                                <thead class="table-dark">
+                            <table class="table table-sm table-hover table-bordered align-middle mb-0" id="tableNonPoItems">
+                                <thead class="table-dark extra-small">
                                     <tr>
-                                        <th class="text-center" style="width: 40px;">#</th>
-                                        <th style="min-width: 300px;">Pilih Produk / Barang</th>
-                                        <th class="text-center" style="width: 90px;">Satuan</th>
-                                        <th style="width: 140px;">Qty</th>
-                                        <th style="width: 180px;">Harga Beli / Unit (Rp)</th>
-                                        <th class="text-end" style="width: 180px;">Subtotal (Rp)</th>
-                                        <th class="text-center" style="width: 40px;"><i class="bi bi-trash"></i></th>
+                                        <th class="text-center" style="width: 35px;">#</th>
+                                        <th style="min-width: 280px;">Pilih Produk / Barang</th>
+                                        <th class="text-center" style="width: 80px;">Satuan</th>
+                                        <th style="width: 120px;">Qty</th>
+                                        <th style="width: 160px;">Harga Beli / Unit (Rp)</th>
+                                        <th class="text-end" style="width: 160px;">Subtotal (Rp)</th>
+                                        <th class="text-center" style="width: 35px;"><i class="bi bi-trash"></i></th>
                                     </tr>
                                 </thead>
                                 <tbody id="tbodyNonPoItems"></tbody>
@@ -190,37 +186,30 @@
                         </div>
                     </div>
 
-                    <!-- Summary Total -->
-                    <div class="row justify-content-end">
-                        <div class="col-md-5">
-                            <div class="card border-0 shadow-sm p-3 bg-white">
-                                <div class="d-flex justify-content-between mb-2">
+                    <!-- Summary Total (Ringkas & Tanpa PPN) -->
+                    <div class="row justify-content-end g-2">
+                        <div class="col-md-4">
+                            <div class="card border-0 shadow-sm p-2 bg-white">
+                                <div class="d-flex justify-content-between mb-1 small">
                                     <span class="text-muted fw-semibold">Subtotal Items:</span>
-                                    <strong id="nonpo_display_subtotal" class="fs-6">Rp 0</strong>
+                                    <strong id="nonpo_display_subtotal">Rp 0</strong>
                                 </div>
-                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="d-flex justify-content-between align-items-center mb-1 small">
                                     <span class="text-muted fw-semibold">Diskon Nota (Rp):</span>
-                                    <input type="number" class="form-control form-control-sm text-end w-50 fw-bold" id="nonpo_document_discount" name="document_discount" value="0" min="0" oninput="calculateTotalsNonPo()">
+                                    <input type="number" class="form-control form-control-sm text-end w-50 fw-bold py-0" id="nonpo_document_discount" name="document_discount" value="0" min="0" oninput="calculateTotalsNonPo()">
                                 </div>
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="nonpo_is_ppn" name="is_ppn" value="1" onchange="calculateTotalsNonPo()">
-                                        <label class="form-check-label fw-semibold" for="nonpo_is_ppn">Kenakan PPN (11%)</label>
-                                    </div>
-                                    <strong id="nonpo_display_ppn">Rp 0</strong>
-                                </div>
-                                <hr class="my-2">
-                                <div class="d-flex justify-content-between h5 text-primary fw-bold mb-0">
+                                <hr class="my-1">
+                                <div class="d-flex justify-content-between text-primary fw-bold mb-0">
                                     <span>GRAND TOTAL:</span>
-                                    <span id="nonpo_display_grand_total">Rp 0</span>
+                                    <span id="nonpo_display_grand_total" class="fs-6">Rp 0</span>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer bg-white py-3">
-                    <button type="button" class="btn btn-secondary fw-semibold px-3" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary fw-bold px-4">
+                <div class="modal-footer bg-white py-2 px-3">
+                    <button type="button" class="btn btn-sm btn-secondary fw-semibold px-3" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-sm btn-primary fw-bold px-4">
                         <i class="bi bi-save me-1"></i> Simpan Sebagai DRAFT
                     </button>
                 </div>
@@ -230,13 +219,13 @@
 </div>
 
 <!-- ================================================================================= -->
-<!-- MODAL 2: PEMBELIAN BERDASARKAN PO - 100% INLINE DROPDOWN SELECT PO               -->
+<!-- MODAL 2: PEMBELIAN BERDASARKAN PO APPROVED                                        -->
 <!-- ================================================================================= -->
 <div class="modal fade" id="modalPo" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-xl">
-        <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header bg-success text-white py-3">
-                <h5 class="modal-title fw-bold"><i class="bi bi-file-earmark-check-fill me-2"></i>2. Input Faktur Pembelian Berdasarkan PO Approved</h5>
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-success text-white py-2 px-3">
+                <h6 class="modal-title fw-bold mb-0"><i class="bi bi-file-earmark-check-fill me-2"></i>2. Input Faktur Pembelian Berdasarkan PO Approved</h6>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form id="formPo" onsubmit="savePo(event)">
@@ -244,41 +233,41 @@
                 <input type="hidden" id="po_business_unit_id" name="business_unit_id">
                 <input type="hidden" id="po_supplier_id" name="supplier_id">
 
-                <div class="modal-body bg-light p-4">
-                    <!-- Step 1: Select PO dari Dropdown Langsung (NO POPUP) -->
-                    <div class="card border-0 shadow-sm p-3 mb-3 bg-white">
-                        <div class="row g-3 align-items-center">
+                <div class="modal-body bg-light p-2">
+                    <!-- Step 1: Select PO Header -->
+                    <div class="card border-0 shadow-sm p-2 mb-2 bg-white">
+                        <div class="row g-2 align-items-center">
                             <div class="col-md-5">
-                                <label class="form-label fw-bold text-dark small">Pilih Dokumen PO Approved <span class="text-danger">*</span></label>
+                                <label class="form-label extra-small fw-bold text-dark mb-1">Pilih Dokumen PO Approved <span class="text-danger">*</span></label>
                                 <select class="form-select form-select-sm fw-bold border-success text-success" id="po_purchase_order_id" name="purchase_order_id" onchange="onPoSelect(this.value)" required>
                                     <option value="">-- Pilih Nomor PO Approved --</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label fw-bold text-muted small">Vendor / Supplier (Auto PO)</label>
+                                <label class="form-label extra-small fw-bold text-muted mb-1">Vendor / Supplier (Auto PO)</label>
                                 <input type="text" class="form-control form-control-sm bg-light fw-bold" id="po_supplier_name" readonly placeholder="Terisi otomatis dari PO...">
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label fw-bold text-muted small">Unit Bisnis & Gudang (Auto PO)</label>
+                                <label class="form-label extra-small fw-bold text-muted mb-1">Unit Bisnis & Gudang (Auto PO)</label>
                                 <input type="text" class="form-control form-control-sm bg-light fw-bold text-primary" id="po_bu_warehouse_display" readonly placeholder="Terisi otomatis dari PO...">
                             </div>
                         </div>
                     </div>
 
                     <!-- Step 2: Invoice Info -->
-                    <div class="card border-0 shadow-sm p-3 mb-3 bg-white">
-                        <div class="row g-3">
+                    <div class="card border-0 shadow-sm p-2 mb-2 bg-white">
+                        <div class="row g-2">
                             <div class="col-md-4">
-                                <label class="form-label fw-bold text-dark small">Tanggal Pembelian <span class="text-danger">*</span></label>
+                                <label class="form-label extra-small fw-bold text-dark mb-1">Tanggal Pembelian <span class="text-danger">*</span></label>
                                 <input type="date" class="form-control form-control-sm fw-semibold" id="po_purchase_date" name="purchase_date" value="{{ date('Y-m-d') }}" required>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label fw-bold text-dark small">No. Faktur Supplier</label>
+                                <label class="form-label extra-small fw-bold text-dark mb-1">No. Faktur Supplier</label>
                                 <input type="text" class="form-control form-control-sm fw-semibold" id="po_supplier_invoice_no" name="supplier_invoice_no" placeholder="Contoh: INV-SUP-9988">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label fw-bold text-muted small">Status Penerimaan Fisik Barang</label>
-                                <div class="alert alert-info py-1 px-2 mb-0 small fw-bold text-dark border-0 bg-info-subtle">
+                                <label class="form-label extra-small fw-bold text-muted mb-1">Status Penerimaan Fisik Barang</label>
+                                <div class="alert alert-info py-1 px-2 mb-0 extra-small fw-bold text-dark border-0 bg-info-subtle">
                                     <i class="bi bi-info-circle-fill me-1 text-primary"></i> PINTU GUDANG: Fisik barang diterima via Modul LPB Gudang.
                                 </div>
                             </div>
@@ -286,28 +275,28 @@
                     </div>
 
                     <!-- Table Items dari PO -->
-                    <div class="card border-0 shadow-sm p-3 mb-3 bg-white">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h6 class="fw-bold text-success mb-0"><i class="bi bi-list-check me-1"></i>Rincian Barang & Tagihan Faktur dari PO</h6>
-                            <span class="badge bg-success-subtle text-success fw-bold border border-success-subtle px-2 py-1">Mode Tagihan PO</span>
+                    <div class="card border-0 shadow-sm p-2 mb-2 bg-white">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <h6 class="fw-bold text-success mb-0 small"><i class="bi bi-list-check me-1"></i>Rincian Barang & Tagihan Faktur dari PO</h6>
+                            <span class="badge bg-success-subtle text-success fw-bold border border-success-subtle px-2 py-0 extra-small">Mode Tagihan PO</span>
                         </div>
                         <div class="table-responsive">
-                            <table class="table table-hover table-bordered align-middle mb-0" id="tablePoItems">
-                                <thead class="table-dark">
+                            <table class="table table-sm table-hover table-bordered align-middle mb-0" id="tablePoItems">
+                                <thead class="table-dark extra-small">
                                     <tr>
-                                        <th class="text-center" style="width: 40px;">#</th>
+                                        <th class="text-center" style="width: 35px;">#</th>
                                         <th style="width: 15%;">Kode Barang</th>
                                         <th style="width: 30%;">Nama Produk</th>
-                                        <th class="text-center" style="width: 10%;">Satuan</th>
-                                        <th style="width: 15%;">Qty Tagihan</th>
-                                        <th style="width: 18%;">Harga Beli / Unit (Rp)</th>
-                                        <th class="text-end" style="width: 18%;">Subtotal (Rp)</th>
-                                        <th class="text-center" style="width: 40px;"><i class="bi bi-trash"></i></th>
+                                        <th class="text-center" style="width: 80px;">Satuan</th>
+                                        <th style="width: 120px;">Qty Tagihan</th>
+                                        <th style="width: 160px;">Harga Beli / Unit (Rp)</th>
+                                        <th class="text-end" style="width: 160px;">Subtotal (Rp)</th>
+                                        <th class="text-center" style="width: 35px;"><i class="bi bi-trash"></i></th>
                                     </tr>
                                 </thead>
                                 <tbody id="tbodyPoItems">
                                     <tr>
-                                        <td colspan="8" class="text-center py-4 text-muted">
+                                        <td colspan="8" class="text-center py-3 text-muted extra-small">
                                             Silakan pilih Nomor PO pada dropdown di atas.
                                         </td>
                                     </tr>
@@ -316,37 +305,30 @@
                         </div>
                     </div>
 
-                    <!-- Summary Totals -->
-                    <div class="row justify-content-end">
-                        <div class="col-md-5">
-                            <div class="card border-0 shadow-sm p-3 bg-white">
-                                <div class="d-flex justify-content-between mb-2">
+                    <!-- Summary Totals (Ringkas & Tanpa PPN) -->
+                    <div class="row justify-content-end g-2">
+                        <div class="col-md-4">
+                            <div class="card border-0 shadow-sm p-2 bg-white">
+                                <div class="d-flex justify-content-between mb-1 small">
                                     <span class="text-muted fw-semibold">Subtotal Items:</span>
-                                    <strong id="po_display_subtotal" class="fs-6">Rp 0</strong>
+                                    <strong id="po_display_subtotal">Rp 0</strong>
                                 </div>
-                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="d-flex justify-content-between align-items-center mb-1 small">
                                     <span class="text-muted fw-semibold">Diskon Nota (Rp):</span>
-                                    <input type="number" class="form-control form-control-sm text-end w-50 fw-bold" id="po_document_discount" name="document_discount" value="0" min="0" oninput="calculateTotalsPo()">
+                                    <input type="number" class="form-control form-control-sm text-end w-50 fw-bold py-0" id="po_document_discount" name="document_discount" value="0" min="0" oninput="calculateTotalsPo()">
                                 </div>
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="po_is_ppn" name="is_ppn" value="1" onchange="calculateTotalsPo()">
-                                        <label class="form-check-label fw-semibold" for="po_is_ppn">Kenakan PPN (11%)</label>
-                                    </div>
-                                    <strong id="po_display_ppn">Rp 0</strong>
-                                </div>
-                                <hr class="my-2">
-                                <div class="d-flex justify-content-between h5 text-success fw-bold mb-0">
+                                <hr class="my-1">
+                                <div class="d-flex justify-content-between text-success fw-bold mb-0">
                                     <span>GRAND TOTAL:</span>
-                                    <span id="po_display_grand_total">Rp 0</span>
+                                    <span id="po_display_grand_total" class="fs-6">Rp 0</span>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer bg-white py-3">
-                    <button type="button" class="btn btn-secondary fw-semibold px-3" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-success fw-bold px-4">
+                <div class="modal-footer bg-white py-2 px-3">
+                    <button type="button" class="btn btn-sm btn-secondary fw-semibold px-3" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-sm btn-success fw-bold px-4">
                         <i class="bi bi-save me-1"></i> Simpan Sebagai DRAFT
                     </button>
                 </div>
@@ -360,41 +342,41 @@
 <!-- ================================================================================= -->
 <div class="modal fade" id="modalReturn" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header bg-warning py-3">
-                <h5 class="modal-title fw-bold text-dark"><i class="bi bi-arrow-return-left me-2"></i>Retur Pembelian (RB)</h5>
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-warning py-2 px-3">
+                <h6 class="modal-title fw-bold text-dark mb-0"><i class="bi bi-arrow-return-left me-2"></i>Retur Pembelian (RB)</h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form id="formReturn" onsubmit="saveReturn(event)">
                 <input type="hidden" id="ret_purchase_id" name="purchase_id">
-                <div class="modal-body bg-light p-4">
-                    <div class="card border-0 shadow-sm p-3 mb-3 bg-white">
-                        <div class="row g-3">
+                <div class="modal-body bg-light p-2">
+                    <div class="card border-0 shadow-sm p-2 mb-2 bg-white">
+                        <div class="row g-2">
                             <div class="col-md-4">
-                                <label class="form-label fw-bold small text-muted">No. Ref. Faktur (FB)</label>
+                                <label class="form-label extra-small fw-bold text-muted mb-0">No. Ref. Faktur (FB)</label>
                                 <input type="text" class="form-control form-control-sm bg-light fw-bold text-primary" id="ret_purchase_no" readonly>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label fw-bold small text-muted">Vendor / Supplier</label>
+                                <label class="form-label extra-small fw-bold text-muted mb-0">Vendor / Supplier</label>
                                 <input type="text" class="form-control form-control-sm bg-light fw-bold" id="ret_supplier_name" readonly>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label fw-bold small text-dark">Alasan Utama Retur <span class="text-danger">*</span></label>
+                                <label class="form-label extra-small fw-bold text-dark mb-0">Alasan Utama Retur <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control form-control-sm" id="ret_reason" name="reason" placeholder="Contoh: Barang cacat / Rusak" required>
                             </div>
                         </div>
                     </div>
 
-                    <div class="card border-0 shadow-sm p-3 bg-white">
-                        <h6 class="fw-bold text-dark mb-2">Pilih Item & Input Qty Retur</h6>
+                    <div class="card border-0 shadow-sm p-2 bg-white">
+                        <h6 class="fw-bold text-dark mb-1 small">Pilih Item & Input Qty Retur</h6>
                         <div class="table-responsive">
-                            <table class="table table-bordered table-hover align-middle mb-0">
-                                <thead class="table-secondary">
+                            <table class="table table-sm table-bordered table-hover align-middle mb-0">
+                                <thead class="table-secondary extra-small">
                                     <tr>
                                         <th>Nama Produk</th>
                                         <th class="text-center">Qty Beli</th>
                                         <th class="text-center text-danger">Sisa Max Retur</th>
-                                        <th style="width: 150px;">Qty Retur Sekarang</th>
+                                        <th style="width: 140px;">Qty Retur Sekarang</th>
                                         <th class="text-end">Harga Beli (Rp)</th>
                                     </tr>
                                 </thead>
@@ -403,9 +385,9 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer bg-white py-3">
-                    <button type="button" class="btn btn-secondary fw-semibold px-3" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-warning fw-bold text-dark px-4">
+                <div class="modal-footer bg-white py-2 px-3">
+                    <button type="button" class="btn btn-sm btn-secondary fw-semibold px-3" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-sm btn-warning fw-bold text-dark px-4">
                         <i class="bi bi-check-circle-fill me-1"></i> Memproses Retur (RB)
                     </button>
                 </div>
@@ -413,6 +395,11 @@
         </div>
     </div>
 </div>
+
+<style>
+.extra-small { font-size: 0.78rem; }
+.btn-xs { padding: 0.15rem 0.4rem; font-size: 0.75rem; }
+</style>
 
 @endsection
 
@@ -432,14 +419,12 @@ document.addEventListener("DOMContentLoaded", function() {
     preloadApprovedPOs();
 });
 
-// Preload Daftar Produk untuk Dropdown Select Table
 function preloadProducts() {
     fetch('/inventori/pembelian/faktur/lookup/product?q=')
     .then(res => res.json())
     .then(res => { allProductsList = res.data || []; });
 }
 
-// Preload List PO Approved ke Dropdown Header
 function preloadApprovedPOs() {
     fetch('/inventori/pembelian/faktur/lookup/po?q=')
     .then(res => res.json())
@@ -455,7 +440,6 @@ function preloadApprovedPOs() {
     });
 }
 
-// Toast Auto-Close 2.5 Detik
 function showToast(icon, message) {
     const Toast = Swal.mixin({
         toast: true,
@@ -468,11 +452,9 @@ function showToast(icon, message) {
             toast.addEventListener('mouseleave', Swal.resumeTimer);
         }
     });
-
     Toast.fire({ icon: icon, title: message });
 }
 
-// Load List Data via AJAX
 function loadData(page = 1) {
     const startDate = document.getElementById('filter_start_date').value;
     const endDate   = document.getElementById('filter_end_date').value;
@@ -495,7 +477,7 @@ function loadData(page = 1) {
 function renderTable(data) {
     const tbody = document.getElementById('tbodyPurchases');
     if(!data || data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-5 text-muted">Belum ada data faktur pembelian.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted extra-small">Belum ada data faktur pembelian.</td></tr>`;
         return;
     }
 
@@ -521,14 +503,14 @@ function renderTable(data) {
             <td class="text-center">${statusBadge}</td>
             <td class="text-center">
                 <div class="dropdown">
-                    <button class="btn btn-sm btn-light border dropdown-toggle fw-semibold" type="button" data-bs-toggle="dropdown">⚙️ Aksi</button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow border-0">
-                        <li><a class="dropdown-item py-2" href="javascript:void(0)" onclick="printFaktur(${item.id})"><i class="bi bi-printer me-2 text-primary"></i>Cetak Faktur Standar</a></li>
-                        ${isDraft ? `<li><a class="dropdown-item py-2 text-success fw-bold" href="javascript:void(0)" onclick="approvePurchase(\${item.id})"><i class="bi bi-check2-circle me-2"></i>Approve Faktur</a></li>` : ''}
-                        ${isDraft ? `<li><a class="dropdown-item py-2" href="javascript:void(0)" onclick="openEditModal(\\({item.id}, '\\){item.source_type}')"><i class="bi bi-pencil me-2 text-warning"></i>Edit Nota</a></li>` : ''}
-                        ${!isDraft ? `<li><a class="dropdown-item py-2 text-warning fw-bold" href="javascript:void(0)" onclick="openModalReturn(\${item.id})"><i class="bi bi-arrow-return-left me-2"></i>Retur Pembelian (RB)</a></li>` : ''}
+                    <button class="btn btn-sm btn-light border dropdown-toggle fw-semibold py-0" type="button" data-bs-toggle="dropdown">⚙️ Aksi</button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 py-1">
+                        <li><a class="dropdown-item py-1 small" href="javascript:void(0)" onclick="printFaktur(${item.id})"><i class="bi bi-printer me-2 text-primary"></i>Cetak Faktur Standar</a></li>
+                        ${isDraft ? `<li><a class="dropdown-item py-1 text-success fw-bold small" href="javascript:void(0)" onclick="approvePurchase(\${item.id})"><i class="bi bi-check2-circle me-2"></i>Approve Faktur</a></li>` : ''}
+                        ${isDraft ? `<li><a class="dropdown-item py-1 small" href="javascript:void(0)" onclick="openEditModal(\\({item.id}, '\\){item.source_type}')"><i class="bi bi-pencil me-2 text-warning"></i>Edit Nota</a></li>` : ''}
+                        ${!isDraft ? `<li><a class="dropdown-item py-1 text-warning fw-bold small" href="javascript:void(0)" onclick="openModalReturn(\${item.id})"><i class="bi bi-arrow-return-left me-2"></i>Retur Pembelian (RB)</a></li>` : ''}
                         <li><hr class="dropdown-divider my-1"></li>
-                        <li><a class="dropdown-item py-2 text-danger" href="javascript:void(0)" onclick="deletePurchase(${item.id})"><i class="bi bi-trash me-2"></i>Hapus Nota</a></li>
+                        <li><a class="dropdown-item py-1 text-danger small" href="javascript:void(0)" onclick="deletePurchase(${item.id})"><i class="bi bi-trash me-2"></i>Hapus Nota</a></li>
                     </ul>
                 </div>
             </td>
@@ -545,14 +527,13 @@ function renderPagination(data) {
     data.links.forEach(link => {
         if(link.url) {
             const page = new URL(link.url).searchParams.get('page');
-            html += `<li class="page-item ${link.active ? 'active' : ''}"><a class="page-link" href="javascript:void(0)" onclick="loadData(${page})">${link.label}</a></li>`;
+            html += `<li class="page-item ${link.active ? 'active' : ''}"><a class="page-link py-0 px-2" href="javascript:void(0)" onclick="loadData(${page})">${link.label}</a></li>`;
         }
     });
     html += `</ul>`;
     container.innerHTML = html;
 }
 
-// Open Form Modals
 function openModalNonPo() {
     document.getElementById('formNonPo').reset();
     document.getElementById('nonpo_id').value = '';
@@ -565,15 +546,13 @@ function openModalNonPo() {
 function openModalPo() {
     document.getElementById('formPo').reset();
     document.getElementById('po_purchase_id').value = '';
-    document.getElementById('tbodyPoItems').innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">Silakan pilih Nomor PO pada dropdown di atas.</td></tr>`;
+    document.getElementById('tbodyPoItems').innerHTML = `<tr><td colspan="8" class="text-center py-3 text-muted extra-small">Silakan pilih Nomor PO pada dropdown di atas.</td></tr>`;
     preloadApprovedPOs();
     calculateTotalsPo();
     modalPo.show();
 }
 
-// =================================================================================
-// 1. NON-PO: LOGIKA INLINE DROPDOWN SELECT BARANG
-// =================================================================================
+// 1. NON-PO: DROPDOWN TABLE BARANG
 function addNonPoRow(selectedProductId = '', selectedQty = 1, selectedCost = 0, selectedUnitId = '', selectedUnitName = '') {
     const tbody = document.getElementById('tbodyNonPoItems');
     const rowId = Date.now() + Math.random().toString(36).substring(2, 6);
@@ -590,8 +569,8 @@ function addNonPoRow(selectedProductId = '', selectedQty = 1, selectedCost = 0, 
 
     row.innerHTML = `
         <td class="text-center fw-semibold text-muted small row-num"></td>
-        <td style="min-width: 300px;">
-            <select class="form-select form-select-sm fw-semibold border-primary product-select" name="items[${rowId}][product_id]" onchange="onProductSelect(this, '${rowId}')" required>
+        <td style="min-width: 280px;">
+            <select class="form-select form-select-sm fw-semibold border-primary product-select py-0" name="items[${rowId}][product_id]" onchange="onProductSelect(this, '${rowId}')" required>
                 ${optionsHtml}
             </select>
             <input type="hidden" name="items[${rowId}][unit_id]" id="unit_id_${rowId}" value="${selectedUnitId}">
@@ -599,21 +578,21 @@ function addNonPoRow(selectedProductId = '', selectedQty = 1, selectedCost = 0, 
         <td class="text-center">
             <span class="badge bg-info text-dark fw-semibold px-2 py-1" id="unit_badge_${rowId}">${selectedUnitName || '-'}</span>
         </td>
-        <td style="width: 140px;">
+        <td style="width: 120px;">
             <div class="input-group input-group-sm">
-                <input type="number" step="0.001" class="form-control text-end fw-semibold" name="items[${rowId}][qty]" value="${selectedQty}" min="0.001" oninput="calculateTotalsNonPo()" required>
-                <span class="input-group-text bg-light text-muted px-1 small" id="qty_unit_${rowId}">${selectedUnitName || 'PCS'}</span>
+                <input type="number" step="0.001" class="form-control text-end fw-semibold py-0" name="items[${rowId}][qty]" value="${selectedQty}" min="0.001" oninput="calculateTotalsNonPo()" required>
+                <span class="input-group-text bg-light text-muted px-1 extra-small" id="qty_unit_${rowId}">${selectedUnitName || 'PCS'}</span>
             </div>
         </td>
-        <td style="width: 180px;">
+        <td style="width: 160px;">
             <div class="input-group input-group-sm">
-                <span class="input-group-text bg-light fw-bold text-muted">Rp</span>
-                <input type="number" step="100" class="form-control text-end fw-bold text-primary" name="items[${rowId}][unit_cost]" id="cost_${rowId}" value="${selectedCost}" min="0" oninput="calculateTotalsNonPo()" required>
+                <span class="input-group-text bg-light fw-bold text-muted extra-small">Rp</span>
+                <input type="number" step="100" class="form-control text-end fw-bold text-primary py-0" name="items[${rowId}][unit_cost]" id="cost_${rowId}" value="${selectedCost}" min="0" oninput="calculateTotalsNonPo()" required>
             </div>
         </td>
-        <td class="text-end fw-bold text-primary fs-6" id="nonpo_subtotal_${rowId}">Rp 0</td>
+        <td class="text-end fw-bold text-primary small" id="nonpo_subtotal_${rowId}">Rp 0</td>
         <td class="text-center">
-            <button type="button" class="btn btn-sm btn-outline-danger border-0 p-1" onclick="removeNonPoRow('${rowId}')" title="Hapus Baris"><i class="bi bi-trash-fill"></i></button>
+            <button type="button" class="btn btn-sm btn-outline-danger border-0 p-1" onclick="removeNonPoRow('${rowId}')"><i class="bi bi-trash-fill"></i></button>
         </td>
     `;
     tbody.appendChild(row);
@@ -676,26 +655,20 @@ function calculateTotalsNonPo() {
     });
 
     const discount = parseFloat(document.getElementById('nonpo_document_discount').value) || 0;
-    const isPpn = document.getElementById('nonpo_is_ppn').checked;
-    const taxable = Math.max(0, subtotal - discount);
-    const ppn = isPpn ? (taxable * 0.11) : 0;
-    const grand = taxable + ppn;
+    const grand = Math.max(0, subtotal - discount);
 
     document.getElementById('nonpo_display_subtotal').innerText = `Rp ${subtotal.toLocaleString('id-ID')}`;
-    document.getElementById('nonpo_display_ppn').innerText = `Rp ${ppn.toLocaleString('id-ID')}`;
     document.getElementById('nonpo_display_grand_total').innerText = `Rp ${grand.toLocaleString('id-ID')}`;
 }
 
-// =================================================================================
-// 2. PO APPROVED: LOGIKA INLINE DROPDOWN SELECT PO (AUTO LOAD ITEM)
-// =================================================================================
+// 2. PO APPROVED: DROPDOWN SELECT PO
 function onPoSelect(poId) {
     if(!poId) {
         document.getElementById('po_business_unit_id').value = '';
         document.getElementById('po_supplier_id').value = '';
         document.getElementById('po_supplier_name').value = '';
         document.getElementById('po_bu_warehouse_display').value = '';
-        document.getElementById('tbodyPoItems').innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">Silakan pilih Nomor PO pada dropdown di atas.</td></tr>`;
+        document.getElementById('tbodyPoItems').innerHTML = `<tr><td colspan="8" class="text-center py-3 text-muted extra-small">Silakan pilih Nomor PO pada dropdown di atas.</td></tr>`;
         calculateTotalsPo();
         return;
     }
@@ -726,19 +699,19 @@ function onPoSelect(poId) {
                         <input type="hidden" name="items[${idx}][unit_id]" value="${item.unit_id || ''}">
                     </td>
                     <td class="text-center"><span class="badge bg-info text-dark fw-semibold px-2 py-1">${unitName}</span></td>
-                    <td style="width: 140px;">
+                    <td style="width: 120px;">
                         <div class="input-group input-group-sm">
-                            <input type="number" step="0.001" class="form-control text-end fw-semibold" name="items[${idx}][qty]" value="${item.qty}" min="0.001" oninput="calculateTotalsPo()" required>
-                            <span class="input-group-text bg-light text-muted px-1 small">${unitName}</span>
+                            <input type="number" step="0.001" class="form-control text-end fw-semibold py-0" name="items[${idx}][qty]" value="${item.qty}" min="0.001" oninput="calculateTotalsPo()" required>
+                            <span class="input-group-text bg-light text-muted px-1 extra-small">${unitName}</span>
                         </div>
                     </td>
-                    <td style="width: 180px;">
+                    <td style="width: 160px;">
                         <div class="input-group input-group-sm">
-                            <span class="input-group-text bg-light fw-bold text-muted">Rp</span>
-                            <input type="number" step="100" class="form-control text-end fw-bold text-primary" name="items[${idx}][unit_cost]" value="${item.unit_cost}" min="0" oninput="calculateTotalsPo()" required>
+                            <span class="input-group-text bg-light fw-bold text-muted extra-small">Rp</span>
+                            <input type="number" step="100" class="form-control text-end fw-bold text-primary py-0" name="items[${idx}][unit_cost]" value="${item.unit_cost}" min="0" oninput="calculateTotalsPo()" required>
                         </div>
                     </td>
-                    <td class="text-end fw-bold text-success fs-6" id="po_subtotal_${idx}">Rp ${sub.toLocaleString('id-ID')}</td>
+                    <td class="text-end fw-bold text-success small" id="po_subtotal_${idx}">Rp ${sub.toLocaleString('id-ID')}</td>
                     <td class="text-center">
                         <button type="button" class="btn btn-sm btn-outline-danger border-0 p-1" onclick="removePoRow(this)"><i class="bi bi-trash-fill"></i></button>
                     </td>
@@ -782,17 +755,13 @@ function calculateTotalsPo() {
     });
 
     const discount = parseFloat(document.getElementById('po_document_discount').value) || 0;
-    const isPpn = document.getElementById('po_is_ppn').checked;
-    const taxable = Math.max(0, subtotal - discount);
-    const ppn = isPpn ? (taxable * 0.11) : 0;
-    const grand = taxable + ppn;
+    const grand = Math.max(0, subtotal - discount);
 
     document.getElementById('po_display_subtotal').innerText = `Rp ${subtotal.toLocaleString('id-ID')}`;
-    document.getElementById('po_display_ppn').innerText = `Rp ${ppn.toLocaleString('id-ID')}`;
     document.getElementById('po_display_grand_total').innerText = `Rp ${grand.toLocaleString('id-ID')}`;
 }
 
-// Save Functions
+// SAVE ACTIONS
 function saveNonPo(e) {
     e.preventDefault();
     const rows = document.querySelectorAll('#tbodyNonPoItems tr');
@@ -806,7 +775,6 @@ function saveNonPo(e) {
     formData.forEach((value, key) => { if(!key.includes('[')) payload[key] = value; });
 
     payload.goods_received = document.getElementById('nonpo_goods_received').checked ? 1 : 0;
-    payload.is_ppn = document.getElementById('nonpo_is_ppn').checked ? 1 : 0;
 
     payload.items = [];
     let valid = true;
@@ -862,8 +830,6 @@ function savePo(e) {
     const payload = {};
     formData.forEach((value, key) => { if(!key.includes('[')) payload[key] = value; });
 
-    payload.is_ppn = document.getElementById('po_is_ppn').checked ? 1 : 0;
-
     payload.items = [];
     const rows = document.querySelectorAll('#tbodyPoItems tr');
     rows.forEach(row => {
@@ -904,7 +870,6 @@ function savePo(e) {
     });
 }
 
-// Edit Modal Loader
 function openEditModal(id, sourceType) {
     fetch(`/inventori/pembelian/faktur/${id}`)
     .then(res => res.json())
@@ -923,7 +888,6 @@ function openEditModal(id, sourceType) {
                 document.getElementById('po_purchase_date').value = p.purchase_date ? p.purchase_date.substring(0, 10) : '';
                 document.getElementById('po_supplier_invoice_no').value = p.supplier_invoice_no || '';
                 document.getElementById('po_document_discount').value = p.discount || 0;
-                document.getElementById('po_is_ppn').checked = (p.ppn_amount > 0);
 
                 let html = '';
                 items.forEach((item, idx) => {
@@ -939,19 +903,19 @@ function openEditModal(id, sourceType) {
                             <input type="hidden" name="items[${idx}][unit_id]" value="${item.unit_id || ''}">
                         </td>
                         <td class="text-center"><span class="badge bg-info text-dark fw-semibold px-2 py-1">${unitName}</span></td>
-                        <td style="width: 140px;">
+                        <td style="width: 120px;">
                             <div class="input-group input-group-sm">
-                                <input type="number" step="0.001" class="form-control text-end fw-semibold" name="items[${idx}][qty]" value="${item.qty}" min="0.001" oninput="calculateTotalsPo()" required>
-                                <span class="input-group-text bg-light text-muted px-1 small">${unitName}</span>
+                                <input type="number" step="0.001" class="form-control text-end fw-semibold py-0" name="items[${idx}][qty]" value="${item.qty}" min="0.001" oninput="calculateTotalsPo()" required>
+                                <span class="input-group-text bg-light text-muted px-1 extra-small">${unitName}</span>
                             </div>
                         </td>
-                        <td style="width: 180px;">
+                        <td style="width: 160px;">
                             <div class="input-group input-group-sm">
-                                <span class="input-group-text bg-light fw-bold text-muted">Rp</span>
-                                <input type="number" step="100" class="form-control text-end fw-bold text-primary" name="items[${idx}][unit_cost]" value="${item.unit_cost}" min="0" oninput="calculateTotalsPo()" required>
+                                <span class="input-group-text bg-light fw-bold text-muted extra-small">Rp</span>
+                                <input type="number" step="100" class="form-control text-end fw-bold text-primary py-0" name="items[${idx}][unit_cost]" value="${item.unit_cost}" min="0" oninput="calculateTotalsPo()" required>
                             </div>
                         </td>
-                        <td class="text-end fw-bold text-success fs-6" id="po_subtotal_${idx}">Rp ${sub.toLocaleString('id-ID')}</td>
+                        <td class="text-end fw-bold text-success small" id="po_subtotal_${idx}">Rp ${sub.toLocaleString('id-ID')}</td>
                         <td class="text-center">
                             <button type="button" class="btn btn-sm btn-outline-danger border-0 p-1" onclick="removePoRow(this)"><i class="bi bi-trash-fill"></i></button>
                         </td>
@@ -968,7 +932,6 @@ function openEditModal(id, sourceType) {
                 document.getElementById('nonpo_supplier_invoice_no').value = p.supplier_invoice_no || '';
                 document.getElementById('nonpo_goods_received').checked = (p.goods_received == 1);
                 document.getElementById('nonpo_document_discount').value = p.discount || 0;
-                document.getElementById('nonpo_is_ppn').checked = (p.ppn_amount > 0);
 
                 document.getElementById('tbodyNonPoItems').innerHTML = '';
                 items.forEach(item => {
@@ -980,7 +943,6 @@ function openEditModal(id, sourceType) {
     });
 }
 
-// Approve & Delete Actions
 function approvePurchase(id) {
     Swal.fire({
         title: 'Approve Faktur Pembelian?',
@@ -1037,7 +999,6 @@ function deletePurchase(id) {
     });
 }
 
-// Return Modal Functions
 function openModalReturn(id) {
     fetch(`/inventori/pembelian/faktur/${id}`)
     .then(res => res.json())
@@ -1058,7 +1019,7 @@ function openModalReturn(id) {
                     <td class="text-center">${item.qty}</td>
                     <td class="text-center fw-bold text-danger">${item.max_returnable}</td>
                     <td>
-                        <input type="number" step="0.001" class="form-control form-control-sm text-end fw-bold" name="return_items[${item.id}][qty]" max="${item.max_returnable}" min="0" value="0">
+                        <input type="number" step="0.001" class="form-control form-control-sm text-end fw-bold py-0" name="return_items[${item.id}][qty]" max="${item.max_returnable}" min="0" value="0">
                         <input type="hidden" name="return_items[${item.id}][id]" value="${item.id}">
                     </td>
                     <td class="text-end fw-semibold">Rp ${(parseFloat(item.unit_cost) || 0).toLocaleString('id-ID')}</td>
@@ -1107,7 +1068,6 @@ function saveReturn(e) {
     });
 }
 
-// Print & Export
 function printFaktur(id) { window.open(`/inventori/pembelian/faktur/${id}/print`, '_blank'); }
 function exportExcel() {
     const startDate = document.getElementById('filter_start_date').value;
