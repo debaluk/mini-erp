@@ -148,6 +148,25 @@ class SalesReturnController extends Controller
 
         abort_unless($sale, 404);
 
+        // Gudang invoice diambil dari mutasi stok penjualan (sale_out),
+        // karena tabel sales memang tidak menyimpan warehouse_id.
+        $saleWarehouseIds = DB::table('stock_movements')
+            ->where('reference_type', 'sale')
+            ->where('reference_id', $saleId)
+            ->where('movement_type', 'sale_out')
+            ->distinct()
+            ->pluck('warehouse_id')
+            ->filter()
+            ->values();
+
+        if ($saleWarehouseIds->count() !== 1) {
+            abort(422, $saleWarehouseIds->isEmpty()
+                ? 'Gudang asal invoice tidak ditemukan dari mutasi stok penjualan.'
+                : 'Invoice penjualan menggunakan lebih dari satu gudang. Retur harus diproses per gudang asal.');
+        }
+
+        $sale->warehouse_id = (int) $saleWarehouseIds->first();
+
         $items = DB::table('sale_items as si')
             ->join('products as p', 'p.id', '=', 'si.product_id')
             ->leftJoin('units as u', 'u.id', '=', 'si.unit_id')
