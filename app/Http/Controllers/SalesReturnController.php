@@ -121,7 +121,7 @@ class SalesReturnController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Retur penjualan berhasil di-cancel. Data transaksi tetap tersimpan untuk audit, sedangkan jurnal dan efek stoknya dihapus.',
+                'message' => 'Retur penjualan berhasil dibatalkan.',
             ]);
         } catch (\Throwable $e) {
             Log::error('Gagal menghapus retur penjualan', [
@@ -195,7 +195,7 @@ class SalesReturnController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Retur penjualan berhasil disimpan dan jurnal berhasil diposting!',
+                'message' => 'Retur penjualan berhasil disimpan!',
                 'data' => $return
             ]);
         } catch (\Exception $e) {
