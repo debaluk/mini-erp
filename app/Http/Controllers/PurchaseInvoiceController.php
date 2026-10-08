@@ -238,7 +238,7 @@ class PurchaseInvoiceController extends Controller
             'purchase_order_id'=> 'nullable|exists:purchase_orders,id',
             'warehouse_id'     => 'nullable|exists:warehouses,id',
             'purchase_date'    => 'required|date',
-            'payment_method'   => 'required|in:cash,credit',
+            'payment_method'   => 'required|in:cash,credit,transfer,qris',
             'products'         => 'required|array|min:1',
             'qty'              => 'required|array|min:1',
             'unit_price'       => 'required|array|min:1',
@@ -298,7 +298,7 @@ class PurchaseInvoiceController extends Controller
                 ]);
 
                 $subtotal = 0.0;
-                $discountTotal = 0.0;
+                $discountTotal = (float) $request->input('document_discount', 0);
 
                 foreach ($request->products as $idx => $productId) {
                     $qty = (float) ($request->qty[$idx] ?? 0);
@@ -357,9 +357,29 @@ class PurchaseInvoiceController extends Controller
                 return $this->executePosting($purchaseId, $goodsReceived ? $request->input('warehouse_id') : null);
             }
 
+            $purchaseNo = DB::table('purchases')->where('id', $purchaseId)->value('purchase_no');
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'status' => 'success',
+                    'message' => "Draft Faktur Pembelian {$purchaseNo} berhasil disimpan.",
+                    'data' => [
+                        'id' => $purchaseId,
+                        'purchase_no' => $purchaseNo,
+                    ],
+                ]);
+            }
+
             return redirect()->route('inventori.pembelian.index')
-                ->with('swal_success', "Draft Faktur Pembelian [{$purchaseId}] berhasil disimpan.");
+                ->with('swal_success', "Draft Faktur Pembelian [{$purchaseNo}] berhasil disimpan.");
         } catch (\Throwable $e) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Gagal menyimpan pembelian: ' . $e->getMessage(),
+                ], 422);
+            }
+
             return back()->withInput()->with('swal_error', 'Gagal menyimpan pembelian: ' . $e->getMessage());
         }
     }
