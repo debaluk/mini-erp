@@ -356,25 +356,9 @@ class PurchaseInvoiceController extends Controller
                 return $purchaseId;
             });
 
-            if ($request->boolean('post_now') || $goodsReceived) {
-                return $this->executePosting($purchaseId, null, $request);
-            }
+            // Tidak ada Draft/Approval. Faktur langsung diproses.
+            return $this->executePosting($purchaseId, null, $request);
 
-            $purchaseNo = DB::table('purchases')->where('id', $purchaseId)->value('purchase_no');
-
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'status' => 'success',
-                    'message' => "Draft Faktur Pembelian {$purchaseNo} berhasil disimpan.",
-                    'data' => [
-                        'id' => $purchaseId,
-                        'purchase_no' => $purchaseNo,
-                    ],
-                ]);
-            }
-
-            return redirect()->route('inventori.pembelian.index')
-                ->with('swal_success', "Draft Faktur Pembelian [{$purchaseNo}] berhasil disimpan.");
         } catch (\Throwable $e) {
             if ($request->expectsJson()) {
                 return response()->json([
