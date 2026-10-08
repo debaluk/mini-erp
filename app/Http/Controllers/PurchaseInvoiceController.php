@@ -729,26 +729,11 @@ class PurchaseInvoiceController extends Controller
                     app(ReceiptController::class)->store($receiptRequest);
                 }
 
-                // PO wajib sudah diterima penuh sebelum faktur diposting.
-                // Stok/HPP berasal dari Penerimaan Barang, sedangkan faktur hanya
-                // mengakui sisi finansial.
+                // PO tidak bergantung pada Penerimaan Barang saat Faktur Pembelian disimpan.
+                // Penerimaan adalah proses fisik terpisah yang menangani stok/HPP.
+                // Faktur PO hanya mengakui sisi finansial agar tidak terjadi jurnal ganda.
+
                 if ($purchase->source_type === 'po') {
-                    $expectedBase = (float) DB::table('purchase_items')
-                        ->where('purchase_id', $purchase->id)
-                        ->sum(DB::raw('COALESCE(base_qty, qty * COALESCE(conversion_factor, 1))'));
-
-                    $receivedBase = (float) DB::table('receipt_items as ri')
-                        ->join('receipts as r', 'r.id', '=', 'ri.receipt_id')
-                        ->where('r.purchase_id', $purchase->id)
-                        ->sum('ri.base_qty');
-
-                    if ($expectedBase <= 0 || $receivedBase + 0.0000001 < $expectedBase) {
-                        throw new \RuntimeException('Faktur PO belum dapat diposting karena Penerimaan Barang belum lengkap.');
-                    }
-
-                    // Penerimaan PO sudah menangani stok/HPP. Posting faktur hanya
-                    // mengakui sisi finansial agar tidak terjadi jurnal ganda.
-
                     $mapping = DB::table('business_unit_account_mappings')
                         ->where('business_unit_id', $purchase->business_unit_id)
                         ->whereIn('mapping_key', ['inventory', 'payable', 'cash', 'bank'])
