@@ -758,8 +758,6 @@ function saveNonPo(e) {
     const payload = {};
     formData.forEach((value, key) => { if(!key.includes('[')) payload[key] = value; });
 
-    payload.goods_received = 1;
-
     payload.products = [];
     payload.qty = [];
     payload.unit_price = [];
