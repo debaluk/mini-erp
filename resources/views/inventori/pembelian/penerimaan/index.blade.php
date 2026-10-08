@@ -83,6 +83,24 @@
     </div>
 </div>
 
+<div class="modal fade" id="modal-cancel-receipt" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-warning-subtle py-2 px-3">
+                <h6 class="modal-title fw-bold text-dark"><i class="bi bi-exclamation-triangle-fill me-2 text-warning"></i>Perhatian !!!</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body py-3">
+                <div class="fw-semibold">Proses pembatalan akan membatalkan penerimaan barang.</div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-danger btn-sm" id="btn-confirm-cancel-receipt">Ya, Batalkan</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="modal-detail-receipt" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content border-0 shadow">
@@ -140,8 +158,9 @@ $(function () {
                 className: 'text-center',
                 render: function (row) {
                     return '<div class="btn-group btn-group-sm" role="group">' +
-                        '<button type="button" class="btn btn-outline-primary btn-detail-receipt" data-id="' + row.id + '"><i class="bi bi-eye me-1"></i>Detil</button>' +
-                        '<a target="_blank" href="' + "{{ url('/inventori/penerimaan') }}" + '/' + row.id + '/print" class="btn btn-outline-secondary"><i class="bi bi-printer me-1"></i>Print</a>' +
+                        '<button type="button" class="btn btn-outline-primary btn-detail-receipt" title="Detil" data-id="' + row.id + '"><i class="bi bi-eye"></i></button>' +
+                        '<a target="_blank" href="' + "{{ url('/inventori/penerimaan') }}" + '/' + row.id + '/print" class="btn btn-outline-secondary" title="Print"><i class="bi bi-printer"></i></a>' +
+                        (row.status === 'posted' ? '<button type="button" class="btn btn-outline-danger btn-cancel-receipt" title="Batal Penerimaan" data-id="' + row.id + '"><i class="bi bi-x-circle"></i></button>' : '') +
                         '</div>';
                 }
             }
@@ -165,6 +184,23 @@ $(function () {
         $('#filter-start-date').val('{{ $startDate }}');
         $('#filter-end-date').val('{{ $endDate }}');
         table.ajax.reload();
+    });
+
+    let cancelReceiptId = null;
+
+    $(document).on('click', '.btn-cancel-receipt', function () {
+        cancelReceiptId = $(this).data('id');
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('modal-cancel-receipt')).show();
+    });
+
+    $('#btn-confirm-cancel-receipt').on('click', function () {
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('modal-cancel-receipt')).hide();
+        Swal.fire({
+            icon: 'info',
+            title: 'Belum tersedia',
+            text: 'Proses pembatalan penerimaan belum tersedia.',
+            confirmButtonText: 'OK'
+        });
     });
 
     $(document).on('click', '.btn-detail-receipt', function () {
