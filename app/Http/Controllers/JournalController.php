@@ -95,7 +95,7 @@ class JournalController extends Controller
 
         $reference = match (strtolower((string) $journal->source_type)) {
             'sale' => DB::table('sales')->where('id', $journal->source_id)->value('invoice_no'),
-            'purchase', 'po' => DB::table('purchases')->where('id', $journal->source_id)->value('purchase_no'),
+            'purchase', 'purchase_invoice', 'po' => DB::table('purchases')->where('id', $journal->source_id)->value('purchase_no'),
             'receipt' => DB::table('receipts')->where('id', $journal->source_id)->value('receipt_no'),
             'purchase_return' => DB::table('purchase_returns')->where('id', $journal->source_id)->value('return_no'),
             'sales_return' => DB::table('sales_returns')->where('id', $journal->source_id)->value('return_no'),
