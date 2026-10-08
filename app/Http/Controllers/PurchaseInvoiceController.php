@@ -260,14 +260,39 @@ class PurchaseInvoiceController extends Controller
      */
     public function getPoItems($poId)
     {
-        $po = DB::table('purchase_orders')->where('id', $poId)->first();
-        if (!$po) return response()->json(['success' => false, 'message' => 'PO tidak ditemukan'], 404);
+        $entityId = (int) (auth()->user()->entity_id ?? 1);
+
+        $po = DB::table('purchase_orders as po')
+            ->leftJoin('business_units as bu', 'bu.id', '=', 'po.business_unit_id')
+            ->leftJoin('suppliers as s', 's.id', '=', 'po.supplier_id')
+            ->leftJoin('warehouses as w', 'w.id', '=', 'po.warehouse_id')
+            ->where('po.entity_id', $entityId)
+            ->where('po.id', $poId)
+            ->whereNull('po.deleted_at')
+            ->select(
+                'po.*',
+                's.name as supplier_name',
+                'bu.code as bu_code',
+                'bu.name as bu_name',
+                'w.name as warehouse_name'
+            )
+            ->first();
+
+        if (!$po) {
+            return response()->json(['success' => false, 'message' => 'PO tidak ditemukan'], 404);
+        }
 
         $items = DB::table('purchase_order_items as poi')
             ->join('products as p', 'p.id', '=', 'poi.product_id')
             ->leftJoin('units as u', 'u.id', '=', 'poi.unit_id')
             ->where('poi.purchase_order_id', $poId)
-            ->select('poi.*', 'p.code as product_code', 'p.name as product_name', 'u.name as unit_name')
+            ->select(
+                'poi.*',
+                'poi.unit_price as unit_cost',
+                'p.code as product_code',
+                'p.name as product_name',
+                'u.name as unit_name'
+            )
             ->get();
 
         return response()->json(['success' => true, 'po' => $po, 'items' => $items]);
