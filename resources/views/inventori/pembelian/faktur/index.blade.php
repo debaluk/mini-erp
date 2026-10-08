@@ -470,18 +470,15 @@ const purchaseTable = new DataTable('#tablePurchases', {
         { data: 'payment_method_label', render: data => '<span class="badge bg-light text-dark border">' + (data || '-') + '</span>' },
         { data: 'formatted_due_date' },
         { data: 'formatted_grand', className: 'text-end fw-bold' },
-        { data: 'status', className: 'text-center', render: data => data === 'draft' ? '<span class="badge bg-warning text-dark">DRAFT</span>' : (data === 'cancelled' ? '<span class="badge bg-secondary">BATAL</span>' : '<span class="badge bg-success">TERPOSTING</span>') },
+        { data: 'status', className: 'text-center', render: data => data === 'cancelled' ? '<span class="badge bg-secondary">BATAL</span>' : '<span class="badge bg-success">TERPOSTING</span>' },
         { data: null, orderable: false, searchable: false, className: 'text-center', render: (data, type, row) => {
             const cancelled = row.status === 'cancelled';
-            const draft = row.status === 'draft';
             return '<div class="btn-group btn-group-sm">' +
-                (!cancelled ? '<button type="button" class="btn btn-outline-warning" title="Edit" onclick="openEditModal(' + row.id + ', \'' + (row.source_type || 'direct') + '\')"><i class="bi bi-pencil"></i></button>' : '') +
-                (draft ? '<button type="button" class="btn btn-outline-success" title="Approval" onclick="approvePurchase(' + row.id + ')"><i class="bi bi-check-circle"></i></button>' : '') +
+                (!cancelled ? '<button type="button" class="btn btn-outline-warning" title="Edit" onclick="openEditModal(' + row.id + ', \\' + (row.source_type || 'direct') + '\\')"><i class="bi bi-pencil"></i></button>' : '') +
                 '<button type="button" class="btn btn-outline-secondary" title="Cetak" onclick="printFaktur(' + row.id + ')"><i class="bi bi-printer"></i></button>' +
-                (row.status !== 'cancelled' ? '<button type="button" class="btn btn-outline-danger" title="Batalkan" onclick="deletePurchase(' + row.id + ')"><i class="bi bi-trash"></i></button>' : '') +
+                (!cancelled ? '<button type="button" class="btn btn-outline-danger" title="Batalkan" onclick="deletePurchase(' + row.id + ')"><i class="bi bi-trash"></i></button>' : '') +
                 '</div>';
-        }}
-    ]
+        }}    ]
 });
 
 function loadData(page = 1) {
@@ -872,7 +869,7 @@ function savePo(e) {
 }
 
 function openEditModal(id, sourceType) {
-    fetch(`/inventori/pembelian/faktur/${id}`)
+    fetch(`/inventori/pembelian/faktur/${id}/edit`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
     .then(res => res.json())
     .then(res => {
         if(res.status === 'success') {
