@@ -95,6 +95,15 @@
                                 <input type="text" class="form-control form-control-sm" id="nonpo_supplier_invoice_no" name="supplier_invoice_no" placeholder="Contoh: INV-SUP-9988">
                             </div>
                             <div class="col-md-3">
+                                <label class="form-label extra-small fw-bold text-dark mb-1">Gudang Penerimaan <span class="text-danger">*</span></label>
+                                <select class="form-select form-select-sm fw-bold border-primary" id="nonpo_warehouse_id" name="warehouse_id" required>
+                                    <option value="">-- Pilih Gudang --</option>
+                                    @foreach($warehouses as $w)
+                                        <option value="{{ $w->id }}">{{ $w->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-3">
                                 <label class="form-label extra-small fw-bold text-dark mb-1">Supplier <span class="text-danger"></span></label>
                                 <select class="form-select form-select-sm fw-bold border-primary" id="nonpo_supplier_id" name="supplier_id" required>
                                     <option value="">-- Pilih Vendor / Supplier --</option>
@@ -761,7 +770,7 @@ function saveNonPo(e) {
     const payload = {};
     formData.forEach((value, key) => { if(!key.includes('[')) payload[key] = value; });
 
-    payload.goods_received = document.getElementById('nonpo_goods_received').checked ? 1 : 0;
+    payload.goods_received = 1;
 
     payload.products = [];
     payload.qty = [];
@@ -919,7 +928,7 @@ function openEditModal(id, sourceType) {
                 document.getElementById('nonpo_supplier_id').value = p.supplier_id;
                 document.getElementById('nonpo_purchase_date').value = p.purchase_date ? p.purchase_date.substring(0, 10) : '';
                 document.getElementById('nonpo_supplier_invoice_no').value = p.supplier_invoice_no || '';
-                document.getElementById('nonpo_goods_received').checked = (p.goods_received == 1);
+                document.getElementById('nonpo_warehouse_id').value = p.warehouse_id || '';
                 document.getElementById('nonpo_document_discount').value = p.discount || 0;
 
                 document.getElementById('tbodyNonPoItems').innerHTML = '';
