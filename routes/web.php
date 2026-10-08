@@ -210,6 +210,7 @@ Route::middleware(['auth', 'access:inventori'])->prefix('inventori/pembelian/fak
     Route::get('/export-excel', [PurchaseInvoiceController::class, 'exportExcel'])->name('export-excel');
     Route::get('/print-list', [PurchaseInvoiceController::class, 'printList'])->name('print-list');
     Route::get('/lookup/product', [PurchaseInvoiceController::class, 'lookupProducts'])->name('lookup-product');
+    Route::get('/lookup/po', [PurchaseInvoiceController::class, 'lookupPurchaseOrders'])->name('lookup-po');
     Route::get('/po-items/{poId}', [PurchaseInvoiceController::class, 'getPoItems'])->name('po-items');
     Route::get('/', [PurchaseInvoiceController::class, 'index'])->name('index');
     Route::get('/create', [PurchaseInvoiceController::class, 'create'])->name('create');
