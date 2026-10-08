@@ -474,7 +474,7 @@ const purchaseTable = new DataTable('#tablePurchases', {
         { data: null, orderable: false, searchable: false, className: 'text-center', render: (data, type, row) => {
             const cancelled = row.status === 'cancelled';
             return '<div class="btn-group btn-group-sm">' +
-                (!cancelled ? '<button type="button" class="btn btn-outline-warning" title="Edit" onclick="openEditModal(' + row.id + ', \\' + (row.source_type || 'direct') + '\\')"><i class="bi bi-pencil"></i></button>' : '') +
+                (!cancelled ? '<button type="button" class="btn btn-outline-warning" title="Edit" onclick="openEditModal(' + row.id + ', \'' + (row.source_type || 'direct') + '\')"><i class="bi bi-pencil"></i></button>' : '') +
                 '<button type="button" class="btn btn-outline-secondary" title="Cetak" onclick="printFaktur(' + row.id + ')"><i class="bi bi-printer"></i></button>' +
                 (!cancelled ? '<button type="button" class="btn btn-outline-danger" title="Batalkan" onclick="deletePurchase(' + row.id + ')"><i class="bi bi-trash"></i></button>' : '') +
                 '</div>';
