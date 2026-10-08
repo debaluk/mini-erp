@@ -479,6 +479,10 @@ class PurchaseInvoiceController extends Controller
                     throw new \RuntimeException('Faktur sudah POSTED.');
                 }
 
+                if ($purchase->source_type !== 'po' && (int) $purchase->goods_received !== 1) {
+                    throw new \RuntimeException('Pembelian Non-PO wajib melalui Penerimaan Barang sebelum diposting.');
+                }
+
                 if ($purchase->source_type !== 'po' && (int) $purchase->goods_received === 1) {
                     if (!$warehouseId) {
                         throw new \RuntimeException('Gudang wajib dipilih untuk penerimaan barang langsung.');
