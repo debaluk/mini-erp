@@ -757,9 +757,10 @@ class PurchaseInvoiceController extends Controller
                     ->lockForUpdate()
                     ->pluck('id');
 
-                // Non-PO/direct receipt masuk stok bersamaan dengan faktur.
-                // PO receipt tetap dipertahankan karena penerimaan barang merupakan dokumen terpisah.
-                if ($purchase->source_type !== 'po' && $receiptIds->isNotEmpty()) {
+                // Penerimaan yang terikat pada faktur dibalik saat faktur dibatalkan:
+                // stok, movement, HPP history, dan dokumen/jurnal penerimaan harus ikut
+                // kembali agar tidak meninggalkan stok atau nilai akuntansi yatim.
+                if ($receiptIds->isNotEmpty()) {
                     foreach ($receiptIds as $receiptId) {
                         $receiptItems = DB::table('receipt_items')
                             ->where('receipt_id', $receiptId)
