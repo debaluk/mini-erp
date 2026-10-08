@@ -252,15 +252,25 @@ $(function () {
         $.get("{{ url('/inventori/penerimaan') }}/" + id, function (res) {
             if (!res.success) throw new Error(res.message || 'Gagal memuat detail');
             const r = res.receipt;
+            const formatQty = function (value) {
+                const number = Number(value || 0);
+                return number.toLocaleString('id-ID', { maximumFractionDigits: 3, useGrouping: false });
+            };
+            const formatRupiah = function (value) {
+                const number = Math.round(Number(value || 0));
+                return 'Rp ' + number.toLocaleString('id-ID');
+            };
+            const statusClass = r.status === 'posted' ? 'text-bg-success' : (r.status === 'cancelled' ? 'text-bg-danger' : 'text-bg-secondary');
+            const statusLabel = r.status === 'posted' ? 'TERPOSTING' : (r.status === 'cancelled' ? 'DIBATALKAN' : String(r.status || '-').toUpperCase());
             let rows = '';
             res.items.forEach(function (item, i) {
                 rows += '<tr>' +
                     '<td class="text-center">' + (i + 1) + '</td>' +
                     '<td>' + item.product_code + ' - ' + item.product_name + '</td>' +
-                    '<td class="text-end">' + item.qty + '</td>' +
+                    '<td class="text-end">' + formatQty(item.qty) + '</td>' +
                     '<td>' + (item.unit_name || '-') + '</td>' +
-                    '<td class="text-end">Rp ' + Number(item.base_unit_cost || 0).toLocaleString('id-ID') + '</td>' +
-                    '<td class="text-end">Rp ' + Number(item.line_value || 0).toLocaleString('id-ID') + '</td>' +
+                    '<td class="text-end">' + formatRupiah(item.base_unit_cost) + '</td>' +
+                    '<td class="text-end">' + formatRupiah(item.line_value) + '</td>' +
                     '</tr>';
             });
             $('#receipt-detail-body').html(
@@ -268,7 +278,7 @@ $(function () {
                     '<div class="col-md-3"><div class="small text-secondary">No. Penerimaan</div><div class="fw-bold">' + r.receipt_no + '</div></div>' +
                     '<div class="col-md-3"><div class="small text-secondary">Tanggal</div><div class="fw-semibold">' + r.formatted_date + '</div></div>' +
                     '<div class="col-md-3"><div class="small text-secondary">No. PO</div><div class="fw-semibold">' + (r.po_no || '-') + '</div></div>' +
-                    '<div class="col-md-3"><div class="small text-secondary">Status</div><span class="badge text-bg-success">' + (r.status === 'posted' ? 'TERPOSTING' : String(r.status || '-').toUpperCase()) + '</span></div>' +
+                    '<div class="col-md-3"><div class="small text-secondary">Status</div><span class="badge ' + statusClass + '">' + statusLabel + '</span></div>' +
                 '</div>' +
                 '<div class="row g-3 mb-3">' +
                     '<div class="col-md-4"><div class="small text-secondary">Supplier</div><div class="fw-semibold">' + (r.supplier_name || '-') + '</div></div>' +
