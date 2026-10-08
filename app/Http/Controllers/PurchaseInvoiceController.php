@@ -234,7 +234,7 @@ class PurchaseInvoiceController extends Controller
     {
         $request->validate([
             'business_unit_id' => 'required|exists:business_units,id',
-            'supplier_id'      => 'required|exists:suppliers,id',
+            'supplier_id'      => 'nullable|exists:suppliers,id',
             'purchase_order_id'=> 'nullable|exists:purchase_orders,id',
             'warehouse_id'     => 'nullable|exists:warehouses,id',
             'purchase_date'    => 'required|date',
@@ -245,6 +245,12 @@ class PurchaseInvoiceController extends Controller
         ]);
 
         $isPo = $request->filled('purchase_order_id');
+
+        if ($request->payment_method === 'credit' && !$request->filled('supplier_id')) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'supplier_id' => 'Supplier wajib dipilih untuk pembelian kredit.',
+            ]);
+        }
         // Non-PO adalah pembelian langsung: barang otomatis diterima melalui prosedur Penerimaan Barang. 
         $goodsReceived = !$isPo;
 
@@ -412,10 +418,18 @@ class PurchaseInvoiceController extends Controller
     {
         $request->validate([
             'purchase_date' => 'required|date',
+            'supplier_id' => 'nullable|exists:suppliers,id',
             'supplier_invoice_no' => 'nullable|string|max:100',
             'payment_method' => 'required|in:cash,credit,transfer,qris',
             'memo' => 'nullable|string',
         ]);
+
+        if ($request->payment_method === 'credit' && !$request->filled('supplier_id')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Supplier wajib dipilih untuk pembelian kredit.',
+            ], 422);
+        }
 
         $purchase = DB::table('purchases')
             ->where('id', $id)
@@ -438,6 +452,7 @@ class PurchaseInvoiceController extends Controller
 
         DB::table('purchases')->where('id', $id)->update([
             'purchase_date' => $request->purchase_date,
+            'supplier_id' => $request->filled('supplier_id') ? $request->supplier_id : null,
             'supplier_invoice_no' => $request->supplier_invoice_no,
             'supplier_invoice_date' => $request->purchase_date,
             'payment_method' => $request->payment_method,
