@@ -108,11 +108,7 @@
                         </div>
 
                         <div class="row g-2 mt-1">
-                            <div class="form-check mt-2">
-                                    <input class="form-check-input" type="checkbox" id="nonpo_goods_received" name="goods_received" value="1" checked>
-                                    <label class="form-check-label extra-small fw-bold" for="nonpo_goods_received">Barang langsung diterima</label>
-                                </div>
-                            
+
                         </div>
                     </div>
 
@@ -766,7 +762,7 @@ function saveNonPo(e) {
     const payload = {};
     formData.forEach((value, key) => { if(!key.includes('[')) payload[key] = value; });
 
-    payload.goods_received = document.getElementById('nonpo_goods_received')?.checked ? 1 : 0;
+    payload.goods_received = 1;
 
     payload.products = [];
     payload.qty = [];
@@ -924,7 +920,7 @@ function openEditModal(id, sourceType) {
                 document.getElementById('nonpo_supplier_id').value = p.supplier_id;
                 document.getElementById('nonpo_purchase_date').value = p.purchase_date ? p.purchase_date.substring(0, 10) : '';
                 document.getElementById('nonpo_supplier_invoice_no').value = p.supplier_invoice_no || '';
-                document.getElementById('nonpo_goods_received').checked = true;
+                // Non-PO otomatis dianggap sudah diterima oleh backend.
                 document.getElementById('nonpo_document_discount').value = p.discount || 0;
 
                 document.getElementById('tbodyNonPoItems').innerHTML = '';
