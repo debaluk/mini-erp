@@ -160,7 +160,7 @@ $(function () {
                     return '<div class="btn-group btn-group-sm" role="group">' +
                         '<button type="button" class="btn btn-outline-primary btn-detail-receipt" title="Detil" data-id="' + row.id + '"><i class="bi bi-eye"></i></button>' +
                         '<a target="_blank" href="' + "{{ url('/inventori/penerimaan') }}" + '/' + row.id + '/print" class="btn btn-outline-secondary" title="Print"><i class="bi bi-printer"></i></a>' +
-                        (row.status === 'posted' && row.purchase_order_id ? '<button type="button" class="btn btn-outline-danger btn-cancel-receipt" title="Batal Penerimaan" data-id="' + row.id + '"><i class="bi bi-x-circle"></i></button>' : '') +
+                        (row.status === 'posted' && row.purchase_order_id ? '<button type="button" class="btn btn-outline-danger btn-cancel-receipt" title="Batal Penerimaan" data-id="' + row.id + '" data-bs-toggle="modal" data-bs-target="#modal-cancel-receipt"><i class="bi bi-x-circle"></i></button>' : '') +
                         '</div>';
                 }
             }
@@ -188,24 +188,34 @@ $(function () {
 
     let cancelReceiptId = null;
 
-    $(document).on('click', '.btn-cancel-receipt', function () {
-        cancelReceiptId = $(this).data('id');
-        bootstrap.Modal.getOrCreateInstance(document.getElementById('modal-cancel-receipt')).show();
+    $('#modal-cancel-receipt').on('show.bs.modal', function (event) {
+        const button = $(event.relatedTarget);
+        cancelReceiptId = button.data('id') || null;
+    });
+
+    $('#modal-cancel-receipt').on('hidden.bs.modal', function () {
+        cancelReceiptId = null;
     });
 
     $('#btn-confirm-cancel-receipt').on('click', function () {
         if (!cancelReceiptId) return;
 
-        bootstrap.Modal.getOrCreateInstance(document.getElementById('modal-cancel-receipt')).hide();
+        const receiptId = cancelReceiptId;
+        const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modal-cancel-receipt'));
+        const confirmButton = $(this);
+
+        confirmButton.prop('disabled', true);
 
         $.ajax({
-            url: "{{ url('/inventori/penerimaan') }}/" + cancelReceiptId + "/cancel",
+            url: "{{ url('/inventori/penerimaan') }}/" + receiptId + "/cancel",
             method: "POST",
-            data: {
-                _token: "{{ csrf_token() }}"
+            headers: {
+                'X-CSRF-TOKEN': "{{ csrf_token() }}",
+                'Accept': 'application/json'
             },
             success: function (response) {
-                cancelReceiptId = null;
+                modal.hide();
+
                 Swal.fire({
                     icon: 'success',
                     title: 'Berhasil',
@@ -224,6 +234,9 @@ $(function () {
                     text: message,
                     confirmButtonText: 'OK'
                 });
+            },
+            complete: function () {
+                confirmButton.prop('disabled', false);
             }
         });
     });
