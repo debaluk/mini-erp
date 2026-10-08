@@ -413,7 +413,7 @@ class PurchaseInvoiceController extends Controller
         $request->validate([
             'purchase_date' => 'required|date',
             'supplier_invoice_no' => 'nullable|string|max:100',
-            'payment_method' => 'required|in:cash,credit',
+            'payment_method' => 'required|in:cash,credit,transfer,qris',
             'memo' => 'nullable|string',
         ]);
 
@@ -446,8 +446,18 @@ class PurchaseInvoiceController extends Controller
             'updated_at' => now(),
         ]);
 
+        $message = "Faktur Pembelian [{$purchase->purchase_no}] berhasil diperbarui.";
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => 'success',
+                'message' => $message,
+                'data' => ['id' => $id, 'purchase_no' => $purchase->purchase_no],
+            ]);
+        }
+
         return redirect()->route('inventori.pembelian.show', $id)
-            ->with('swal_success', "Faktur Pembelian [{$purchase->purchase_no}] berhasil diperbarui.");
+            ->with('swal_success', $message);
     }
 
     /**
@@ -609,6 +619,13 @@ class PurchaseInvoiceController extends Controller
             return redirect()->route('inventori.pembelian.show', $id)
                 ->with('swal_success', $message);
         } catch (\Throwable $e) {
+            if ($request?->expectsJson()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Gagal memproses posting: ' . $e->getMessage(),
+                ], 422);
+            }
+
             return back()->with('swal_error', 'Gagal memproses posting: ' . $e->getMessage());
         }
     }
