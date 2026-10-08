@@ -66,7 +66,7 @@
 <!-- MODAL 1: PEMBELIAN LANGSUNG (NON-PO)                                             -->
 <!-- ================================================================================= -->
 <div class="modal fade" id="modalNonPo" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-primary text-white py-2 px-3">
                 <h6 class="modal-title fw-bold mb-0"><i class="bi bi-cart-plus-fill me-2"></i>Pembelian Langsung (Non-PO)</h6>
@@ -184,6 +184,27 @@
 <!-- ================================================================================= -->
 <!-- MODAL 2: PEMBELIAN BERDASARKAN PO APPROVED                                        -->
 <!-- ================================================================================= -->
+<style>
+#modalPo .modal-dialog {
+    height: calc(100% - 1rem);
+    max-height: calc(100% - 1rem);
+}
+#modalPo .modal-content {
+    height: 100%;
+    max-height: 100%;
+}
+#modalPo form {
+    min-height: 0;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+}
+#modalPo .modal-body {
+    min-height: 0;
+    overflow-y: auto;
+}
+</style>
+
 <div class="modal fade" id="modalPo" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content border-0 shadow">
