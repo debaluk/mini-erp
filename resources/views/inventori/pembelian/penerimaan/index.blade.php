@@ -160,7 +160,7 @@ $(function () {
                     return '<div class="btn-group btn-group-sm" role="group">' +
                         '<button type="button" class="btn btn-outline-primary btn-detail-receipt" title="Detil" data-id="' + row.id + '"><i class="bi bi-eye"></i></button>' +
                         '<a target="_blank" href="' + "{{ url('/inventori/penerimaan') }}" + '/' + row.id + '/print" class="btn btn-outline-secondary" title="Print"><i class="bi bi-printer"></i></a>' +
-                        (row.status === 'posted' ? '<button type="button" class="btn btn-outline-danger btn-cancel-receipt" title="Batal Penerimaan" data-id="' + row.id + '"><i class="bi bi-x-circle"></i></button>' : '') +
+                        (row.status === 'posted' && row.source_type === 'po' ? '<button type="button" class="btn btn-outline-danger btn-cancel-receipt" title="Batal Penerimaan" data-id="' + row.id + '"><i class="bi bi-x-circle"></i></button>' : '') +
                         '</div>';
                 }
             }
@@ -194,12 +194,37 @@ $(function () {
     });
 
     $('#btn-confirm-cancel-receipt').on('click', function () {
+        if (!cancelReceiptId) return;
+
         bootstrap.Modal.getOrCreateInstance(document.getElementById('modal-cancel-receipt')).hide();
-        Swal.fire({
-            icon: 'info',
-            title: 'Belum tersedia',
-            text: 'Proses pembatalan penerimaan belum tersedia.',
-            confirmButtonText: 'OK'
+
+        $.ajax({
+            url: "{{ url('/inventori/penerimaan') }}/" + cancelReceiptId + "/cancel",
+            method: "POST",
+            data: {
+                _token: "{{ csrf_token() }}"
+            },
+            success: function (response) {
+                cancelReceiptId = null;
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil',
+                    text: response.message || 'Proses batal berhasil',
+                    showConfirmButton: false,
+                    timer: 1200
+                }).then(function () {
+                    table.ajax.reload(null, false);
+                });
+            },
+            error: function (xhr) {
+                const message = xhr.responseJSON?.message || 'Proses batal gagal.';
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal',
+                    text: message,
+                    confirmButtonText: 'OK'
+                });
+            }
         });
     });
 
