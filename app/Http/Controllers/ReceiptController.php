@@ -408,7 +408,7 @@ class ReceiptController extends Controller
                 $createJournal = false;
             }
 
-            $receiptNo = 'GRN-'.now()->format('YmdHis').'-'.str()->upper(str()->random(3));
+            $receiptNo = 'FB-'.now()->format('YmdHis').'-'.str()->upper(str()->random(3));
             $receiptDate = Carbon::parse($data['receipt_date'] ?? now()->toDateString())->format('Y-m-d H:i:s');
 
             $receiptId = DB::table('receipts')->insertGetId([
