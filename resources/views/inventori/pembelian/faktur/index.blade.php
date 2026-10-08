@@ -869,7 +869,11 @@ function savePo(e) {
     e.preventDefault();
     const poId = document.getElementById('po_purchase_order_id').value;
     if(!poId) {
-        showToast('warning', 'Pilih dokumen PO yang disetujui terlebih dahulu!');
+        Swal.fire({
+            icon: 'warning',
+            title: 'Perhatian!',
+            text: 'Pilih dokumen PO yang disetujui terlebih dahulu!'
+        });
         return;
     }
 
@@ -895,7 +899,11 @@ function savePo(e) {
     payload.document_discount = parseIndonesiaNumber(document.getElementById('po_document_discount').value);
 
     if(payload.products.length === 0) {
-        showToast('warning', 'Daftar barang tidak boleh kosong!');
+        Swal.fire({
+            icon: 'warning',
+            title: 'Perhatian!',
+            text: 'Daftar barang tidak boleh kosong!'
+        });
         return;
     }
 
@@ -908,15 +916,38 @@ function savePo(e) {
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'X-Requested-With': 'XMLHttpRequest' },
         body: JSON.stringify(payload)
     })
-    .then(res => res.json())
+    .then(async res => {
+        const data = await res.json();
+        if(!res.ok) {
+            throw new Error(data.message || 'Terjadi kesalahan saat menyimpan Faktur Pembelian.');
+        }
+        return data;
+    })
     .then(res => {
         if(res.status === 'success') {
             modalPo.hide();
-            showToast('success', res.message);
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: res.message,
+                timer: 1800,
+                showConfirmButton: false
+            });
             loadData(1);
         } else {
-            showToast('error', res.message);
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal!',
+                text: res.message || 'Terjadi kesalahan saat menyimpan Faktur Pembelian.'
+            });
         }
+    })
+    .catch(error => {
+        Swal.fire({
+            icon: 'error',
+            title: 'Gagal!',
+            text: error.message || 'Terjadi kesalahan sistem.'
+        });
     });
 }
 
