@@ -172,6 +172,7 @@ Route::middleware(['auth', 'access:inventori'])->prefix('inventori/penjualan/ret
     Route::get('/inventori/penerimaan/create', [ReceiptController::class, 'create'])->middleware('access:inventori')->name('inventori.penerimaan.create');
     Route::get('/inventori/penerimaan/po/{id}/modal', [ReceiptController::class, 'poModal'])->middleware('access:inventori')->name('inventori.penerimaan.po-modal');
     Route::post('/inventori/penerimaan', [ReceiptController::class, 'store'])->middleware('access:inventori')->name('inventori.penerimaan.store');
+Route::post('/inventori/penerimaan/{id}/cancel', [ReceiptController::class, 'cancel'])->middleware('access:inventori')->name('inventori.penerimaan.cancel');
     Route::get('/inventori/penerimaan/{id}/print', [ReceiptController::class, 'print'])->middleware('access:inventori')->name('inventori.penerimaan.print');
     Route::get('/inventori/penerimaan/{id}', [ReceiptController::class, 'show'])->middleware('access:inventori')->name('inventori.penerimaan.show');
     Route::get('/inventori/stok', [StockController::class, 'index'])->middleware('access:inventori')->name('inventori.stok');
