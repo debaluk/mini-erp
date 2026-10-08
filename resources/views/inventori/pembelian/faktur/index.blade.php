@@ -51,7 +51,7 @@
                         <tr>
                             <td colspan="8" class="text-center py-4 text-muted">
                                 <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
-                                Memuat data faktur pembelian...
+                                Memuat data pembelian...
                             </td>
                         </tr>
                     </tbody>
@@ -92,11 +92,11 @@
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label extra-small fw-bold text-dark mb-0">No. Faktur Supplier</label>
-                                <input type="text" class="form-control form-control-sm" id="nonpo_supplier_invoice_no" name="supplier_invoice_no" placeholder="Contoh: INV-SUP-9988">
+                                <input type="text" class="form-control form-control-sm" id="nonpo_supplier_invoice_no" name="supplier_invoice_no" placeholder="Contoh: INV-001">
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label extra-small fw-bold text-dark mb-1">Supplier <span class="text-danger"></span></label>
-                                <select class="form-select form-select-sm fw-bold border-primary" id="nonpo_supplier_id" name="supplier_id" required>
+                                <label class="form-label extra-small fw-bold text-dark mb-1">Supplier</label>
+                                <select class="form-select form-select-sm fw-bold border-primary" id="nonpo_supplier_id" name="supplier_id">
                                     <option value="">-- Pilih Vendor / Supplier --</option>
                                     @foreach($suppliers as $s)
                                         <option value="{{ $s->id }}">{{ $s->code }} - {{ $s->name }}</option>
@@ -124,7 +124,7 @@
                                         <th style="min-width: 280px;">Pilih Produk / Barang</th>
                                         <th class="text-center" style="width: 80px;">Satuan</th>
                                         <th style="width: 120px;">Qty</th>
-                                        <th style="width: 160px;">Harga Beli / Unit (Rp)</th>
+                                        <th style="width: 160px;">Harga Beli / Satuan (Rp)</th>
                                         <th class="text-end" style="width: 160px;">Subtotal (Rp)</th>
                                         <th class="text-center" style="width: 35px;"><i class="bi bi-trash"></i></th>
                                     </tr>
@@ -143,7 +143,7 @@
                         <div class="col-md-4">
                             <div class="border rounded bg-light p-2">
                                 <div class="d-flex justify-content-between mb-1 small">
-                                    <span class="text-muted fw-semibold">Subtotal Items:</span>
+                                    <span class="text-muted fw-semibold">Subtotal:</span>
                                     <strong id="nonpo_display_subtotal">Rp 0</strong>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center mb-1 small">
@@ -152,7 +152,7 @@
                                 </div>
                                 <hr class="my-1">
                                 <div class="d-flex justify-content-between text-primary fw-bold mb-0">
-                                    <span>GRAND TOTAL:</span>
+                                    <span>TOTAL:</span>
                                     <span id="nonpo_display_grand_total" class="fs-6">Rp 0</span>
                                 </div>
                                 <label class="form-label">Cara Bayar</label>
@@ -160,7 +160,7 @@
                                     <option value="cash">Tunai</option>
                                     <option value="transfer">Transfer</option>
                                     <option value="qris">QRIS</option>
-                                    <option value="credit">Kredit / Bon</option>
+                                    <option value="credit">Kredit</option>
                                 </select>
                                 <div id="nonpo_due_date_wrap" class="mt-2 d-none">
                                     <label class="form-label mb-1">Jatuh Tempo <span class="text-danger">*</span></label>
@@ -173,7 +173,7 @@
                 <div class="modal-footer py-2 px-3 bg-light">
                     <button type="button" class="btn btn-sm btn-secondary fw-semibold px-3" data-bs-dismiss="modal">Batal</button>
                     <button type="submit" class="btn btn-sm btn-primary fw-bold px-4">
-                        <i class="bi bi-save me-1"></i> Simpan Sebagai DRAFT
+                        <i class="bi bi-save me-1"></i> Simpan Pembelian
                     </button>
                 </div>
             </form>
@@ -188,7 +188,7 @@
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-primary text-white py-2 px-3">
-                <h6 class="modal-title fw-bold mb-0"><i class="bi bi-file-earmark-check-fill me-2"></i>Faktur Pembelian Berdasarkan PO</h6>
+                <h6 class="modal-title fw-bold mb-0"><i class="bi bi-file-earmark-check-fill me-2"></i>Faktur Pembelian dari PO</h6>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form id="formPo" onsubmit="savePo(event)">
@@ -201,9 +201,9 @@
                     <div class="mb-3">
                         <div class="row g-2 align-items-center">
                             <div class="col-md-4">
-                                <label class="form-label extra-small fw-bold text-dark mb-1">Pilih Dokumen PO Approved <span class="text-danger">*</span></label>
+                                <label class="form-label extra-small fw-bold text-dark mb-1">Pilih PO Disetujui <span class="text-danger">*</span></label>
                                 <select class="form-select form-select-sm fw-bold border-success text-success" id="po_purchase_order_id" name="purchase_order_id" onchange="onPoSelect(this.value)" required>
-                                    <option value="">-- Pilih Nomor PO Approved --</option>
+                                    <option value="">-- Pilih Nomor PO Disetujui --</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
@@ -240,8 +240,8 @@
                     <!-- Table Items dari PO -->
                     <div class="card border-0 shadow-sm p-2 mb-2 bg-white">
                         <div class="d-flex justify-content-between align-items-center mb-1">
-                            <h6 class="fw-bold text-success mb-0 small"><i class="bi bi-list-check me-1"></i>Rincian Barang & Tagihan Faktur dari PO</h6>
-                            <span class="badge bg-success-subtle text-success fw-bold border border-success-subtle px-2 py-0 extra-small">Mode Tagihan PO</span>
+                            <h6 class="fw-bold text-success mb-0 small"><i class="bi bi-list-check me-1"></i>Rincian Barang & Tagihan</h6>
+                            <span class="badge bg-success-subtle text-success fw-bold border border-success-subtle px-2 py-0 extra-small">Tagihan dari PO</span>
                         </div>
                         <div class="table-responsive">
                             <table class="table table-sm table-hover table-bordered align-middle mb-0" id="tablePoItems">
@@ -470,11 +470,11 @@ const purchaseTable = new DataTable('#tablePurchases', {
         { data: 'payment_method_label', render: data => '<span class="badge bg-light text-dark border">' + (data || '-') + '</span>' },
         { data: 'formatted_due_date' },
         { data: 'formatted_grand', className: 'text-end fw-bold' },
-        { data: 'status', className: 'text-center', render: data => data === 'draft' ? '<span class="badge bg-warning text-dark">DRAFT</span>' : (data === 'cancelled' ? '<span class="badge bg-secondary">CANCEL</span>' : '<span class="badge bg-success">APPROVED</span>') },
+        { data: 'status', className: 'text-center', render: data => data === 'draft' ? '<span class="badge bg-warning text-dark">DRAFT</span>' : (data === 'cancelled' ? '<span class="badge bg-secondary">BATAL</span>' : '<span class="badge bg-success">TERPOSTING</span>') },
         { data: null, orderable: false, searchable: false, className: 'text-center', render: (data, type, row) => {
             const draft = row.status === 'draft';
             return '<div class="btn-group btn-group-sm">' +
-                (draft ? '<button type="button" class="btn btn-outline-warning" title="Edit" onclick="openEditModal(' + row.id + ', row.source_type)"><i class="bi bi-pencil"></i></button>' : '') +
+                (draft ? '<button type="button" class="btn btn-outline-warning" title="Edit" onclick="openEditModal(' + row.id + ', \'' + (row.source_type || 'direct') + '\')"><i class="bi bi-pencil"></i></button>' : '') +
                 (draft ? '<button type="button" class="btn btn-outline-success" title="Approval" onclick="approvePurchase(' + row.id + ')"><i class="bi bi-check-circle"></i></button>' : '') +
                 '<button type="button" class="btn btn-outline-secondary" title="Cetak" onclick="printFaktur(' + row.id + ')"><i class="bi bi-printer"></i></button>' +
                 (row.status !== 'cancelled' ? '<button type="button" class="btn btn-outline-danger" title="Batalkan" onclick="deletePurchase(' + row.id + ')"><i class="bi bi-trash"></i></button>' : '') +
@@ -495,10 +495,19 @@ function openModalNonPo() {
     addNonPoRow();
     calculateTotalsNonPo();
     toggleNonPoDueDate();
+    toggleNonPoSupplierRequired();
     modalNonPo.show();
 }
 
+function toggleNonPoSupplierRequired() {
+    const credit = document.getElementById('nonpo_payment_method').value === 'credit';
+    const supplier = document.getElementById('nonpo_supplier_id');
+    supplier.required = credit;
+    supplier.classList.toggle('border-danger', credit && !supplier.value);
+}
+
 function toggleNonPoDueDate() {
+    toggleNonPoSupplierRequired();
     const credit = document.getElementById('nonpo_payment_method').value === 'credit';
     const wrap = document.getElementById('nonpo_due_date_wrap');
     const input = document.getElementById('nonpo_due_date');
