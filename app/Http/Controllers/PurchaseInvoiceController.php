@@ -356,7 +356,9 @@ class PurchaseInvoiceController extends Controller
                     'goods_received'      => $goodsReceived,
                     'posting_status'      => 'posted',
                     'purchase_no'         => $purchaseNo,
-                    'supplier_invoice_no' => $request->input('supplier_invoice_no') ?: $purchaseNo,
+                    'supplier_invoice_no' => $isPo
+                        ? ($request->input('supplier_invoice_no') ?: null)
+                        : ($request->input('supplier_invoice_no') ?: $purchaseNo),
                     'supplier_invoice_date'=> $request->purchase_date,
                     'purchase_date'       => $request->purchase_date,
                     'subtotal'            => 0,
