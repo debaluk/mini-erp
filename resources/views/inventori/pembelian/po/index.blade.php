@@ -245,13 +245,24 @@ document.addEventListener('DOMContentLoaded', function () {
                 data: 'status',
                 className: 'text-center',
                 render: function (data) {
-                    if (data === 'draft') return '<span class="badge bg-secondary">DRAFT</span>';
-                    if (data === 'approved') return '<span class="badge bg-primary">APPROVED</span>';
-                    if (data === 'partial') return '<span class="badge bg-warning text-dark">PARTIAL</span>';
-                    if (data === 'completed') return '<span class="badge bg-success">COMPLETED</span>';
-                    if (data === 'closed') return '<span class="badge bg-dark">CLOSED</span>';
-                    if (data === 'canceled') return '<span class="badge bg-danger">CANCELED</span>';
-                    return `<span class="badge bg-danger">${data.toUpperCase()}</span>`;
+                    const labels = {
+                        draft: 'DRAFT',
+                        approved: 'DISETUJUI',
+                        partial: 'SEBAGIAN DITERIMA',
+                        completed: 'SELESAI',
+                        closed: 'DITUTUP',
+                        canceled: 'DIBATALKAN'
+                    };
+                    const classes = {
+                        draft: 'bg-secondary',
+                        approved: 'bg-primary',
+                        partial: 'bg-warning text-dark',
+                        completed: 'bg-success',
+                        closed: 'bg-dark',
+                        canceled: 'bg-danger'
+                    };
+                    const key = String(data || '').toLowerCase();
+                    return '<span class="badge ' + (classes[key] || 'bg-secondary') + '">' + (labels[key] || key.toUpperCase() || '-') + '</span>';
                 }
             },
             {
