@@ -303,7 +303,7 @@
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center mb-1 small">
                                     <span class="text-muted fw-semibold">Diskon Nota (Rp):</span>
-                                    <input type="number" class="form-control form-control-sm text-end w-50 fw-bold py-0" id="po_document_discount" name="document_discount" value="0" min="0" oninput="calculateTotalsPo()">
+                                    <input type="text" inputmode="numeric" class="form-control form-control-sm text-end w-50 fw-bold py-0" id="po_document_discount" name="document_discount" value="0" oninput="calculateTotalsPo()">
                                 </div>
                                 <hr class="my-1">
                                 <div class="d-flex justify-content-between text-success fw-bold mb-0">
@@ -802,7 +802,7 @@ function calculateTotalsPo() {
         }
     });
 
-    const discount = parseFloat(document.getElementById('po_document_discount').value) || 0;
+    const discount = parseIndonesiaNumber(document.getElementById('po_document_discount').value);
     const grand = Math.max(0, subtotal - discount);
 
     document.getElementById('po_display_subtotal').innerText = `Rp ${subtotal.toLocaleString('id-ID')}`;
@@ -899,6 +899,8 @@ function savePo(e) {
         }
     });
 
+    payload.document_discount = parseIndonesiaNumber(document.getElementById('po_document_discount').value);
+
     if(payload.products.length === 0) {
         showToast('warning', 'Daftar barang tidak boleh kosong!');
         return;
@@ -944,7 +946,7 @@ function openEditModal(id, sourceType) {
                 document.getElementById('po_supplier_invoice_no').value = p.supplier_invoice_no || '';
                 document.getElementById('po_payment_method').value = p.payment_method || 'cash';
                 document.getElementById('po_due_date').value = p.due_date ? p.due_date.substring(0, 10) : '';
-                document.getElementById('po_document_discount').value = p.discount || 0;
+                document.getElementById('po_document_discount').value = formatRupiahIndonesia(p.discount || 0);
                 togglePoDueDate();
 
                 let html = '';
