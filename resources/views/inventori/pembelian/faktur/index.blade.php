@@ -887,7 +887,10 @@ function openEditModal(id, sourceType) {
                 document.getElementById('po_bu_warehouse_display').value = `${p.bu_code} - ${p.bu_name}`;
                 document.getElementById('po_purchase_date').value = p.purchase_date ? p.purchase_date.substring(0, 10) : '';
                 document.getElementById('po_supplier_invoice_no').value = p.supplier_invoice_no || '';
+                document.getElementById('po_payment_method').value = p.payment_method || 'cash';
+                document.getElementById('po_due_date').value = p.due_date ? p.due_date.substring(0, 10) : '';
                 document.getElementById('po_document_discount').value = p.discount || 0;
+                togglePoDueDate();
 
                 let html = '';
                 items.forEach((item, idx) => {
@@ -930,6 +933,9 @@ function openEditModal(id, sourceType) {
                 document.getElementById('nonpo_supplier_id').value = p.supplier_id;
                 document.getElementById('nonpo_purchase_date').value = p.purchase_date ? p.purchase_date.substring(0, 10) : '';
                 document.getElementById('nonpo_supplier_invoice_no').value = p.supplier_invoice_no || '';
+                document.getElementById('nonpo_payment_method').value = p.payment_method || 'cash';
+                document.getElementById('nonpo_due_date').value = p.due_date ? p.due_date.substring(0, 10) : '';
+                toggleNonPoDueDate();
                 // Non-PO otomatis dianggap sudah diterima oleh backend.
                 document.getElementById('nonpo_document_discount').value = p.discount || 0;
 
