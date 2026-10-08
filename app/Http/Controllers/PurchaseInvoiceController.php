@@ -436,6 +436,18 @@ class PurchaseInvoiceController extends Controller
                 ->with('swal_error', 'Faktur tidak ditemukan.');
         }
 
+        if ($purchase->status === 'cancelled') {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Faktur yang sudah dibatalkan hanya dapat dicetak.',
+                ], 422);
+            }
+
+            return redirect()->route('inventori.pembelian.index')
+                ->with('swal_error', 'Faktur yang sudah dibatalkan hanya dapat dicetak.');
+        }
+
         if ($purchase->status === 'posted') {
             return redirect()->route('inventori.pembelian.show', $id)
                 ->with('swal_error', 'Faktur POSTED tidak dapat diedit.');
