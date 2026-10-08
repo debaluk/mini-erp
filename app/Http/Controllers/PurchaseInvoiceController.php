@@ -299,7 +299,7 @@ class PurchaseInvoiceController extends Controller
     }
 
     /**
-     * Simpan Pembelian (Draft / Post Direct)
+     * Simpan Pembelian langsung posting
      */
     public function store(Request $request)
     {
@@ -353,7 +353,7 @@ class PurchaseInvoiceController extends Controller
                     'document_type'       => 'invoice',
                     'source_type'         => $isPo ? 'po' : 'direct',
                     'goods_received'      => $goodsReceived,
-                    'posting_status'      => 'draft',
+                    'posting_status'      => 'posted',
                     'purchase_no'         => $purchaseNo,
                     'supplier_invoice_no' => $request->input('supplier_invoice_no') ?: $purchaseNo,
                     'supplier_invoice_date'=> $request->purchase_date,
@@ -443,7 +443,7 @@ class PurchaseInvoiceController extends Controller
     }
 
     /**
-     * Form Edit Draft Pembelian
+     * Form Edit Faktur Pembelian
      */
     public function edit($id)
     {
