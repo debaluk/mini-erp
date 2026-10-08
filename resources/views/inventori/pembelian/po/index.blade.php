@@ -794,4 +794,5 @@ document.addEventListener('DOMContentLoaded', function () {
         </div>
     </div>
 </div>
-\n@endsection
+
+@endsection
