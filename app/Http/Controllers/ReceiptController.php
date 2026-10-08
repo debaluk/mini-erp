@@ -57,7 +57,7 @@ class ReceiptController extends Controller
         if ($request->filled('status')) $query->where('r.status', $request->status);
 
         $data = $query->select(
-            'r.id', 'r.receipt_no', 'r.receipt_date', 'r.status',
+            'r.id', 'r.receipt_no', 'r.receipt_date', 'r.status', 'r.source_type',
             'po.po_no', 's.name as supplier_name', 'w.name as warehouse_name',
             'bu.name as business_unit_name', DB::raw('COALESCE(ri.total_items, 0) as total_items')
         )->orderByDesc('r.receipt_date')->orderByDesc('r.id')->get();
@@ -142,10 +142,12 @@ class ReceiptController extends Controller
             ->join('products as p', 'p.id', '=', 'poi.product_id')
             ->leftJoin('units as u', 'u.id', '=', 'poi.unit_id')
             ->leftJoinSub(
-                DB::table('receipt_items')
-                    ->select('purchase_order_item_id', DB::raw('SUM(qty) as received_qty'))
-                    ->whereNotNull('purchase_order_item_id')
-                    ->groupBy('purchase_order_item_id'),
+                DB::table('receipt_items as ri')
+                    ->join('receipts as r', 'r.id', '=', 'ri.receipt_id')
+                    ->select('ri.purchase_order_item_id', DB::raw('SUM(ri.qty) as received_qty'))
+                    ->whereNotNull('ri.purchase_order_item_id')
+                    ->where('r.status', 'posted')
+                    ->groupBy('ri.purchase_order_item_id'),
                 'ri',
                 'ri.purchase_order_item_id',
                 '=',
@@ -673,6 +675,158 @@ class ReceiptController extends Controller
         return redirect()
             ->route('inventori.penerimaan')
             ->with('success', 'Penerimaan berhasil diposting; stok dan moving average diperbarui.');
+    }
+
+    public function cancel(Request $request, int $id)
+    {
+        try {
+            DB::transaction(function () use ($id) {
+                $entityId = $this->entityId();
+                $userId = auth()->id();
+
+                $receipt = DB::table('receipts')
+                    ->where('entity_id', $entityId)
+                    ->where('id', $id)
+                    ->lockForUpdate()
+                    ->first();
+
+                abort_unless($receipt, 404, 'Penerimaan tidak ditemukan.');
+                abort_if($receipt->status !== 'posted', 422, 'Penerimaan sudah dibatalkan.');
+                abort_if(($receipt->source_type ?? null) !== 'po', 422, 'Penerimaan Non-PO dibatalkan melalui Faktur Pembelian.');
+
+                $period = DB::table('accounting_periods')
+                    ->where('entity_id', $receipt->entity_id)
+                    ->where('period_year', Carbon::parse($receipt->receipt_date)->year)
+                    ->where('period_month', Carbon::parse($receipt->receipt_date)->month)
+                    ->first();
+
+                if ($period && in_array($period->status, ['closing', 'closed'], true)) {
+                    throw new \RuntimeException('Penerimaan tidak dapat dibatalkan karena periode akuntansi sudah dalam proses closing atau sudah closed.');
+                }
+
+                $items = DB::table('receipt_items')
+                    ->where('receipt_id', $receipt->id)
+                    ->lockForUpdate()
+                    ->get();
+
+                foreach ($items as $item) {
+                    $qty = (float) $item->base_qty;
+                    if ($qty <= 0) continue;
+
+                    $stock = DB::table('warehouses_stocks')
+                        ->where('warehouse_id', $receipt->warehouse_id)
+                        ->where('product_id', $item->product_id)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (!$stock || (float) $stock->qty + 0.0000001 < $qty) {
+                        throw new \RuntimeException('Penerimaan tidak dapat dibatalkan karena stok barang tidak mencukupi untuk membalik penerimaan.');
+                    }
+
+                    $oldQty = (float) $stock->qty;
+                    $oldValue = $oldQty * (float) $stock->avg_cost;
+                    $removeValue = $qty * (float) ($item->base_unit_cost ?? 0);
+
+                    if ($oldValue + 0.01 < $removeValue) {
+                        throw new \RuntimeException('Penerimaan tidak dapat dibatalkan karena nilai stok saat ini tidak mencukupi untuk membalik nilai penerimaan.');
+                    }
+
+                    $newQty = $oldQty - $qty;
+                    $newValue = max(0, $oldValue - $removeValue);
+
+                    DB::table('warehouses_stocks')
+                        ->where('id', $stock->id)
+                        ->update([
+                            'qty' => $newQty,
+                            'avg_cost' => round($newQty > 0 ? $newValue / $newQty : 0, 9),
+                            'updated_at' => now(),
+                        ]);
+
+                    DB::table('stock_movements')->insert([
+                        'entity_id' => $receipt->entity_id,
+                        'business_unit_id' => $receipt->business_unit_id,
+                        'warehouse_id' => $receipt->warehouse_id,
+                        'product_id' => $item->product_id,
+                        'unit_id' => $item->unit_id,
+                        'transaction_qty' => -(float) $item->qty,
+                        'conversion_factor' => $item->conversion_factor,
+                        'movement_type' => 'purchase_cancel',
+                        'qty' => -$qty,
+                        'unit_cost' => (float) ($item->base_unit_cost ?? 0),
+                        'reference_type' => 'receipt_cancel',
+                        'reference_id' => $receipt->id,
+                        'receipt_id' => $receipt->id,
+                        'occurred_at' => now(),
+                        'created_by' => $userId,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+
+                    DB::table('receipt_invoice_allocations')
+                        ->where('receipt_item_id', $item->id)
+                        ->update([
+                            'status' => 'cancelled',
+                            'updated_at' => now(),
+                        ]);
+                }
+
+                DB::table('receipts')
+                    ->where('id', $receipt->id)
+                    ->update([
+                        'status' => 'cancelled',
+                        'updated_at' => now(),
+                    ]);
+
+                $purchase = DB::table('purchases')
+                    ->where('id', $receipt->purchase_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($purchase) {
+                    $activeReceived = (float) DB::table('receipt_items as ri')
+                        ->join('receipts as r', 'r.id', '=', 'ri.receipt_id')
+                        ->where('r.purchase_id', $purchase->id)
+                        ->where('r.status', 'posted')
+                        ->sum('ri.base_qty');
+
+                    DB::table('purchases')
+                        ->where('id', $purchase->id)
+                        ->update([
+                            'goods_received' => $activeReceived > 0,
+                            'updated_at' => now(),
+                        ]);
+                }
+
+                if ($purchase && $purchase->purchase_order_id) {
+                    $poId = (int) $purchase->purchase_order_id;
+                    $totalOrdered = (float) DB::table('purchase_order_items')
+                        ->where('purchase_order_id', $poId)
+                        ->sum('qty');
+
+                    $totalReceived = (float) DB::table('receipt_items as ri')
+                        ->join('receipts as r', 'r.id', '=', 'ri.receipt_id')
+                        ->join('purchase_order_items as poi', 'poi.id', '=', 'ri.purchase_order_item_id')
+                        ->where('poi.purchase_order_id', $poId)
+                        ->where('r.status', 'posted')
+                        ->sum('ri.qty');
+
+                    $newStatus = $totalReceived + 0.0000001 >= $totalOrdered
+                        ? 'completed'
+                        : ($totalReceived > 0 ? 'partial' : 'approved');
+
+                    DB::table('purchase_orders')
+                        ->where('id', $poId)
+                        ->update([
+                            'status' => $newStatus,
+                            'updated_at' => now(),
+                        ]);
+                }
+            });
+
+            return response()->json(['success' => true, 'message' => 'Proses batal berhasil']);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
     }
 
     public function edit(int $id)
