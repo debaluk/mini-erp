@@ -218,7 +218,6 @@ Route::middleware(['auth', 'access:inventori'])->prefix('inventori/pembelian/fak
     Route::get('/{id}/edit', [PurchaseInvoiceController::class, 'edit'])->name('edit');
     Route::put('/{id}', [PurchaseInvoiceController::class, 'update'])->name('update');
     Route::delete('/{id}', [PurchaseInvoiceController::class, 'destroy'])->name('destroy');
-    Route::post('/{id}/post', [PurchaseInvoiceController::class, 'post'])->name('post');
     Route::get('/{id}/print', [PurchaseInvoiceController::class, 'printInvoice'])->name('print');
     Route::get('/{id}', [PurchaseInvoiceController::class, 'show'])->name('show');
 });
