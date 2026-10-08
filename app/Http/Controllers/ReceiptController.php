@@ -230,7 +230,15 @@ class ReceiptController extends Controller
                     ->first();
 
                 if (!$purchase) {
-                    $purchaseNo = 'INV-'.now()->format('YmdHis').'-'.str()->upper(str()->random(3));
+                    $date = Carbon::now();
+                    $dateStr = $date->format('Ymd');
+                    $monthStr = $date->format('Ym');
+                    $lastPurchase = DB::table('purchases')
+                        ->where('purchase_no', 'LIKE', "FB-{$monthStr}%")
+                        ->orderByDesc('purchase_no')
+                        ->first();
+                    $nextSeq = $lastPurchase ? ((int) substr($lastPurchase->purchase_no, -5)) + 1 : 1;
+                    $purchaseNo = 'FB-' . $dateStr . str_pad($nextSeq, 5, '0', STR_PAD_LEFT);
 
                     $purchaseId = DB::table('purchases')->insertGetId([
                         'entity_id' => $entityId,
