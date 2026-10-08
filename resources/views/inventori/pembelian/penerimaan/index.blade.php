@@ -44,8 +44,7 @@
                     <label class="form-label small fw-semibold">Status</label>
                     <select id="filter-status" class="form-select form-select-sm">
                         <option value="">Semua</option>
-                        <option value="posted">Posted</option>
-                        <option value="draft">Draft</option>
+                        <option value="posted">Terposting</option>
                     </select>
                 </div>
                 <div class="col-md-3 d-flex align-items-end gap-2">
@@ -87,11 +86,11 @@
 <div class="modal fade" id="modal-detail-receipt" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-dark text-white">
-                <h5 class="modal-title"><i class="bi bi-box-arrow-in-down me-2"></i>Detail Penerimaan</h5>
+            <div class="modal-header bg-primary text-white py-2 px-3">
+                <h6 class="modal-title fw-bold"><i class="bi bi-box-arrow-in-down me-2"></i>Detail Penerimaan</h6>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body" id="receipt-detail-body">
+            <div class="modal-body p-3" id="receipt-detail-body">
                 <div class="text-center py-5 text-secondary"><div class="spinner-border spinner-border-sm me-2"></div> Memuat...</div>
             </div>
         </div>
@@ -116,7 +115,7 @@ $(function () {
             }
         },
         order: [[1, 'desc']],
-        pageLength: 25,
+        pageLength: 15,
         columns: [
             { data: 'receipt_no', className: 'fw-semibold' },
             { data: 'formatted_date', className: 'text-center' },
@@ -130,7 +129,8 @@ $(function () {
                 className: 'text-center',
                 render: function (data) {
                     const cls = data === 'posted' ? 'text-bg-success' : 'text-bg-secondary';
-                    return '<span class="badge ' + cls + '">' + String(data || '-').toUpperCase() + '</span>';
+                    const label = data === 'posted' ? 'TERPOSTING' : String(data || '-').toUpperCase();
+                    return '<span class="badge ' + cls + '">' + label + '</span>';
                 }
             },
             {
@@ -191,7 +191,7 @@ $(function () {
                     '<div class="col-md-3"><div class="small text-secondary">No. Penerimaan</div><div class="fw-bold">' + r.receipt_no + '</div></div>' +
                     '<div class="col-md-3"><div class="small text-secondary">Tanggal</div><div class="fw-semibold">' + r.formatted_date + '</div></div>' +
                     '<div class="col-md-3"><div class="small text-secondary">No. PO</div><div class="fw-semibold">' + (r.po_no || '-') + '</div></div>' +
-                    '<div class="col-md-3"><div class="small text-secondary">Status</div><span class="badge text-bg-success">' + String(r.status || '-').toUpperCase() + '</span></div>' +
+                    '<div class="col-md-3"><div class="small text-secondary">Status</div><span class="badge text-bg-success">' + (r.status === 'posted' ? 'TERPOSTING' : String(r.status || '-').toUpperCase()) + '</span></div>' +
                 '</div>' +
                 '<div class="row g-3 mb-3">' +
                     '<div class="col-md-4"><div class="small text-secondary">Supplier</div><div class="fw-semibold">' + (r.supplier_name || '-') + '</div></div>' +
@@ -204,7 +204,7 @@ $(function () {
                 '</table></div>'
             );
         }).fail(function (xhr) {
-            $('#receipt-detail-body').html('<div class="alert alert-danger mb-0">' + (xhr.responseJSON?.message || 'Gagal memuat detail penerimaan.') + '</div>');
+            Swal.fire({ icon: 'error', title: 'Gagal!', text: xhr.responseJSON?.message || 'Gagal memuat detail Penerimaan Barang.' });
         });
     });
 });
