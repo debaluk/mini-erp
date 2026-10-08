@@ -710,14 +710,14 @@ function onPoSelect(poId) {
                     <td class="text-center"><span class="badge bg-info text-dark fw-semibold px-2 py-1">${unitName}</span></td>
                     <td style="width: 120px;">
                         <div class="input-group input-group-sm">
-                            <input type="number" step="0.001" class="form-control text-end fw-semibold py-0" name="items[${idx}][qty]" value="${formatQtyIndonesia(item.qty)}" oninput="calculateTotalsPo()" required>
+                            <input type="text" inputmode="decimal" class="form-control text-end fw-semibold py-0" name="items[${idx}][qty]" value="${formatQtyIndonesia(item.qty)}" oninput="calculateTotalsPo()" required>
                             <span class="input-group-text bg-light text-muted px-1 extra-small">${unitName}</span>
                         </div>
                     </td>
                     <td style="width: 160px;">
                         <div class="input-group input-group-sm">
                             <span class="input-group-text bg-light fw-bold text-muted extra-small">Rp</span>
-                            <input type="number" step="100" class="form-control text-end fw-bold text-primary py-0" name="items[${idx}][unit_cost]" value="${formatRupiahIndonesia(item.unit_cost)}" oninput="calculateTotalsPo()" required>
+                            <input type="text" inputmode="numeric" class="form-control text-end fw-bold text-primary py-0" name="items[${idx}][unit_cost]" value="${formatRupiahIndonesia(item.unit_cost)}" oninput="calculateTotalsPo()" required>
                         </div>
                     </td>
                     <td class="text-end fw-bold text-success small" id="po_subtotal_${idx}">Rp ${sub.toLocaleString('id-ID')}</td>
