@@ -1015,7 +1015,7 @@ function approvePurchase(id) {
 function deletePurchase(id) {
     Swal.fire({
         title: 'Batalkan Faktur Pembelian?',
-        text: 'Faktur akan berstatus CANCEL. Jika merupakan pembelian langsung (Non-PO), stok dan jurnal penerimaan juga akan dibalik. Pastikan transaksi belum termasuk periode closing.',
+        text: 'Faktur pembelian dibatalkan tidak dapat di kembalikan !',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Ya, Batalkan',
