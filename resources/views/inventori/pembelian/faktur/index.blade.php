@@ -857,14 +857,7 @@ function saveNonPo(e) {
     .then(res => {
         if(res.status === 'success') {
             modalNonPo.hide();
-            const purchaseNo = res.data?.purchase_no ? ` [${res.data.purchase_no}]` : '';
-            Swal.fire({
-                icon: 'success',
-                title: 'Berhasil!',
-                text: `Faktur Pembelian${purchaseNo} berhasil disimpan.`,
-                timer: 1800,
-                showConfirmButton: false
-            });
+            showToast('success', res.message);
             loadData(1);
         } else {
             Swal.fire({ icon: 'error', title: 'Gagal!', text: res.message });
@@ -967,7 +960,7 @@ function openEditModal(id, sourceType) {
 
                 let html = '';
                 items.forEach((item, idx) => {
-                    const sub = item.qty * item.unit_cost;
+                    const sub = parseIndonesiaNumber(item.qty) * parseIndonesiaNumber(item.unit_cost);
                     const unitName = item.unit_name || 'PCS';
                     html += `
                     <tr id="po_row_${idx}" class="align-middle">
@@ -981,14 +974,14 @@ function openEditModal(id, sourceType) {
                         <td class="text-center"><span class="badge bg-info text-dark fw-semibold px-2 py-1">${unitName}</span></td>
                         <td style="width: 120px;">
                             <div class="input-group input-group-sm">
-                                <input type="number" step="0.001" class="form-control text-end fw-semibold py-0" name="items[${idx}][qty]" value="${item.qty}" min="0.001" oninput="calculateTotalsPo()" required>
+                                <input type="number" step="0.001" class="form-control text-end fw-semibold py-0" name="items[${idx}][qty]" value="${formatQtyIndonesia(item.qty)}" min="0.001" oninput="calculateTotalsPo()" required>
                                 <span class="input-group-text bg-light text-muted px-1 extra-small">${unitName}</span>
                             </div>
                         </td>
                         <td style="width: 160px;">
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text bg-light fw-bold text-muted extra-small">Rp</span>
-                                <input type="number" step="100" class="form-control text-end fw-bold text-primary py-0" name="items[${idx}][unit_cost]" value="${item.unit_cost}" min="0" oninput="calculateTotalsPo()" required>
+                                <input type="number" step="100" class="form-control text-end fw-bold text-primary py-0" name="items[${idx}][unit_cost]" value="${formatRupiahIndonesia(item.unit_cost)}" min="0" oninput="calculateTotalsPo()" required>
                             </div>
                         </td>
                         <td class="text-end fw-bold text-success small" id="po_subtotal_${idx}">Rp ${sub.toLocaleString('id-ID')}</td>
