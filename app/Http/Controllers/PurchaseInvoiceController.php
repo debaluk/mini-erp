@@ -228,7 +228,8 @@ class PurchaseInvoiceController extends Controller
                 $query->select(DB::raw(1))
                     ->from('purchases as p')
                     ->whereColumn('p.purchase_order_id', 'po.id')
-                    ->whereNull('p.deleted_at');
+                    ->whereNull('p.deleted_at')
+                    ->where('p.status', '!=', 'cancelled');
             })
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
