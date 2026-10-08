@@ -182,7 +182,7 @@
 </div>
 
 <!-- ================================================================================= -->
-<!-- MODAL 2: PEMBELIAN BERDASARKAN PO APPROVED                                        -->
+<!-- MODAL 2: PEMBELIAN BERDASARKAN PO DISETUJUI                                      -->
 <!-- ================================================================================= -->
 <style>
 #modalPo .modal-dialog {
@@ -493,8 +493,6 @@ const purchaseTable = new DataTable('#tablePurchases', {
         { data: 'formatted_grand', className: 'text-end fw-bold' },
         { data: 'status', className: 'text-center', render: data => {
             const statusMap = {
-                draft: ['bg-secondary', 'DRAFT'],
-                approved: ['bg-primary', 'DISETUJUI'],
                 partial: ['bg-warning text-dark', 'SEBAGIAN'],
                 completed: ['bg-success', 'SELESAI'],
                 closed: ['bg-dark', 'DITUTUP'],
@@ -878,7 +876,7 @@ function savePo(e) {
     e.preventDefault();
     const poId = document.getElementById('po_purchase_order_id').value;
     if(!poId) {
-        showToast('warning', 'Pilih dokumen PO Approved terlebih dahulu!');
+        showToast('warning', 'Pilih dokumen PO yang disetujui terlebih dahulu!');
         return;
     }
 
@@ -1002,33 +1000,6 @@ function openEditModal(id, sourceType) {
                 });
                 modalNonPo.show();
             }
-        }
-    });
-}
-
-function approvePurchase(id) {
-    Swal.fire({
-        title: 'Approve Faktur Pembelian?',
-        text: `Faktur [${id}] akan di-approve untuk proses pembelian selanjutnya.`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Ya, Approve',
-        cancelButtonText: 'Batal'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            fetch(`/inventori/pembelian/faktur/${id}/approve`, {
-                method: 'POST',
-                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'X-Requested-With': 'XMLHttpRequest' }
-            })
-            .then(res => res.json())
-            .then(res => {
-                if(res.status === 'success') {
-                    Swal.fire({ icon: 'success', title: 'Berhasil!', text: res.message, timer: 1800, showConfirmButton: false });
-                    purchaseTable.ajax.reload(null, false);
-                } else {
-                    showToast('error', res.message);
-                }
-            });
         }
     });
 }
