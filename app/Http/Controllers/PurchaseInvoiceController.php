@@ -487,6 +487,14 @@ class PurchaseInvoiceController extends Controller
                 if ($purchase->source_type !== 'po') {
                     DB::table('purchase_items')->where('purchase_id',$id)->delete();
                 }
+                if ((int)$request->business_unit_id !== (int)$purchase->business_unit_id) {
+                    throw new \RuntimeException('Unit Bisnis faktur tidak dapat diubah setelah transaksi diposting.');
+                }
+
+                if ($purchase->source_type !== 'po') {
+                    DB::table('purchase_price_histories')->where('reference_id',$purchase->id)->where('source','purchase')->delete();
+                }
+
                 $subtotal=0.0; $discountTotal=(float)$request->input('document_discount',0);
 
                 foreach($products as $i=>$productId){
