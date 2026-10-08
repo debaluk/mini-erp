@@ -470,7 +470,21 @@ const purchaseTable = new DataTable('#tablePurchases', {
         { data: 'payment_method_label', render: data => '<span class="badge bg-light text-dark border">' + (data || '-') + '</span>' },
         { data: 'formatted_due_date' },
         { data: 'formatted_grand', className: 'text-end fw-bold' },
-        { data: 'status', className: 'text-center', render: data => data === 'cancelled' ? '<span class="badge bg-secondary">BATAL</span>' : '<span class="badge bg-success">TERPOSTING</span>' },
+        { data: 'status', className: 'text-center', render: data => {
+            const statusMap = {
+                draft: ['bg-secondary', 'DRAFT'],
+                approved: ['bg-primary', 'DISETUJUI'],
+                partial: ['bg-warning text-dark', 'SEBAGIAN'],
+                completed: ['bg-success', 'SELESAI'],
+                closed: ['bg-dark', 'DITUTUP'],
+                cancelled: ['bg-danger', 'DIBATALKAN'],
+                canceled: ['bg-danger', 'DIBATALKAN'],
+                posted: ['bg-success', 'TERPOSTING']
+            };
+            const key = String(data || '').toLowerCase();
+            const [badgeClass, label] = statusMap[key] || ['bg-success', 'TERPOSTING'];
+            return '<span class="badge ' + badgeClass + '">' + label + '</span>';
+        } },
         { data: null, orderable: false, searchable: false, className: 'text-center', render: (data, type, row) => {
             const cancelled = row.status === 'cancelled';
             return '<div class="btn-group btn-group-sm">' +
