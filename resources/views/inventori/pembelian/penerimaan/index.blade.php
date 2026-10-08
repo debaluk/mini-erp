@@ -207,7 +207,7 @@ $(function () {
         confirmButton.prop('disabled', true);
 
         $.ajax({
-            url: "{{ url('/inventori/penerimaan') }}/" + receiptId + "/cancel",
+            url: "{{ route('inventori.penerimaan.cancel', ['id' => '__ID__']) }}".replace('__ID__', receiptId),
             method: "POST",
             headers: {
                 'X-CSRF-TOKEN': "{{ csrf_token() }}",
