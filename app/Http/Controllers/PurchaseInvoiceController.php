@@ -354,7 +354,7 @@ class PurchaseInvoiceController extends Controller
             });
 
             if ($request->boolean('post_now') || $goodsReceived) {
-                return $this->executePosting($purchaseId, $goodsReceived ? $request->input('warehouse_id') : null);
+                return $this->executePosting($purchaseId, $goodsReceived ? $request->input('warehouse_id') : null, $request);
             }
 
             $purchaseNo = DB::table('purchases')->where('id', $purchaseId)->value('purchase_no');
@@ -458,10 +458,10 @@ class PurchaseInvoiceController extends Controller
      */
     public function post(Request $request, $id)
     {
-        return $this->executePosting($id, $request->input('warehouse_id'));
+        return $this->executePosting($id, $request->input('warehouse_id'), $request);
     }
 
-    private function executePosting($id, $warehouseId = null)
+    private function executePosting($id, $warehouseId = null, ?Request $request = null)
     {
         try {
             $purchaseNo = DB::transaction(function () use ($id, $warehouseId) {
@@ -574,8 +574,13 @@ class PurchaseInvoiceController extends Controller
                 return $purchase->purchase_no;
             });
 
+            $message = "Faktur Pembelian [{$purchaseNo}] berhasil diposting.";
+            if ($request?->expectsJson()) {
+                return response()->json(['status' => 'success', 'message' => $message, 'data' => ['id' => $id, 'purchase_no' => $purchaseNo]]);
+            }
+
             return redirect()->route('inventori.pembelian.show', $id)
-                ->with('swal_success', "Faktur Pembelian [{$purchaseNo}] BERHASIL DIPOSTING.");
+                ->with('swal_success', $message);
         } catch (\Throwable $e) {
             return back()->with('swal_error', 'Gagal memproses posting: ' . $e->getMessage());
         }
@@ -945,13 +950,17 @@ class PurchaseInvoiceController extends Controller
 
     private function generateInvoiceCode()
     {
-        $dateStr = date('Ymd');
+        $date = Carbon::now();
+        $dateStr = $date->format('Ymd');
+        $monthStr = $date->format('Ym');
+
         $last = DB::table('purchases')
-            ->where('purchase_no', 'LIKE', "INV-{$dateStr}-%")
-            ->orderByDesc('id')
+            ->where('purchase_no', 'LIKE', "FB-{$monthStr}%")
+            ->orderByDesc('purchase_no')
             ->first();
 
-        $nextSeq = $last ? ((int) substr($last->purchase_no, -3)) + 1 : 1;
-        return 'INV-' . $dateStr . '-' . str_pad($nextSeq, 3, '0', STR_PAD_LEFT);
+        $nextSeq = $last ? ((int) substr($last->purchase_no, -5)) + 1 : 1;
+
+        return 'FB-' . $dateStr . str_pad($nextSeq, 5, '0', STR_PAD_LEFT);
     }
 }
