@@ -160,7 +160,7 @@ $(function () {
                     return '<div class="btn-group btn-group-sm" role="group">' +
                         '<button type="button" class="btn btn-outline-primary btn-detail-receipt" title="Detil" data-id="' + row.id + '"><i class="bi bi-eye"></i></button>' +
                         '<a target="_blank" href="' + "{{ url('/inventori/penerimaan') }}" + '/' + row.id + '/print" class="btn btn-outline-secondary" title="Print"><i class="bi bi-printer"></i></a>' +
-                        (row.status === 'posted' && row.source_type === 'po' ? '<button type="button" class="btn btn-outline-danger btn-cancel-receipt" title="Batal Penerimaan" data-id="' + row.id + '"><i class="bi bi-x-circle"></i></button>' : '') +
+                        (row.status === 'posted' && row.purchase_order_id ? '<button type="button" class="btn btn-outline-danger btn-cancel-receipt" title="Batal Penerimaan" data-id="' + row.id + '"><i class="bi bi-x-circle"></i></button>' : '') +
                         '</div>';
                 }
             }
