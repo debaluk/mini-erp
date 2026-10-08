@@ -392,94 +392,206 @@ class PurchaseInvoiceController extends Controller
      */
     public function edit($id)
     {
-        $p = DB::table('purchases')->where('id', $id)->whereNull('deleted_at')->firstOrFail();
-
-        $businessUnits = BusinessUnit::where('is_active', 1)->orderBy('code')->get();
-        $warehouses    = Warehouse::where('is_active', 1)->orderBy('name')->get();
-        $suppliers     = Supplier::where('is_active', 1)->orderBy('name')->get();
-        $products      = Product::where('is_active', 1)->orderBy('name')->get();
+        $p = DB::table('purchases as p')
+            ->leftJoin('business_units as bu', 'bu.id', '=', 'p.business_unit_id')
+            ->leftJoin('suppliers as s', 's.id', '=', 'p.supplier_id')
+            ->where('p.id', $id)->whereNull('p.deleted_at')
+            ->select('p.*', 'bu.code as bu_code', 'bu.name as bu_name', 's.name as supplier_name')
+            ->firstOrFail();
 
         $items = DB::table('purchase_items as pi')
             ->join('products as pr', 'pr.id', '=', 'pi.product_id')
             ->leftJoin('units as u', 'u.id', '=', 'pi.unit_id')
             ->where('pi.purchase_id', $id)
             ->select('pi.*', 'pr.code as product_code', 'pr.name as product_name', 'u.name as unit_name')
-            ->get();
+            ->orderBy('pi.id')->get();
 
-        return view('inventori.pembelian.faktur.edit', compact('p', 'businessUnits', 'warehouses', 'suppliers', 'products', 'items'));
+        if (request()->expectsJson()) {
+            return response()->json(['status' => 'success', 'data' => ['purchase' => $p, 'items' => $items]]);
+        }
+
+        $businessUnits = BusinessUnit::where('is_active', 1)->orderBy('code')->get();
+        $warehouses = Warehouse::where('is_active', 1)->orderBy('name')->get();
+        $suppliers = Supplier::where('is_active', 1)->orderBy('name')->get();
+        $products = Product::where('is_active', 1)->orderBy('name')->get();
+
+        return view('inventori.pembelian.faktur.edit', compact('p','businessUnits','warehouses','suppliers','products','items'));
     }
 
     public function update(Request $request, $id)
     {
         $request->validate([
             'purchase_date' => 'required|date',
+            'business_unit_id' => 'required|exists:business_units,id',
             'supplier_id' => 'nullable|exists:suppliers,id',
             'supplier_invoice_no' => 'nullable|string|max:100',
             'payment_method' => 'required|in:cash,credit,transfer,qris',
+            'due_date' => 'nullable|date',
             'memo' => 'nullable|string',
+            'products' => 'required|array|min:1',
+            'qty' => 'required|array|min:1',
+            'unit_price' => 'required|array|min:1',
         ]);
 
         if ($request->payment_method === 'credit' && !$request->filled('supplier_id')) {
+            return response()->json(['status'=>'error','message'=>'Supplier wajib dipilih untuk pembelian kredit.'], 422);
+        }
+
+        try {
+            $result = DB::transaction(function () use ($request, $id) {
+                $purchase = DB::table('purchases')->where('id',$id)->whereNull('deleted_at')->lockForUpdate()->first();
+                if (!$purchase) throw new \RuntimeException('Faktur tidak ditemukan.');
+                if ($purchase->status === 'cancelled') throw new \RuntimeException('Faktur yang sudah dibatalkan hanya dapat dicetak.');
+
+                $period = DB::table('accounting_periods')
+                    ->where('entity_id',$purchase->entity_id)
+                    ->where('period_year',Carbon::parse($purchase->purchase_date)->year)
+                    ->where('period_month',Carbon::parse($purchase->purchase_date)->month)->first();
+                if ($period && in_array($period->status,['closing','closed'],true)) {
+                    throw new \RuntimeException('Faktur tidak dapat diedit karena periode akuntansi sudah dalam proses closing atau sudah closed.');
+                }
+
+                $oldItems = DB::table('purchase_items')->where('purchase_id',$id)->orderBy('id')->lockForUpdate()->get();
+                $products = array_values($request->input('products',[]));
+                $qtys = array_values($request->input('qty',[]));
+                $prices = array_values($request->input('unit_price',[]));
+                $discounts = array_values($request->input('discount',[]));
+                if (count($products)!==count($qtys) || count($products)!==count($prices)) {
+                    throw new \RuntimeException('Rincian barang pembelian tidak lengkap.');
+                }
+
+                $receipt = DB::table('receipts')->where('purchase_id',$id)->orderBy('id')->lockForUpdate()->first();
+
+                if ($purchase->source_type === 'po') {
+                    if ($oldItems->count() !== count($products)) {
+                        throw new \RuntimeException('Item faktur dari PO tidak boleh ditambah atau dikurangi karena penerimaan fisik sudah tercatat.');
+                    }
+                    foreach ($oldItems as $i=>$old) {
+                        if ((int)$old->product_id !== (int)$products[$i]) {
+                            throw new \RuntimeException('Barang pada faktur PO harus tetap sama dengan penerimaan fisik.');
+                        }
+                    }
+                }
+
+                // Non-PO: balik nilai penerimaan lama, lalu terapkan nilai baru pada penerimaan yang sama.
+                if ($receipt && $purchase->source_type !== 'po') {
+                    $receiptItems = DB::table('receipt_items')->where('receipt_id',$receipt->id)->lockForUpdate()->get();
+                    foreach ($receiptItems as $ri) {
+                        $stock = DB::table('warehouses_stocks')->where('warehouse_id',$receipt->warehouse_id)
+                            ->where('product_id',$ri->product_id)->lockForUpdate()->first();
+                        $q = (float)$ri->base_qty;
+                        if (!$stock || (float)$stock->qty + 0.0000001 < $q) throw new \RuntimeException('Stok tidak mencukupi untuk mengubah faktur '.$purchase->purchase_no.'.');
+                        $oldQty=(float)$stock->qty;
+                        $newQty=$oldQty-$q;
+                        $newValue=($oldQty*(float)$stock->avg_cost)-($q*(float)$ri->base_unit_cost);
+                        DB::table('warehouses_stocks')->where('id',$stock->id)->update([
+                            'qty'=>$newQty,'avg_cost'=>round($newQty>0?max(0,$newValue/$newQty):0,9),'updated_at'=>now()
+                        ]);
+                        DB::table('stock_movements')->insert([
+                            'entity_id'=>$purchase->entity_id,'business_unit_id'=>$purchase->business_unit_id,'warehouse_id'=>$receipt->warehouse_id,
+                            'product_id'=>$ri->product_id,'unit_id'=>$ri->unit_id,'transaction_qty'=>-$ri->qty,'conversion_factor'=>$ri->conversion_factor,
+                            'movement_type'=>'purchase_edit_out','qty'=>-$q,'unit_cost'=>$ri->base_unit_cost,'reference_type'=>'purchase_edit',
+                            'reference_id'=>$purchase->id,'receipt_id'=>$receipt->id,'occurred_at'=>now(),'created_by'=>auth()->id(),'created_at'=>now(),'updated_at'=>now()
+                        ]);
+                    }
+                    DB::table('receipt_invoice_allocations')->whereIn('receipt_item_id',function($q)use($receipt){
+                        $q->select('id')->from('receipt_items')->where('receipt_id',$receipt->id);
+                    })->delete();
+                    DB::table('receipt_items')->where('receipt_id',$receipt->id)->delete();
+                }
+
+                DB::table('purchase_items')->where('purchase_id',$id)->delete();
+                $subtotal=0.0; $discountTotal=(float)$request->input('document_discount',0);
+
+                foreach($products as $i=>$productId){
+                    $qty=(float)($qtys[$i]??0); $price=(float)($prices[$i]??0); $discount=(float)($discounts[$i]??0);
+                    if($qty<=0) throw new \RuntimeException('Qty item harus lebih dari 0.');
+                    $product=Product::findOrFail($productId);
+                    $factor=$purchase->source_type==='po'?(float)($oldItems[$i]->conversion_factor?:1):1.0;
+                    $baseQty=$qty*$factor; $gross=$qty*$price; $net=max(0,$gross-$discount);
+                    $subtotal += $gross; $discountTotal += $discount;
+                    $piId=DB::table('purchase_items')->insertGetId([
+                        'purchase_id'=>$id,'product_id'=>$productId,
+                        'unit_id'=>$purchase->source_type==='po'?($oldItems[$i]->unit_id?:$product->base_unit_id):$product->base_unit_id,
+                        'qty'=>$qty,'conversion_factor'=>$factor,'base_qty'=>$baseQty,
+                        'unit_cost'=>$qty>0?$net/$qty:0,'base_unit_cost'=>$baseQty>0?$net/$baseQty:0,
+                        'discount'=>$discount,'total'=>$net,'line_subtotal'=>$gross,'line_discount'=>$discount,
+                        'taxable_amount'=>$net,'tax_rate'=>0,'tax_amount'=>0,'created_at'=>now(),'updated_at'=>now()
+                    ]);
+
+                    if($receipt && $purchase->source_type !== 'po'){
+                        $baseCost=$baseQty>0?$net/$baseQty:0;
+                        $riId=DB::table('receipt_items')->insertGetId([
+                            'receipt_id'=>$receipt->id,'purchase_order_item_id'=>null,'purchase_item_id'=>$piId,'product_id'=>$productId,
+                            'unit_id'=>$product->base_unit_id,'qty'=>$qty,'conversion_factor'=>$factor,'base_qty'=>$baseQty,
+                            'unit_cost'=>$qty>0?$net/$qty:0,'base_unit_cost'=>$baseCost,'valuation_status'=>'valued','created_at'=>now(),'updated_at'=>now()
+                        ]);
+                        DB::table('receipt_invoice_allocations')->insert([
+                            'receipt_item_id'=>$riId,'purchase_item_id'=>$piId,'qty'=>$qty,'conversion_factor'=>$factor,'base_qty'=>$baseQty,
+                            'allocated_value'=>round($net,2),'status'=>'posted','created_by'=>auth()->id(),'created_at'=>now(),'updated_at'=>now()
+                        ]);
+                        $stock=DB::table('warehouses_stocks')->where('warehouse_id',$receipt->warehouse_id)->where('product_id',$productId)->lockForUpdate()->first();
+                        if($stock){
+                            $sq=(float)$stock->qty; $nq=$sq+$baseQty;
+                            $navg=$nq>0?(($sq*(float)$stock->avg_cost)+($baseQty*$baseCost))/$nq:0;
+                            DB::table('warehouses_stocks')->where('id',$stock->id)->update(['qty'=>$nq,'avg_cost'=>round($navg,9),'updated_at'=>now()]);
+                        }else{
+                            DB::table('warehouses_stocks')->insert(['entity_id'=>$purchase->entity_id,'warehouse_id'=>$receipt->warehouse_id,'product_id'=>$productId,'qty'=>$baseQty,'avg_cost'=>round($baseCost,9),'created_at'=>now(),'updated_at'=>now()]);
+                        }
+                        DB::table('stock_movements')->insert([
+                            'entity_id'=>$purchase->entity_id,'business_unit_id'=>$purchase->business_unit_id,'warehouse_id'=>$receipt->warehouse_id,'product_id'=>$productId,
+                            'unit_id'=>$product->base_unit_id,'transaction_qty'=>$qty,'conversion_factor'=>$factor,'movement_type'=>'purchase_edit_in','qty'=>$baseQty,
+                            'unit_cost'=>$baseCost,'reference_type'=>'purchase_edit','reference_id'=>$purchase->id,'receipt_id'=>$receipt->id,
+                            'occurred_at'=>now(),'created_by'=>auth()->id(),'created_at'=>now(),'updated_at'=>now()
+                        ]);
+                    }
+                }
+
+                $tax=(float)$request->input('tax_amount',$purchase->ppn_amount??0);
+                $total=max(0,$subtotal-$discountTotal)+$tax;
+                DB::table('purchases')->where('id',$id)->update([
+                    'business_unit_id'=>$request->business_unit_id,'purchase_date'=>$request->purchase_date,
+                    'supplier_id'=>$request->filled('supplier_id')?$request->supplier_id:null,
+                    'supplier_invoice_no'=>$request->supplier_invoice_no,'supplier_invoice_date'=>$request->purchase_date,
+                    'payment_method'=>$request->payment_method,
+                    'due_date'=>$request->payment_method==='credit'?($request->input('due_date')?:now()->addDays(30)->toDateString()):null,
+                    'memo'=>$request->memo,'subtotal'=>$subtotal,'discount'=>$discountTotal,'total'=>$total,
+                    'dpp'=>max(0,$subtotal-$discountTotal),'ppn_amount'=>$tax,'updated_at'=>now()
+                ]);
+
+                // Jurnal yang sama: hanya isi jurnal diperbarui.
+                $journal=DB::table('journals')->where('source_type','purchase_invoice')->where('source_id',$id)->orderBy('id')->first();
+                if(!$journal && $receipt && $purchase->source_type!=='po'){
+                    $journal=DB::table('journals')->where('source_type','receipt')->where('source_id',$receipt->id)->orderBy('id')->first();
+                }
+                if($journal){
+                    $mapping=DB::table('business_unit_account_mappings')->where('business_unit_id',$request->business_unit_id)
+                        ->whereIn('mapping_key',['inventory','payable','cash','bank'])->pluck('account_id','mapping_key');
+                    $creditKey=match(strtolower((string)$request->payment_method)){ 'cash','tunai'=>'cash','bank','transfer','qris'=>'bank',default=>'payable' };
+                    if(!isset($mapping['inventory'],$mapping[$creditKey])) throw new \RuntimeException('Mapping akun pembelian belum lengkap.');
+                    $value=round($total,2);
+                    DB::table('journal_entries')->where('journal_id',$journal->id)->delete();
+                    DB::table('journal_entries')->insert([
+                        ['journal_id'=>$journal->id,'account_id'=>$mapping['inventory'],'debit'=>$value,'credit'=>0,'created_at'=>now(),'updated_at'=>now()],
+                        ['journal_id'=>$journal->id,'account_id'=>$mapping[$creditKey],'debit'=>0,'credit'=>$value,'created_at'=>now(),'updated_at'=>now()],
+                    ]);
+                    DB::table('journals')->where('id',$journal->id)->update([
+                        'business_unit_id'=>$request->business_unit_id,'journal_date'=>$request->purchase_date,
+                        'description'=>'Faktur pembelian '.$purchase->purchase_no,'updated_at'=>now()
+                    ]);
+                }
+
+                return $purchase->purchase_no;
+            });
+
             return response()->json([
-                'status' => 'error',
-                'message' => 'Supplier wajib dipilih untuk pembelian kredit.',
-            ], 422);
-        }
-
-        $purchase = DB::table('purchases')
-            ->where('id', $id)
-            ->whereNull('deleted_at')
-            ->first();
-
-        if (!$purchase) {
-            return redirect()->route('inventori.pembelian.index')
-                ->with('swal_error', 'Faktur tidak ditemukan.');
-        }
-
-        if ($purchase->status === 'cancelled') {
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Faktur yang sudah dibatalkan hanya dapat dicetak.',
-                ], 422);
-            }
-
-            return redirect()->route('inventori.pembelian.index')
-                ->with('swal_error', 'Faktur yang sudah dibatalkan hanya dapat dicetak.');
-        }
-
-        if ($purchase->status === 'posted') {
-            return redirect()->route('inventori.pembelian.show', $id)
-                ->with('swal_error', 'Faktur POSTED tidak dapat diedit.');
-        }
-
-        $dueDate = $request->payment_method === 'credit'
-            ? ($purchase->due_date ?: now()->addDays(30)->toDateString())
-            : null;
-
-        DB::table('purchases')->where('id', $id)->update([
-            'purchase_date' => $request->purchase_date,
-            'supplier_id' => $request->filled('supplier_id') ? $request->supplier_id : null,
-            'supplier_invoice_no' => $request->supplier_invoice_no,
-            'supplier_invoice_date' => $request->purchase_date,
-            'payment_method' => $request->payment_method,
-            'due_date' => $dueDate,
-            'memo' => $request->memo,
-            'updated_at' => now(),
-        ]);
-
-        $message = "Faktur Pembelian [{$purchase->purchase_no}] berhasil diperbarui.";
-
-        if ($request->expectsJson()) {
-            return response()->json([
-                'status' => 'success',
-                'message' => $message,
-                'data' => ['id' => $id, 'purchase_no' => $purchase->purchase_no],
+                'status'=>'success',
+                'message'=>"Faktur Pembelian [{$result}] berhasil diperbarui.",
+                'data'=>['id'=>$id,'purchase_no'=>$result],
             ]);
+        } catch (\Throwable $e) {
+            return response()->json(['status'=>'error','message'=>'Gagal memperbarui pembelian: '.$e->getMessage()],422);
         }
-
-        return redirect()->route('inventori.pembelian.show', $id)
-            ->with('swal_success', $message);
     }
 
     /**
