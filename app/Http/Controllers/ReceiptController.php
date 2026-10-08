@@ -57,8 +57,8 @@ class ReceiptController extends Controller
         if ($request->filled('status')) $query->where('r.status', $request->status);
 
         $data = $query->select(
-            'r.id', 'r.receipt_no', 'r.receipt_date', 'r.status', 'r.source_type',
-            'po.po_no', 's.name as supplier_name', 'w.name as warehouse_name',
+            'r.id', 'r.receipt_no', 'r.receipt_date', 'r.status',
+            'po.id as purchase_order_id', 'po.po_no', 's.name as supplier_name', 'w.name as warehouse_name',
             'bu.name as business_unit_name', DB::raw('COALESCE(ri.total_items, 0) as total_items')
         )->orderByDesc('r.receipt_date')->orderByDesc('r.id')->get();
 
@@ -692,7 +692,15 @@ class ReceiptController extends Controller
 
                 abort_unless($receipt, 404, 'Penerimaan tidak ditemukan.');
                 abort_if($receipt->status !== 'posted', 422, 'Penerimaan sudah dibatalkan.');
-                abort_if(($receipt->source_type ?? null) !== 'po', 422, 'Penerimaan Non-PO dibatalkan melalui Faktur Pembelian.');
+
+                $purchase = DB::table('purchases')
+                    ->where('entity_id', $entityId)
+                    ->where('id', $receipt->purchase_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                abort_unless($purchase, 422, 'Faktur pembelian penerimaan tidak ditemukan.');
+                abort_unless($purchase->purchase_order_id, 422, 'Penerimaan Non-PO tidak dibatalkan dari menu ini.');
 
                 $period = DB::table('accounting_periods')
                     ->where('entity_id', $receipt->entity_id)
@@ -776,11 +784,6 @@ class ReceiptController extends Controller
                         'status' => 'cancelled',
                         'updated_at' => now(),
                     ]);
-
-                $purchase = DB::table('purchases')
-                    ->where('id', $receipt->purchase_id)
-                    ->lockForUpdate()
-                    ->first();
 
                 if ($purchase) {
                     $activeReceived = (float) DB::table('receipt_items as ri')
