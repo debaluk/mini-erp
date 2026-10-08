@@ -239,7 +239,6 @@ Route::middleware(['auth', 'access:inventori'])->prefix('inventori/pembelian')->
     Route::delete('/{id}', [PurchaseInvoiceController::class, 'destroy'])->name('destroy');
 
     // 3. Action Posting & Cetak Nota Faktur Dotmatrix
-    Route::post('/{id}/post', [PurchaseInvoiceController::class, 'post'])->name('post');
     Route::get('/{id}/print-invoice', [PurchaseInvoiceController::class, 'printInvoice'])->name('print-invoice');
 });
 
