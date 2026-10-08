@@ -552,13 +552,19 @@ function parseIndonesiaNumber(value) {
     return Number.isFinite(number) ? number : 0;
 }
 
+function formatServerNumber(value) {
+    if (value === null || value === undefined || value === '') return 0;
+    const number = Number(String(value).replace(',', '.'));
+    return Number.isFinite(number) ? number : 0;
+}
+
 function formatQtyIndonesia(value) {
-    const number = parseIndonesiaNumber(value);
-    return number.toLocaleString('id-ID', { maximumFractionDigits: 3 });
+    const number = formatServerNumber(value);
+    return number.toLocaleString('id-ID', { maximumFractionDigits: 3, useGrouping: false });
 }
 
 function formatRupiahIndonesia(value) {
-    const number = Math.round(parseIndonesiaNumber(value));
+    const number = Math.round(formatServerNumber(value));
     return number.toLocaleString('id-ID');
 }
 
