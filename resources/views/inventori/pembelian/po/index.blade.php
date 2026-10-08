@@ -274,6 +274,9 @@ document.addEventListener('DOMContentLoaded', function () {
                         actions += `<button type="button" class="btn btn-outline-warning btn-edit-po" data-id="${row.id}" title="Edit Draft"><i class="bi bi-pencil"></i></button>`;
                         actions += `<button type="button" class="btn btn-outline-danger btn-delete-po" data-id="${row.id}" data-no="${row.po_no}" title="Batalkan PO"><i class="bi bi-trash"></i></button>`;
                     }
+                    if (['approved', 'partial'].includes(row.status)) {
+                        actions += `<button type="button" class="btn btn-outline-success btn-penerimaan-po" data-id="${row.id}" data-no="${row.po_no}" title="Penerimaan Barang"><i class="bi bi-box-arrow-in-down"></i></button>`;
+                    }
                     if (!['completed', 'closed', 'draft'].includes(row.status)) {
                         actions += `<button type="button" class="btn btn-outline-dark btn-close-po" data-id="${row.id}" data-no="${row.po_no}" title="Tutup PO"><i class="bi bi-x-circle"></i> Close</button>`;
                     }
@@ -282,6 +285,110 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
         ]
+    });
+
+    $(document).on('click', '.btn-penerimaan-po', function () {
+        const poId = $(this).data('id');
+        const modalEl = document.getElementById('modal-penerimaan-po');
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        const tbody = $('#receipt-po-items');
+
+        $('#form-penerimaan-po')[0].reset();
+        $('#receipt-po-id').val(poId);
+        $('#receipt-po-items').html('<tr><td colspan="7" class="text-center py-4 text-secondary"><div class="spinner-border spinner-border-sm me-2"></div>Memuat...</td></tr>');
+        $('#btn-save-penerimaan-po').prop('disabled', true);
+        modal.show();
+
+        fetch("{{ url('/inventori/penerimaan/po') }}/" + poId + "/modal", {
+            headers: { 'Accept': 'application/json' }
+        })
+        .then(async response => {
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Gagal memuat data PO.');
+            return data;
+        })
+        .then(data => {
+            const po = data.po;
+            $('#receipt-po-no').val(po.po_no);
+            $('#receipt-supplier').val(po.supplier_name || '-');
+            $('#receipt-bu').val(po.business_unit_name || '-');
+            $('#receipt-warehouse').val((po.warehouse_code ? po.warehouse_code + ' - ' : '') + (po.warehouse_name || '-'));
+
+            if (!data.items || !data.items.length) {
+                tbody.html('<tr><td colspan="7" class="text-center py-4 text-muted">Semua barang pada PO sudah diterima.</td></tr>');
+                return;
+            }
+
+            let html = '';
+            data.items.forEach(function (item, index) {
+                const ordered = Number(item.ordered_qty || 0);
+                const received = Number(item.received_qty || 0);
+                const remaining = Number(item.remaining_qty || 0);
+                html += '<tr>' +
+                    '<td class="text-center font-monospace">' + (item.product_code || '-') + '</td>' +
+                    '<td>' + (item.product_name || '-') + '</td>' +
+                    '<td class="text-center">' + (item.unit_code || '-') + '</td>' +
+                    '<td class="text-end">' + ordered.toLocaleString('id-ID', {maximumFractionDigits: 3}) + '</td>' +
+                    '<td class="text-end text-muted">' + received.toLocaleString('id-ID', {maximumFractionDigits: 3}) + '</td>' +
+                    '<td class="text-end fw-semibold text-primary">' + remaining.toLocaleString('id-ID', {maximumFractionDigits: 3}) + '</td>' +
+                    '<td><input type="hidden" name="items[' + index + '][purchase_order_item_id]" value="' + item.purchase_order_item_id + '">' +
+                    '<input type="number" name="items[' + index + '][qty]" class="form-control form-control-sm text-end qty-receipt-po" min="0" max="' + remaining + '" step="0.001" value="0" data-remaining="' + remaining + '"></td>' +
+                    '</tr>';
+            });
+            tbody.html(html);
+            $('#btn-save-penerimaan-po').prop('disabled', false);
+        })
+        .catch(error => {
+            modal.hide();
+            Swal.fire({ icon: 'error', title: 'Gagal!', text: error.message || 'Gagal memuat data PO.' });
+        });
+    });
+
+    $('#form-penerimaan-po').on('submit', function (e) {
+        e.preventDefault();
+        const form = this;
+        let total = 0;
+        let invalid = false;
+
+        $(form).find('.qty-receipt-po').each(function () {
+            const qty = Number(this.value || 0);
+            const remaining = Number(this.dataset.remaining || 0);
+            if (!Number.isFinite(qty) || qty < 0 || qty > remaining + 0.0000001) invalid = true;
+            total += qty;
+        });
+
+        if (invalid) {
+            Swal.fire({ icon: 'warning', title: 'Perhatian!', text: 'Qty penerimaan tidak boleh melebihi sisa Qty PO.' });
+            return;
+        }
+        if (total <= 0) {
+            Swal.fire({ icon: 'warning', title: 'Perhatian!', text: 'Minimal satu item harus diisi Qty Diterima.' });
+            return;
+        }
+
+        const button = $('#btn-save-penerimaan-po');
+        button.prop('disabled', true);
+        const formData = new FormData(form);
+
+        fetch("{{ route('inventori.penerimaan.store') }}", {
+            method: 'POST',
+            body: formData,
+            headers: { 'Accept': 'application/json' }
+        })
+        .then(async response => {
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Gagal menyimpan Penerimaan Barang.');
+            return data;
+        })
+        .then(data => {
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modal-penerimaan-po')).hide();
+            Swal.fire({ icon: 'success', title: 'Berhasil!', text: data.message, timer: 1800, showConfirmButton: false });
+            table.ajax.reload(null, false);
+        })
+        .catch(error => {
+            button.prop('disabled', false);
+            Swal.fire({ icon: 'error', title: 'Gagal!', text: error.message || 'Terjadi kesalahan sistem.' });
+        });
     });
 
     $('#btn-apply-filter').on('click', function () { table.ajax.reload(); });
@@ -616,4 +723,75 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 </script>
-@endsection
+
+{{-- MODAL PENERIMAAN BARANG DARI PO --}}
+<div class="modal fade" id="modal-penerimaan-po" tabindex="-1" data-bs-backdrop="static" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white py-2 px-3">
+                <h6 class="modal-title fw-bold"><i class="bi bi-box-arrow-in-down me-2"></i>Penerimaan Barang dari PO</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="form-penerimaan-po">
+                @csrf
+                <div class="modal-body p-3">
+                    <input type="hidden" name="po_id" id="receipt-po-id">
+                    <input type="hidden" name="journal" value="0">
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label small fw-semibold mb-1">No. PO</label>
+                            <input type="text" class="form-control form-control-sm fw-bold text-primary" id="receipt-po-no" readonly>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-semibold mb-1">Supplier</label>
+                            <input type="text" class="form-control form-control-sm" id="receipt-supplier" readonly>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-semibold mb-1">Unit Bisnis</label>
+                            <input type="text" class="form-control form-control-sm" id="receipt-bu" readonly>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-semibold mb-1">Gudang</label>
+                            <input type="text" class="form-control form-control-sm fw-semibold" id="receipt-warehouse" readonly>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label small fw-semibold mb-1">Tanggal Penerimaan</label>
+                            <input type="date" name="receipt_date" class="form-control form-control-sm" value="{{ now()->toDateString() }}" required>
+                        </div>
+                        <div class="col-md-9">
+                            <label class="form-label small fw-semibold mb-1">Catatan</label>
+                            <input type="text" name="memo" class="form-control form-control-sm" placeholder="Catatan penerimaan...">
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered align-middle mb-0">
+                            <thead class="table-light text-center">
+                                <tr>
+                                    <th style="width:110px">Kode</th>
+                                    <th>Barang</th>
+                                    <th style="width:90px">Satuan</th>
+                                    <th style="width:110px">Qty PO</th>
+                                    <th style="width:120px">Sudah Diterima</th>
+                                    <th style="width:110px">Sisa</th>
+                                    <th style="width:145px">Qty Diterima</th>
+                                </tr>
+                            </thead>
+                            <tbody id="receipt-po-items">
+                                <tr><td colspan="7" class="text-center py-4 text-secondary"><div class="spinner-border spinner-border-sm me-2"></div>Memuat...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer py-2 px-3 bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary btn-sm fw-semibold" id="btn-save-penerimaan-po">
+                        <i class="bi bi-check2-circle me-1"></i>Simpan Penerimaan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+\n@endsection
