@@ -215,6 +215,7 @@ $(function () {
             },
             success: function (response) {
                 modal.hide();
+                table.ajax.reload(null, false);
 
                 Swal.fire({
                     icon: 'success',
@@ -222,8 +223,6 @@ $(function () {
                     text: response.message || 'Proses batal berhasil',
                     showConfirmButton: false,
                     timer: 1200
-                }).then(function () {
-                    table.ajax.reload(null, false);
                 });
             },
             error: function (xhr) {
