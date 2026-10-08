@@ -248,10 +248,6 @@ class PurchaseInvoiceController extends Controller
         // Non-PO adalah pembelian langsung: barang otomatis diterima melalui prosedur Penerimaan Barang. 
         $goodsReceived = !$isPo;
 
-        if (!$isPo && $goodsReceived && !$request->filled('warehouse_id')) {
-            return back()->withInput()->with('swal_error', 'Gudang wajib dipilih jika barang langsung diterima.');
-        }
-
         try {
             $purchaseId = DB::transaction(function () use ($request, $isPo, $goodsReceived) {
                 $entityId = (int) (auth()->user()->entity_id ?? 1);
@@ -355,7 +351,7 @@ class PurchaseInvoiceController extends Controller
             });
 
             if ($request->boolean('post_now') || $goodsReceived) {
-                return $this->executePosting($purchaseId, $goodsReceived ? $request->input('warehouse_id') : null, $request);
+                return $this->executePosting($purchaseId, null, $request);
             }
 
             $purchaseNo = DB::table('purchases')->where('id', $purchaseId)->value('purchase_no');
@@ -485,8 +481,17 @@ class PurchaseInvoiceController extends Controller
                 }
 
                 if ($purchase->source_type !== 'po' && (int) $purchase->goods_received === 1) {
+                    // Non-PO tidak memilih gudang di UI. Gudang ditentukan dari mapping
+                    // Unit Bisnis -> Gudang yang sudah dikonfigurasi.
                     if (!$warehouseId) {
-                        throw new \RuntimeException('Gudang wajib dipilih untuk penerimaan barang langsung.');
+                        $warehouseId = DB::table('warehouse_business_units')
+                            ->where('entity_id', $purchase->entity_id)
+                            ->where('business_unit_id', $purchase->business_unit_id)
+                            ->value('warehouse_id');
+                    }
+
+                    if (!$warehouseId) {
+                        throw new \RuntimeException('Gudang belum dipetakan untuk Unit Bisnis pembelian.');
                     }
 
                     $items = DB::table('purchase_items')
