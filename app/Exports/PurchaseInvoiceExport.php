@@ -51,7 +51,7 @@ class PurchaseInvoiceExport implements FromCollection, WithHeadings, WithMapping
 
         $query = DB::table('purchases as p')
             ->leftJoin('business_units as bu', 'bu.id', '=', 'p.business_unit_id')
-            ->join('suppliers as s', 's.id', '=', 'p.supplier_id')
+            ->leftJoin('suppliers as s', 's.id', '=', 'p.supplier_id')
             ->leftJoinSub(
                 DB::table('receipts as r')
                     ->leftJoin('warehouses as w', 'w.id', '=', 'r.warehouse_id')
