@@ -937,7 +937,23 @@ function openEditModal(id, sourceType) {
 
             if(sourceType === 'po') {
                 document.getElementById('po_purchase_id').value = p.id;
-                document.getElementById('po_purchase_order_id').value = p.purchase_order_id;
+
+                // Edit: tampilkan kembali nomor PO tanpa memanggil onPoSelect(),
+                // supaya data/rincian PO tidak di-reload dan tetap memakai item faktur yang tersimpan.
+                const poSelect = document.getElementById('po_purchase_order_id');
+                if (p.purchase_order_id) {
+                    const existingPoOption = poSelect.querySelector(`option[value="${p.purchase_order_id}"]`);
+                    if (!existingPoOption) {
+                        poSelect.insertAdjacentHTML(
+                            'afterbegin',
+                            `<option value="${p.purchase_order_id}">${p.po_no || ('PO #' + p.purchase_order_id)}</option>`
+                        );
+                    }
+                    poSelect.value = p.purchase_order_id;
+                } else {
+                    poSelect.value = '';
+                }
+
                 document.getElementById('po_business_unit_id').value = p.business_unit_id;
                 document.getElementById('po_supplier_id').value = p.supplier_id;
                 document.getElementById('po_supplier_name').value = p.supplier_name;
