@@ -660,12 +660,12 @@ function onPoSelect(poId) {
         return;
     }
 
-    fetch(`/inventori/pembelian/faktur/lookup/po-items/${poId}`)
+    fetch(`/inventori/pembelian/faktur/po-items/${poId}`)
     .then(res => res.json())
     .then(res => {
-        if(res.status === 'success') {
-            const po = res.data.po;
-            const items = res.data.items;
+        if(res.success) {
+            const po = res.po;
+            const items = res.items;
 
             document.getElementById('po_business_unit_id').value = po.business_unit_id;
             document.getElementById('po_supplier_id').value = po.supplier_id;
@@ -833,7 +833,7 @@ function savePo(e) {
         }
     });
 
-    if(payload.items.length === 0) {
+    if(payload.products.length === 0) {
         showToast('warning', 'Daftar barang tidak boleh kosong!');
         return;
     }
