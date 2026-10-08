@@ -408,7 +408,7 @@ function preloadApprovedPOs() {
     .then(res => res.json())
     .then(res => {
         const select = document.getElementById('po_purchase_order_id');
-        let html = '<option value="">-- Pilih Nomor PO Approved --</option>';
+        let html = '<option value="">-- Pilih Nomor PO Disetujui --</option>';
         if(res.data) {
             res.data.forEach(po => {
                 html += `<option value="${po.id}">${po.po_no} - ${po.supplier_name} (${po.warehouse_name || 'Gudang'})</option>`;
