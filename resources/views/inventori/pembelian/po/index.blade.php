@@ -295,7 +295,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         $('#form-penerimaan-po')[0].reset();
         $('#receipt-po-id').val(poId);
-        $('#receipt-po-items').html('<tr><td colspan="7" class="text-center py-4 text-secondary"><div class="spinner-border spinner-border-sm me-2"></div>Memuat...</td></tr>');
+        $('#receipt-po-items').html('<tr><td colspan="7" class="text-center py-4 text-secondary"><div class="spinner-border spinner-border-sm me-2"></div>Memuat data Penerimaan...</td></tr>');
         $('#btn-save-penerimaan-po').prop('disabled', true);
         modal.show();
 
@@ -362,7 +362,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
         if (total <= 0) {
-            Swal.fire({ icon: 'warning', title: 'Perhatian!', text: 'Minimal satu item harus diisi Qty Diterima.' });
+            Swal.fire({ icon: 'warning', title: 'Perhatian!', text: 'Minimal satu barang harus diisi Qty Diterima.' });
             return;
         }
 
@@ -387,7 +387,7 @@ document.addEventListener('DOMContentLoaded', function () {
         })
         .catch(error => {
             button.prop('disabled', false);
-            Swal.fire({ icon: 'error', title: 'Gagal!', text: error.message || 'Terjadi kesalahan sistem.' });
+            Swal.fire({ icon: 'error', title: 'Gagal!', text: error.message || 'Gagal menyimpan Penerimaan Barang.' });
         });
     });
 
@@ -735,6 +735,7 @@ document.addEventListener('DOMContentLoaded', function () {
             <form id="form-penerimaan-po">
                 @csrf
                 <div class="modal-body p-3">
+                    <div class="alert alert-light border small mb-3 py-2"><i class="bi bi-info-circle text-primary me-1"></i> Penerimaan mencatat barang yang benar-benar diterima dan memperbarui stok serta HPP. Jurnal dibuat saat Faktur Pembelian.</div>
                     <input type="hidden" name="po_id" id="receipt-po-id">
                     <input type="hidden" name="journal" value="0">
                     <div class="row g-2 mb-3">
