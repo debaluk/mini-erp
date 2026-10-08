@@ -251,7 +251,7 @@
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label extra-small fw-bold text-muted mb-1">Status Penerimaan Fisik Barang</label>
-                                <div class="alert alert-info py-1 px-2 mb-0 extra-small fw-bold text-dark border-0 bg-info-subtle">
+                                <div class="form-control form-control-sm bg-light text-muted extra-small fw-semibold py-1">
                                     <i class="bi bi-info-circle-fill me-1 text-primary"></i> Fisik barang diterima via Penerimaan.
                                 </div>
                             </div>
