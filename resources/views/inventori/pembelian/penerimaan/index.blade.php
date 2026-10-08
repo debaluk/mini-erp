@@ -195,13 +195,15 @@ $(function () {
 
     $('#modal-cancel-receipt').on('hidden.bs.modal', function () {
         cancelReceiptId = null;
+        $('#btn-confirm-cancel-receipt').prop('disabled', false);
     });
 
     $('#btn-confirm-cancel-receipt').on('click', function () {
         if (!cancelReceiptId) return;
 
         const receiptId = cancelReceiptId;
-        const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modal-cancel-receipt'));
+        const modalElement = document.getElementById('modal-cancel-receipt');
+        const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
         const confirmButton = $(this);
 
         confirmButton.prop('disabled', true);
@@ -214,18 +216,23 @@ $(function () {
                 'Accept': 'application/json'
             },
             success: function (response) {
-                modal.hide();
-                table.ajax.reload(null, false);
+                $(modalElement).one('hidden.bs.modal', function () {
+                    table.ajax.reload(null, false);
 
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Berhasil',
-                    text: response.message || 'Proses batal berhasil',
-                    showConfirmButton: false,
-                    timer: 1200
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil',
+                        text: response.message || 'Proses batal berhasil',
+                        showConfirmButton: false,
+                        timer: 1400
+                    });
                 });
+
+                modal.hide();
             },
             error: function (xhr) {
+                confirmButton.prop('disabled', false);
+
                 const message = xhr.responseJSON?.message || 'Proses batal gagal.';
                 Swal.fire({
                     icon: 'error',
@@ -233,9 +240,6 @@ $(function () {
                     text: message,
                     confirmButtonText: 'OK'
                 });
-            },
-            complete: function () {
-                confirmButton.prop('disabled', false);
             }
         });
     });
