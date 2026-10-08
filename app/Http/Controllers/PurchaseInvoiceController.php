@@ -976,6 +976,7 @@ class PurchaseInvoiceController extends Controller
 
                 $receiptIds = DB::table('receipts')
                     ->where('purchase_id', $purchase->id)
+                    ->where('status', 'posted')
                     ->lockForUpdate()
                     ->pluck('id');
 
