@@ -115,6 +115,65 @@ class ReceiptController extends Controller
         return Excel::download(new ReceiptExport($request), $fileName);
     }
 
+    public function poModal(int $id)
+    {
+        $entity = $this->entityId();
+
+        $po = DB::table('purchase_orders as po')
+            ->join('suppliers as s', 's.id', '=', 'po.supplier_id')
+            ->join('warehouses as w', 'w.id', '=', 'po.warehouse_id')
+            ->leftJoin('business_units as bu', 'bu.id', '=', 'po.business_unit_id')
+            ->where('po.entity_id', $entity)
+            ->where('po.id', $id)
+            ->whereNull('po.deleted_at')
+            ->select(
+                'po.id', 'po.po_no', 'po.po_date', 'po.status',
+                'po.supplier_id', 'po.business_unit_id', 'po.warehouse_id',
+                's.name as supplier_name',
+                'w.code as warehouse_code', 'w.name as warehouse_name',
+                'bu.name as business_unit_name'
+            )
+            ->first();
+
+        abort_unless($po, 404, 'Purchase Order tidak ditemukan.');
+        abort_unless(in_array($po->status, ['approved', 'partial'], true), 422, 'PO belum dapat diterima.');
+
+        $items = DB::table('purchase_order_items as poi')
+            ->join('products as p', 'p.id', '=', 'poi.product_id')
+            ->leftJoin('units as u', 'u.id', '=', 'poi.unit_id')
+            ->leftJoinSub(
+                DB::table('receipt_items')
+                    ->select('purchase_order_item_id', DB::raw('SUM(qty) as received_qty'))
+                    ->whereNotNull('purchase_order_item_id')
+                    ->groupBy('purchase_order_item_id'),
+                'ri',
+                'ri.purchase_order_item_id',
+                '=',
+                'poi.id'
+            )
+            ->where('poi.purchase_order_id', $po->id)
+            ->select(
+                'poi.id as purchase_order_item_id',
+                'poi.product_id',
+                'poi.unit_id',
+                'poi.qty as ordered_qty',
+                'p.code as product_code',
+                'p.name as product_name',
+                'u.code as unit_code',
+                DB::raw('COALESCE(ri.received_qty, 0) as received_qty'),
+                DB::raw('(poi.qty - COALESCE(ri.received_qty, 0)) as remaining_qty')
+            )
+            ->whereRaw('(poi.qty - COALESCE(ri.received_qty, 0)) > 0')
+            ->orderBy('poi.id')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'po' => $po,
+            'items' => $items,
+        ]);
+    }
+
     public function create(Request $request)
     {
         $entity = $this->entityId();
@@ -593,6 +652,13 @@ class ReceiptController extends Controller
                 ]);
             }
         });
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Penerimaan berhasil diposting; stok dan moving average diperbarui.',
+            ]);
+        }
 
         return redirect()
             ->route('inventori.penerimaan')
