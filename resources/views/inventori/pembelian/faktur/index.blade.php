@@ -793,7 +793,14 @@ function saveNonPo(e) {
     .then(res => {
         if(res.status === 'success') {
             modalNonPo.hide();
-            showToast('success', res.message);
+            const purchaseNo = res.data?.purchase_no ? ` [${res.data.purchase_no}]` : '';
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: `Faktur Pembelian${purchaseNo} berhasil disimpan.`,
+                timer: 1800,
+                showConfirmButton: false
+            });
             loadData(1);
         } else {
             Swal.fire({ icon: 'error', title: 'Gagal!', text: res.message });
