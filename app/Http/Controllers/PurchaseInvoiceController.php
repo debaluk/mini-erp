@@ -163,6 +163,53 @@ class PurchaseInvoiceController extends Controller
     }
 
     /**
+     * AJAX lookup produk untuk modal Faktur Pembelian Non-PO.
+     * Produk dibatasi ke entity aktif dan memakai satuan pembelian default bila tersedia.
+     */
+    public function lookupProducts(Request $request)
+    {
+        $entityId = (int) (auth()->user()->entity_id ?? 1);
+        $search = trim((string) $request->query('q', ''));
+
+        $products = DB::table('products as p')
+            ->leftJoin('units as base_u', 'base_u.id', '=', 'p.base_unit_id')
+            ->leftJoin('product_unit_conversions as puc', function ($join) {
+                $join->on('puc.product_id', '=', 'p.id')
+                    ->where('puc.is_default_purchase', 1)
+                    ->where('puc.is_active', 1);
+            })
+            ->leftJoin('units as purchase_u', 'purchase_u.id', '=', 'puc.unit_id')
+            ->where('p.entity_id', $entityId)
+            ->where('p.is_active', 1)
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('p.code', 'like', "%{$search}%")
+                        ->orWhere('p.name', 'like', "%{$search}%")
+                        ->orWhere('p.sku', 'like', "%{$search}%")
+                        ->orWhere('p.barcode', 'like', "%{$search}%");
+                });
+            })
+            ->orderBy('p.name')
+            ->select(
+                'p.id',
+                'p.code',
+                'p.name',
+                DB::raw('COALESCE(purchase_u.id, base_u.id) as unit_id'),
+                DB::raw('COALESCE(purchase_u.name, base_u.name, \'PCS\') as unit_name'),
+                DB::raw('1 as purchase_cost')
+            )
+            ->limit(500)
+            ->get();
+
+        $products->each(function ($product) {
+            // Harga tetap diinput user; 0 mencegah dropdown mengisi harga fiktif.
+            $product->purchase_cost = 0;
+        });
+
+        return response()->json(['success' => true, 'data' => $products]);
+    }
+
+    /**
      * Pull Item PO via AJAX
      */
     public function getPoItems($poId)
