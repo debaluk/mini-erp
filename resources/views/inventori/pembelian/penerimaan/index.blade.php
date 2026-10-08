@@ -146,8 +146,8 @@ $(function () {
                 data: 'status',
                 className: 'text-center',
                 render: function (data) {
-                    const cls = data === 'posted' ? 'text-bg-success' : 'text-bg-secondary';
-                    const label = data === 'posted' ? 'TERPOSTING' : String(data || '-').toUpperCase();
+                    const cls = data === 'posted' ? 'text-bg-success' : (data === 'cancelled' ? 'text-bg-danger' : 'text-bg-secondary');
+                    const label = data === 'posted' ? 'TERPOSTING' : (data === 'cancelled' ? 'DIBATALKAN' : String(data || '-').toUpperCase());
                     return '<span class="badge ' + cls + '">' + label + '</span>';
                 }
             },
