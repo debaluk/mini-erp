@@ -159,16 +159,16 @@
                                     <span id="nonpo_display_grand_total" class="fs-6">Rp 0</span>
                                 </div>
                                 <label class="form-label">Cara Bayar</label>
-                                <select id="paymentMethod" class="form-select">
-                            <option value="Tunai">Tunai</option>
-                            <option value="Transfer">Transfer</option>
-                            <option value="QRIS">QRIS</option>
-                            <option value="Kredit / Bon">Kredit / Bon</option>
-                        </select>
-                                <div id="dueDate" class="col-md-6 d-none">
-                        <label class="form-label">Jatuh Tempo</label>
-                        <input type="date" class="form-control" disabled="">
-                    </div>
+                                <select id="nonpo_payment_method" name="payment_method" class="form-select" required onchange="toggleNonPoDueDate()">
+                                    <option value="cash">Tunai</option>
+                                    <option value="transfer">Transfer</option>
+                                    <option value="qris">QRIS</option>
+                                    <option value="credit">Kredit / Bon</option>
+                                </select>
+                                <div id="nonpo_due_date_wrap" class="mt-2 d-none">
+                                    <label class="form-label mb-1">Jatuh Tempo <span class="text-danger">*</span></label>
+                                    <input type="date" id="nonpo_due_date" name="due_date" class="form-control" disabled>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -293,16 +293,16 @@
                                     <span id="po_display_grand_total" class="fs-6">Rp 0</span>
                                 </div>
                                  <label class="form-label">Cara Bayar</label>
-                                <select id="paymentMethod" class="form-select">
-                            <option value="Tunai">Tunai</option>
-                            <option value="Transfer">Transfer</option>
-                            <option value="QRIS">QRIS</option>
-                            <option value="Kredit / Bon">Kredit / Bon</option>
-                        </select>
-                                <div id="dueDate" class="col-md-6 d-none">
-                        <label class="form-label">Jatuh Tempo</label>
-                        <input type="date" class="form-control" disabled="">
-                    </div>
+                                <select id="po_payment_method" name="payment_method" class="form-select" required onchange="togglePoDueDate()">
+                                    <option value="cash">Tunai</option>
+                                    <option value="transfer">Transfer</option>
+                                    <option value="qris">QRIS</option>
+                                    <option value="credit">Kredit / Bon</option>
+                                </select>
+                                <div id="po_due_date_wrap" class="mt-2 d-none">
+                                    <label class="form-label mb-1">Jatuh Tempo <span class="text-danger">*</span></label>
+                                    <input type="date" id="po_due_date" name="due_date" class="form-control" disabled>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -497,7 +497,36 @@ function openModalNonPo() {
     document.getElementById('tbodyNonPoItems').innerHTML = '';
     addNonPoRow();
     calculateTotalsNonPo();
+    toggleNonPoDueDate();
     modalNonPo.show();
+}
+
+function toggleNonPoDueDate() {
+    const credit = document.getElementById('nonpo_payment_method').value === 'credit';
+    const wrap = document.getElementById('nonpo_due_date_wrap');
+    const input = document.getElementById('nonpo_due_date');
+    wrap.classList.toggle('d-none', !credit);
+    input.disabled = !credit;
+    input.required = credit;
+    if (credit && !input.value) {
+        const d = new Date();
+        d.setDate(d.getDate() + 30);
+        input.value = d.toISOString().slice(0, 10);
+    }
+}
+
+function togglePoDueDate() {
+    const credit = document.getElementById('po_payment_method').value === 'credit';
+    const wrap = document.getElementById('po_due_date_wrap');
+    const input = document.getElementById('po_due_date');
+    wrap.classList.toggle('d-none', !credit);
+    input.disabled = !credit;
+    input.required = credit;
+    if (credit && !input.value) {
+        const d = new Date();
+        d.setDate(d.getDate() + 30);
+        input.value = d.toISOString().slice(0, 10);
+    }
 }
 
 function openModalPo() {
@@ -506,6 +535,7 @@ function openModalPo() {
     document.getElementById('tbodyPoItems').innerHTML = `<tr><td colspan="8" class="text-center py-3 text-muted extra-small">Silakan pilih Nomor PO pada dropdown di atas.</td></tr>`;
     preloadApprovedPOs();
     calculateTotalsPo();
+    togglePoDueDate();
     modalPo.show();
 }
 
@@ -733,19 +763,20 @@ function saveNonPo(e) {
 
     payload.goods_received = document.getElementById('nonpo_goods_received').checked ? 1 : 0;
 
-    payload.items = [];
+    payload.products = [];
+    payload.qty = [];
+    payload.unit_price = [];
+    payload.discount = [];
     let valid = true;
     rows.forEach(row => {
         const prodSelect = row.querySelector('select[name*="[product_id]"]');
         if(!prodSelect || !prodSelect.value) {
             valid = false;
         } else {
-            payload.items.push({
-                product_id: prodSelect.value,
-                unit_id: row.querySelector('input[name*="[unit_id]"]').value,
-                qty: row.querySelector('input[name*="[qty]"]').value,
-                unit_cost: row.querySelector('input[name*="[unit_cost]"]').value
-            });
+            payload.products.push(prodSelect.value);
+            payload.qty.push(row.querySelector('input[name*="[qty]"]').value);
+            payload.unit_price.push(row.querySelector('input[name*="[unit_cost]"]').value);
+            payload.discount.push(0);
         }
     });
 
@@ -755,7 +786,7 @@ function saveNonPo(e) {
     }
 
     const id = document.getElementById('nonpo_id').value;
-    const url = id ? `/inventori/pembelian/faktur/${id}` : '/inventori/pembelian/faktur/store-non-po';
+    const url = id ? `/inventori/pembelian/faktur/${id}` : '/inventori/pembelian/faktur';
     const method = id ? 'PUT' : 'POST';
 
     fetch(url, {
@@ -787,17 +818,18 @@ function savePo(e) {
     const payload = {};
     formData.forEach((value, key) => { if(!key.includes('[')) payload[key] = value; });
 
-    payload.items = [];
+    payload.products = [];
+    payload.qty = [];
+    payload.unit_price = [];
+    payload.discount = [];
     const rows = document.querySelectorAll('#tbodyPoItems tr');
     rows.forEach(row => {
         const prodId = row.querySelector('input[name*="[product_id]"]');
         if(prodId) {
-            payload.items.push({
-                product_id: prodId.value,
-                unit_id: row.querySelector('input[name*="[unit_id]"]').value,
-                qty: row.querySelector('input[name*="[qty]"]').value,
-                unit_cost: row.querySelector('input[name*="[unit_cost]"]').value
-            });
+            payload.products.push(prodId.value);
+            payload.qty.push(row.querySelector('input[name*="[qty]"]').value);
+            payload.unit_price.push(row.querySelector('input[name*="[unit_cost]"]').value);
+            payload.discount.push(0);
         }
     });
 
@@ -807,7 +839,7 @@ function savePo(e) {
     }
 
     const id = document.getElementById('po_purchase_id').value;
-    const url = id ? `/inventori/pembelian/faktur/${id}` : '/inventori/pembelian/faktur/store-po';
+    const url = id ? `/inventori/pembelian/faktur/${id}` : '/inventori/pembelian/faktur';
     const method = id ? 'PUT' : 'POST';
 
     fetch(url, {
