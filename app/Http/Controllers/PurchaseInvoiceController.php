@@ -450,7 +450,7 @@ class PurchaseInvoiceController extends Controller
         ]);
 
         return redirect()->route('inventori.pembelian.show', $id)
-            ->with('swal_success', 'Draft Faktur Pembelian berhasil diperbarui.');
+            ->with('swal_success', "Faktur Pembelian [{$purchase->purchase_no}] berhasil diperbarui.");
     }
 
     /**
