@@ -417,8 +417,8 @@ class ReceiptController extends Controller
                 ->orderByDesc('receipt_no')
                 ->first();
 
-            $nextReceiptSeq = $lastReceipt ? ((int) substr($lastReceipt->receipt_no, -5)) + 1 : 1;
-            $receiptNo = 'PB-' . $receiptDateStr . str_pad($nextReceiptSeq, 5, '0', STR_PAD_LEFT);
+            $nextReceiptSeq = $lastReceipt ? ((int) substr($lastReceipt->receipt_no, -4)) + 1 : 1;
+            $receiptNo = 'PB-' . $receiptDateStr . str_pad($nextReceiptSeq, 4, '0', STR_PAD_LEFT);
             $receiptDate = Carbon::parse($data['receipt_date'] ?? now()->toDateString())->format('Y-m-d H:i:s');
 
             $receiptId = DB::table('receipts')->insertGetId([
