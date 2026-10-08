@@ -245,7 +245,8 @@ class PurchaseInvoiceController extends Controller
         ]);
 
         $isPo = $request->filled('purchase_order_id');
-        $goodsReceived = !$isPo && $request->boolean('goods_received');
+        // Non-PO adalah pembelian langsung: barang otomatis diterima melalui prosedur Penerimaan Barang. 
+        $goodsReceived = !$isPo;
 
         if (!$isPo && $goodsReceived && !$request->filled('warehouse_id')) {
             return back()->withInput()->with('swal_error', 'Gudang wajib dipilih jika barang langsung diterima.');
