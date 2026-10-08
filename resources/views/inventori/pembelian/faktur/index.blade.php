@@ -544,6 +544,24 @@ function openModalPo() {
 }
 
 // 1. NON-PO: DROPDOWN TABLE BARANG
+
+function parseIndonesiaNumber(value) {
+    if (value === null || value === undefined || value === '') return 0;
+    const normalized = String(value).replace(/\./g, '').replace(',', '.').replace(/[^0-9.-]/g, '');
+    const number = parseFloat(normalized);
+    return Number.isFinite(number) ? number : 0;
+}
+
+function formatQtyIndonesia(value) {
+    const number = parseIndonesiaNumber(value);
+    return number.toLocaleString('id-ID', { maximumFractionDigits: 3 });
+}
+
+function formatRupiahIndonesia(value) {
+    const number = Math.round(parseIndonesiaNumber(value));
+    return number.toLocaleString('id-ID');
+}
+
 function addNonPoRow(selectedProductId = '', selectedQty = 1, selectedCost = 0, selectedUnitId = '', selectedUnitName = '') {
     const tbody = document.getElementById('tbodyNonPoItems');
     const rowId = Date.now() + Math.random().toString(36).substring(2, 6);
@@ -571,14 +589,14 @@ function addNonPoRow(selectedProductId = '', selectedQty = 1, selectedCost = 0, 
         </td>
         <td style="width: 120px;">
             <div class="input-group input-group-sm">
-                <input type="number" step="0.001" class="form-control text-end fw-semibold py-0" name="items[${rowId}][qty]" value="${selectedQty}" min="0.001" oninput="calculateTotalsNonPo()" required>
+                <input type="text" inputmode="decimal" class="form-control text-end fw-semibold py-0" name="items[${rowId}][qty]" value="${formatQtyIndonesia(selectedQty)}" oninput="calculateTotalsNonPo()" required>
                 <span class="input-group-text bg-light text-muted px-1 extra-small" id="qty_unit_${rowId}">${selectedUnitName || 'PCS'}</span>
             </div>
         </td>
         <td style="width: 160px;">
             <div class="input-group input-group-sm">
                 <span class="input-group-text bg-light fw-bold text-muted extra-small">Rp</span>
-                <input type="number" step="100" class="form-control text-end fw-bold text-primary py-0" name="items[${rowId}][unit_cost]" id="cost_${rowId}" value="${selectedCost}" min="0" oninput="calculateTotalsNonPo()" required>
+                <input type="text" inputmode="numeric" class="form-control text-end fw-bold text-primary py-0" name="items[${rowId}][unit_cost]" id="cost_${rowId}" value="${formatRupiahIndonesia(selectedCost)}" oninput="calculateTotalsNonPo()" required>
             </div>
         </td>
         <td class="text-end fw-bold text-primary small" id="nonpo_subtotal_${rowId}">Rp 0</td>
@@ -597,7 +615,7 @@ function onProductSelect(selectElem, rowId) {
         document.getElementById(`unit_id_${rowId}`).value = '';
         document.getElementById(`unit_badge_${rowId}`).innerText = '-';
         document.getElementById(`qty_unit_${rowId}`).innerText = 'PCS';
-        document.getElementById(`cost_${rowId}`).value = 0;
+        document.getElementById(`cost_${rowId}`).value = formatRupiahIndonesia(0);
     } else {
         const unitId = selectedOpt.getAttribute('data-unitid') || '';
         const unitName = selectedOpt.getAttribute('data-unit') || 'PCS';
@@ -606,7 +624,7 @@ function onProductSelect(selectElem, rowId) {
         document.getElementById(`unit_id_${rowId}`).value = unitId;
         document.getElementById(`unit_badge_${rowId}`).innerText = unitName;
         document.getElementById(`qty_unit_${rowId}`).innerText = unitName;
-        document.getElementById(`cost_${rowId}`).value = cost;
+        document.getElementById(`cost_${rowId}`).value = formatRupiahIndonesia(cost);
     }
     calculateTotalsNonPo();
 }
@@ -635,8 +653,8 @@ function calculateTotalsNonPo() {
         const qtyInput = row.querySelector('input[name*="[qty]"]');
         const costInput = row.querySelector('input[name*="[unit_cost]"]');
         if(qtyInput && costInput) {
-            const qty = parseFloat(qtyInput.value) || 0;
-            const cost = parseFloat(costInput.value) || 0;
+            const qty = parseIndonesiaNumber(qtyInput.value);
+            const cost = parseIndonesiaNumber(costInput.value);
             const line = qty * cost;
             subtotal += line;
 
@@ -692,14 +710,14 @@ function onPoSelect(poId) {
                     <td class="text-center"><span class="badge bg-info text-dark fw-semibold px-2 py-1">${unitName}</span></td>
                     <td style="width: 120px;">
                         <div class="input-group input-group-sm">
-                            <input type="number" step="0.001" class="form-control text-end fw-semibold py-0" name="items[${idx}][qty]" value="${item.qty}" min="0.001" oninput="calculateTotalsPo()" required>
+                            <input type="number" step="0.001" class="form-control text-end fw-semibold py-0" name="items[${idx}][qty]" value="${formatQtyIndonesia(item.qty)}" oninput="calculateTotalsPo()" required>
                             <span class="input-group-text bg-light text-muted px-1 extra-small">${unitName}</span>
                         </div>
                     </td>
                     <td style="width: 160px;">
                         <div class="input-group input-group-sm">
                             <span class="input-group-text bg-light fw-bold text-muted extra-small">Rp</span>
-                            <input type="number" step="100" class="form-control text-end fw-bold text-primary py-0" name="items[${idx}][unit_cost]" value="${item.unit_cost}" min="0" oninput="calculateTotalsPo()" required>
+                            <input type="number" step="100" class="form-control text-end fw-bold text-primary py-0" name="items[${idx}][unit_cost]" value="${formatRupiahIndonesia(item.unit_cost)}" oninput="calculateTotalsPo()" required>
                         </div>
                     </td>
                     <td class="text-end fw-bold text-success small" id="po_subtotal_${idx}">Rp ${sub.toLocaleString('id-ID')}</td>
@@ -735,8 +753,8 @@ function calculateTotalsPo() {
         const qtyInput = row.querySelector('input[name*="[qty]"]');
         const costInput = row.querySelector('input[name*="[unit_cost]"]');
         if(qtyInput && costInput) {
-            const qty = parseFloat(qtyInput.value) || 0;
-            const cost = parseFloat(costInput.value) || 0;
+            const qty = parseIndonesiaNumber(qtyInput.value);
+            const cost = parseIndonesiaNumber(costInput.value);
             const line = qty * cost;
             subtotal += line;
 
@@ -776,8 +794,8 @@ function saveNonPo(e) {
             valid = false;
         } else {
             payload.products.push(prodSelect.value);
-            payload.qty.push(row.querySelector('input[name*="[qty]"]').value);
-            payload.unit_price.push(row.querySelector('input[name*="[unit_cost]"]').value);
+            payload.qty.push(parseIndonesiaNumber(row.querySelector('input[name*="[qty]"]').value));
+            payload.unit_price.push(parseIndonesiaNumber(row.querySelector('input[name*="[unit_cost]"]').value));
             payload.discount.push(0);
         }
     });
@@ -836,8 +854,8 @@ function savePo(e) {
         const prodId = row.querySelector('input[name*="[product_id]"]');
         if(prodId) {
             payload.products.push(prodId.value);
-            payload.qty.push(row.querySelector('input[name*="[qty]"]').value);
-            payload.unit_price.push(row.querySelector('input[name*="[unit_cost]"]').value);
+            payload.qty.push(parseIndonesiaNumber(row.querySelector('input[name*="[qty]"]').value));
+            payload.unit_price.push(parseIndonesiaNumber(row.querySelector('input[name*="[unit_cost]"]').value));
             payload.discount.push(0);
         }
     });
