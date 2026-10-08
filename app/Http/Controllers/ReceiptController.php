@@ -408,7 +408,17 @@ class ReceiptController extends Controller
                 $createJournal = false;
             }
 
-            $receiptNo = 'FB-'.now()->format('YmdHis').'-'.str()->upper(str()->random(3));
+            \$receiptDateBase = Carbon::now();
+            \$receiptDateStr = \$receiptDateBase->format('Ymd');
+            \$receiptMonthStr = \$receiptDateBase->format('Ym');
+
+            \$lastReceipt = DB::table('receipts')
+                ->where('receipt_no', 'LIKE', "FB-{\$receiptMonthStr}%")
+                ->orderByDesc('receipt_no')
+                ->first();
+
+            \$nextReceiptSeq = \$lastReceipt ? ((int) substr(\$lastReceipt->receipt_no, -5)) + 1 : 1;
+            \$receiptNo = 'FB-' . \$receiptDateStr . str_pad(\$nextReceiptSeq, 5, '0', STR_PAD_LEFT);
             $receiptDate = Carbon::parse($data['receipt_date'] ?? now()->toDateString())->format('Y-m-d H:i:s');
 
             $receiptId = DB::table('receipts')->insertGetId([
