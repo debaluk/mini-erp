@@ -1162,6 +1162,7 @@ class PurchaseInvoiceController extends Controller
             ->leftJoin('business_units as bu', 'bu.id', '=', 'p.business_unit_id')
             ->leftJoin('suppliers as s', 's.id', '=', 'p.supplier_id')
             ->leftJoin('purchase_orders as po', 'po.id', '=', 'p.purchase_order_id')
+            ->leftJoin('warehouses as w', 'w.id', '=', 'po.warehouse_id')
             ->whereNull('p.deleted_at')
             ->whereDate('p.purchase_date', '>=', $startDate)
             ->whereDate('p.purchase_date', '<=', $endDate)
@@ -1171,14 +1172,11 @@ class PurchaseInvoiceController extends Controller
                 'p.total as grand_total',
                 'bu.name as business_unit_name',
                 's.name as supplier_name',
-                'po.po_no'
+                'po.po_no',
+                'w.name as warehouse_name'
             )
             ->orderByDesc('p.created_at')
             ->get();
-
-        foreach ($purchases as $purchase) {
-            $purchase->warehouse_name = '-';
-        }
 
         return view('inventori.pembelian.faktur.print-list', compact('purchases', 'startDate', 'endDate'));
     }
