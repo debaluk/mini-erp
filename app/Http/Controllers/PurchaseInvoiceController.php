@@ -453,8 +453,9 @@ class PurchaseInvoiceController extends Controller
         $p = DB::table('purchases as p')
             ->leftJoin('business_units as bu', 'bu.id', '=', 'p.business_unit_id')
             ->leftJoin('suppliers as s', 's.id', '=', 'p.supplier_id')
+            ->leftJoin('purchase_orders as po', 'po.id', '=', 'p.purchase_order_id')
             ->where('p.id', $id)->whereNull('p.deleted_at')
-            ->select('p.*', 'bu.code as bu_code', 'bu.name as bu_name', 's.name as supplier_name')
+            ->select('p.*', 'bu.code as bu_code', 'bu.name as bu_name', 's.name as supplier_name', 'po.po_no')
             ->firstOrFail();
 
         $items = DB::table('purchase_items as pi')
