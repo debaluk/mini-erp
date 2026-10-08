@@ -500,7 +500,9 @@ class PurchaseInvoiceController extends Controller
                     DB::table('receipt_items')->where('receipt_id',$receipt->id)->delete();
                 }
 
-                DB::table('purchase_items')->where('purchase_id',$id)->delete();
+                if ($purchase->source_type !== 'po') {
+                    DB::table('purchase_items')->where('purchase_id',$id)->delete();
+                }
                 $subtotal=0.0; $discountTotal=(float)$request->input('document_discount',0);
 
                 foreach($products as $i=>$productId){
@@ -510,14 +512,21 @@ class PurchaseInvoiceController extends Controller
                     $factor=$purchase->source_type==='po'?(float)($oldItems[$i]->conversion_factor?:1):1.0;
                     $baseQty=$qty*$factor; $gross=$qty*$price; $net=max(0,$gross-$discount);
                     $subtotal += $gross; $discountTotal += $discount;
-                    $piId=DB::table('purchase_items')->insertGetId([
+                    $itemData = [
                         'purchase_id'=>$id,'product_id'=>$productId,
                         'unit_id'=>$purchase->source_type==='po'?($oldItems[$i]->unit_id?:$product->base_unit_id):$product->base_unit_id,
                         'qty'=>$qty,'conversion_factor'=>$factor,'base_qty'=>$baseQty,
                         'unit_cost'=>$qty>0?$net/$qty:0,'base_unit_cost'=>$baseQty>0?$net/$baseQty:0,
                         'discount'=>$discount,'total'=>$net,'line_subtotal'=>$gross,'line_discount'=>$discount,
-                        'taxable_amount'=>$net,'tax_rate'=>0,'tax_amount'=>0,'created_at'=>now(),'updated_at'=>now()
-                    ]);
+                        'taxable_amount'=>$net,'tax_rate'=>0,'tax_amount'=>0,'updated_at'=>now()
+                    ];
+                    if ($purchase->source_type === 'po') {
+                        $piId = $oldItems[$i]->id;
+                        DB::table('purchase_items')->where('id',$piId)->update($itemData);
+                    } else {
+                        $itemData['created_at'] = now();
+                        $piId = DB::table('purchase_items')->insertGetId($itemData);
+                    }
 
                     if($receipt && $purchase->source_type !== 'po'){
                         $baseCost=$baseQty>0?$net/$baseQty:0;
