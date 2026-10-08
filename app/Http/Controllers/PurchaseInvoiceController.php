@@ -394,11 +394,6 @@ class PurchaseInvoiceController extends Controller
     {
         $p = DB::table('purchases')->where('id', $id)->whereNull('deleted_at')->firstOrFail();
 
-        if ($p->status === 'posted') {
-            return redirect()->route('inventori.pembelian.show', $id)
-                ->with('swal_error', 'Transaksi POSTED bersifat permanen dan tidak dapat diedit!');
-        }
-
         $businessUnits = BusinessUnit::where('is_active', 1)->orderBy('code')->get();
         $warehouses    = Warehouse::where('is_active', 1)->orderBy('name')->get();
         $suppliers     = Supplier::where('is_active', 1)->orderBy('name')->get();
