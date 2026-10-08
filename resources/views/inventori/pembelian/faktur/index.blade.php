@@ -307,7 +307,7 @@
                 <div class="modal-footer py-2 px-3 bg-light">
                     <button type="button" class="btn btn-sm btn-secondary fw-semibold px-3" data-bs-dismiss="modal">Batal</button>
                     <button type="submit" class="btn btn-sm btn-success fw-bold px-4">
-                        <i class="bi bi-save me-1"></i> Simpan Sebagai DRAFT
+                        <i class="bi bi-save me-1"></i> Simpan Pembelian
                     </button>
                 </div>
             </form>
