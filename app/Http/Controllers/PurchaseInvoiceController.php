@@ -210,6 +210,52 @@ class PurchaseInvoiceController extends Controller
     }
 
     /**
+     * AJAX lookup PO yang sudah disetujui dan belum memiliki faktur pembelian.
+     */
+    public function lookupPurchaseOrders(Request $request)
+    {
+        $entityId = (int) (auth()->user()->entity_id ?? 1);
+        $search = trim((string) $request->query('q', ''));
+
+        $pos = DB::table('purchase_orders as po')
+            ->join('suppliers as s', 's.id', '=', 'po.supplier_id')
+            ->leftJoin('business_units as bu', 'bu.id', '=', 'po.business_unit_id')
+            ->leftJoin('warehouses as w', 'w.id', '=', 'po.warehouse_id')
+            ->where('po.entity_id', $entityId)
+            ->where('po.status', 'approved')
+            ->whereNull('po.deleted_at')
+            ->whereNotExists(function ($query) {
+                $query->select(DB::raw(1))
+                    ->from('purchases as p')
+                    ->whereColumn('p.purchase_order_id', 'po.id')
+                    ->whereNull('p.deleted_at');
+            })
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('po.po_no', 'like', "%{$search}%")
+                        ->orWhere('s.name', 'like', "%{$search}%");
+                });
+            })
+            ->select(
+                'po.id',
+                'po.po_no',
+                'po.po_date',
+                'po.supplier_id',
+                'po.business_unit_id',
+                'po.warehouse_id',
+                's.name as supplier_name',
+                'bu.code as bu_code',
+                'bu.name as bu_name',
+                'w.name as warehouse_name'
+            )
+            ->orderByDesc('po.id')
+            ->limit(200)
+            ->get();
+
+        return response()->json(['success' => true, 'data' => $pos]);
+    }
+
+    /**
      * Pull Item PO via AJAX
      */
     public function getPoItems($poId)
