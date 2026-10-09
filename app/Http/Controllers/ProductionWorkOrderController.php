@@ -386,7 +386,7 @@ class ProductionWorkOrderController extends Controller
     public function update(Request $request, int $id)
     {
         $request->merge([
-            'worker_amount' => collect($request->input('worker_amount', []))->map(fn ($value) => FormatHelper::parse($value))->all(),
+            'worker_rate' => collect($request->input('worker_rate', []))->map(fn ($value) => FormatHelper::parse($value))->all(),
             'cost_amount' => collect($request->input('cost_amount', []))->map(fn ($value) => FormatHelper::parse($value))->all(),
         ]);
 
@@ -399,8 +399,10 @@ class ProductionWorkOrderController extends Controller
             'notes' => ['nullable', 'string'],
             'worker_id' => ['required', 'array', 'min:1'],
             'worker_id.*' => ['required', 'integer', 'distinct'],
-            'worker_amount' => ['required', 'array', 'min:1'],
-            'worker_amount.*' => ['required', 'numeric', 'gt:0'],
+            'worker_pay_type' => ['required', 'array', 'min:1'],
+            'worker_pay_type.*' => ['required', 'in:borongan,satuan'],
+            'worker_rate' => ['required', 'array', 'min:1'],
+            'worker_rate.*' => ['required', 'numeric', 'gt:0'],
             'cost_group' => ['nullable', 'array'],
             'cost_group.*' => ['nullable', 'in:A,S,O'],
             'cost_description' => ['nullable', 'array'],
@@ -485,7 +487,9 @@ class ProductionWorkOrderController extends Controller
                     'worker_id' => $workerId,
                     'cost_group' => 'U',
                     'description' => 'Tenaga',
-                    'amount' => round((float) $data['worker_amount'][$i], 2),
+                    'amount' => round((float) $data['worker_rate'][$i] * (($data['worker_pay_type'][$i] ?? 'borongan') === 'satuan' ? $targetOutput : 1), 2),
+                    'pay_type' => $data['worker_pay_type'][$i] ?? 'borongan',
+                    'unit_rate' => round((float) $data['worker_rate'][$i], 2),
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
