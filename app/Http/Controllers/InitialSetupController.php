@@ -311,8 +311,6 @@ class InitialSetupController extends Controller
                 ->lockForUpdate()
                 ->first();
 
-            abort_unless($stock, 422, 'Saldo stok setup awal tidak ditemukan. Perubahan stok/HPP dibatalkan agar saldo tidak makin menyimpang.');
-
             $openingMovement = DB::table('stock_movements')
                 ->where('entity_id', $entity)
                 ->where('business_unit_id', $businessUnit->id)
@@ -347,6 +345,8 @@ class InitialSetupController extends Controller
                 || abs((float) $data['initial_stock'] - (float) $setup->initial_stock) > 0.0001;
 
             if ($stockInputsChanged) {
+                abort_unless($stock, 422, 'Saldo stok setup awal tidak ditemukan. Perubahan stok/HPP dibatalkan agar saldo tidak makin menyimpang.');
+
                 abort_if(
                     $hasOtherMovements,
                     422,
