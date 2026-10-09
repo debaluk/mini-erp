@@ -31,7 +31,7 @@
             <div class="col-md-3"><div class="text-secondary small">Nomor SPK</div><div class="fw-semibold">{{ $wo->wo_no }}</div></div>
             <div class="col-md-3"><div class="text-secondary small">Tanggal SPK</div><div>{{ \Carbon\Carbon::parse($wo->wo_date)->format('d/m/Y') }}</div></div>
             <div class="col-md-3"><div class="text-secondary small">Tanggal Mulai Kerja</div><div>{{ $wo->started_at ? \Carbon\Carbon::parse($wo->started_at)->format('d/m/Y H:i') : '-' }}</div></div>
-            <div class="col-md-3"><div class="text-secondary small">Status</div><div><span class="badge text-bg-{{ $wo->status === 'in_progress' ? 'warning' : ($wo->status === 'completed' ? 'success' : 'primary') }}">{{ $wo->status === 'in_progress' ? 'On Progress' : ($wo->status === 'completed' ? 'Selesai' : 'Open') }}</span></div></div>
+            <div class="col-md-3"><div class="text-secondary small">Status</div><div><span class="badge text-bg-{{ $wo->status === 'in_progress' ? 'warning' : ($wo->status === 'completed' ? 'success' : 'primary') }}">{{ $wo->status === 'in_progress' ? 'Diproses' : ($wo->status === 'completed' ? 'Selesai' : 'Draft') }}</span></div></div>
             <div class="col-md-4"><div class="text-secondary small">Produk</div><div class="fw-semibold">{{ $wo->product_name }}</div></div>
             <div class="col-md-4"><div class="text-secondary small">BOM</div><div>{{ $wo->bom_code }} — {{ $wo->bom_name }}</div></div>
             <div class="col-md-4"><div class="text-secondary small">Gudang</div><div>{{ $wo->warehouse_name }}</div></div>
