@@ -37,7 +37,7 @@
 
                     <div class="col-md-3">
                         <label class="form-label fw-bold">Unit Bisnis <span class="text-danger">*</span></label>
-                        <select name="business_unit_id" class="form-select" required>
+                        <select name="business_unit_id" class="form-select" required {{ $selectedOpname ? 'disabled' : '' }}>
                             <option value="">-- Pilih Unit Bisnis --</option>
                             @foreach($businessUnits as $bu)
                                 <option value="{{ $bu->id }}" {{ $selectedOpname && $selectedOpname->business_unit_id == $bu->id ? 'selected' : '' }}>
@@ -45,11 +45,14 @@
                                 </option>
                             @endforeach
                         </select>
+                        @if($selectedOpname)
+                            <input type="hidden" name="business_unit_id" value="{{ $selectedOpname->business_unit_id }}">
+                        @endif
                     </div>
 
                     <div class="col-md-3">
                         <label class="form-label fw-bold">Lokasi Gudang <span class="text-danger">*</span></label>
-                        <select name="warehouse_id" class="form-select" required>
+                        <select name="warehouse_id" class="form-select" required {{ $selectedOpname ? 'disabled' : '' }}>
                             <option value="">-- Pilih Gudang --</option>
                             @foreach($warehouses as $w)
                                 <option value="{{ $w->id }}" {{ $selectedOpname && $selectedOpname->warehouse_id == $w->id ? 'selected' : '' }}>
@@ -57,6 +60,9 @@
                                 </option>
                             @endforeach
                         </select>
+                        @if($selectedOpname)
+                            <input type="hidden" name="warehouse_id" value="{{ $selectedOpname->warehouse_id }}">
+                        @endif
                     </div>
 
                     <div class="col-md-3">
