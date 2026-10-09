@@ -3,7 +3,7 @@
 @section('content')
 <div class="container-fluid px-0 py-0">
     <div class="d-flex justify-content-between align-items-center mb-3">
-                <div><h3 class="mb-1 fw-bold text-dark"><i class="bi bi-arrow-return-left me-2 text-primary"></i>Retur Pembelian</h3><div class="text-secondary small">Daftar retur pembelian dari Faktur Pembelian yang sudah POSTED</div></div>
+                <div><h3 class="mb-1 fw-bold text-dark"><i class="bi bi-arrow-return-left me-2 text-primary"></i>Retur Pembelian</h3><div class="text-secondary small">Daftar retur pembelian berdasarkan Penerimaan Barang sumber</div></div>
         <a href="{{ route('inventori.pembelian.retur.print-list') }}" id="btn-print-list" target="_blank" class="btn btn-outline-primary btn-sm"><i class="bi bi-printer me-1"></i>Cetak List</a>
     </div>
     <div class="card shadow-sm border-0 mb-2"><div class="card-body p-3">
@@ -18,7 +18,7 @@
     </div></div>
     <div class="card shadow-sm border-0"><div class="card-body p-0"><div class="table-responsive">
         <table id="table-retur-pembelian" class="table table-hover table-striped align-middle w-100" style="font-size:0.88rem;">
-            <thead class="table-dark text-center"><tr><th>No. Retur</th><th>Tanggal</th><th>No. Faktur</th><th>Unit Bisnis</th><th>Supplier</th><th>Gudang</th><th>Barang</th><th>Qty</th><th>Total</th><th>Status</th><th style="width:110px;">Aksi</th></tr></thead>
+            <thead class="table-dark text-center"><tr><th>No. Retur</th><th>Tanggal</th><th>Penerimaan Sumber</th><th>Unit Bisnis</th><th>Supplier</th><th>Gudang</th><th>Barang</th><th>Qty</th><th>Total</th><th>Status</th><th style="width:110px;">Aksi</th></tr></thead>
             <tbody></tbody>
         </table>
     </div></div></div>
@@ -35,14 +35,14 @@ document.addEventListener('DOMContentLoaded', function () {
         columns: [
             { data: 'return_no', className: 'text-center font-monospace fw-bold text-primary' },
             { data: 'return_date', className: 'text-center' },
-            { data: 'invoice_no', className: 'text-center font-monospace' },
+            { data: 'source_receipt_no', className: 'text-center font-monospace' },
             { data: 'business_unit_name', className: 'text-center' },
             { data: 'supplier_name', className: 'fw-semibold' },
             { data: 'warehouse_name', className: 'text-center' },
             { data: 'product_names', className: 'small' },
             { data: 'return_qty', className: 'text-end' },
             { data: 'total', className: 'text-end fw-bold font-monospace', render: data => 'Rp ' + Number(data || 0).toLocaleString('id-ID') },
-            { data: 'status', className: 'text-center', render: data => data === 'posted' ? '<span class="badge bg-success">POSTED</span>' : '<span class="badge bg-secondary">DRAFT</span>' },
+            { data: 'status', className: 'text-center', render: data => data === 'posted' ? '<span class="badge bg-success">TERPOSTING</span>' : (data === 'cancelled' ? '<span class="badge bg-danger">DIBATALKAN</span>' : '<span class="badge bg-secondary">DRAFT</span>') },
             {
                 data: null, className: 'text-center', orderable: false,
                 render: function (data, type, row) {
