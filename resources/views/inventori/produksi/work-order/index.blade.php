@@ -301,9 +301,13 @@ document.addEventListener('DOMContentLoaded', function () {
         const wrap=document.createElement('div');
         wrap.className='row g-2 mb-2 modal-cost-row';
         if(group==='U'){
-            wrap.innerHTML='<div class="col-md-7"><select name="worker_id[]" class="form-select"><option value="">Pilih pekerja</option>'+workers.map(w=>'<option value="'+w.id+'">'+w.code+' — '+w.name+'</option>').join('')+'</select></div><div class="col-md-3"><input type="text" name="worker_amount[]" class="form-control cost-input text-end" inputmode="decimal" placeholder="Total biaya pekerja"></div><div class="col-md-2"><button type="button" class="btn btn-outline-danger w-100 remove-modal-cost"><i class="bi bi-trash"></i></button></div>';
-            wrap.querySelector('select').value=data.worker_id||'';
-            wrap.querySelector('input').value=data.amount?Number(data.amount).toLocaleString('id-ID',{minimumFractionDigits:2,maximumFractionDigits:2}):'';
+            const payType=data.pay_type||'borongan';
+            const rate=(data.unit_rate!==null&&data.unit_rate!==undefined)?Number(data.unit_rate):Number(data.amount||0);
+            wrap.innerHTML='<div class="col-md-4"><select name="worker_id[]" class="form-select"><option value="">Pilih pekerja</option>'+workers.map(w=>'<option value="'+w.id+'">'+w.code+' — '+w.name+'</option>').join('')+'</select></div><div class="col-md-3"><select name="worker_pay_type[]" class="form-select worker-pay-type"><option value="borongan">Borongan</option><option value="satuan">Satuan</option></select></div><div class="col-md-3"><input type="text" name="worker_rate[]" class="form-control cost-input worker-rate text-end" inputmode="decimal" placeholder="Total upah"></div><div class="col-md-2"><button type="button" class="btn btn-outline-danger w-100 remove-modal-cost"><i class="bi bi-trash"></i></button></div><div class="col-12 small text-secondary worker-cost-preview"></div>';
+            wrap.querySelector('select[name="worker_id[]"]').value=data.worker_id||'';
+            wrap.querySelector('.worker-pay-type').value=payType;
+            wrap.querySelector('.worker-rate').value=rate?rate.toLocaleString('id-ID',{minimumFractionDigits:2,maximumFractionDigits:2}):'';
+            wrap.querySelector('.worker-rate').placeholder=payType==='satuan'?'Harga per unit':'Total upah borongan';
         }else{
             wrap.innerHTML='<div class="col-md-7"><input type="text" name="cost_description[]" class="form-control" placeholder="Keterangan"></div><div class="col-md-3"><input type="text" name="cost_amount[]" class="form-control cost-input text-end" inputmode="decimal" placeholder="Estimasi biaya"></div><div class="col-md-2"><button type="button" class="btn btn-outline-danger w-100 remove-modal-cost"><i class="bi bi-trash"></i></button></div><input type="hidden" name="cost_group[]" value="'+group+'">';
             wrap.querySelector('input[name="cost_description[]"]').value=data.description||'';
@@ -325,7 +329,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function recalc(){
         let total=parseMoney(fields.material.dataset.value||0);
-        document.querySelectorAll('#workOrderForm .cost-input').forEach(i=>total+=parseMoney(i.value));
+        document.querySelectorAll('#workOrderForm .cost-section-modal').forEach(sec=>{
+            if(sec.dataset.group==='U'){
+                sec.querySelectorAll('.modal-cost-row').forEach(row=>{
+                    const type=row.querySelector('.worker-pay-type')?.value||'borongan';
+                    const rate=parseMoney(row.querySelector('.worker-rate')?.value||0);
+                    const target=Number(fields.bomRows.dataset.targetQty||0);
+                    const amount=type==='satuan'?rate*target:rate;
+                    total+=amount;
+                    const preview=row.querySelector('.worker-cost-preview');
+                    if(preview)preview.textContent=type==='satuan'?'Estimasi: '+money(rate)+' × '+Number(target).toLocaleString('id-ID',{maximumFractionDigits:3})+' unit = '+money(amount):'Total upah: '+money(amount);
+                });
+            }else sec.querySelectorAll('.cost-input').forEach(i=>total+=parseMoney(i.value));
+        });
         fields.total.textContent=money(total);
     }
 
@@ -334,6 +350,7 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('woBomProduct').textContent='-';
             document.getElementById('woBomCode').textContent='-';
             document.getElementById('woBomTarget').textContent='0';
+            fields.bomRows.dataset.targetQty=0;
             fields.material.dataset.value=0;
             fields.material.textContent='Rp 0';
             fields.bomRows.innerHTML='<tr><td colspan="5" class="text-center text-secondary">Pilih BOM.</td></tr>';
@@ -347,6 +364,7 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('woBomProduct').textContent=(d.bom.product_sku?d.bom.product_sku+' — ':'')+d.bom.product_name;
         document.getElementById('woBomCode').textContent=d.bom.code+' — '+d.bom.name;
         document.getElementById('woBomTarget').textContent=Number(d.bom.target_output_qty||0).toLocaleString('id-ID',{maximumFractionDigits:3})+' '+(d.bom.output_unit||'');
+        fields.bomRows.dataset.targetQty=Number(d.bom.target_output_qty||0);
         fields.material.dataset.value=d.material_cost||0;
         fields.material.textContent=money(d.material_cost);
         fields.bomRows.innerHTML=(d.materials||[]).map(i=>'<tr><td>'+i.sku+' — '+i.name+'</td><td class="text-end">'+Number(i.base_qty||0).toLocaleString('id-ID',{maximumFractionDigits:3})+'</td><td>'+i.unit+'</td><td class="text-end">'+money(i.unit_cost)+'</td><td class="text-end">'+money(i.line_cost)+'</td></tr>').join('')||'<tr><td colspan="5" class="text-center text-secondary">BOM belum memiliki material.</td></tr>';
@@ -429,6 +447,14 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     document.addEventListener('input',e=>{if(e.target.classList.contains('cost-input'))recalc()});
+    document.addEventListener('change',e=>{
+        if(e.target.classList.contains('worker-pay-type')){
+            const row=e.target.closest('.modal-cost-row');
+            const input=row?.querySelector('.worker-rate');
+            if(input)input.placeholder=e.target.value==='satuan'?'Harga per unit':'Total upah borongan';
+            recalc();
+        }
+    });
 
     $('#woDeleteForm').on('submit', function (e) {
         e.preventDefault();
