@@ -192,14 +192,14 @@
                                             </form>
                                         @elseif($t->status === 'shipped')
                                             <!-- Approval Step 2: Penerima -->
-                                            <form action="{{ route('inventori.transfer.approve-receiver',$t->id) }}" method="POST" class="d-inline form-approve-receiver">
-                                                @csrf
-                                                <input type="hidden" name="to_warehouse_id" value="{{ $t->to_warehouse_id }}">
-                                                <input type="hidden" name="to_warehouse_id" value="{{ $t->to_warehouse_id }}">
-                                                <button type="submit" class="btn btn-primary" title="Terima hanya di gudang tujuan dokumen">
-                                                    <i class="bi bi-box-arrow-in-down"></i> Terima
-                                                </button>
-                                            </form>
+                                            <button type="button"
+                                                class="btn btn-primary btn-receive-mutasi"
+                                                data-id="{{ $t->id }}"
+                                                data-to-warehouse-id="{{ $t->to_warehouse_id }}"
+                                                data-transfer-no="{{ $t->transfer_no }}"
+                                                title="Konfirmasi gudang penerima">
+                                                <i class="bi bi-box-arrow-in-down"></i> Terima
+                                            </button>
                                         @endif
                                     </div>
                                 </td>
@@ -379,6 +379,41 @@
             <div class="modal-footer bg-light py-2">
                 <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 3: Konfirmasi Gudang Penerima Mutasi -->
+<div class="modal fade" id="modal-terima-mutasi" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white py-2">
+                <h6 class="modal-title fw-bold"><i class="bi bi-box-arrow-in-down me-1"></i> Konfirmasi Penerimaan Mutasi</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="form-terima-mutasi" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">No. Mutasi</label>
+                        <input type="text" id="terima-transfer-no" class="form-control form-control-sm bg-light" readonly>
+                    </div>
+                    <div class="mb-2">
+                        <label for="terima-warehouse-id" class="form-label small fw-bold">Gudang Penerima Aktual <span class="text-danger">*</span></label>
+                        <select id="terima-warehouse-id" name="receiver_warehouse_id" class="form-select form-select-sm" required>
+                            <option value="">-- Pilih Gudang Penerima --</option>
+                            @foreach($warehouses as $w)
+                                <option value="{{ $w->id }}">{{ $w->name }}</option>
+                            @endforeach
+                        </select>
+                        <div class="form-text">Penerimaan hanya diizinkan pada gudang tujuan yang tercantum di dokumen mutasi. Gudang lain akan ditolak.</div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-check2-circle me-1"></i> Konfirmasi Terima</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -580,6 +615,21 @@ toWarehouse.addEventListener('change', function () {
                             });
                     }
                 });
+        });
+    });
+
+    // 4. Konfirmasi Gudang Penerima. Server tetap memvalidasi kecocokan dengan tujuan dokumen.
+    document.querySelectorAll('.btn-receive-mutasi').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const transferId = this.dataset.id;
+            const destinationWarehouseId = this.dataset.toWarehouseId;
+            const form = document.getElementById('form-terima-mutasi');
+
+            form.action = `{{ url('/inventori/transfer/approve-receiver') }}/${transferId}`;
+            document.getElementById('terima-transfer-no').value = this.dataset.transferNo;
+            document.getElementById('terima-warehouse-id').value = destinationWarehouseId;
+
+            new bootstrap.Modal(document.getElementById('modal-terima-mutasi')).show();
         });
     });
 
