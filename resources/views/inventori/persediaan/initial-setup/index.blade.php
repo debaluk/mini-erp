@@ -283,6 +283,10 @@
     }
 
     function showPopup() {
+        if (editMode) {
+            popup.style.display = 'none';
+            return;
+        }
         const q = search.value.trim().toLowerCase();
         const rows = products
             .filter(p => !q || [p.name, p.code, p.barcode].some(v => String(v || '').toLowerCase().includes(q)))
