@@ -499,48 +499,7 @@ class PurchaseReturnController extends Controller
                 ->first();
 
             abort_unless($return, 404, 'Retur pembelian tidak ditemukan.');
-            abort_unless(in_array($return->status, ['draft', 'posted'], true), 422, 'Retur yang sudah dibatalkan tidak dapat dibatalkan lagi.');
-
-            if ($return->status === 'posted') {
-                $items = DB::table('purchase_return_items')
-                    ->where('purchase_return_id', $return->id)
-                    ->lockForUpdate()
-                    ->get();
-                abort_if($items->isEmpty(), 422, 'Retur tidak memiliki item.');
-
-                foreach ($items as $item) {
-                    $stock = DB::table('warehouses_stocks')
-                        ->where('entity_id', $entity)
-                        ->where('warehouse_id', $return->warehouse_id)
-                        ->where('product_id', $item->product_id)
-                        ->lockForUpdate()
-                        ->first();
-
-                    abort_unless($stock, 422, 'Stok produk tidak ditemukan saat membatalkan retur.');
-
-                    DB::table('warehouses_stocks')->where('id', $stock->id)->update([
-                        'qty' => (float) $stock->qty + (float) $item->base_qty,
-                        'updated_at' => now(),
-                    ]);
-
-                    DB::table('stock_movements')->insert([
-                        'entity_id' => $entity,
-                        'business_unit_id' => $return->business_unit_id,
-                        'warehouse_id' => $return->warehouse_id,
-                        'product_id' => $item->product_id,
-                        'movement_type' => 'purchase_return_cancel',
-                        'qty' => abs((float) $item->base_qty),
-                        'unit_cost' => (float) $item->unit_value,
-                        'reference_type' => 'purchase_return_cancel',
-                        'reference_id' => $return->id,
-                        'occurred_at' => now(),
-                        'created_by' => auth()->id(),
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-                }
-
-            }
+            abort_unless($return->status === 'draft', 422, 'Retur yang sudah diposting tidak dapat dibatalkan.');
 
             DB::table('purchase_returns')->where('id', $return->id)->update([
                 'status' => 'cancelled',
