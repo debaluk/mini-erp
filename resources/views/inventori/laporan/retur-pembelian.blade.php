@@ -44,14 +44,14 @@
 <div class="row g-3 mb-3">
     <div class="col-12 col-sm-6 col-lg-4"><div class="card shadow-sm h-100"><div class="card-body"><div class="text-secondary small">Retur Diposting</div><div class="fs-4 fw-bold">{{ format_id_number($summary, 0) }}</div></div></div></div>
     <div class="col-12 col-sm-6 col-lg-4"><div class="card shadow-sm h-100"><div class="card-body"><div class="text-secondary small">Total Qty Retur</div><div class="fs-4 fw-bold">{{ format_id_number($postedQty, 3) }}</div></div></div></div>
-    <div class="col-12 col-sm-6 col-lg-4"><div class="card shadow-sm h-100"><div class="card-body"><div class="text-secondary small">Nilai Retur Diposting</div><div class="fs-4 fw-bold">{{ \\App\\Helpers\\FormatHelper::indo($total, 0, true) }}</div></div></div></div>
+    <div class="col-12 col-sm-6 col-lg-4"><div class="card shadow-sm h-100"><div class="card-body"><div class="text-secondary small">Nilai Retur Diposting</div><div class="fs-4 fw-bold">{{ \App\Helpers\FormatHelper::indo($total, 0, true) }}</div></div></div></div>
 </div>
 
 <div class="card shadow-sm mb-3">
     <div class="card-body py-3">
         <div class="row g-2 small">
             <div class="col-12 col-md-4"><div class="text-secondary">Entitas</div><div class="fw-semibold">{{ $entityName }}</div></div>
-            <div class="col-12 col-md-4"><div class="text-secondary">Periode</div><div class="fw-semibold">{{ \\Carbon\\Carbon::parse($startDate)->format('d/m/Y') }} s/d {{ \\Carbon\\Carbon::parse($endDate)->format('d/m/Y') }}</div></div>
+            <div class="col-12 col-md-4"><div class="text-secondary">Periode</div><div class="fw-semibold">{{ \Carbon\Carbon::parse($startDate)->format('d/m/Y') }} s/d {{ \Carbon\Carbon::parse($endDate)->format('d/m/Y') }}</div></div>
             <div class="col-12 col-md-4"><div class="text-secondary">Unit Bisnis</div><div class="fw-semibold">{{ $units->firstWhere('id', $businessUnitId)?->name ?? 'Semua Unit Bisnis' }}</div></div>
         </div>
     </div>
@@ -68,10 +68,10 @@
             @forelse($rows as $r)
                 <tr>
                     <td class="fw-semibold text-nowrap">{{ $r->return_no }}</td>
-                    <td class="text-nowrap">{{ \\Carbon\\Carbon::parse($r->return_date)->format('d/m/Y') }}</td>
+                    <td class="text-nowrap">{{ \Carbon\Carbon::parse($r->return_date)->format('d/m/Y') }}</td>
                     <td>{{ $r->purchase_no ?? '-' }}</td><td>{{ $r->receipt_no ?? '-' }}</td><td>{{ $r->supplier_name ?? '-' }}</td><td>{{ $r->unit_name ?? '-' }}</td>
                     <td class="text-end">{{ format_id_number($r->return_qty, 3) }}</td>
-                    <td class="text-end text-nowrap">{{ \\App\\Helpers\\FormatHelper::indo($r->total, 0, true) }}</td>
+                    <td class="text-end text-nowrap">{{ \App\Helpers\FormatHelper::indo($r->total, 0, true) }}</td>
                     <td><span class="badge {{ $r->status === 'posted' ? 'text-bg-success' : ($r->status === 'cancelled' ? 'text-bg-danger' : 'text-bg-secondary') }}">{{ match($r->status) { 'posted' => 'Diposting', 'draft' => 'Draf', 'cancelled' => 'Dibatalkan', default => $r->status ?: '-' } }}</span></td>
                 </tr>
             @empty
