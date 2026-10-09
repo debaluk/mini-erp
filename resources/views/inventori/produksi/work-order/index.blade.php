@@ -717,6 +717,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const money = value => 'Rp ' + Number(value || 0).toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     const number = value => Number(value || 0).toLocaleString('id-ID', {maximumFractionDigits: 3});
     const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]));
+    let activeSavedDrafts = [];
 
     function recalculateResult() {
         let goodTotal = 0, rejectTotal = 0, goodCostTotal = 0, rejectCostTotal = 0;
@@ -747,6 +748,7 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('productionResultWorkOrder').textContent = 'SPK ' + button.dataset.no;
         resultForm.action = '{{ url('/produksi/work-order') }}/' + id + '/hasil-produksi';
         const savedDrafts = resultDraftLines[id] || [];
+        activeSavedDrafts = savedDrafts;
         const draftDate = savedDrafts.length ? savedDrafts[0].production_date : '{{ now()->toDateString() }}';
         document.getElementById('productionResultDateVisible').value = draftDate;
         document.getElementById('productionResultDate').value = draftDate;
@@ -780,6 +782,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.getElementById('productionResultDateVisible').addEventListener('change', function () {
         document.getElementById('productionResultDate').value = this.value;
+        const savedForDate = new Map(activeSavedDrafts.filter(line => line.production_date === this.value).map(line => [String(line.worker_id), line]));
+        workerRows.querySelectorAll('tr[data-worker-id]').forEach(row => {
+            const saved = savedForDate.get(String(row.dataset.workerId)) || {};
+            row.querySelector('.result-good').value = Number(saved.good_qty || 0);
+            row.querySelector('.result-reject').value = Number(saved.reject_qty || 0);
+        });
+        recalculateResult();
     });
     workerRows.addEventListener('input', recalculateResult);
     resultForm.addEventListener('submit', function (event) {
