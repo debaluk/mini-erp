@@ -174,8 +174,11 @@ class StockInventoryController extends Controller
         $sheet->getStyle('A9:H9')->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
         $sheet->getStyle('A9:H9')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('343A40');
         $sheet->getStyle('A9:H' . $lastRow)->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
-        $sheet->getStyle('H10:H' . $lastRow)->getNumberFormat()->setFormatCode('#,##0.###');
-        $sheet->getStyle('H10:H' . $lastRow)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
+        if ($rowNumber > 10) {
+            $sheet->getStyle('H10:H' . $lastRow)->getNumberFormat()->setFormatCode('[$-id-ID]#,##0.###');
+            $sheet->getStyle('H10:H' . $lastRow)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
+        }
+        $sheet->getStyle('A3:H3')->getBorders()->getBottom()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
         foreach (range('A', 'H') as $column) {
             $sheet->getColumnDimension($column)->setAutoSize(true);
         }
