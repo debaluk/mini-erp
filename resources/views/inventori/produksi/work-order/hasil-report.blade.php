@@ -3,7 +3,7 @@
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
-        <h4 class="mb-1">Laporan Hasil Produksi</h4>
+        <h4 class="mb-1">Hasil Produksi</h4>
         <div class="text-secondary small">Rekap hasil produksi dan rincian per pekerja.</div>
     </div>
     <div>
