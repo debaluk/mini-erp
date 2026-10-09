@@ -573,6 +573,118 @@ class PurchaseReturnController extends Controller
             ->with('swal_success', 'Retur Pembelian berhasil diposting.');
     }
 
+    public function cancel(int $id)
+    {
+        $entity = $this->entityId();
+
+        DB::transaction(function () use ($id, $entity) {
+            $return = DB::table('purchase_returns')
+                ->where('entity_id', $entity)
+                ->where('id', $id)
+                ->lockForUpdate()
+                ->first();
+
+            abort_unless($return, 404, 'Retur pembelian tidak ditemukan.');
+            abort_unless(in_array($return->status, ['draft', 'posted'], true), 422, 'Retur yang sudah dibatalkan tidak dapat dibatalkan lagi.');
+
+            $period = DB::table('accounting_periods')
+                ->where('entity_id', $entity)
+                ->whereDate('start_date', '<=', $return->return_date)
+                ->whereDate('end_date', '>=', $return->return_date)
+                ->first();
+            abort_if($period && in_array($period->status, ['closing', 'closed'], true), 422, 'Periode akuntansi retur sedang closing atau sudah ditutup.');
+
+            if ($return->status === 'posted') {
+                $items = DB::table('purchase_return_items')
+                    ->where('purchase_return_id', $return->id)
+                    ->lockForUpdate()
+                    ->get();
+                abort_if($items->isEmpty(), 422, 'Retur tidak memiliki item.');
+
+                foreach ($items as $item) {
+                    $stock = DB::table('warehouses_stocks')
+                        ->where('entity_id', $entity)
+                        ->where('warehouse_id', $return->warehouse_id)
+                        ->where('product_id', $item->product_id)
+                        ->lockForUpdate()
+                        ->first();
+
+                    abort_unless($stock, 422, 'Stok produk tidak ditemukan saat membatalkan retur.');
+
+                    DB::table('warehouses_stocks')->where('id', $stock->id)->update([
+                        'qty' => (float) $stock->qty + (float) $item->base_qty,
+                        'updated_at' => now(),
+                    ]);
+
+                    DB::table('stock_movements')->insert([
+                        'entity_id' => $entity,
+                        'business_unit_id' => $return->business_unit_id,
+                        'warehouse_id' => $return->warehouse_id,
+                        'product_id' => $item->product_id,
+                        'movement_type' => 'purchase_return_cancel',
+                        'qty' => abs((float) $item->base_qty),
+                        'unit_cost' => (float) $item->unit_value,
+                        'reference_type' => 'purchase_return_cancel',
+                        'reference_id' => $return->id,
+                        'occurred_at' => now(),
+                        'created_by' => auth()->id(),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+
+                $originalJournal = DB::table('journals')
+                    ->where('entity_id', $entity)
+                    ->where('source_type', 'purchase_return')
+                    ->where('source_id', $return->id)
+                    ->where('status', 'posted')
+                    ->lockForUpdate()
+                    ->first();
+                abort_unless($originalJournal, 422, 'Jurnal retur tidak ditemukan. Pembatalan dihentikan agar stok dan jurnal tetap konsisten.');
+
+                $originalEntries = DB::table('journal_entries')
+                    ->where('journal_id', $originalJournal->id)
+                    ->get();
+                abort_if($originalEntries->isEmpty(), 422, 'Detail jurnal retur tidak ditemukan.');
+
+                $reversalJournalId = DB::table('journals')->insertGetId([
+                    'entity_id' => $entity,
+                    'business_unit_id' => $return->business_unit_id,
+                    'journal_no' => 'JRN-PRTC-'.$return->id,
+                    'journal_date' => now()->toDateString(),
+                    'source_type' => 'purchase_return_cancel',
+                    'source_id' => $return->id,
+                    'description' => 'Pembatalan retur pembelian '.$return->return_no,
+                    'status' => 'posted',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                $reversalEntries = [];
+                foreach ($originalEntries as $entry) {
+                    $reversalEntries[] = [
+                        'journal_id' => $reversalJournalId,
+                        'account_id' => $entry->account_id,
+                        'debit' => (float) $entry->credit,
+                        'credit' => (float) $entry->debit,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+                DB::table('journal_entries')->insert($reversalEntries);
+            }
+
+            DB::table('purchase_returns')->where('id', $return->id)->update([
+                'status' => 'cancelled',
+                'updated_at' => now(),
+            ]);
+        });
+
+        return redirect()
+            ->route('inventori.pembelian.retur')
+            ->with('swal_success', 'Retur Pembelian berhasil dibatalkan. Stok penerimaan telah dikembalikan jika retur sebelumnya sudah diposting.');
+    }
+
     public function printList(Request $request)
     {
         $entityId = $this->entityId();
