@@ -30,6 +30,14 @@ class StockTransferController extends Controller
         $entityId      = $this->transferEntityId();
         $businessUnits = BusinessUnit::where('entity_id', $entityId)->where('is_active', 1)->orderBy('code')->get();
         $warehouses    = Warehouse::where('entity_id', $entityId)->where('is_active', 1)->orderBy('name')->get();
+        $warehouseBusinessUnitMap = DB::table('warehouse_business_units as wbu')
+            ->join('business_units as bu', function ($join) {
+                $join->on('bu.id', '=', 'wbu.business_unit_id')
+                    ->on('bu.entity_id', '=', 'wbu.entity_id');
+            })
+            ->where('wbu.entity_id', $entityId)
+            ->where('bu.is_active', 1)
+            ->get(['wbu.warehouse_id', 'wbu.business_unit_id']);
         $products      = collect();
 
         // Generate Kode Mutasi Otomatis (MUT-YYYYMMDD-XXX)
@@ -68,7 +76,7 @@ class StockTransferController extends Controller
         )->orderBy('st.created_at', 'desc')->get();
 
         return view('inventori.persediaan.mutasi.index', compact(
-            'businessUnits', 'warehouses', 'products', 'transfers',
+            'businessUnits', 'warehouses', 'warehouseBusinessUnitMap', 'products', 'transfers',
             'startDate', 'endDate', 'businessUnitId', 'fromWhId',
             'toWhId', 'statusFilter', 'search', 'autoCode'
         ));
