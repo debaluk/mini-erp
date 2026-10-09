@@ -1,14 +1,14 @@
 <?php
 
-namespace App\\Http\\Controllers;
+namespace App\Http\Controllers;
 
-use Illuminate\\Http\\Request;
-use Illuminate\\Support\\Facades\\DB;
-use PhpOffice\\PhpSpreadsheet\\Spreadsheet;
-use PhpOffice\\PhpSpreadsheet\\Writer\\Xlsx;
-use PhpOffice\\PhpSpreadsheet\\Style\\Alignment;
-use PhpOffice\\PhpSpreadsheet\\Style\\Border;
-use PhpOffice\\PhpSpreadsheet\\Style\\Fill;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 
 class PurchaseReportController extends Controller
 {
