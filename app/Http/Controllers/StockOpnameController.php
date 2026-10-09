@@ -257,7 +257,7 @@ class StockOpnameController extends Controller
             ->value('status');
 
         if ($opnameStatus !== 'draft') {
-            return redirect()->route('inventori.stock-opname.show', $id)
+            return redirect()->route('inventori.stock-opname.index')
                 ->with('error', 'Hasil fisik untuk dokumen yang sudah difinalisasi tidak dapat diubah.');
         }
 
