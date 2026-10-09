@@ -93,7 +93,7 @@ class StockTransferController extends Controller
 
         try {
             $destinationBusinessUnitId = $this->validateWarehouseDestinationMapping($entityId, $businessUnitId, (int) $warehouseId, $toWarehouseId);
-        } catch (\\Exception $e) {
+        } catch (\Exception $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
@@ -668,7 +668,7 @@ class StockTransferController extends Controller
             ->first();
 
         if (!$sourceBusinessUnit) {
-            throw new \\Exception('Unit Bisnis pengirim tidak aktif atau bukan milik entitas ini.');
+            throw new \Exception('Unit Bisnis pengirim tidak aktif atau bukan milik entitas ini.');
         }
 
         $destinationBusinessUnitId = $this->validateWarehouseDestinationMapping(
@@ -680,7 +680,7 @@ class StockTransferController extends Controller
 
         $productIds = array_values(array_unique(array_map('intval', $productIds)));
         if (count($productIds) === 0) {
-            throw new \\Exception('Mutasi harus memiliki minimal satu item.');
+            throw new \Exception('Mutasi harus memiliki minimal satu item.');
         }
 
         foreach ($productIds as $productId) {
@@ -692,7 +692,7 @@ class StockTransferController extends Controller
                 ->first();
 
             if (!$product) {
-                throw new \\Exception("Item ID {$productId} tidak aktif, bukan milik entitas ini, atau tidak mengelola stok.");
+                throw new \Exception("Item ID {$productId} tidak aktif, bukan milik entitas ini, atau tidak mengelola stok.");
             }
 
             foreach ([$sourceBusinessUnitId, $destinationBusinessUnitId] as $businessUnitId) {
@@ -703,7 +703,7 @@ class StockTransferController extends Controller
 
                 if (!$allocated) {
                     $unit = DB::table('business_units')->where('id', $businessUnitId)->value('name') ?? "ID {$businessUnitId}";
-                    throw new \\Exception("Mutasi ditolak: item {$product->code} - {$product->name} belum dialokasikan ke Unit Bisnis {$unit}.");
+                    throw new \Exception("Mutasi ditolak: item {$product->code} - {$product->name} belum dialokasikan ke Unit Bisnis {$unit}.");
                 }
             }
         }
@@ -718,7 +718,7 @@ class StockTransferController extends Controller
     private function validateWarehouseDestinationMapping(int $entityId, int $sourceBusinessUnitId, int $fromWarehouseId, int $toWarehouseId): int
     {
         if ($fromWarehouseId === $toWarehouseId) {
-            throw new \\Exception('Gudang pengirim dan gudang penerima tidak boleh sama.');
+            throw new \Exception('Gudang pengirim dan gudang penerima tidak boleh sama.');
         }
 
         $warehouses = DB::table('warehouses')
@@ -729,7 +729,7 @@ class StockTransferController extends Controller
             ->keyBy('id');
 
         if (!$warehouses->has($fromWarehouseId) || !$warehouses->has($toWarehouseId)) {
-            throw new \\Exception('Gudang asal/tujuan tidak aktif atau bukan milik entitas ini.');
+            throw new \Exception('Gudang asal/tujuan tidak aktif atau bukan milik entitas ini.');
         }
 
         $sourceMapped = DB::table('warehouse_business_units')
@@ -739,7 +739,7 @@ class StockTransferController extends Controller
             ->exists();
 
         if (!$sourceMapped) {
-            throw new \\Exception('Gudang asal tidak teralokasi ke Unit Bisnis pengirim yang dipilih.');
+            throw new \Exception('Gudang asal tidak teralokasi ke Unit Bisnis pengirim yang dipilih.');
         }
 
         $destinationBusinessUnits = DB::table('warehouse_business_units as wbu')
@@ -756,11 +756,11 @@ class StockTransferController extends Controller
             ->values();
 
         if ($destinationBusinessUnits->count() === 0) {
-            throw new \\Exception('Gudang tujuan belum dipetakan ke Unit Bisnis tujuan.');
+            throw new \Exception('Gudang tujuan belum dipetakan ke Unit Bisnis tujuan.');
         }
 
         if ($destinationBusinessUnits->count() !== 1) {
-            throw new \\Exception('Gudang tujuan dipetakan ke lebih dari satu Unit Bisnis. Rapikan mapping agar BU tujuan dapat ditentukan otomatis.');
+            throw new \Exception('Gudang tujuan dipetakan ke lebih dari satu Unit Bisnis. Rapikan mapping agar BU tujuan dapat ditentukan otomatis.');
         }
 
         return (int) $destinationBusinessUnits->first();
