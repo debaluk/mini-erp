@@ -84,19 +84,15 @@ class StockTransferController extends Controller
             return response()->json(['message' => 'Pilih Unit Bisnis terlebih dahulu.'], 422);
         }
 
-        $warehouseMapped = DB::table('warehouses as w')
-            ->join('warehouse_business_units as wbu', function ($join) {
-                $join->on('wbu.warehouse_id', '=', 'w.id')
-                    ->on('wbu.entity_id', '=', 'w.entity_id');
-            })
-            ->where('w.id', $warehouseId)
-            ->where('w.entity_id', $entityId)
-            ->where('w.is_active', 1)
-            ->where('wbu.business_unit_id', $businessUnitId)
-            ->exists();
+        $toWarehouseId = (int) $request->query('to_warehouse_id');
+        if ($toWarehouseId <= 0 || $toWarehouseId === (int) $warehouseId) {
+            return response()->json(['message' => 'Pilih gudang tujuan yang berbeda dari gudang pengirim.'], 422);
+        }
 
-        if (!$warehouseMapped) {
-            return response()->json(['message' => 'Gudang pengirim tidak teralokasi ke Unit Bisnis yang dipilih.'], 422);
+        try {
+            $destinationBusinessUnitId = $this->validateWarehouseDestinationMapping($entityId, $businessUnitId, (int) $warehouseId, $toWarehouseId);
+        } catch (\\Exception $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
         }
 
         $products = DB::table('products as p')
@@ -116,6 +112,12 @@ class StockTransferController extends Controller
             ->whereColumn('p.entity_id', 'ws.entity_id')
             ->where('ws.entity_id', $entityId)
             ->where('wbu.business_unit_id', $businessUnitId)
+            ->whereExists(function ($query) use ($destinationBusinessUnitId) {
+                $query->select(DB::raw(1))
+                    ->from('product_business_units as destination_pbu')
+                    ->whereColumn('destination_pbu.product_id', 'p.id')
+                    ->where('destination_pbu.business_unit_id', $destinationBusinessUnitId);
+            })
             ->where('p.is_active', 1)
             ->where('p.manage_stock', 1)
             ->where('ws.qty', '>', 0)
@@ -202,7 +204,7 @@ class StockTransferController extends Controller
             }
 
             $entityId = $this->transferEntityId();
-            $this->validateTransferMapping(
+            $destinationBusinessUnitId = $this->validateTransferMapping(
                 $entityId,
                 (int) $request->business_unit_id,
                 (int) $request->from_warehouse_id,
@@ -215,6 +217,7 @@ class StockTransferController extends Controller
             $transferId = DB::table('stock_transfers')->insertGetId([
                 'entity_id'         => $entityId,
                 'business_unit_id'  => $request->business_unit_id,
+                'to_business_unit_id' => $destinationBusinessUnitId,
                 'transfer_no'       => $transferNo,
                 'from_warehouse_id' => $request->from_warehouse_id,
                 'to_warehouse_id'   => $request->to_warehouse_id,
@@ -280,7 +283,7 @@ class StockTransferController extends Controller
                 throw new \Exception('Item yang sama tidak boleh dimasukkan lebih dari satu kali dalam satu mutasi.');
             }
 
-            $this->validateTransferMapping(
+            $destinationBusinessUnitId = $this->validateTransferMapping(
                 (int) $transfer->entity_id,
                 (int) $request->business_unit_id,
                 (int) $request->from_warehouse_id,
@@ -290,6 +293,7 @@ class StockTransferController extends Controller
 
             DB::table('stock_transfers')->where('id', $id)->update([
                 'business_unit_id'  => $request->business_unit_id,
+                'to_business_unit_id' => $destinationBusinessUnitId,
                 'from_warehouse_id' => $request->from_warehouse_id,
                 'to_warehouse_id'   => $request->to_warehouse_id,
                 'transfer_date'     => $request->transfer_date,
@@ -338,13 +342,21 @@ class StockTransferController extends Controller
 
             $items = DB::table('stock_transfer_items')->where('stock_transfer_id', $id)->lockForUpdate()->get();
             $this->assertTransferItemsValid($items);
-            $this->validateTransferMapping(
+            $destinationBusinessUnitId = $this->validateTransferMapping(
                 (int) $transfer->entity_id,
                 (int) $transfer->business_unit_id,
                 (int) $transfer->from_warehouse_id,
                 (int) $transfer->to_warehouse_id,
                 $items->pluck('product_id')->map(fn ($value) => (int) $value)->all()
             );
+
+            if (empty($transfer->to_business_unit_id)) {
+                DB::table('stock_transfers')->where('id', $id)->update([
+                    'to_business_unit_id' => $destinationBusinessUnitId,
+                    'updated_at' => now(),
+                ]);
+                $transfer->to_business_unit_id = $destinationBusinessUnitId;
+            }
 
             foreach ($items as $item) {
                 // Ambil data stok & avg_cost dari warehouses_stocks gudang pengirim
@@ -437,13 +449,21 @@ class StockTransferController extends Controller
 
             $items = DB::table('stock_transfer_items')->where('stock_transfer_id', $id)->lockForUpdate()->get();
             $this->assertTransferItemsValid($items);
-            $this->validateTransferMapping(
+            $destinationBusinessUnitId = $this->validateTransferMapping(
                 (int) $transfer->entity_id,
                 (int) $transfer->business_unit_id,
                 (int) $transfer->from_warehouse_id,
                 (int) $transfer->to_warehouse_id,
                 $items->pluck('product_id')->map(fn ($value) => (int) $value)->all()
             );
+
+            if (empty($transfer->to_business_unit_id)) {
+                DB::table('stock_transfers')->where('id', $id)->update([
+                    'to_business_unit_id' => $destinationBusinessUnitId,
+                    'updated_at' => now(),
+                ]);
+                $transfer->to_business_unit_id = $destinationBusinessUnitId;
+            }
 
             foreach ($items as $item) {
                 // Ambil unit_cost dari record TRANSFER_OUT sebelumnya agar konsisten
@@ -509,7 +529,7 @@ class StockTransferController extends Controller
                 // 2. Insert ke stock_movements (TRANSFER_IN: qty POSITIF)
                 DB::table('stock_movements')->insert([
                     'entity_id'         => $transfer->entity_id ?? (auth()->user()->entity_id ?? 1),
-                    'business_unit_id'  => $transfer->business_unit_id,
+                    'business_unit_id'  => $destinationBusinessUnitId,
                     'warehouse_id'      => $transfer->to_warehouse_id,
                     'product_id'        => $item->product_id,
                     'unit_id'           => $product->base_unit_id ?? $product->unit_id ?? null,
@@ -624,51 +644,33 @@ class StockTransferController extends Controller
 
 
     /**
-     * Validasi relasi BU -> gudang -> item untuk mutasi satu BU.
-     * Transfer antar-BU selalu ditolak.
+     * Validasi BU pengirim, mapping kedua gudang, BU tujuan otomatis,
+     * dan alokasi item pada kedua BU.
+     *
+     * @return int BU tujuan yang dipetakan pada gudang penerima.
      */
-    private function validateTransferMapping(int $entityId, int $businessUnitId, int $fromWarehouseId, int $toWarehouseId, array $productIds): void
+    private function validateTransferMapping(int $entityId, int $sourceBusinessUnitId, int $fromWarehouseId, int $toWarehouseId, array $productIds): int
     {
-        $businessUnit = DB::table('business_units')
-            ->where('id', $businessUnitId)
+        $sourceBusinessUnit = DB::table('business_units')
+            ->where('id', $sourceBusinessUnitId)
             ->where('entity_id', $entityId)
             ->where('is_active', 1)
             ->first();
 
-        if (!$businessUnit) {
-            throw new \Exception('Unit Bisnis tidak aktif atau bukan milik entitas ini.');
+        if (!$sourceBusinessUnit) {
+            throw new \\Exception('Unit Bisnis pengirim tidak aktif atau bukan milik entitas ini.');
         }
 
-        if ($fromWarehouseId === $toWarehouseId) {
-            throw new \Exception('Gudang asal dan tujuan tidak boleh sama.');
-        }
-
-        $warehouses = DB::table('warehouses')
-            ->whereIn('id', [$fromWarehouseId, $toWarehouseId])
-            ->where('entity_id', $entityId)
-            ->where('is_active', 1)
-            ->get()
-            ->keyBy('id');
-
-        if (!$warehouses->has($fromWarehouseId) || !$warehouses->has($toWarehouseId)) {
-            throw new \Exception('Gudang asal/tujuan tidak aktif atau bukan milik entitas ini.');
-        }
-
-        foreach ([$fromWarehouseId, $toWarehouseId] as $warehouseId) {
-            $mapped = DB::table('warehouse_business_units')
-                ->where('entity_id', $entityId)
-                ->where('warehouse_id', $warehouseId)
-                ->where('business_unit_id', $businessUnitId)
-                ->exists();
-
-            if (!$mapped) {
-                throw new \Exception('Mutasi ditolak: gudang asal dan tujuan harus teralokasi ke Unit Bisnis yang sama.');
-            }
-        }
+        $destinationBusinessUnitId = $this->validateWarehouseDestinationMapping(
+            $entityId,
+            $sourceBusinessUnitId,
+            $fromWarehouseId,
+            $toWarehouseId
+        );
 
         $productIds = array_values(array_unique(array_map('intval', $productIds)));
         if (count($productIds) === 0) {
-            throw new \Exception('Mutasi harus memiliki minimal satu item.');
+            throw new \\Exception('Mutasi harus memiliki minimal satu item.');
         }
 
         foreach ($productIds as $productId) {
@@ -680,18 +682,78 @@ class StockTransferController extends Controller
                 ->first();
 
             if (!$product) {
-                throw new \Exception("Item ID {$productId} tidak aktif, bukan milik entitas ini, atau tidak mengelola stok.");
+                throw new \\Exception("Item ID {$productId} tidak aktif, bukan milik entitas ini, atau tidak mengelola stok.");
             }
 
-            $allocated = DB::table('product_business_units')
-                ->where('product_id', $productId)
-                ->where('business_unit_id', $businessUnitId)
-                ->exists();
+            foreach ([$sourceBusinessUnitId, $destinationBusinessUnitId] as $businessUnitId) {
+                $allocated = DB::table('product_business_units')
+                    ->where('product_id', $productId)
+                    ->where('business_unit_id', $businessUnitId)
+                    ->exists();
 
-            if (!$allocated) {
-                throw new \Exception("Mutasi ditolak: item {$product->code} - {$product->name} belum dialokasikan ke Unit Bisnis ini.");
+                if (!$allocated) {
+                    $unit = DB::table('business_units')->where('id', $businessUnitId)->value('name') ?? "ID {$businessUnitId}";
+                    throw new \\Exception("Mutasi ditolak: item {$product->code} - {$product->name} belum dialokasikan ke Unit Bisnis {$unit}.");
+                }
             }
         }
+
+        return $destinationBusinessUnitId;
+    }
+
+    /**
+     * Gudang asal wajib dipetakan ke BU pengirim. BU tujuan ditentukan
+     * otomatis dari mapping gudang tujuan dan harus hanya memiliki satu BU aktif.
+     */
+    private function validateWarehouseDestinationMapping(int $entityId, int $sourceBusinessUnitId, int $fromWarehouseId, int $toWarehouseId): int
+    {
+        if ($fromWarehouseId === $toWarehouseId) {
+            throw new \\Exception('Gudang pengirim dan gudang penerima tidak boleh sama.');
+        }
+
+        $warehouses = DB::table('warehouses')
+            ->whereIn('id', [$fromWarehouseId, $toWarehouseId])
+            ->where('entity_id', $entityId)
+            ->where('is_active', 1)
+            ->get()
+            ->keyBy('id');
+
+        if (!$warehouses->has($fromWarehouseId) || !$warehouses->has($toWarehouseId)) {
+            throw new \\Exception('Gudang asal/tujuan tidak aktif atau bukan milik entitas ini.');
+        }
+
+        $sourceMapped = DB::table('warehouse_business_units')
+            ->where('entity_id', $entityId)
+            ->where('warehouse_id', $fromWarehouseId)
+            ->where('business_unit_id', $sourceBusinessUnitId)
+            ->exists();
+
+        if (!$sourceMapped) {
+            throw new \\Exception('Gudang asal tidak teralokasi ke Unit Bisnis pengirim yang dipilih.');
+        }
+
+        $destinationBusinessUnits = DB::table('warehouse_business_units as wbu')
+            ->join('business_units as bu', function ($join) {
+                $join->on('bu.id', '=', 'wbu.business_unit_id')
+                    ->on('bu.entity_id', '=', 'wbu.entity_id');
+            })
+            ->where('wbu.entity_id', $entityId)
+            ->where('wbu.warehouse_id', $toWarehouseId)
+            ->where('bu.is_active', 1)
+            ->pluck('wbu.business_unit_id')
+            ->map(fn ($value) => (int) $value)
+            ->unique()
+            ->values();
+
+        if ($destinationBusinessUnits->count() === 0) {
+            throw new \\Exception('Gudang tujuan belum dipetakan ke Unit Bisnis tujuan.');
+        }
+
+        if ($destinationBusinessUnits->count() !== 1) {
+            throw new \\Exception('Gudang tujuan dipetakan ke lebih dari satu Unit Bisnis. Rapikan mapping agar BU tujuan dapat ditentukan otomatis.');
+        }
+
+        return (int) $destinationBusinessUnits->first();
     }
 
     /**
