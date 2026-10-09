@@ -1,12 +1,12 @@
 <?php
 
-namespace App\\Exports;
+namespace App\Exports;
 
-use Illuminate\\Support\\Collection;
-use Illuminate\\Support\\Facades\\DB;
-use Maatwebsite\\Excel\\Concerns\\FromCollection;
-use Maatwebsite\\Excel\\Concerns\\ShouldAutoSize;
-use Maatwebsite\\Excel\\Concerns\\WithHeadings;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithHeadings;
 
 class ProductionWorkOrderResultsExport implements FromCollection, WithHeadings, ShouldAutoSize
 {
