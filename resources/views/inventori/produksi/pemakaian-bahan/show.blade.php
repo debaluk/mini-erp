@@ -124,9 +124,10 @@
             <button class="btn btn-primary" onclick="return confirm('Ajukan pemakaian bahan untuk approval?')">Ajukan Approval</button>
         </form>
     @elseif($usage->status === 'pending')
-        <form method="POST" action="{{ route('produksi.pemakaian-bahan.reject', $usage->id) }}">
+        <form method="POST" action="{{ route('produksi.pemakaian-bahan.reject', $usage->id) }}" class="d-flex align-items-start gap-2 flex-grow-1" style="max-width:760px;">
             @csrf
-            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">Tolak</button>
+            <textarea name="rejection_reason" class="form-control" rows="1" required minlength="3" placeholder="Alasan penolakan (wajib)"></textarea>
+            <button type="submit" class="btn btn-outline-danger text-nowrap">Tolak</button>
         </form>
         <form method="POST" action="{{ route('produksi.pemakaian-bahan.approve', $usage->id) }}">
             @csrf
@@ -135,24 +136,5 @@
     @elseif($usage->status === 'approved')
         <span class="text-success align-self-center small">Beban bahan baku sudah diakui.</span>
     @endif
-</div>
-<div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <form method="POST" action="{{ route('produksi.pemakaian-bahan.reject', $usage->id) }}" class="modal-content">
-            @csrf
-            <div class="modal-header">
-                <h5 class="modal-title">Tolak Pemakaian Bahan</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <label class="form-label">Alasan Penolakan <span class="text-danger">*</span></label>
-                <textarea name="rejection_reason" class="form-control" rows="4" required minlength="3" placeholder="Masukkan alasan penolakan"></textarea>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                <button type="submit" class="btn btn-danger">Tolak</button>
-            </div>
-        </form>
-    </div>
 </div>
 @endsection
