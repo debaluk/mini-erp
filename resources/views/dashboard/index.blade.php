@@ -78,7 +78,7 @@
         </div></div>
     </div>
 
-    <div class="section-heading">Performa Unit Bisnis</div>
+
     <div class="row g-3 mb-4">
         @foreach($buCards as $bu)
         <div class="col-12 col-md-4"><div class="dash-card bg-white h-100">
@@ -117,6 +117,8 @@
             <div class="small muted mt-2">Faktur posted dikurangi alokasi pembayaran supplier posted sampai tanggal cut-off.</div>
         </div></div>
     </div>
+
+    <div class="section-heading">Performa Unit Bisnis</div>
 
 
 </div>
