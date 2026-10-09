@@ -33,6 +33,21 @@ class PurchaseReturnController extends Controller
         return (int) $account->id;
     }
 
+    private function nextReturnNumber(int $entity, string $returnDate): string
+    {
+        $prefix = 'RB-'.date('Ymd', strtotime($returnDate));
+        $lastNumber = DB::table('purchase_returns')
+            ->where('entity_id', $entity)
+            ->where('return_no', 'like', $prefix.'%')
+            ->orderByDesc('return_no')
+            ->lockForUpdate()
+            ->value('return_no');
+
+        $nextSequence = $lastNumber ? ((int) substr($lastNumber, 11)) + 1 : 1;
+
+        return $prefix.str_pad((string) $nextSequence, 4, '0', STR_PAD_LEFT);
+    }
+
     public function index(Request $request)
     {
         $startDate = $request->query('start_date', now()->startOfMonth()->toDateString());
@@ -117,6 +132,7 @@ class PurchaseReturnController extends Controller
         $entity = $this->entityId();
         $receipt = DB::table('receipts as r')
             ->join('purchases as p', 'p.id', '=', 'r.purchase_id')
+            ->leftJoin('purchase_orders as po', 'po.id', '=', 'p.purchase_order_id')
             ->leftJoin('suppliers as s', 's.id', '=', 'r.supplier_id')
             ->leftJoin('warehouses as w', 'w.id', '=', 'r.warehouse_id')
             ->leftJoin('business_units as bu', 'bu.id', '=', 'r.business_unit_id')
@@ -125,7 +141,7 @@ class PurchaseReturnController extends Controller
             ->where('r.status', 'posted')
             ->where('p.status', 'posted')
             ->whereNull('p.deleted_at')
-            ->select('r.*', 'p.purchase_no', 's.name as supplier_name', 'w.name as warehouse_name', 'bu.name as business_unit_name')
+            ->select('r.*', 'p.purchase_no', 'po.po_no', 's.name as supplier_name', 'w.name as warehouse_name', 'bu.name as business_unit_name')
             ->first();
 
         abort_unless($receipt, 404, 'Penerimaan sumber tidak ditemukan atau sudah dibatalkan.');
@@ -190,7 +206,7 @@ class PurchaseReturnController extends Controller
                 ->first();
             abort_if($period && in_array($period->status, ['closing', 'closed'], true), 422, 'Periode akuntansi retur sedang closing atau sudah ditutup.');
 
-            $returnNo = 'PRT-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4));
+            $returnNo = $this->nextReturnNumber($entity, $data['return_date']);
             $returnId = DB::table('purchase_returns')->insertGetId([
                 'entity_id' => $entity,
                 'business_unit_id' => $receipt->business_unit_id,
