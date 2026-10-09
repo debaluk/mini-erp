@@ -139,7 +139,6 @@ class PurchaseReturnController extends Controller
             ->where('r.entity_id', $entity)
             ->where('r.id', $receiptId)
             ->where('r.status', 'posted')
-            ->where('p.status', 'posted')
             ->whereNull('p.deleted_at')
             ->select('r.*', 'p.purchase_no', 'po.po_no', 's.name as supplier_name', 'w.name as warehouse_name', 'bu.name as business_unit_name')
             ->first();
@@ -199,7 +198,7 @@ class PurchaseReturnController extends Controller
             $purchase = DB::table('purchases')
                 ->where('entity_id', $entity)->where('id', $receipt->purchase_id)
                 ->whereNull('deleted_at')->lockForUpdate()->first();
-            abort_unless($purchase && $purchase->status === 'posted', 422, 'Faktur pembelian sumber tidak valid.');
+            abort_unless($purchase && $purchase->status !== 'cancelled', 422, 'Faktur pembelian sumber tidak valid atau sudah dibatalkan.');
 
             $period = DB::table('accounting_periods')
                 ->where('entity_id', $entity)
