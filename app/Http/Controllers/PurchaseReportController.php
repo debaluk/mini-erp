@@ -33,6 +33,8 @@ class PurchaseReportController extends Controller
             ->leftJoin('suppliers as s', 's.id', '=', 'p.supplier_id')
             ->leftJoin('business_units as bu', 'bu.id', '=', 'p.business_unit_id')
             ->where('p.entity_id', $entity)
+            // Samakan dengan daftar pembelian: transaksi draft tidak masuk laporan maupun export.
+            ->whereRaw("LOWER(COALESCE(p.status, '')) <> 'draft'")
             ->whereBetween('p.purchase_date', [$start . ' 00:00:00', $end . ' 23:59:59'])
             ->when($request->filled('supplier'), fn ($q) => $q->where('s.name', 'like', '%' . $request->input('supplier') . '%'))
             ->when($request->filled('unit_id'), fn ($q) => $q->where('p.business_unit_id', $request->input('unit_id')))
