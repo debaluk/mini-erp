@@ -370,6 +370,7 @@
             search.value = btn.dataset.name;
             setupBusinessUnitId.value = btn.dataset.businessUnitId || '';
 
+            search.readOnly = false;
             setupPurchase.readOnly = false;
             initialStock.readOnly = false;
 
@@ -392,6 +393,8 @@
         search.value = edit.dataset.name;
         setupBusinessUnitId.value = edit.dataset.businessUnitId || '';
 
+        // Endpoint update menggunakan ID barang pada URL; identitas item dikunci saat edit.
+        search.readOnly = true;
         setupPurchase.value = fmtMoney(edit.dataset.hpp);
         initialStock.value = fmtNum(edit.dataset.stock);
         markup.value = fmtNum(edit.dataset.up || '0');
@@ -404,7 +407,7 @@
             edit.dataset.date || '{{ now()->toDateString() }}';
 
         document.getElementById('setup-form-alert').innerHTML =
-            '<div class="alert alert-info py-2 small">Mengedit Initial Setup item yang sudah ada.</div>';
+            '<div class="alert alert-info py-2 small">Mengedit Initial Setup item yang sudah ada. Identitas barang dikunci.</div>';
 
         popup.style.display = 'none';
         modal.show();
