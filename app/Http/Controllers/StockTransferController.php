@@ -383,7 +383,7 @@ class StockTransferController extends Controller
                     'business_unit_id'  => $transfer->business_unit_id,
                     'warehouse_id'      => $transfer->from_warehouse_id,
                     'product_id'        => $item->product_id,
-                    'unit_id'           => $product->unit_id ?? null,
+                    'unit_id'           => $product->base_unit_id ?? $product->unit_id ?? null,
                     'transaction_qty'   => $item->quantity,
                     'conversion_factor' => 1.000000,
                     'movement_type'     => 'TRANSFER_OUT',
@@ -512,7 +512,7 @@ class StockTransferController extends Controller
                     'business_unit_id'  => $transfer->business_unit_id,
                     'warehouse_id'      => $transfer->to_warehouse_id,
                     'product_id'        => $item->product_id,
-                    'unit_id'           => $product->unit_id ?? null,
+                    'unit_id'           => $product->base_unit_id ?? $product->unit_id ?? null,
                     'transaction_qty'   => $item->quantity,
                     'conversion_factor' => 1.000000,
                     'movement_type'     => 'TRANSFER_IN',
@@ -585,6 +585,7 @@ class StockTransferController extends Controller
             $transferNo = DB::transaction(function () use ($id) {
                 $transfer = DB::table('stock_transfers')
                     ->where('id', $id)
+                    ->where('entity_id', $this->transferEntityId())
                     ->whereNull('deleted_at')
                     ->lockForUpdate()
                     ->first();
@@ -599,6 +600,9 @@ class StockTransferController extends Controller
 
                 DB::table('stock_transfers')
                     ->where('id', $id)
+                    ->where('entity_id', $this->transferEntityId())
+                    ->where('status', 'draft')
+                    ->whereNull('deleted_at')
                     ->update([
                         'deleted_at' => now(),
                         'updated_at' => now(),
