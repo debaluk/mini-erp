@@ -9,11 +9,6 @@
         </div>
         <div class="d-flex gap-2">
             <a href="{{ route('inventori.pembelian.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
-            @if($p->status === 'posted' && $items->sum('returnable_qty') > 0)
-                <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalReturPembelian">
-                    <i class="bi bi-arrow-return-left me-1"></i> Retur Pembelian
-                </button>
-            @endif
             <a href="{{ route('inventori.pembelian.print-invoice', $p->id) }}" target="_blank" class="btn btn-secondary btn-sm">
                 <i class="bi bi-printer me-1"></i> Print Invoice
             </a>
@@ -127,76 +122,4 @@
         </div>
     @endif
 </div>
-@if($p->status === 'posted' && $items->sum('returnable_qty') > 0)
-<div class="modal fade" id="modalReturPembelian" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
-        <div class="modal-content">
-            <form method="POST" action="{{ route('inventori.pembelian.retur.store') }}">
-                @csrf
-                <input type="hidden" name="purchase_id" value="{{ $p->id }}">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-arrow-return-left me-2"></i>Retur Pembelian</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="alert alert-light border small">
-                        <strong>{{ $p->invoice_no }}</strong> — {{ $p->supplier_name }} — {{ $warehouse->warehouse_name ?? '-' }}
-                    </div>
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold">Tanggal Retur</label>
-                            <input type="date" name="return_date" class="form-control form-control-sm" value="{{ now()->toDateString() }}" required>
-                        </div>
-                        <div class="col-md-8">
-                            <label class="form-label small fw-bold">Alasan</label>
-                            <input type="text" name="reason" class="form-control form-control-sm" maxlength="1000" placeholder="Alasan retur">
-                        </div>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-sm align-middle">
-                            <thead class="table-dark text-center"><tr>
-                                <th>Kode</th><th>Barang</th><th>Qty Faktur</th><th>Sudah Diterima / Sisa Retur</th><th style="width:140px;">Qty Retur</th><th style="width:130px;">Kondisi</th>
-                            </tr></thead>
-                            <tbody>
-                            @foreach($items as $item)
-                                <tr>
-                                    <td>{{ $item->product_code }}</td>
-                                    <td>{{ $item->product_name }}</td>
-                                    <td class="text-end">{{ number_format($item->qty, 2, ',', '.') }} {{ $item->unit_name }}</td>
-                                    <td class="text-end">{{ number_format($item->returnable_qty, 2, ',', '.') }} {{ $item->unit_name }}</td>
-                                    <td>
-                                        @if($item->returnable_qty > 0)
-                                            <input type="number" step="0.001" min="0" max="{{ $item->returnable_qty }}" name="items[{{ $item->id }}][qty]" class="form-control form-control-sm text-end" placeholder="0">
-                                            <input type="hidden" name="items[{{ $item->id }}][purchase_item_id]" value="{{ $item->id }}">
-                                        @else
-                                            <span class="text-muted small">Tidak tersedia</span>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        @if($item->returnable_qty > 0)
-                                            <select name="items[{{ $item->id }}][condition]" class="form-select form-select-sm">
-                                                <option value="good">BAGUS</option>
-                                                <option value="reject">RUSAK</option>
-                                            </select>
-                                        @else
-                                            -
-                                        @endif
-                                    </td>
-                                </tr>
-                            @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="small text-muted">Qty retur tidak boleh melebihi qty yang sudah diterima dan belum pernah diretur.</div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-save me-1"></i>Simpan Draft Retur</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-@endif
-
 @endsection
