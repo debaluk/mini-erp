@@ -18,7 +18,37 @@
     .executive-dashboard .kpi-icon { display:inline-flex; width:42px; height:42px; align-items:center; justify-content:center; border-radius:11px; font-size:1.2rem; }
     .executive-dashboard .section-heading { font-size: 1rem; font-weight: 750; margin-bottom: .8rem; }
     .executive-dashboard .table { --bs-table-bg: transparent; }
+
     .executive-dashboard .small-label { font-size: .78rem; }
+    /* Warna dashboard dibuat lebih tegas, tanpa mengubah data atau logika HPP. */
+    .executive-dashboard > .row:first-of-type > div:nth-child(1) .dash-card { background: linear-gradient(135deg,#0759c7,#1687ff) !important; color:#fff; border-color:#0759c7; box-shadow:0 6px 16px rgba(13,110,253,.22); }
+    .executive-dashboard > .row:first-of-type > div:nth-child(2) .dash-card { background: linear-gradient(135deg,#087443,#18a66a) !important; color:#fff; border-color:#087443; box-shadow:0 6px 16px rgba(25,135,84,.2); }
+    .executive-dashboard > .row:first-of-type > div:nth-child(3) .dash-card { background: linear-gradient(135deg,#087990,#13b8d4) !important; color:#fff; border-color:#087990; box-shadow:0 6px 16px rgba(13,202,240,.2); }
+    .executive-dashboard > .row:first-of-type > div:nth-child(4) .dash-card { background: linear-gradient(135deg,#b85b00,#ff9f1c) !important; color:#fff; border-color:#b85b00; box-shadow:0 6px 16px rgba(255,159,28,.22); }
+    .executive-dashboard .kpi-label, .executive-dashboard .muted, .executive-dashboard .small-label { color:inherit; }
+    .executive-dashboard > .row:first-of-type .kpi-label,
+    .executive-dashboard > .row:first-of-type .muted,
+    .executive-dashboard > .row:first-of-type .small-label { color:rgba(255,255,255,.88) !important; }
+    .executive-dashboard > .row:first-of-type .kpi-value { color:#fff !important; }
+    .executive-dashboard > .row:first-of-type .kpi-icon { background:rgba(255,255,255,.2) !important; color:#fff !important; }
+    .executive-dashboard .dash-card { transition:transform .18s ease, box-shadow .18s ease; }
+    .executive-dashboard .dash-card:hover { transform:translateY(-2px); box-shadow:0 8px 20px rgba(16,24,40,.1); }
+    .executive-dashboard .section-heading { color:#173b70; }
+    .executive-dashboard .row.g-3.mb-4 .dash-card { border-top:3px solid #0d6efd; }
+    .executive-dashboard .row.g-3.mb-4 .col-12.col-lg-4:nth-child(1) .dash-card { border-top-color:#ffb020; }
+    .executive-dashboard .row.g-3.mb-4 .col-12.col-lg-4:nth-child(2) .dash-card { border-top-color:#e64980; }
+    .executive-dashboard .row.g-3.mb-4 .col-12.col-lg-4:nth-child(3) .dash-card { border-top-color:#6f42c1; }
+    .executive-dashboard > .section-heading { color:#fff; background:linear-gradient(90deg,#173b70,#2878d0); padding:.8rem 1rem; border-radius:10px; box-shadow:0 4px 12px rgba(23,59,112,.18); }
+    .executive-dashboard > .row:last-of-type .dash-card { border-top:4px solid #0d6efd; }
+    .executive-dashboard > .row:last-of-type .col-12:nth-child(1) .dash-card { background:#fff8e8; border-color:#ffc247; }
+    .executive-dashboard > .row:last-of-type .col-12:nth-child(2) .dash-card { background:#fff0f4; border-color:#ef8aa8; }
+    .executive-dashboard > .row:last-of-type .col-12:nth-child(3) .dash-card { background:#f4efff; border-color:#ad91ef; }
+    .executive-dashboard > .row:last-of-type .col-12:nth-child(1) .section-heading { color:#a65c00; }
+    .executive-dashboard > .row:last-of-type .col-12:nth-child(2) .section-heading { color:#b42355; }
+    .executive-dashboard > .row:last-of-type .col-12:nth-child(3) .section-heading { color:#5a32a3; }
+    .executive-dashboard > .row:last-of-type .col-md-4:nth-child(1) .dash-card { border-top:4px solid #0d6efd; }
+    .executive-dashboard > .row:last-of-type .col-md-4:nth-child(2) .dash-card { border-top:4px solid #198754; }
+    .executive-dashboard > .row:last-of-type .col-md-4:nth-child(3) .dash-card { border-top:4px solid #fd7e14; }
 </style>
 
 <div class="executive-dashboard container-fluid py-2">
