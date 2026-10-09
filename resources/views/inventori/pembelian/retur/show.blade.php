@@ -18,15 +18,15 @@
     <div class="card shadow-sm border-0 mb-3"><div class="card-body"><div class="row g-3">
         <div class="col-md-3"><div class="text-muted small">No. Retur</div><strong>{{ $return->return_no }}</strong></div>
         <div class="col-md-3"><div class="text-muted small">Tanggal</div><strong>{{ Carbon\Carbon::parse($return->return_date)->format('d/m/Y') }}</strong></div>
-        <div class="col-md-3"><div class="text-muted small">Faktur</div><strong>{{ $return->invoice_no }}</strong></div>
+        <div class="col-md-3"><div class="text-muted small">Penerimaan Sumber</div><strong>{{ $return->source_receipt_no }}</strong></div>
         <div class="col-md-3"><div class="text-muted small">Supplier</div><strong>{{ $return->supplier_name }}</strong></div>
         <div class="col-md-3"><div class="text-muted small">Gudang</div><strong>{{ $return->warehouse_name }}</strong></div>
-        <div class="col-md-3"><div class="text-muted small">Status</div><span class="badge {{ $return->status === 'posted' ? 'bg-success' : 'bg-secondary' }}">{{ strtoupper($return->status) }}</span></div>
+        <div class="col-md-3"><div class="text-muted small">Status</div><span class="badge {{ $return->status === 'posted' ? 'bg-success' : 'bg-secondary' }}">{{ $return->status === 'posted' ? 'Terposting' : ($return->status === 'cancelled' ? 'Dibatalkan' : 'Draft') }}</span></div>
         <div class="col-md-6"><div class="text-muted small">Alasan</div><strong>{{ $return->reason ?: '-' }}</strong></div>
     </div></div></div>
     <div class="card shadow-sm border-0"><div class="card-body p-0"><div class="table-responsive">
         <table class="table table-bordered table-sm mb-0 align-middle">
-            <thead class="table-dark text-center"><tr><th>No</th><th>Kode</th><th>Nama Barang</th><th>Qty</th><th>Kondisi</th><th>HPP/Unit</th><th>Total</th></tr></thead>
+            <thead class="table-dark text-center"><tr><th>No</th><th>Kode</th><th>Nama Barang</th><th>Qty</th><th>Kondisi</th><th>Harga Pokok Pembelian/Unit</th><th>Total</th></tr></thead>
             <tbody>
             @foreach($items as $i => $item)
                 <tr>
