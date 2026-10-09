@@ -367,7 +367,7 @@ class StockTransferController extends Controller
             );
 
             if (!empty($transfer->to_business_unit_id) && (int) $transfer->to_business_unit_id !== $destinationBusinessUnitId) {
-                throw new \\Exception('Persetujuan ditolak: mapping BU gudang tujuan berubah sejak mutasi dibuat.');
+                throw new \Exception('Persetujuan ditolak: mapping BU gudang tujuan berubah sejak mutasi dibuat.');
             }
 
             if (empty($transfer->to_business_unit_id)) {
@@ -478,7 +478,7 @@ class StockTransferController extends Controller
             );
 
             if (!empty($transfer->to_business_unit_id) && (int) $transfer->to_business_unit_id !== $destinationBusinessUnitId) {
-                throw new \\Exception('Persetujuan ditolak: mapping BU gudang tujuan berubah sejak mutasi dibuat.');
+                throw new \Exception('Persetujuan ditolak: mapping BU gudang tujuan berubah sejak mutasi dibuat.');
             }
 
             if (empty($transfer->to_business_unit_id)) {
