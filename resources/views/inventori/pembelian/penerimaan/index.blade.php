@@ -153,10 +153,12 @@ $(function () {
         const titleElement = document.getElementById('erpMessageTitle');
         const bodyElement = document.getElementById('erpMessageBody');
         const okButton = modalElement.querySelector('.modal-footer button');
+        const closeButton = header.querySelector('.btn-close');
         header.classList.remove('bg-primary', 'bg-danger', 'bg-warning', 'text-white');
         if (type === 'success') header.classList.add('bg-primary', 'text-white');
         else if (type === 'danger') header.classList.add('bg-danger', 'text-white');
         else if (type === 'warning') header.classList.add('bg-warning');
+        if (closeButton) closeButton.classList.toggle('btn-close-white', type === 'success' || type === 'danger');
         titleElement.textContent = title;
         bodyElement.textContent = message || '';
         okButton.className = 'btn btn-primary btn-sm';
