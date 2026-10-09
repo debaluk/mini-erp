@@ -140,6 +140,11 @@
 @push('scripts')
 <script>
 $(function () {
+    function showNotice(title, message, onClose) {
+        window.alert(title + (message ? '\n\n' + message : ''));
+        if (typeof onClose === 'function') onClose();
+    }
+
     const table = $('#table-receipt').DataTable({
         processing: true,
         serverSide: false,
@@ -241,13 +246,7 @@ $(function () {
                 $(modalElement).one('hidden.bs.modal', function () {
                     table.ajax.reload(null, false);
 
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Berhasil',
-                        text: response.message || 'Proses batal berhasil',
-                        showConfirmButton: false,
-                        timer: 1400
-                    });
+                    showNotice('Berhasil', response.message || 'Proses batal berhasil.');
                 });
 
                 modal.hide();
@@ -256,12 +255,7 @@ $(function () {
                 confirmButton.prop('disabled', false);
 
                 const message = xhr.responseJSON?.message || 'Proses batal gagal.';
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Gagal',
-                    text: message,
-                    confirmButtonText: 'OK'
-                });
+                showNotice('Gagal', message);
             }
         });
     });
@@ -287,7 +281,7 @@ $(function () {
             },
             error: function (xhr) {
                 returnModal.hide();
-                Swal.fire({ icon: 'error', title: 'Gagal', text: xhr.responseJSON?.message || 'Data retur tidak dapat dimuat.' });
+                showNotice('Retur Tidak Dapat Dimuat', xhr.responseJSON?.message || 'Data retur tidak dapat dimuat.');
             }
         });
     });
@@ -323,12 +317,7 @@ $(function () {
             success: function (response) {
                 returnModal.hide();
                 table.ajax.reload(null, false);
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Retur Berhasil Disimpan',
-                    text: response.message || 'Draft retur berhasil dibuat. Proses retur belum selesai sampai draft diposting.',
-                    confirmButtonText: 'Lanjutkan'
-                }).then(function () {
+                showNotice('Retur Berhasil Disimpan', response.message || 'Draft retur berhasil dibuat. Proses retur belum selesai sampai draft diposting.', function () {
                     if (response.redirect_url) {
                         window.location.href = response.redirect_url;
                     } else {
@@ -350,12 +339,7 @@ $(function () {
                     message = 'Terjadi kesalahan pada server. Draft retur belum dapat disimpan.';
                 }
 
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Retur Gagal Diproses',
-                    text: message,
-                    confirmButtonText: 'Periksa'
-                });
+                showNotice('Retur Gagal Diproses', message);
             },
             complete: function () {
                 button.prop('disabled', false).html(originalText);
@@ -410,7 +394,7 @@ $(function () {
                 '</table></div>'
             );
         }).fail(function (xhr) {
-            Swal.fire({ icon: 'error', title: 'Gagal!', text: xhr.responseJSON?.message || 'Gagal memuat detail Penerimaan Barang.' });
+            showNotice('Gagal Memuat Detail', xhr.responseJSON?.message || 'Gagal memuat detail Penerimaan Barang.');
         });
     });
 });
