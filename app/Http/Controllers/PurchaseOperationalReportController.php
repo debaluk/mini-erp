@@ -101,7 +101,7 @@ class PurchaseOperationalReportController extends Controller
             ->leftJoin('suppliers as s', 's.id', '=', 'p.supplier_id')
             ->leftJoin('business_units as bu', 'bu.id', '=', 'p.business_unit_id')
             ->leftJoinSub($paid, 'pay', 'pay.purchase_id', '=', 'p.id')
-            ->where('p.entity_id', $entity)->where('p.status', 'posted')->whereNull('p.deleted_at')
+            ->where('p.entity_id', $entity)->where('p.status', 'posted')->whereNull('p.deleted_at')->where('p.payment_method', 'credit')
             ->whereBetween('p.purchase_date', [$start . ' 00:00:00', $end . ' 23:59:59'])
             ->when($unitId, fn ($q) => $q->where('p.business_unit_id', $unitId))
             ->select('p.id', 'p.purchase_no', 'p.purchase_date', 'p.due_date', 'p.payment_method', 'p.total', 'p.status', 's.name as supplier_name', 'bu.name as unit_name')
@@ -118,7 +118,7 @@ class PurchaseOperationalReportController extends Controller
         $rows = $this->payableRows($entity, $startDate, $endDate, $businessUnitId)->paginate(15)->withQueryString();
         $totals = DB::query()->fromSub($this->payableRows($entity, $startDate, $endDate, $businessUnitId), 'x')
             ->selectRaw('COALESCE(SUM(total),0) as purchase_total, COALESCE(SUM(paid_amount),0) as paid_total, COALESCE(SUM(return_amount),0) as return_total, COALESCE(SUM(outstanding_amount),0) as outstanding_total')->first();
-        $summary = (int) DB::table('purchases as p')->where('p.entity_id', $entity)->where('p.status', 'posted')->whereNull('p.deleted_at')
+        $summary = (int) DB::table('purchases as p')->where('p.entity_id', $entity)->where('p.status', 'posted')->whereNull('p.deleted_at')->where('p.payment_method', 'credit')
             ->whereBetween('p.purchase_date', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
             ->when($businessUnitId, fn ($q) => $q->where('p.business_unit_id', $businessUnitId))->count();
         return view('inventori.laporan.hutang-pembelian', array_merge($this->filters($entity), compact('rows', 'startDate', 'endDate', 'businessUnitId', 'summary', 'totals')));
