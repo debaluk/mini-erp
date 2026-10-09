@@ -32,14 +32,14 @@
 <div class="card border-0 shadow-sm mb-3">
     <div class="card-header bg-warning bg-opacity-10 fw-semibold">Rencana & Aktual Pemakaian</div>
     <div class="card-body">
-        <div class="alert alert-info">Rencana diambil dari SPK/BOM. Isi hanya jumlah aktual yang dipakai.</div>
+        <div class="alert alert-info">Sisa estimasi dihitung dari BOM × batch SPK dikurangi seluruh pemakaian yang sudah disetujui.</div>
         <div class="table-responsive">
             <table class="table table-sm align-middle">
                 <thead class="table-light">
                     <tr>
                         <th>SKU</th>
                         <th>Bahan</th>
-                        <th class="text-end">Rencana dari SPK</th>
+                        <th class="text-end">Sisa Estimasi</th>
                         <th>Satuan</th>
                         <th style="width:220px">Aktual Dipakai</th>
                     </tr>
@@ -49,11 +49,11 @@
                     <tr>
                         <td>{{ $item['sku'] }}</td>
                         <td>{{ $item['name'] }}</td>
-                        <td class="text-end">{{ number_format($item['planned_qty'], 3, ',', '.') }}</td>
+                        <td class="text-end">{{ number_format($item['remaining_qty'], 3, ',', '.') }}</td>
                         <td>{{ $item['unit'] }}</td>
                         <td>
                             <input type="hidden" name="product_id[]" value="{{ $item['product_id'] }}">
-                            <input type="number" step="0.001" min="0.001" name="actual_qty[]" class="form-control text-end" value="{{ old('actual_qty.'. $loop->index, $item['planned_qty']) }}" required>
+                            <input type="number" step="0.001" min="0.001" name="actual_qty[]" class="form-control text-end" value="{{ old('actual_qty.'. $loop->index, $item['remaining_qty']) }}" required>
                         </td>
                     </tr>
                 @endforeach
