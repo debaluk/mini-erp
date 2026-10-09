@@ -389,8 +389,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const productsData = @json($products);
 
+const businessUnitSelect = document.getElementById('input-bu');
 const fromWarehouse = document.getElementById('input-from-wh');
 const toWarehouse = document.getElementById('input-to-wh');
+
+businessUnitSelect.addEventListener('change', function () {
+    // Perubahan BU membatalkan pilihan gudang dan barang yang berasal dari BU sebelumnya.
+    fromWarehouse.value = '';
+    toWarehouse.value = '';
+    productsData.length = 0;
+    document.querySelectorAll('#tbody-items .item-product').forEach(select => {
+        select.innerHTML = '<option value="">-- Pilih Barang --</option>';
+        select.value = '';
+    });
+    document.querySelectorAll('#tbody-items .item-unit').forEach(unit => unit.textContent = '-');
+});
 
 fromWarehouse.addEventListener('change', async function () {
     const warehouseId = this.value;
@@ -518,6 +531,12 @@ toWarehouse.addEventListener('change', function () {
         document.getElementById('form-mutasi').action = "{{ route('inventori.transfer.store') }}";
         document.getElementById('form-method').value = "POST";
         document.getElementById('modal-mutasi-title').innerHTML = '<i class="bi bi-arrow-left-right me-1"></i> Form Mutasi Antar Gudang';
+        document.getElementById('input-bu').value = '';
+        document.getElementById('input-from-wh').value = '';
+        document.getElementById('input-to-wh').value = '';
+        document.getElementById('input-date').value = "{{ date('Y-m-d') }}";
+        document.getElementById('input-memo').value = '';
+        productsData.length = 0;
         document.getElementById('tbody-items').innerHTML = '';
         addItemRow(); // default 1 row
     });
