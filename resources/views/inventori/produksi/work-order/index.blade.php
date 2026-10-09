@@ -23,7 +23,7 @@
                 <label class="form-label small">Status</label>
                 <select name="status" class="form-select">
                     <option value="">Semua</option>
-                    @foreach(['open'=>'Open','in_progress'=>'On Progress','completed'=>'Selesai'] as $key => $label)
+                    @foreach(['open'=>'Draft','in_progress'=>'Diproses','completed'=>'Selesai'] as $key => $label)
                         <option value="{{ $key }}" @selected(request('status') === $key)>{{ $label }}</option>
                     @endforeach
                 </select>
@@ -62,7 +62,7 @@
                 <tbody>
                 @foreach($rows as $row)
                     @php
-                        $statusLabels=['open'=>'Open','in_progress'=>'On Progress','completed'=>'Selesai'];
+                        $statusLabels=['open'=>'Draft','in_progress'=>'Diproses','completed'=>'Selesai'];
                         $statusClasses=['open'=>'primary','in_progress'=>'warning','completed'=>'success'];
                     @endphp
                     <tr id="wo-row-{{ $row->id }}">
@@ -508,7 +508,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     function upsertWorkOrderRow(row) {
-        const statusLabels = {open: 'Open', in_progress: 'On Progress', completed: 'Selesai'};
+        const statusLabels = {open: 'Draft', in_progress: 'Diproses', completed: 'Selesai'};
         const statusClasses = {open: 'primary', in_progress: 'warning', completed: 'success'};
         const statusLabel = statusLabels[row.status] || row.status;
         const statusClass = statusClasses[row.status] || 'secondary';
@@ -554,14 +554,13 @@ document.addEventListener('DOMContentLoaded', function () {
             success: function (res) {
                 if (res.success) {
                     modal.hide();
-                    upsertWorkOrderRow(res.row);
                     Swal.fire({
                         icon: 'success',
-                        title: 'Berhasil!',
+                        title: 'Berhasil',
                         text: res.message,
-                        timer: 2000,
+                        timer: 1200,
                         showConfirmButton: false
-                    });
+                    }).then(() => window.location.reload());
                 }
             },
             error: function (xhr) {
