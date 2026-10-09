@@ -7,6 +7,7 @@
         <div class="text-secondary small">Perintah produksi berdasarkan BOM dan penetapan biaya produksi.</div>
     </div>
     <div class="d-flex gap-2">
+        <a href="{{ route('produksi.work-order.hasil-report') }}" class="btn btn-outline-primary"><i class="bi bi-clipboard-data me-1"></i> Laporan Hasil</a>
         <a href="{{ route('produksi.work-order.export', request()->query()) }}" class="btn btn-outline-success">
             <i class="bi bi-file-earmark-excel me-1"></i> Export Excel
         </a>
@@ -88,8 +89,11 @@
                                 <button type="button" class="btn btn-sm btn-outline-primary btn-edit-wo" title="Edit" data-id="{{ $row->id }}"><i class="bi bi-pencil"></i></button>
                                 <button type="button" class="btn btn-sm btn-outline-danger btn-delete-wo" title="Hapus" data-id="{{ $row->id }}" data-no="{{ $row->wo_no }}"><i class="bi bi-trash"></i></button>
                                 <a href="{{ route('produksi.work-order.print', $row->id) }}" target="_blank" class="btn btn-sm btn-outline-secondary" title="Cetak SPK"><i class="bi bi-printer"></i></a>
+                            @elseif($row->status === 'in_progress')
+                                <button type="button" class="btn btn-sm btn-primary btn-input-production-result" data-id="{{ $row->id }}" data-no="{{ $row->wo_no }}" title="Input hasil produksi"><i class="bi bi-clipboard-check me-1"></i>Hasil</button>
+                                <a href="{{ route('produksi.work-order.show',$row->id) }}" class="btn btn-sm btn-outline-dark" title="Detail"><i class="bi bi-eye"></i></a>
                             @else
-                                <a href="{{ route('produksi.work-order.show',$row->id) }}" class="btn btn-sm btn-outline-dark" title="View"><i class="bi bi-eye"></i></a>
+                                <a href="{{ route('produksi.work-order.show',$row->id) }}" class="btn btn-sm btn-outline-dark" title="Detail"><i class="bi bi-eye"></i></a>
                             @endif
                         </td>
                     </tr>
@@ -191,6 +195,54 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
                     <button type="submit" class="btn btn-primary"><i class="bi bi-check2-circle me-1"></i><span id="woSubmitText">Simpan Draft WO</span></button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{{-- Modal input hasil produksi langsung dari list SPK --}}
+<div class="modal fade" id="productionResultModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <form method="POST" id="productionResultForm" action="{{ url('/produksi/work-order') }}">
+                @csrf
+                <input type="hidden" name="production_date" id="productionResultDate" value="{{ now()->toDateString() }}">
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title mb-1">Input Hasil Produksi</h5>
+                        <div class="small text-secondary" id="productionResultWorkOrder"></div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-4">
+                            <label for="productionResultDateVisible" class="form-label">Tanggal Produksi</label>
+                            <input type="date" class="form-control" id="productionResultDateVisible" value="{{ now()->toDateString() }}" required>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm align-middle mb-0">
+                            <thead class="table-light">
+                                <tr><th>Pekerja</th><th>Dasar Upah</th><th class="text-end">Tarif / Borongan</th><th style="min-width:110px" class="text-end">Hasil Bagus</th><th class="text-end">Biaya Bagus</th><th style="min-width:110px" class="text-end">Reject</th><th class="text-end">Biaya Reject</th></tr>
+                            </thead>
+                            <tbody id="productionResultWorkerRows">
+                                <tr><td colspan="7" class="text-center text-secondary py-3">Pilih SPK.</td></tr>
+                            </tbody>
+                            <tfoot class="table-light fw-semibold">
+                                <tr><td colspan="3" class="text-end">Total</td><td class="text-end" id="productionResultGoodTotal">0</td><td class="text-end" id="productionResultGoodCostTotal">Rp 0,00</td><td class="text-end" id="productionResultRejectTotal">0</td><td class="text-end" id="productionResultRejectCostTotal">Rp 0,00</td></tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    <div class="alert alert-info small mt-3 mb-0">Simpan saja belum mengubah stok atau membuat jurnal. Closing memproses seluruh hasil draft SPK sekaligus.</div>
+                </div>
+                <div class="modal-footer d-flex justify-content-between">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                    <div class="d-flex gap-2">
+                        <button type="submit" name="action" value="save" class="btn btn-outline-primary"><i class="bi bi-save me-1"></i>Simpan Saja</button>
+                        <button type="submit" name="action" value="close" class="btn btn-success"><i class="bi bi-check2-circle me-1"></i>Closing SPK</button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -644,6 +696,88 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     document.getElementById('workOrderPageLength').addEventListener('change',function(){table.page.len(this.value).draw()});
     document.getElementById('workOrderSearch').addEventListener('input',function(){table.search(this.value).draw()});
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const resultModalEl = document.getElementById('productionResultModal');
+    if (!resultModalEl) return;
+    const resultModal = bootstrap.Modal.getOrCreateInstance(resultModalEl);
+    const resultForm = document.getElementById('productionResultForm');
+    const workerRows = document.getElementById('productionResultWorkerRows');
+    const woWorkers = @json($woWorkers->groupBy('production_work_order_id'));
+    const costsByWo = @json($woCosts->groupBy('production_work_order_id'));
+    const money = value => 'Rp ' + Number(value || 0).toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    const number = value => Number(value || 0).toLocaleString('id-ID', {maximumFractionDigits: 3});
+    const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]));
+
+    function recalculateResult() {
+        let goodTotal = 0, rejectTotal = 0, goodCostTotal = 0, rejectCostTotal = 0;
+        workerRows.querySelectorAll('tr[data-worker-id]').forEach(row => {
+            const good = Math.max(0, Number(row.querySelector('.result-good')?.value || 0));
+            const reject = Math.max(0, Number(row.querySelector('.result-reject')?.value || 0));
+            const rate = Number(row.dataset.rate || 0);
+            const payType = row.dataset.payType;
+            const goodCost = payType === 'satuan' ? good * rate : 0;
+            const rejectCost = payType === 'satuan' ? reject * rate : 0;
+            row.querySelector('.result-good-cost').textContent = payType === 'satuan' ? money(good) + ' × ' + money(rate).replace('Rp ', 'Rp ') + ' = ' + money(goodCost) : 'Borongan';
+            row.querySelector('.result-reject-cost').textContent = payType === 'satuan' ? money(rejectCost) : '-';
+            goodTotal += good; rejectTotal += reject; goodCostTotal += goodCost; rejectCostTotal += rejectCost;
+        });
+        document.getElementById('productionResultGoodTotal').textContent = number(goodTotal);
+        document.getElementById('productionResultRejectTotal').textContent = number(rejectTotal);
+        document.getElementById('productionResultGoodCostTotal').textContent = money(goodCostTotal);
+        document.getElementById('productionResultRejectCostTotal').textContent = money(rejectCostTotal);
+    }
+
+    document.addEventListener('click', function (event) {
+        const button = event.target.closest('.btn-input-production-result');
+        if (!button) return;
+        const id = button.dataset.id;
+        const workers = woWorkers[id] || [];
+        const costs = (costsByWo[id] || []).filter(cost => cost.cost_group === 'U');
+        const costMap = new Map(costs.map(cost => [String(cost.worker_id), cost]));
+        document.getElementById('productionResultWorkOrder').textContent = 'SPK ' + button.dataset.no;
+        resultForm.action = '{{ url('/produksi/work-order') }}/' + id + '/hasil-produksi';
+        document.getElementById('productionResultDate').value = document.getElementById('productionResultDateVisible').value || '{{ now()->toDateString() }}';
+        workerRows.innerHTML = '';
+        if (!workers.length) {
+            workerRows.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-3">Setup pekerja SPK tidak ditemukan.</td></tr>';
+        } else {
+            workers.forEach((worker, index) => {
+                const cost = costMap.get(String(worker.worker_id)) || {};
+                const payType = String(cost.pay_type || 'borongan').toLowerCase() === 'satuan' ? 'satuan' : 'borongan';
+                const rate = Number(payType === 'satuan' ? (cost.unit_rate || 0) : (cost.amount || 0));
+                const row = document.createElement('tr');
+                row.dataset.workerId = worker.worker_id;
+                row.dataset.payType = payType;
+                row.dataset.rate = rate;
+                row.innerHTML = '<td><span class="fw-semibold">'+escapeHtml(worker.worker_name)+'</span><input type="hidden" name="worker_id[]" value="'+Number(worker.worker_id)+'"></td>'
+                    + '<td>'+ (payType === 'satuan' ? 'Satuan' : 'Borongan') + '</td>'
+                    + '<td class="text-end">'+money(rate)+'</td>'
+                    + '<td><input type="number" name="good_qty[]" class="form-control form-control-sm text-end result-good" min="0" step="0.001" value="0" required></td>'
+                    + '<td class="text-end result-good-cost">Rp 0,00</td>'
+                    + '<td><input type="number" name="reject_by_worker[]" class="form-control form-control-sm text-end result-reject" min="0" step="0.001" value="0" required></td>'
+                    + '<td class="text-end result-reject-cost">Rp 0,00</td>';
+                workerRows.appendChild(row);
+            });
+        }
+        resultModal.show();
+        recalculateResult();
+    });
+
+    document.getElementById('productionResultDateVisible').addEventListener('change', function () {
+        document.getElementById('productionResultDate').value = this.value;
+    });
+    workerRows.addEventListener('input', recalculateResult);
+    resultForm.addEventListener('submit', function (event) {
+        const submitter = event.submitter;
+        if (submitter && submitter.value === 'close' && !confirm('Closing SPK akan memposting seluruh hasil draft, stok, HPP, dan jurnal. Lanjutkan?')) {
+            event.preventDefault();
+            return;
+        }
+        document.getElementById('productionResultDate').value = document.getElementById('productionResultDateVisible').value;
+    });
 });
 </script>
 @endpush
