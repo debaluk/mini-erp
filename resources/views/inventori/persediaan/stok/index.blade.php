@@ -7,6 +7,7 @@
             <h3 class="mb-1 fw-bold text-dark">Setok Persediaan</h3>
             <div class="text-secondary small">Saldo stok terkini per barang dan gudang. Klik kode atau nama barang untuk melihat histori.</div>
         </div>
+        <a href="{{ route('inventori.setok-persediaan.export', request()->query()) }}" class="btn btn-success btn-sm text-nowrap"><i class="bi bi-file-earmark-excel me-1"></i> Export Excel</a>
     </div>
     <div class="card shadow-sm border-0">
 
