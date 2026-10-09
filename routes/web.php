@@ -48,6 +48,7 @@ use App\Http\Controllers\StockOpnameController;
 use App\Http\Controllers\StockAdjustmentController;
 use App\Http\Controllers\InventoryReportController;
 use App\Http\Controllers\PurchaseOperationalReportController;
+use App\Http\Controllers\ProductionSummaryReportController;
 
 
 use Illuminate\Http\Request;
@@ -458,7 +459,8 @@ Route::get('/laporan/retur-penjualan/export', [SalesReturnReportController::clas
     Route::get('/laporan/hutang-pembelian/export', [PurchaseOperationalReportController::class, 'exportPayables'])->middleware('access:inventori')->name('laporan.hutang-pembelian.export');
     Route::get('/laporan/persediaan', [InventoryReportController::class, 'index'])->middleware('access:inventori')->name('laporan.persediaan');
     Route::get('/laporan/persediaan/export', [InventoryReportController::class, 'export'])->middleware('access:inventori')->name('laporan.persediaan.export');
-    Route::get('/laporan/produksi', fn () => view('inventori.laporan.produksi'))->middleware('access:inventori')->name('laporan.produksi');
+    Route::get('/laporan/produksi', [ProductionSummaryReportController::class, 'index'])->middleware('access:inventori')->name('laporan.produksi');
+    Route::get('/laporan/produksi/export', [ProductionSummaryReportController::class, 'export'])->middleware('access:inventori')->name('laporan.produksi.export');
     Route::get('/laporan/piutang', fn () => app(ModuleController::class)->show('receivables'))->middleware('access:keuangan')->name('laporan.piutang');
     Route::get('/laporan/hutang', fn () => app(ModuleController::class)->show('payables'))->middleware('access:keuangan')->name('laporan.hutang');
     Route::get('/laporan/keuangan', fn () => app(ModuleController::class)->show('profit-loss'))->middleware('access:keuangan')->name('laporan.keuangan');
