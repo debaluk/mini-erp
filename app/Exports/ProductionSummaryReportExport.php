@@ -1,11 +1,11 @@
 <?php
 
-namespace App\\Exports;
+namespace App\Exports;
 
-use Illuminate\\Support\\Collection;
-use Maatwebsite\\Excel\\Concerns\\FromCollection;
-use Maatwebsite\\Excel\\Concerns\\ShouldAutoSize;
-use Maatwebsite\\Excel\\Concerns\\WithHeadings;
+use Illuminate\Support\Collection;
+use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithHeadings;
 
 class ProductionSummaryReportExport implements FromCollection, WithHeadings, ShouldAutoSize
 {
