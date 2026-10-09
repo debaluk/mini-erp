@@ -325,10 +325,9 @@ $(function () {
                 table.ajax.reload(null, false);
                 Swal.fire({
                     icon: 'success',
-                    title: 'Berhasil',
-                    text: response.message || 'Draft retur berhasil disimpan.',
-                    timer: 1200,
-                    showConfirmButton: false
+                    title: 'Retur Berhasil Disimpan',
+                    text: response.message || 'Draft retur berhasil dibuat. Proses retur belum selesai sampai draft diposting.',
+                    confirmButtonText: 'Lanjutkan'
                 }).then(function () {
                     if (response.redirect_url) {
                         window.location.href = response.redirect_url;
@@ -338,8 +337,25 @@ $(function () {
                 });
             },
             error: function (xhr) {
-                const message = xhr.responseJSON?.message || 'Draft retur gagal disimpan.';
-                Swal.fire({ icon: 'error', title: 'Gagal', text: message });
+                const response = xhr.responseJSON || {};
+                let message = response.message || 'Draft retur tidak berhasil disimpan.';
+                if (response.errors) {
+                    const details = Object.values(response.errors).flat().filter(Boolean);
+                    if (details.length) message = details.join(' ');
+                } else if (xhr.status === 419) {
+                    message = 'Sesi berakhir. Muat ulang halaman, lalu ulangi proses retur.';
+                } else if (xhr.status === 422 && !response.message) {
+                    message = 'Data retur tidak valid atau qty melebihi sisa yang dapat diretur.';
+                } else if (xhr.status >= 500) {
+                    message = 'Terjadi kesalahan pada server. Draft retur belum dapat disimpan.';
+                }
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Retur Gagal Diproses',
+                    text: message,
+                    confirmButtonText: 'Periksa'
+                });
             },
             complete: function () {
                 button.prop('disabled', false).html(originalText);
