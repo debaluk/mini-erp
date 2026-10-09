@@ -13,13 +13,6 @@
 <body class="d-flex align-items-center justify-content-center p-3">
 
     <div class="login-card">
-        <div class="text-center mb-4">
-            <h1 class="fw-bold mb-1">Mini ERP</h1>
-            <div class="text-secondary">
-                Retail · Produksi Batako · Armada · Akuntansi
-            </div>
-        </div>
-
         <div class="card border-0 shadow-sm">
             <div class="card-body p-4 p-md-5">
 
@@ -82,9 +75,6 @@
             </div>
         </div>
 
-        <div class="text-center text-secondary small mt-4">
-            Mini ERP — Sistem Informasi Terpadu
-        </div>
     </div>
 
 </body>
