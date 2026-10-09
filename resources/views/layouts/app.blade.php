@@ -92,6 +92,7 @@
                         <li class="dropdown-submenu">
                             <a class="dropdown-item dropdown-toggle" href="#">PERSEDIAAN</a>
                             <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ route('inventori.setok-persediaan.index') }}">Setok Persediaan</a></li>
                                 <li><a class="dropdown-item" href="{{ route('inventori.initial-setup') }}">Setup Stok Awal</a></li>
                                 <li><a class="dropdown-item" href="{{ route('inventori.transfer.index') }}">Mutasi Barang</a></li>
                                 <li><a class="dropdown-item" href="{{ route('inventori.stock-opname.index') }}">Stok Opname</a></li>
