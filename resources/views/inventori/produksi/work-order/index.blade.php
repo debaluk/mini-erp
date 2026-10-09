@@ -104,7 +104,7 @@
                     <button type="button" class="btn-close" aria-label="Tutup" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="row g-3">
+                    <div class="row g-2">
                         <div class="col-md-3">
                             <label class="form-label">Tanggal SPK</label>
                             <input type="date" name="wo_date" id="woDate" class="form-control" value="{{ now()->toDateString() }}" required>
@@ -139,9 +139,9 @@
                         </div>
                     </div>
 
-                    <div id="woBomInfo" class="card border-primary mt-3">
-                        <div class="card-body">
-                            <div class="row g-3 mb-3">
+                    <div id="woBomInfo" class="card border-primary mt-2">
+                        <div class="card-body p-2">
+                            <div class="row g-2 mb-2">
                                 <div class="col-md-4"><div class="small text-secondary">Produk</div><div class="fw-semibold" id="woBomProduct">-</div></div>
                                 <div class="col-md-4"><div class="small text-secondary">Kode BOM</div><div class="fw-semibold" id="woBomCode">-</div></div>
                                 <div class="col-md-4"><div class="small text-secondary">Target Produksi</div><div class="fw-bold text-primary fs-5" id="woBomTarget">0</div></div>
@@ -156,26 +156,26 @@
                     </div>
 
                     @foreach(['U'=>['Tenaga','Pilih pekerja dan isi estimasi biaya tenaga.'],'A'=>['Equipment','Nama alat dan estimasi biaya.'],'S'=>['Rent','Nama sewa dan estimasi biaya.'],'O'=>['Overhead','Nama overhead dan estimasi biaya.']] as $group => [$title,$help])
-                    <div class="card border-0 shadow-sm mt-3 cost-section-modal" data-group="{{ $group }}">
+                    <div class="card border-0 shadow-sm mt-2 cost-section-modal" data-group="{{ $group }}">
                         <div class="card-header bg-primary bg-opacity-10 text-primary d-flex justify-content-between align-items-center">
                             <div><div class="fw-semibold">{{ $title }}</div><div class="small text-secondary">{{ $help }}</div></div>
                             <button type="button" class="btn btn-outline-primary btn-sm add-modal-cost"><i class="bi bi-plus-lg me-1"></i>Tambah</button>
                         </div>
-                        <div class="card-body modal-cost-rows"></div>
+                        <div class="card-body p-2 modal-cost-rows"></div>
                     </div>
                     @endforeach
 
                     <span id="woMaterialTotal" class="d-none">Rp 0</span>
 
-                    <div class="card border-success mt-3">
-                        <div class="card-body d-flex justify-content-between align-items-center">
+                    <div class="card border-success mt-2">
+                        <div class="card-body p-2 d-flex justify-content-between align-items-center">
                             <div><div class="small text-secondary">TOTAL ESTIMASI BIAYA WO/SPK</div><div class="small text-secondary">Material + Tenaga + Equipment + Rent + Overhead</div></div>
                             <div class="fw-bold text-success fs-4" id="woModalTotal">Rp 0</div>
                         </div>
                     </div>
 
-                    <div class="mt-3">
-                        <label class="form-label">Catatan SPK</label>
+                    <div class="mt-2">
+                        <label class="form-label mb-1">Catatan SPK</label>
                         <textarea name="notes" id="woNotes" class="form-control" rows="3" placeholder="Instruksi atau catatan produksi..."></textarea>
                     </div>
                 </div>
@@ -206,38 +206,37 @@
 @push('styles')
 <style>
     #workOrderModal .modal-dialog {
-        width: min(1140px, calc(100vw - 30px));
+        width: min(1140px, calc(100vw - 24px));
         max-width: 1140px;
-        height: calc(100vh - 30px);
-        margin: 15px auto;
+        margin: 12px auto;
     }
     #workOrderModal .modal-content {
-        height: 100%;
-        max-height: 100%;
+        max-height: calc(100vh - 24px);
         overflow: hidden;
     }
     #workOrderModal #workOrderForm {
-        height: 100%;
-        max-height: 100%;
         display: flex;
         flex-direction: column;
         min-height: 0;
+        max-height: calc(100vh - 24px);
         overflow: hidden;
     }
     #workOrderModal .modal-header,
     #workOrderModal .modal-footer {
         flex: 0 0 auto;
+        padding: .6rem .9rem;
         background: #fff;
     }
     #workOrderModal .modal-body {
-        flex: 1 1 auto;
         min-height: 0;
-        max-height: none;
-        height: auto;
-        overflow-y: scroll !important;
+        overflow-y: auto !important;
         overflow-x: hidden;
+        padding: .75rem;
         -webkit-overflow-scrolling: touch;
     }
+    #workOrderModal .form-label { margin-bottom: .2rem; }
+    #workOrderModal .cost-section-modal .card-header { padding: .45rem .65rem; }
+    #workOrderModal .modal-cost-row { margin-bottom: .35rem !important; }
     #woMessagePopup {
         display:none;
         position:fixed !important;
