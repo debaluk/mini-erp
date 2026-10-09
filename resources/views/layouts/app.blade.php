@@ -106,6 +106,8 @@
 <li><a class="dropdown-item" href="{{ route('laporan.retur-penjualan') }}">Laporan Retur Penjualan</a></li>
                                 <li><a class="dropdown-item" href="{{ route('laporan.piutang-penjualan') }}">Laporan Piutang Penjualan</a></li>
                                 <li><a class="dropdown-item" href="{{ route('laporan.pembelian') }}">Laporan Pembelian</a></li>
+                                <li><a class="dropdown-item" href="{{ route('laporan.retur-pembelian') }}">Laporan Retur Pembelian</a></li>
+                                <li><a class="dropdown-item" href="{{ route('laporan.hutang-pembelian') }}">Laporan Hutang Pembelian</a></li>
                                 <li><a class="dropdown-item" href="{{ route('laporan.persediaan') }}">Laporan Persediaan</a></li>
                                 <li><a class="dropdown-item" href="{{ route('laporan.produksi') }}">Laporan Produksi</a></li>
                                 <li><a class="dropdown-item" href="{{ route('inventori.stok') }}">Kartu Stok &amp; Tracking HPP</a></li>
