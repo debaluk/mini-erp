@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     $(document).on('click', '.btn-post-return', function () {
         const id = $(this).data('id'), no = $(this).data('no');
-        Swal.fire({ title: 'Posting Retur Pembelian?', html: 'Retur <strong>' + no + '</strong> akan mengurangi stok dan membuat jurnal.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#198754', confirmButtonText: 'Ya, Post Sekarang!', cancelButtonText: 'Batal' })
+        Swal.fire({ title: 'Posting Retur Pembelian?', html: 'Retur <strong>' + no + '</strong> akan mengurangi stok dan membuat jurnal. Lanjutkan?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#198754', confirmButtonText: 'Ya, Posting Retur', cancelButtonText: 'Batal' })
         .then(result => {
             if (!result.isConfirmed) return;
             const form = document.createElement('form');
