@@ -45,7 +45,7 @@
                 <th>Barang</th>
                 <th width="90">Qty</th>
                 <th width="100">Satuan</th>
-                <th width="130">HPP</th>
+                <th width="130">Harga Pokok Pembelian</th>
                 <th width="140">Nilai</th>
             </tr>
         </thead>
