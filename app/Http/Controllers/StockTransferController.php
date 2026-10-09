@@ -461,10 +461,10 @@ class StockTransferController extends Controller
                 throw new \Exception('Status mutasi tidak valid untuk persetujuan penerima.');
             }
 
-            // Jika client mengirim gudang pilihan penerima, wajib sama dengan gudang tujuan dokumen.
-            $selectedWarehouseId = $request->input('to_warehouse_id', $request->input('receiver_warehouse_id'));
-            if ($selectedWarehouseId !== null && (int) $selectedWarehouseId !== (int) $transfer->to_warehouse_id) {
-                throw new \Exception('Penerimaan ditolak: gudang yang dipilih berbeda dari gudang tujuan pada dokumen mutasi.');
+            // Gudang penerima wajib dikirim dan harus sama dengan tujuan pada dokumen.
+            $selectedWarehouseId = $request->input('receiver_warehouse_id', $request->input('to_warehouse_id'));
+            if ($selectedWarehouseId === null || $selectedWarehouseId === '' || (int) $selectedWarehouseId !== (int) $transfer->to_warehouse_id) {
+                throw new \Exception('Penerimaan ditolak: pilih gudang tujuan yang tercantum pada dokumen mutasi.');
             }
 
             $items = DB::table('stock_transfer_items')->where('stock_transfer_id', $id)->lockForUpdate()->get();
