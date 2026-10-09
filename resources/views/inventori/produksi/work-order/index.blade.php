@@ -76,6 +76,11 @@
                         <td><span class="badge text-bg-{{ $statusClasses[$row->status] ?? 'secondary' }}">{{ $statusLabels[$row->status] ?? $row->status }}</span></td>
                         <td class="text-end text-nowrap">
                             @if($row->status === 'open')
+                                <form method="POST" action="{{ route('produksi.work-order.start', $row->id) }}" class="d-inline" onsubmit="return confirm('Mulai proses produksi untuk SPK {{ $row->wo_no }}?')">
+                                    @csrf
+                                    <input type="hidden" name="started_at" value="{{ now()->toDateString() }}">
+                                    <button type="submit" class="btn btn-sm btn-success" title="Mulai Produksi"><i class="bi bi-play-fill me-1"></i>Mulai</button>
+                                </form>
                                 <button type="button" class="btn btn-sm btn-outline-primary btn-edit-wo" title="Edit" data-id="{{ $row->id }}"><i class="bi bi-pencil"></i></button>
                                 <button type="button" class="btn btn-sm btn-outline-danger btn-delete-wo" title="Hapus" data-id="{{ $row->id }}" data-no="{{ $row->wo_no }}"><i class="bi bi-trash"></i></button>
                                 <a href="{{ route('produksi.work-order.print', $row->id) }}" target="_blank" class="btn btn-sm btn-outline-secondary" title="Cetak SPK"><i class="bi bi-printer"></i></a>
