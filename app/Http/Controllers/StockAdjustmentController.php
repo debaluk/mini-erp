@@ -262,13 +262,17 @@ class StockAdjustmentController extends Controller
                     ->first();
 
                 $systemQty = $sourceItem ? (float) $sourceItem->system_qty : (float) ($stock->qty ?? 0);
+                $finalQty = $systemQty + $adjQty;
+                if ($finalQty < -0.000001) {
+                    throw new \\Exception("Kuantitas akhir produk ID {$prodId} tidak boleh negatif.");
+                }
                 $unitCost = (float) ($stock->avg_cost ?? 0);
                 DB::table('stock_adjustment_items')->insert([
                     'stock_adjustment_id' => $adjId,
                     'product_id' => $prodId,
                     'system_qty' => $systemQty,
                     'adjustment_qty' => $adjQty,
-                    'final_qty' => $systemQty + $adjQty,
+                    'final_qty' => max(0, $finalQty),
                     'unit_cost' => $unitCost,
                     'total_cost' => abs($adjQty) * $unitCost,
                     'created_at' => now(),
@@ -444,10 +448,6 @@ class StockAdjustmentController extends Controller
             return redirect()->back()->withInput()->with('swal_error', 'Gagal memperbarui draft: ' . $e->getMessage());
         }
     }
-
-    /**
-     * Detail & Audit Trail
-     */
 
     /**
      * Detail & Audit Trail
@@ -742,10 +742,6 @@ class StockAdjustmentController extends Controller
             return redirect()->back()->with('swal_error', 'Gagal memproses posting: ' . $e->getMessage());
         }
     }
-
-    /**
-     * Cetak Rekap List Penyesuaian
-     */
 
     /**
      * Cetak Rekap List Penyesuaian
