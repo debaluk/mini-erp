@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', function () {
             { data: 'supplier_name', className: 'fw-semibold' },
             { data: 'warehouse_name', className: 'text-center' },
             { data: 'product_names', className: 'small' },
-            { data: 'return_qty', className: 'text-end' },
+            { data: 'return_qty', className: 'text-end', render: data => Number(data || 0).toLocaleString('id-ID', { maximumFractionDigits: 3 }) },
             { data: 'total', className: 'text-end fw-bold font-monospace', render: data => 'Rp ' + Number(data || 0).toLocaleString('id-ID') },
             { data: 'status', className: 'text-center', render: data => data === 'posted' ? '<span class="badge bg-success">TERPOSTING</span>' : (data === 'cancelled' ? '<span class="badge bg-danger">DIBATALKAN</span>' : '<span class="badge bg-secondary">DRAFT</span>') },
             {
