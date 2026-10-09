@@ -88,13 +88,13 @@ class InventoryReportController extends Controller
         $inPlaceholders = "'" . implode("','", $incomingTypes) . "'";
         $outPlaceholders = "'" . implode("','", $outgoingTypes) . "'";
         $row = $query->selectRaw(
-            "COALESCE(SUM(CASE WHEN sm.movement_type IN ({$inPlaceholders}) THEN ABS(sm.qty) WHEN sm.qty > 0 THEN sm.qty ELSE 0 END), 0) as qty_in,
-             COALESCE(SUM(CASE WHEN sm.movement_type IN ({$outPlaceholders}) THEN ABS(sm.qty) WHEN sm.qty < 0 THEN ABS(sm.qty) ELSE 0 END), 0) as qty_out"
+            "COALESCE(SUM(CASE WHEN sm.movement_type IN ({$inPlaceholders}) OR (sm.movement_type NOT IN ({$outPlaceholders}) AND sm.qty > 0) THEN 1 ELSE 0 END), 0) as rows_in,
+             COALESCE(SUM(CASE WHEN sm.movement_type IN ({$outPlaceholders}) OR (sm.movement_type NOT IN ({$inPlaceholders}) AND sm.qty < 0) THEN 1 ELSE 0 END), 0) as rows_out"
         )->first();
 
         return [
-            'qtyIn' => (float) ($row->qty_in ?? 0),
-            'qtyOut' => (float) ($row->qty_out ?? 0),
+            'rowsIn' => (int) ($row->rows_in ?? 0),
+            'rowsOut' => (int) ($row->rows_out ?? 0),
         ];
     }
 
@@ -111,11 +111,11 @@ class InventoryReportController extends Controller
 
     public function index(Request $request)
     {
-        $this->filters($request);
-        $entityId = $this->entityId($request);
         $startDate = $request->query('start_date', now()->startOfMonth()->toDateString());
         $endDate = $request->query('end_date', now()->toDateString());
         $request->merge(['start_date' => $startDate, 'end_date' => $endDate]);
+        $this->filters($request);
+        $entityId = $this->entityId($request);
 
         $businessUnits = DB::table('business_units')->where('entity_id', $entityId)
             ->where('is_active', 1)->orderBy('code')->get(['id', 'name']);
@@ -129,7 +129,7 @@ class InventoryReportController extends Controller
             ? ($warehouses->firstWhere('id', $request->integer('warehouse_id'))->name ?? 'Gudang')
             : 'Semua Gudang';
 
-        $summary = (clone $this->stockQuery($request, $entityId))->reorder()
+        $summary = (clone $this->stockQuery($request, $entityId))->reorder()->select([])
             ->selectRaw('COUNT(*) as stock_lines, COUNT(DISTINCT ws.product_id) as item_count,
                 COALESCE(SUM(ws.qty * ws.avg_cost), 0) as stock_value,
                 COALESCE(SUM(CASE WHEN ws.qty <= 0 THEN 1 ELSE 0 END), 0) as zero_or_negative')
@@ -140,7 +140,7 @@ class InventoryReportController extends Controller
 
         $topStock = $this->stockQuery($request, $entityId)
             ->orderByDesc('stock_value')->limit(10)->get();
-        $byWarehouse = (clone $this->stockQuery($request, $entityId))->reorder()
+        $byWarehouse = (clone $this->stockQuery($request, $entityId))->reorder()->select([])
             ->select('w.id', 'w.name as warehouse_name')
             ->selectRaw('COUNT(*) as stock_lines, COALESCE(SUM(ws.qty * ws.avg_cost), 0) as stock_value')
             ->groupBy('w.id', 'w.name')->orderByDesc('stock_value')->get();
@@ -155,12 +155,12 @@ class InventoryReportController extends Controller
 
     public function export(Request $request)
     {
-        $this->filters($request);
-        $entityId = $this->entityId($request);
         $startDate = $request->query('start_date', now()->startOfMonth()->toDateString());
         $endDate = $request->query('end_date', now()->toDateString());
-        abort_if($startDate > $endDate, 422, 'Periode tanggal tidak valid.');
         $request->merge(['start_date' => $startDate, 'end_date' => $endDate]);
+        $this->filters($request);
+        $entityId = $this->entityId($request);
+        abort_if($startDate > $endDate, 422, 'Periode tanggal tidak valid.');
 
         $entity = DB::table('entities')->where('id', $entityId)->first();
         abort_unless($entity, 404, 'Data entitas tidak ditemukan.');
