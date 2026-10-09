@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', function () {
         Swal.fire({
             title: 'Batalkan Retur Pembelian?',
             html: posted
-                ? 'Retur <strong>' + no + '</strong> akan dibatalkan. Stok barang akan masuk kembali ke gudang dan jurnal pembalik dibuat.'
+                ? 'Retur <strong>' + no + '</strong> akan dibatalkan. Kuantitas stok akan dikembalikan ke gudang. Tidak ada jurnal akuntansi yang dibuat.'
                 : 'Draft retur <strong>' + no + '</strong> akan dibatalkan.',
             icon: 'warning',
             showCancelButton: true,
@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     $(document).on('click', '.btn-post-return', function () {
         const id = $(this).data('id'), no = $(this).data('no');
-        Swal.fire({ title: 'Posting Retur Pembelian?', html: 'Retur <strong>' + no + '</strong> akan mengurangi stok dan membuat jurnal. Lanjutkan?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#198754', confirmButtonText: 'Ya, Posting Retur', cancelButtonText: 'Batal' })
+        Swal.fire({ title: 'Posting Retur Pembelian?', html: 'Retur <strong>' + no + '</strong> akan mengurangi stok gudang dan mencatat mutasi stok saja. Tidak ada jurnal akuntansi yang dibuat. Lanjutkan?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#198754', confirmButtonText: 'Ya, Posting Retur', cancelButtonText: 'Batal' })
         .then(result => {
             if (!result.isConfirmed) return;
             const form = document.createElement('form');
