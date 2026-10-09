@@ -896,7 +896,7 @@ class ProductionWorkOrderController extends Controller
             : now()->toDateString();
         $entityId = $this->entityId();
 
-        DB::transaction(function () use ($data, $entityId, $id, $postingDate): void {
+        DB::transaction(function () use ($data, $entityId, $id, $postingDate, $resultIdsToPost): void {
             $wo = DB::table('production_work_orders')
                 ->where('entity_id', $entityId)
                 ->where('id', $id)
@@ -1194,14 +1194,14 @@ class ProductionWorkOrderController extends Controller
                 'status' => 'completed',
                 'updated_at' => now(),
             ]);
-        });
 
-        if ($resultIdsToPost->isNotEmpty()) {
-            DB::table('production_work_order_results')->whereIn('id', $resultIdsToPost)->update([
-                'status' => 'posted',
-                'updated_at' => now(),
-            ]);
-        }
+            if ($resultIdsToPost->isNotEmpty()) {
+                DB::table('production_work_order_results')->whereIn('id', $resultIdsToPost)->update([
+                    'status' => 'posted',
+                    'updated_at' => now(),
+                ]);
+            }
+        });
 
         return redirect()->route('produksi.work-order')
             ->with('success', 'Closing SPK berhasil. Stok barang jadi, upah, HPP, dan reject telah diproses.');
