@@ -492,15 +492,32 @@ class StockAdjustmentController extends Controller
      */
     public function destroy($id)
     {
-        $adj = DB::table('stock_adjustments')->where('id', $id)->whereNull('deleted_at')->firstOrFail();
-
-        if ($adj->status === 'posted') {
-            return redirect()->back()->with('swal_error', 'Gagal Hapus: Transaksi POSTED bersifat permanen untuk audit trail!');
-        }
-
         DB::beginTransaction();
         try {
-            DB::table('stock_adjustments')->where('id', $id)->update(['deleted_at' => now()]);
+            $adj = DB::table('stock_adjustments')
+                ->where('id', $id)
+                ->whereNull('deleted_at')
+                ->lockForUpdate()
+                ->first();
+
+            if (!$adj) {
+                throw new \Exception('Draft penyesuaian tidak ditemukan.');
+            }
+
+            if ($adj->status !== 'draft') {
+                throw new \Exception('Penyesuaian yang sudah diposting tidak dapat dihapus.');
+            }
+
+            $deleted = DB::table('stock_adjustments')
+                ->where('id', $id)
+                ->where('status', 'draft')
+                ->whereNull('deleted_at')
+                ->update(['deleted_at' => now(), 'updated_at' => now()]);
+
+            if (!$deleted) {
+                throw new \Exception('Draft tidak berhasil dihapus. Muat ulang halaman dan coba lagi.');
+            }
+
             DB::commit();
             return redirect()->route('inventori.penyesuaian.index')
                 ->with('swal_success', "Draft Adjustment [{$adj->adjustment_no}] berhasil dihapus.");
@@ -509,6 +526,10 @@ class StockAdjustmentController extends Controller
             return redirect()->back()->with('swal_error', 'Gagal menghapus draft: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Action Post
+     */
 
     /**
      * Action Post
