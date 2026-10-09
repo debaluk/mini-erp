@@ -30,15 +30,15 @@
 
 <div class="row g-3 mb-3">
     <div class="col-12 col-sm-6 col-lg-3"><div class="card shadow-sm h-100"><div class="card-body"><div class="text-secondary small">Faktur Pembelian</div><div class="fs-4 fw-bold">{{ format_id_number($summary, 0) }}</div></div></div></div>
-    <div class="col-12 col-sm-6 col-lg-3"><div class="card shadow-sm h-100"><div class="card-body"><div class="text-secondary small">Total Pembelian</div><div class="fs-5 fw-bold">{{ \\App\\Helpers\\FormatHelper::indo($totals->purchase_total ?? 0, 0, true) }}</div></div></div></div>
-    <div class="col-12 col-sm-6 col-lg-3"><div class="card shadow-sm h-100"><div class="card-body"><div class="text-secondary small">Pembayaran</div><div class="fs-5 fw-bold">{{ \\App\\Helpers\\FormatHelper::indo($totals->paid_total ?? 0, 0, true) }}</div></div></div></div>
-    <div class="col-12 col-sm-6 col-lg-3"><div class="card shadow-sm h-100"><div class="card-body"><div class="text-secondary small">Sisa Hutang</div><div class="fs-5 fw-bold text-danger">{{ \\App\\Helpers\\FormatHelper::indo($totals->outstanding_total ?? 0, 0, true) }}</div></div></div></div>
+    <div class="col-12 col-sm-6 col-lg-3"><div class="card shadow-sm h-100"><div class="card-body"><div class="text-secondary small">Total Pembelian</div><div class="fs-5 fw-bold">{{ \App\Helpers\FormatHelper::indo($totals->purchase_total ?? 0, 0, true) }}</div></div></div></div>
+    <div class="col-12 col-sm-6 col-lg-3"><div class="card shadow-sm h-100"><div class="card-body"><div class="text-secondary small">Pembayaran</div><div class="fs-5 fw-bold">{{ \App\Helpers\FormatHelper::indo($totals->paid_total ?? 0, 0, true) }}</div></div></div></div>
+    <div class="col-12 col-sm-6 col-lg-3"><div class="card shadow-sm h-100"><div class="card-body"><div class="text-secondary small">Sisa Hutang</div><div class="fs-5 fw-bold text-danger">{{ \App\Helpers\FormatHelper::indo($totals->outstanding_total ?? 0, 0, true) }}</div></div></div></div>
 </div>
 
 <div class="card shadow-sm mb-3">
     <div class="card-body py-3"><div class="row g-2 small">
         <div class="col-12 col-md-4"><div class="text-secondary">Entitas</div><div class="fw-semibold">{{ $entityName }}</div></div>
-        <div class="col-12 col-md-4"><div class="text-secondary">Periode Faktur</div><div class="fw-semibold">{{ \\Carbon\\Carbon::parse($startDate)->format('d/m/Y') }} s/d {{ \\Carbon\\Carbon::parse($endDate)->format('d/m/Y') }}</div></div>
+        <div class="col-12 col-md-4"><div class="text-secondary">Periode Faktur</div><div class="fw-semibold">{{ \Carbon\Carbon::parse($startDate)->format('d/m/Y') }} s/d {{ \Carbon\Carbon::parse($endDate)->format('d/m/Y') }}</div></div>
         <div class="col-12 col-md-4"><div class="text-secondary">Unit Bisnis</div><div class="fw-semibold">{{ $units->firstWhere('id', $businessUnitId)?->name ?? 'Semua Unit Bisnis' }}</div></div>
     </div></div>
 </div>
@@ -56,14 +56,14 @@
                 @endphp
                 <tr>
                     <td class="fw-semibold text-nowrap">{{ $r->purchase_no }}</td>
-                    <td class="text-nowrap">{{ \\Carbon\\Carbon::parse($r->purchase_date)->format('d/m/Y') }}</td>
-                    <td class="text-nowrap">{{ $r->due_date ? \\Carbon\\Carbon::parse($r->due_date)->format('d/m/Y') : '-' }}</td>
+                    <td class="text-nowrap">{{ \Carbon\Carbon::parse($r->purchase_date)->format('d/m/Y') }}</td>
+                    <td class="text-nowrap">{{ $r->due_date ? \Carbon\Carbon::parse($r->due_date)->format('d/m/Y') : '-' }}</td>
                     <td>{{ $r->supplier_name ?? '-' }}</td><td>{{ $r->unit_name ?? '-' }}</td>
                     <td>{{ match(strtolower((string) $r->payment_method)) { 'cash' => 'Tunai', 'credit' => 'Kredit / Tempo', 'transfer' => 'Transfer', 'qris' => 'QRIS', default => $r->payment_method ?: '-' } }}</td>
-                    <td class="text-end text-nowrap">{{ \\App\\Helpers\\FormatHelper::indo($r->total, 0, true) }}</td>
-                    <td class="text-end text-nowrap">{{ \\App\\Helpers\\FormatHelper::indo($r->paid_amount, 0, true) }}</td>
-                    <td class="text-end text-nowrap">{{ \\App\\Helpers\\FormatHelper::indo($r->return_amount, 0, true) }}</td>
-                    <td class="text-end text-nowrap fw-semibold">{{ \\App\\Helpers\\FormatHelper::indo($r->outstanding_amount, 0, true) }}</td>
+                    <td class="text-end text-nowrap">{{ \App\Helpers\FormatHelper::indo($r->total, 0, true) }}</td>
+                    <td class="text-end text-nowrap">{{ \App\Helpers\FormatHelper::indo($r->paid_amount, 0, true) }}</td>
+                    <td class="text-end text-nowrap">{{ \App\Helpers\FormatHelper::indo($r->return_amount, 0, true) }}</td>
+                    <td class="text-end text-nowrap fw-semibold">{{ \App\Helpers\FormatHelper::indo($r->outstanding_amount, 0, true) }}</td>
                     <td><span class="badge {{ $badge }}">{{ $status }}</span></td>
                 </tr>
             @empty
