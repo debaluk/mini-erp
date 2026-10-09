@@ -33,13 +33,18 @@ class StockTransferExport implements FromCollection, WithHeadings, WithCustomSta
         $fromWhId       = $this->request->query('from_warehouse_id');
         $toWhId         = $this->request->query('to_warehouse_id');
 
+        $entityId = (int) (auth()->user()->entity_id ?? 1);
+
         $query = DB::table('stock_transfers as st')
             ->leftJoin('business_units as bu', 'bu.id', '=', 'st.business_unit_id')
+            ->leftJoin('business_units as bu_to', 'bu_to.id', '=', 'st.to_business_unit_id')
             ->join('warehouses as w_from', 'w_from.id', '=', 'st.from_warehouse_id')
             ->join('warehouses as w_to', 'w_to.id', '=', 'st.to_warehouse_id')
             ->join('stock_transfer_items as sti', 'sti.stock_transfer_id', '=', 'st.id')
             ->join('products as p', 'p.id', '=', 'sti.product_id')
             ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
+            ->where('st.entity_id', $entityId)
+            ->whereNull('st.deleted_at')
             ->whereDate('st.transfer_date', '>=', $startDate)
             ->whereDate('st.transfer_date', '<=', $endDate);
 
@@ -51,6 +56,7 @@ class StockTransferExport implements FromCollection, WithHeadings, WithCustomSta
             'st.transfer_date',
             'st.transfer_no',
             'bu.name as business_unit_name',
+            'bu_to.name as destination_business_unit_name',
             'w_from.name as from_warehouse',
             'w_to.name as to_warehouse',
             'p.code as product_code',
@@ -66,6 +72,7 @@ class StockTransferExport implements FromCollection, WithHeadings, WithCustomSta
                 'date'          => Carbon::parse($r->transfer_date)->format('d/m/Y'),
                 'transfer_no'   => $r->transfer_no,
                 'business_unit' => $r->business_unit_name ?? '-',
+                'destination_business_unit' => $r->destination_business_unit_name ?? $r->business_unit_name ?? '-',
                 'from'          => $r->from_warehouse,
                 'to'            => $r->to_warehouse,
                 'product_code'  => $r->product_code,
@@ -83,7 +90,8 @@ class StockTransferExport implements FromCollection, WithHeadings, WithCustomSta
         return [
             'Tgl. Mutasi',
             'No. Mutasi',
-            'Unit Bisnis',
+            'BU Pengirim',
+            'BU Tujuan',
             'Gudang Pengirim',
             'Gudang Penerima',
             'Kode Barang',
@@ -121,11 +129,11 @@ class StockTransferExport implements FromCollection, WithHeadings, WithCustomSta
             ['Tanggal Cetak: ' . now()->format('d/m/Y H:i')],
         ], null, 'A1');
 
-        $sheet->mergeCells('A1:K1');
-        $sheet->mergeCells('A2:K2');
-        $sheet->mergeCells('A3:K3');
-        $sheet->mergeCells('A4:K4');
-        $sheet->mergeCells('A5:K5');
+        $sheet->mergeCells('A1:L1');
+        $sheet->mergeCells('A2:L2');
+        $sheet->mergeCells('A3:L3');
+        $sheet->mergeCells('A4:L4');
+        $sheet->mergeCells('A5:L5');
 
         $sheet->getStyle('A1')->applyFromArray([
             'font' => ['bold' => true, 'size' => 14],
@@ -155,7 +163,7 @@ class StockTransferExport implements FromCollection, WithHeadings, WithCustomSta
             ],
         ]);
 
-        $sheet->getStyle('A7:K7')->applyFromArray([
+        $sheet->getStyle('A7:L7')->applyFromArray([
             'font' => [
                 'bold' => true,
                 'color' => ['rgb' => 'FFFFFF']
@@ -179,7 +187,7 @@ class StockTransferExport implements FromCollection, WithHeadings, WithCustomSta
         $highestRow = $sheet->getHighestRow();
 
         if ($highestRow >= 8) {
-            $sheet->getStyle("A8:K{$highestRow}")->applyFromArray([
+            $sheet->getStyle("A8:L{$highestRow}")->applyFromArray([
                 'borders' => [
                     'allBorders' => [
                         'borderStyle' => Border::BORDER_THIN,
