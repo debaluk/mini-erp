@@ -1,10 +1,10 @@
 <?php
 
-namespace App\\Http\\Controllers;
+namespace App\Http\Controllers;
 
-use Illuminate\\Http\\Request;
-use Illuminate\\Support\\Facades\\DB;
-use Illuminate\\Support\\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Carbon;
 
 class DashboardController extends Controller
 {
@@ -13,7 +13,7 @@ class DashboardController extends Controller
         $entity = DB::table('entities')->first();
         $entityId = $entity?->id;
         $period = $request->query('period', now()->format('Y-m'));
-        if (!preg_match('/^\\d{4}-(0[1-9]|1[0-2])$/', $period)) {
+        if (!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $period)) {
             $period = now()->format('Y-m');
         }
 
