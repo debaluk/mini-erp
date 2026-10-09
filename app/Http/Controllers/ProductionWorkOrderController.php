@@ -545,8 +545,15 @@ class ProductionWorkOrderController extends Controller
                 'updated_at' => now(),
             ]);
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'SPK berhasil dimulai.',
+            ]);
+        }
+
         return redirect()->route('produksi.work-order.show', $id)
-            ->with('success', 'SPK berhasil dimulai. Rencana bahan tersedia untuk proses pengeluaran.');
+            ->with('success', 'SPK berhasil dimulai.');
     }
 
     public function show(int $id)
