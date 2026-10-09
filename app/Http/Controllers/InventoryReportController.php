@@ -203,7 +203,7 @@ class InventoryReportController extends Controller
         $sheet->getStyle('A9:J9')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('343A40');
         $sheet->getStyle('A9:J' . $lastRow)->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
         if ($rowNumber > 10) {
-            $sheet->getStyle('H10:H' . $lastRow)->getNumberFormat()->setFormatCode('#,##0.###');
+            $sheet->getStyle('H10:H' . $lastRow)->getNumberFormat()->setFormatCode('#,##0.000');
             $sheet->getStyle('I10:J' . $lastRow)->getNumberFormat()->setFormatCode('#,##0');
         }
         foreach (range('A', 'J') as $column) $sheet->getColumnDimension($column)->setAutoSize(true);
