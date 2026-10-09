@@ -82,37 +82,57 @@ class StockAdjustmentController extends Controller
     }
 
     /**
-     * Form Buat Adjustment
+     * Form Buat Adjustment. Satu opname hanya boleh menjadi sumber satu adjustment aktif.
      */
     public function create(Request $request)
     {
         $businessUnits = BusinessUnit::where('is_active', 1)->orderBy('code')->get();
-        $warehouses    = Warehouse::where('is_active', 1)->orderBy('name')->get();
-        $autoCode      = $this->generateAdjustmentCode();
-
-        $fromOpnameId   = $request->query('from_opname');
+        $warehouses = Warehouse::where('is_active', 1)->orderBy('name')->get();
+        $autoCode = $this->generateAdjustmentCode();
+        $fromOpnameId = $request->query('from_opname');
         $selectedOpname = null;
-        $varianceItems  = collect();
+        $varianceItems = collect();
 
         if ($fromOpnameId) {
-            $selectedOpname = DB::table('stock_opnames')->where('id', $fromOpnameId)->first();
-            if ($selectedOpname) {
-                $varianceItems = DB::table('stock_opname_items as soi')
-                    ->join('products as p', 'p.id', '=', 'soi.product_id')
-                    ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
-                    ->leftJoin('warehouses_stocks as ws', function ($join) use ($selectedOpname) {
-                        $join->on('ws.product_id', '=', 'soi.product_id')
-                             ->where('ws.warehouse_id', '=', $selectedOpname->warehouse_id);
-                    })
-                    ->where('soi.stock_opname_id', $fromOpnameId)
-                    ->where('soi.difference', '!=', 0)
-                    ->select(
-                        'soi.*',
-                        'p.code as product_code',
-                        'p.name as product_name',
-                        'u.name as unit_name',
-                        'ws.avg_cost'
-                    )->get();
+            $selectedOpname = DB::table('stock_opnames')
+                ->where('id', $fromOpnameId)
+                ->where('status', 'posted')
+                ->whereNull('deleted_at')
+                ->first();
+
+            if (!$selectedOpname) {
+                return redirect()->route('inventori.penyesuaian.create')
+                    ->with('swal_error', 'Stock Opname belum difinalisasi atau tidak ditemukan.');
+            }
+
+            if (DB::table('stock_adjustments')->where('stock_opname_id', $selectedOpname->id)->whereNull('deleted_at')->exists()) {
+                return redirect()->route('inventori.penyesuaian.index')
+                    ->with('swal_error', 'Stock Opname ini sudah memiliki dokumen Penyesuaian Stok. Selisih tidak boleh diproses dua kali.');
+            }
+
+            $this->validateAdjustmentMapping(
+                (int) $selectedOpname->entity_id,
+                (int) $selectedOpname->business_unit_id,
+                (int) $selectedOpname->warehouse_id
+            );
+
+            $varianceItems = DB::table('stock_opname_items as soi')
+                ->join('products as p', 'p.id', '=', 'soi.product_id')
+                ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
+                ->leftJoin('warehouses_stocks as ws', function ($join) use ($selectedOpname) {
+                    $join->on('ws.product_id', '=', 'soi.product_id')
+                        ->where('ws.warehouse_id', '=', $selectedOpname->warehouse_id)
+                        ->where('ws.entity_id', '=', $selectedOpname->entity_id);
+                })
+                ->where('soi.stock_opname_id', $selectedOpname->id)
+                ->where('soi.difference', '!=', 0)
+                ->select('soi.*', 'p.code as product_code', 'p.name as product_name', 'u.name as unit_name', 'ws.avg_cost')
+                ->orderBy('p.name')
+                ->get();
+
+            if ($varianceItems->isEmpty()) {
+                return redirect()->route('inventori.stock-opname.show', $selectedOpname->id)
+                    ->with('success', 'Tidak ada selisih fisik. Penyesuaian Stok tidak diperlukan.');
             }
         }
 
@@ -120,6 +140,12 @@ class StockAdjustmentController extends Controller
             ->join('warehouses as w', 'w.id', '=', 'so.warehouse_id')
             ->where('so.status', 'posted')
             ->whereNull('so.deleted_at')
+            ->whereNotExists(function ($query) {
+                $query->select(DB::raw(1))
+                    ->from('stock_adjustments as sa')
+                    ->whereColumn('sa.stock_opname_id', 'so.id')
+                    ->whereNull('sa.deleted_at');
+            })
             ->select('so.id', 'so.opname_no', 'so.opname_date', 'w.name as warehouse_name')
             ->orderBy('so.id', 'desc')
             ->get();
@@ -131,76 +157,142 @@ class StockAdjustmentController extends Controller
     }
 
     /**
-     * Simpan Adjustment (Draft / Post Direct)
+     * Simpan Adjustment. Kuantitas dari opname selalu divalidasi terhadap data sumber di database.
      */
     public function store(Request $request)
     {
         $request->validate([
             'business_unit_id' => 'required|exists:business_units,id',
-            'warehouse_id'     => 'required|exists:warehouses,id',
-            'adjustment_date'  => 'required|date',
-            'products'         => 'required|array|min:1',
-            'adjustment_qty'   => 'required|array|min:1',
+            'warehouse_id' => 'required|exists:warehouses,id',
+            'adjustment_date' => 'required|date',
+            'products' => 'required|array|min:1',
+            'products.*' => 'required|integer|distinct|exists:products,id',
+            'adjustment_qty' => 'required|array|min:1',
+            'adjustment_qty.*' => 'required|numeric',
+            'stock_opname_id' => 'nullable|integer|exists:stock_opnames,id',
         ]);
+
+        if (array_keys($request->input('products', [])) !== array_keys($request->input('adjustment_qty', []))) {
+            return redirect()->back()->withInput()->with('swal_error', 'Daftar barang dan kuantitas penyesuaian tidak sesuai.');
+        }
 
         DB::beginTransaction();
         try {
-            $adjNo = $this->generateAdjustmentCode();
+            $entityId = (int) (auth()->user()->entity_id ?? 1);
+            $businessUnitId = (int) $request->business_unit_id;
+            $warehouseId = (int) $request->warehouse_id;
+            $opname = null;
+            $sourceItems = collect();
 
-            $adjId = DB::table('stock_adjustments')->insertGetId([
-                'entity_id'        => auth()->user()->entity_id ?? 1,
-                'business_unit_id' => $request->business_unit_id,
-                'warehouse_id'     => $request->warehouse_id,
-                'user_id'          => auth()->id() ?? 1,
-                'stock_opname_id'  => $request->stock_opname_id ?? null,
-                'adjustment_no'    => $adjNo,
-                'adjustment_date'  => $request->adjustment_date,
-                'status'           => 'draft',
-                'reason'           => $request->reason ?? 'Penyesuaian Stok Hasil SO',
-                'created_at'       => now(),
-                'updated_at'       => now(),
-            ]);
-
-            foreach ($request->products as $idx => $prodId) {
-                $adjQty = (float) $request->adjustment_qty[$idx];
-                if (abs($adjQty) < 0.0001) continue;
-
-                $stock = DB::table('warehouses_stocks')
-                    ->where('warehouse_id', $request->warehouse_id)
-                    ->where('product_id', $prodId)
+            if ($request->filled('stock_opname_id')) {
+                $opname = DB::table('stock_opnames')
+                    ->where('id', $request->stock_opname_id)
+                    ->whereNull('deleted_at')
+                    ->lockForUpdate()
                     ->first();
 
-                $systemQty = (float) ($request->system_qty[$idx] ?? ($stock ? $stock->qty : 0));
-                $finalQty  = $systemQty + $adjQty;
-                $unitCost  = $stock ? (float) $stock->avg_cost : 0.0000;
-                $totalCost = abs($adjQty) * $unitCost;
+                if (!$opname || $opname->status !== 'posted') {
+                    throw new \Exception('Stock Opname harus sudah difinalisasi sebelum dibuatkan penyesuaian.');
+                }
 
+                if ((int) $opname->entity_id !== $entityId
+                    || (int) $opname->business_unit_id !== $businessUnitId
+                    || (int) $opname->warehouse_id !== $warehouseId) {
+                    throw new \Exception('Unit Bisnis dan gudang Penyesuaian harus sama dengan dokumen Stock Opname.');
+                }
+
+                $this->validateAdjustmentMapping($entityId, $businessUnitId, $warehouseId);
+
+                if (DB::table('stock_adjustments')
+                    ->where('stock_opname_id', $opname->id)
+                    ->whereNull('deleted_at')
+                    ->lockForUpdate()
+                    ->exists()) {
+                    throw new \Exception('Stock Opname ini sudah memiliki Penyesuaian Stok. Selisih tidak boleh diposting dua kali.');
+                }
+
+                $sourceItems = DB::table('stock_opname_items')
+                    ->where('stock_opname_id', $opname->id)
+                    ->where('difference', '!=', 0)
+                    ->lockForUpdate()
+                    ->get();
+
+                $expectedProducts = $sourceItems->pluck('product_id')->map(fn ($v) => (int) $v)->sort()->values()->all();
+                $submittedProducts = collect($request->input('products'))->map(fn ($v) => (int) $v)->sort()->values()->all();
+
+                if ($sourceItems->isEmpty() || $expectedProducts !== $submittedProducts) {
+                    throw new \Exception('Barang harus persis sama dengan item berselisih pada Stock Opname. Muat ulang form dan coba lagi.');
+                }
+            } else {
+                $this->validateAdjustmentMapping($entityId, $businessUnitId, $warehouseId);
+            }
+
+            $adjNo = $this->generateAdjustmentCode();
+            $adjId = DB::table('stock_adjustments')->insertGetId([
+                'entity_id' => $entityId,
+                'business_unit_id' => $businessUnitId,
+                'warehouse_id' => $warehouseId,
+                'user_id' => auth()->id() ?? 1,
+                'stock_opname_id' => $opname?->id,
+                'adjustment_no' => $adjNo,
+                'adjustment_date' => $request->adjustment_date,
+                'status' => 'draft',
+                'reason' => $request->reason ?? 'Penyesuaian Stok',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            foreach ($request->input('products') as $idx => $prodId) {
+                $sourceItem = $opname ? $sourceItems->firstWhere('product_id', (int) $prodId) : null;
+                $adjQty = $sourceItem
+                    ? (float) $sourceItem->difference
+                    : (float) $request->input('adjustment_qty')[$idx];
+
+                if ($sourceItem && abs($adjQty - (float) $request->input('adjustment_qty')[$idx]) > 0.000001) {
+                    throw new \Exception('Kuantitas penyesuaian tidak boleh berbeda dari selisih Stock Opname.');
+                }
+
+                if (abs($adjQty) < 0.000001) continue;
+
+                $stock = DB::table('warehouses_stocks')
+                    ->where('entity_id', $entityId)
+                    ->where('warehouse_id', $warehouseId)
+                    ->where('product_id', $prodId)
+                    ->lockForUpdate()
+                    ->first();
+
+                $systemQty = $sourceItem ? (float) $sourceItem->system_qty : (float) ($stock->qty ?? 0);
+                $unitCost = (float) ($stock->avg_cost ?? 0);
                 DB::table('stock_adjustment_items')->insert([
                     'stock_adjustment_id' => $adjId,
-                    'product_id'          => $prodId,
-                    'system_qty'          => $systemQty,
-                    'adjustment_qty'      => $adjQty,
-                    'final_qty'           => $finalQty,
-                    'unit_cost'          => $unitCost,
-                    'total_cost'         => $totalCost,
-                    'created_at'          => now(),
-                    'updated_at'          => now(),
+                    'product_id' => $prodId,
+                    'system_qty' => $systemQty,
+                    'adjustment_qty' => $adjQty,
+                    'final_qty' => $systemQty + $adjQty,
+                    'unit_cost' => $unitCost,
+                    'total_cost' => abs($adjQty) * $unitCost,
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
+            }
+
+            if (!DB::table('stock_adjustment_items')->where('stock_adjustment_id', $adjId)->exists()) {
+                throw new \Exception('Tidak ada item dengan kuantitas penyesuaian yang valid.');
             }
 
             DB::commit();
 
-            if ($request->has('post_now')) {
-                return $this->executePosting($adjId);
-            }
+            if ($request->has('post_now')) return $this->executePosting($adjId);
 
             return redirect()->route('inventori.penyesuaian.index')
-                ->with('swal_success', "Draft Penyesuaian Stok [{$adjNo}] berhasil disimpan!");
+                ->with('swal_success', "Draft Penyesuaian Stok [{$adjNo}] berhasil disimpan.");
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('swal_error', 'Gagal menyimpan penyesuaian: ' . $e->getMessage());
+            return redirect()->back()->withInput()->with('swal_error', 'Gagal menyimpan penyesuaian: ' . $e->getMessage());
         }
     }
+
+    /**
 
     /**
      * Form Edit Adjustment (Khusus Status Draft)
@@ -530,6 +622,31 @@ class StockAdjustmentController extends Controller
             ->get();
 
         return view('inventori.persediaan.penyesuaian.print-detail', compact('adj', 'items'));
+    }
+
+    private function validateAdjustmentMapping(int $entityId, int $businessUnitId, int $warehouseId): void
+    {
+        $businessUnit = DB::table('business_units')
+            ->where('id', $businessUnitId)
+            ->where('entity_id', $entityId)
+            ->where('is_active', 1)
+            ->exists();
+
+        $warehouse = DB::table('warehouses')
+            ->where('id', $warehouseId)
+            ->where('entity_id', $entityId)
+            ->where('is_active', 1)
+            ->exists();
+
+        $mapped = DB::table('warehouse_business_units')
+            ->where('entity_id', $entityId)
+            ->where('warehouse_id', $warehouseId)
+            ->where('business_unit_id', $businessUnitId)
+            ->exists();
+
+        if (!$businessUnit || !$warehouse || !$mapped) {
+            throw new \Exception('Unit Bisnis dan gudang harus aktif, satu entitas, serta terhubung melalui pemetaan gudang.');
+        }
     }
 
     private function generateAdjustmentCode()
