@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     html += '<a href="{{ url('/inventori/pembelian/retur') }}/' + row.id + '" class="btn btn-outline-info" title="Detail"><i class="bi bi-eye"></i></a>';
                     html += '<a href="{{ url('/inventori/pembelian/retur') }}/' + row.id + '/print" target="_blank" class="btn btn-outline-secondary" title="Cetak"><i class="bi bi-printer"></i></a>';
                     if (row.status === 'draft') html += '<button type="button" class="btn btn-success btn-post-return" data-id="' + row.id + '" data-no="' + row.return_no + '" title="Approval / Posting"><i class="bi bi-check-circle"></i></button>';
-                    if (row.status === 'draft' || row.status === 'posted') html += '<button type="button" class="btn btn-outline-danger btn-cancel-return" data-id="' + row.id + '" data-no="' + row.return_no + '" data-status="' + row.status + '" title="Batal Retur"><i class="bi bi-x-circle"></i></button>';
+                    if (row.status === 'draft') html += '<button type="button" class="btn btn-outline-danger btn-cancel-return" data-id="' + row.id + '" data-no="' + row.return_no + '" data-status="' + row.status + '" title="Batal Retur"><i class="bi bi-x-circle"></i></button>';
                     return html + '</div>';
                 }
             }
