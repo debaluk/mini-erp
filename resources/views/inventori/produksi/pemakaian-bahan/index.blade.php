@@ -91,7 +91,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="text-center text-muted py-4">Tidak ada SPK On Progress yang belum memiliki pemakaian bahan.</td></tr>
+                    <tr><td colspan="6" class="text-center text-muted py-4">Tidak ada SPK On Progress dengan sisa estimasi bahan yang masih dapat dipakai.</td></tr>
                 @endforelse
                 </tbody>
             </table>
@@ -192,12 +192,12 @@
                     <div class="table-responsive">
                         <table class="table table-sm table-bordered align-middle mb-2">
                             <thead class="table-primary">
-                                <tr><th>Kode</th><th>Material</th><th class="text-end">Rencana</th><th>Satuan</th><th style="width:180px">Aktual Dipakai</th></tr>
+                                <tr><th>Kode</th><th>Material</th><th class="text-end">Sisa Estimasi</th><th>Satuan</th><th style="width:180px">Aktual Dipakai</th></tr>
                             </thead>
                             <tbody id="materialUsageRows"></tbody>
                         </table>
                     </div>
-                    <div class="small text-secondary">Rencana dihitung dari kuantitas BOM × jumlah batch SPK. Periksa jumlah aktual sebelum disimpan.</div>
+                    <div class="small text-secondary">Sisa estimasi = kuantitas BOM × batch SPK dikurangi total pemakaian yang sudah disetujui. Pemakaian dapat dibuat bertahap, tidak boleh melewati estimasi.</div>
                     <div class="mt-3">
                         <label class="form-label">Catatan</label>
                         <textarea name="notes" class="form-control" rows="2"></textarea>
@@ -234,7 +234,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             (wo.materials || []).forEach((item, index) => {
                 const tr = document.createElement('tr');
-                const values = [item.sku || '-', item.name || '-', formatQty(item.planned_qty), item.unit || '-'];
+                const values = [item.sku || '-', item.name || '-', formatQty(item.remaining_qty), item.unit || '-'];
                 values.forEach((value, cellIndex) => {
                     const td = document.createElement('td');
                     td.textContent = value;
@@ -253,7 +253,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 actualInput.min = '0.001';
                 actualInput.step = '0.001';
                 actualInput.required = true;
-                actualInput.value = item.planned_qty;
+                actualInput.value = item.remaining_qty;
                 actualCell.append(productInput, actualInput);
                 tr.appendChild(actualCell);
                 rows.appendChild(tr);
