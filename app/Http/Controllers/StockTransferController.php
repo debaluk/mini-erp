@@ -366,6 +366,10 @@ class StockTransferController extends Controller
                 $items->pluck('product_id')->map(fn ($value) => (int) $value)->all()
             );
 
+            if (!empty($transfer->to_business_unit_id) && (int) $transfer->to_business_unit_id !== $destinationBusinessUnitId) {
+                throw new \\Exception('Persetujuan ditolak: mapping BU gudang tujuan berubah sejak mutasi dibuat.');
+            }
+
             if (empty($transfer->to_business_unit_id)) {
                 DB::table('stock_transfers')->where('id', $id)->update([
                     'to_business_unit_id' => $destinationBusinessUnitId,
@@ -472,6 +476,10 @@ class StockTransferController extends Controller
                 (int) $transfer->to_warehouse_id,
                 $items->pluck('product_id')->map(fn ($value) => (int) $value)->all()
             );
+
+            if (!empty($transfer->to_business_unit_id) && (int) $transfer->to_business_unit_id !== $destinationBusinessUnitId) {
+                throw new \\Exception('Persetujuan ditolak: mapping BU gudang tujuan berubah sejak mutasi dibuat.');
+            }
 
             if (empty($transfer->to_business_unit_id)) {
                 DB::table('stock_transfers')->where('id', $id)->update([
