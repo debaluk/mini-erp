@@ -91,7 +91,6 @@ class PurchaseReturnController extends Controller
                 'r.id', 'r.return_no', 'r.return_date', 'r.status',
                 DB::raw("(SELECT p.purchase_no FROM purchase_return_items pri JOIN purchase_items pi ON pi.id = pri.purchase_item_id JOIN purchases p ON p.id = pi.purchase_id WHERE pri.purchase_return_id = r.id ORDER BY pri.id LIMIT 1) as invoice_no"),
                 DB::raw("(SELECT rc.receipt_no FROM purchase_return_items pri JOIN receipt_items ri ON ri.id = pri.receipt_item_id JOIN receipts rc ON rc.id = ri.receipt_id WHERE pri.purchase_return_id = r.id ORDER BY pri.id LIMIT 1) as source_receipt_no"),
-                DB::raw("(SELECT rc.receipt_no FROM purchase_return_items pri JOIN receipt_items ri ON ri.id = pri.receipt_item_id JOIN receipts rc ON rc.id = ri.receipt_id WHERE pri.purchase_return_id = r.id ORDER BY pri.id LIMIT 1) as source_receipt_no"),
                 DB::raw("COALESCE(bu.name, '-') as business_unit_name"),
                 DB::raw("COALESCE(s.name, '-') as supplier_name"),
                 DB::raw("COALESCE(w.name, '-') as warehouse_name"),
@@ -570,6 +569,7 @@ class PurchaseReturnController extends Controller
             'r.*', 'bu.name as business_unit_name', 's.name as supplier_name',
             'w.name as warehouse_name', 'u.name as user_name',
             DB::raw("(SELECT p.purchase_no FROM purchase_return_items pri JOIN purchase_items pi ON pi.id = pri.purchase_item_id JOIN purchases p ON p.id = pi.purchase_id WHERE pri.purchase_return_id = r.id ORDER BY pri.id LIMIT 1) as invoice_no"),
+            DB::raw("(SELECT rc.receipt_no FROM purchase_return_items pri JOIN receipt_items ri ON ri.id = pri.receipt_item_id JOIN receipts rc ON rc.id = ri.receipt_id WHERE pri.purchase_return_id = r.id ORDER BY pri.id LIMIT 1) as source_receipt_no"),
             DB::raw("(SELECT COALESCE(SUM(pri.qty), 0) FROM purchase_return_items pri WHERE pri.purchase_return_id = r.id) as return_qty"),
             DB::raw("(SELECT COALESCE(SUM(pri.return_value), 0) FROM purchase_return_items pri WHERE pri.purchase_return_id = r.id) as total")
         )->orderByDesc('r.return_date')->orderByDesc('r.id')->get();
@@ -587,7 +587,8 @@ class PurchaseReturnController extends Controller
             ->leftJoin('users as u', 'u.id', '=', 'r.user_id')
             ->where('r.entity_id', $entity->id)->where('r.id', $id)
             ->select('r.*', 'bu.name as business_unit_name', 's.name as supplier_name', 's.address as supplier_address', 's.phone as supplier_phone', 'w.name as warehouse_name', 'u.name as user_name',
-                DB::raw("(SELECT p.purchase_no FROM purchase_return_items pri JOIN purchase_items pi ON pi.id = pri.purchase_item_id JOIN purchases p ON p.id = pi.purchase_id WHERE pri.purchase_return_id = r.id ORDER BY pri.id LIMIT 1) as invoice_no"))
+                DB::raw("(SELECT p.purchase_no FROM purchase_return_items pri JOIN purchase_items pi ON pi.id = pri.purchase_item_id JOIN purchases p ON p.id = pi.purchase_id WHERE pri.purchase_return_id = r.id ORDER BY pri.id LIMIT 1) as invoice_no"),
+                DB::raw("(SELECT rc.receipt_no FROM purchase_return_items pri JOIN receipt_items ri ON ri.id = pri.receipt_item_id JOIN receipts rc ON rc.id = ri.receipt_id WHERE pri.purchase_return_id = r.id ORDER BY pri.id LIMIT 1) as source_receipt_no"))
             ->firstOrFail();
 
         $items = DB::table('purchase_return_items as ri')
@@ -623,6 +624,7 @@ class PurchaseReturnController extends Controller
             ->select(
                 'r.*',
                 DB::raw("(SELECT p.purchase_no FROM purchase_return_items pri JOIN purchase_items pi ON pi.id = pri.purchase_item_id JOIN purchases p ON p.id = pi.purchase_id WHERE pri.purchase_return_id = r.id ORDER BY pri.id LIMIT 1) as invoice_no"),
+                DB::raw("(SELECT rc.receipt_no FROM purchase_return_items pri JOIN receipt_items ri ON ri.id = pri.receipt_item_id JOIN receipts rc ON rc.id = ri.receipt_id WHERE pri.purchase_return_id = r.id ORDER BY pri.id LIMIT 1) as source_receipt_no"),
                 's.name as supplier_name',
                 'w.name as warehouse_name'
             )
