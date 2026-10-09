@@ -78,6 +78,11 @@
                 <span class="badge bg-warning text-dark">{{ count($varianceItems) }} Item Loaded</span>
             </div>
             <div class="card-body p-0">
+                @if($selectedOpname)
+                    <div class="alert alert-info rounded-0 mb-0 py-2 small">
+                        Kuantitas dikunci mengikuti selisih Stock Opname yang sudah difinalisasi. Jika stok berubah setelah opname, posting akan ditolak dan perlu opname ulang.
+                    </div>
+                @endif
                 <div class="table-responsive">
                     <table class="table table-bordered table-hover align-middle mb-0" style="font-size: 0.88rem;">
                         <thead class="table-light text-center">
@@ -113,7 +118,7 @@
                                       <td class="text-center bg-light fw-bold">{{ number_format($act, 2, ',', '.') }}</td>
                                       <td>
                                           <input type="number" name="adjustment_qty[]" class="form-control form-control-sm text-center fw-bold input-adj-val {{ $adj < 0 ? 'text-danger' : 'text-success' }}"
-                                                 data-sys="{{ $sys }}" step="0.001" value="{{ $adj }}" required>
+                                                 data-sys="{{ $sys }}" step="0.001" value="{{ $adj }}" required {{ $selectedOpname ? 'readonly' : '' }}>
                                       </td>
                                       <td class="text-center font-monospace fw-bold cell-final-val">{{ number_format($sys + $adj, 2, ',', '.') }}</td>
                                       <td class="text-end font-monospace">Rp {{ number_format($cost, 0, ',', '.') }}</td>
