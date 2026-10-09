@@ -17,22 +17,6 @@ class PurchaseReturnController extends Controller
         return (int) $entity->id;
     }
 
-    private function mappingAccountId(int $entity, int $businessUnitId, string $mappingKey): int
-    {
-        $account = DB::table('business_unit_account_mappings as m')
-            ->join('chart_of_accounts as c', 'c.id', '=', 'm.account_id')
-            ->where('m.entity_id', $entity)
-            ->where('m.business_unit_id', $businessUnitId)
-            ->where('m.mapping_key', $mappingKey)
-            ->where('c.is_active', 1)
-            ->where('c.is_postable', 1)
-            ->first(['c.id']);
-
-        abort_unless($account, 422, 'Mapping account tidak ditemukan: '.$mappingKey.'.');
-
-        return (int) $account->id;
-    }
-
     private function nextReturnNumber(int $entity, string $returnDate): string
     {
         $prefix = 'RB-'.date('Ymd', strtotime($returnDate));
@@ -199,13 +183,6 @@ class PurchaseReturnController extends Controller
                 ->where('entity_id', $entity)->where('id', $receipt->purchase_id)
                 ->whereNull('deleted_at')->lockForUpdate()->first();
             abort_unless($purchase && $purchase->status !== 'cancelled', 422, 'Faktur pembelian sumber tidak valid atau sudah dibatalkan.');
-
-            $period = DB::table('accounting_periods')
-                ->where('entity_id', $entity)
-                ->where('period_year', (int) substr((string) $data['return_date'], 0, 4))
-                ->where('period_month', (int) substr((string) $data['return_date'], 5, 2))
-                ->first();
-            abort_if($period && in_array($period->status, ['closing', 'closed'], true), 422, 'Periode akuntansi retur sedang closing atau sudah ditutup.');
 
             $returnNo = $this->nextReturnNumber($entity, $data['return_date']);
             $returnId = DB::table('purchase_returns')->insertGetId([
@@ -429,8 +406,6 @@ class PurchaseReturnController extends Controller
 
             abort_if($items->isEmpty(), 422, 'Retur tidak memiliki item.');
 
-            $totalValue = 0.0;
-
             foreach ($items as $item) {
                 $alreadyReturned = (float) DB::table('purchase_return_items as pri')
                     ->join('purchase_returns as pr', 'pr.id', '=', 'pri.purchase_return_id')
@@ -497,46 +472,7 @@ class PurchaseReturnController extends Controller
                     'updated_at' => now(),
                 ]);
 
-                $totalValue += $value;
             }
-
-            abort_if($totalValue <= 0, 422, 'Nilai retur harus lebih besar dari nol.');
-
-            // Posting retur berbasis penerimaan; tidak membaca faktur atau metode pembayaran.
-            $debitAccount = $this->mappingAccountId($entity, (int) $return->business_unit_id, 'payable');
-            $inventoryAccount = $this->mappingAccountId($entity, (int) $return->business_unit_id, 'inventory');
-
-            $journalId = DB::table('journals')->insertGetId([
-                'entity_id' => $entity,
-                'business_unit_id' => $return->business_unit_id,
-                'journal_no' => 'JRN-PRT-'.$return->id,
-                'journal_date' => $return->return_date,
-                'source_type' => 'purchase_return',
-                'source_id' => $return->id,
-                'description' => 'Retur pembelian '.$return->return_no,
-                'status' => 'posted',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            DB::table('journal_entries')->insert([
-                [
-                    'journal_id' => $journalId,
-                    'account_id' => $debitAccount,
-                    'debit' => round($totalValue, 2),
-                    'credit' => 0,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ],
-                [
-                    'journal_id' => $journalId,
-                    'account_id' => $inventoryAccount,
-                    'debit' => 0,
-                    'credit' => round($totalValue, 2),
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ],
-            ]);
 
             DB::table('purchase_returns')->where('id', $return->id)->update([
                 'status' => 'posted',
@@ -564,13 +500,6 @@ class PurchaseReturnController extends Controller
 
             abort_unless($return, 404, 'Retur pembelian tidak ditemukan.');
             abort_unless(in_array($return->status, ['draft', 'posted'], true), 422, 'Retur yang sudah dibatalkan tidak dapat dibatalkan lagi.');
-
-            $period = DB::table('accounting_periods')
-                ->where('entity_id', $entity)
-                ->whereDate('start_date', '<=', $return->return_date)
-                ->whereDate('end_date', '>=', $return->return_date)
-                ->first();
-            abort_if($period && in_array($period->status, ['closing', 'closed'], true), 422, 'Periode akuntansi retur sedang closing atau sudah ditutup.');
 
             if ($return->status === 'posted') {
                 $items = DB::table('purchase_return_items')
@@ -611,45 +540,6 @@ class PurchaseReturnController extends Controller
                     ]);
                 }
 
-                $originalJournal = DB::table('journals')
-                    ->where('entity_id', $entity)
-                    ->where('source_type', 'purchase_return')
-                    ->where('source_id', $return->id)
-                    ->where('status', 'posted')
-                    ->lockForUpdate()
-                    ->first();
-                abort_unless($originalJournal, 422, 'Jurnal retur tidak ditemukan. Pembatalan dihentikan agar stok dan jurnal tetap konsisten.');
-
-                $originalEntries = DB::table('journal_entries')
-                    ->where('journal_id', $originalJournal->id)
-                    ->get();
-                abort_if($originalEntries->isEmpty(), 422, 'Detail jurnal retur tidak ditemukan.');
-
-                $reversalJournalId = DB::table('journals')->insertGetId([
-                    'entity_id' => $entity,
-                    'business_unit_id' => $return->business_unit_id,
-                    'journal_no' => 'JRN-PRTC-'.$return->id,
-                    'journal_date' => now()->toDateString(),
-                    'source_type' => 'purchase_return_cancel',
-                    'source_id' => $return->id,
-                    'description' => 'Pembatalan retur pembelian '.$return->return_no,
-                    'status' => 'posted',
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-
-                $reversalEntries = [];
-                foreach ($originalEntries as $entry) {
-                    $reversalEntries[] = [
-                        'journal_id' => $reversalJournalId,
-                        'account_id' => $entry->account_id,
-                        'debit' => (float) $entry->credit,
-                        'credit' => (float) $entry->debit,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ];
-                }
-                DB::table('journal_entries')->insert($reversalEntries);
             }
 
             DB::table('purchase_returns')->where('id', $return->id)->update([
@@ -660,7 +550,7 @@ class PurchaseReturnController extends Controller
 
         return redirect()
             ->route('inventori.pembelian.retur')
-            ->with('swal_success', 'Retur Pembelian berhasil dibatalkan. Stok penerimaan telah dikembalikan jika retur sebelumnya sudah diposting.');
+            ->with('swal_success', 'Retur Pembelian berhasil dibatalkan. Stok dikembalikan jika retur sebelumnya sudah diposting; tidak ada jurnal akuntansi yang dibuat.');
     }
 
     public function printList(Request $request)
