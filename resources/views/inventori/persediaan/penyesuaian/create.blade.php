@@ -117,7 +117,6 @@
                                       </td>
                                       <td class="text-center font-monospace fw-bold cell-final-val">{{ number_format($sys + $adj, 2, ',', '.') }}</td>
                                       <td class="text-end font-monospace">Rp {{ number_format($cost, 0, ',', '.') }}</td>
-                                    <td class="text-end font-monospace">Rp {{ number_format($cost, 0, ',', '.') }}</td>
                                     <td class="text-center">{{ $item->unit_name ?? '-' }}</td>
                                 </tr>
                             @empty
