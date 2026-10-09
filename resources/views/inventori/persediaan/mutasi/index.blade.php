@@ -130,7 +130,8 @@
                             <th class="text-center" style="width: 150px;">No. Mutasi</th>
                             <th>Gudang Pengirim</th>
                             <th>Gudang Penerima</th>
-                            <th style="width: 140px;">Unit Bisnis</th>
+                            <th style="width: 140px;">BU Pengirim</th>
+                            <th style="width: 140px;">BU Tujuan</th>
                             <th class="text-center" style="width: 130px;">Status Approval</th>
                             <th class="text-center" style="width: 220px;">Aksi</th>
                         </tr>
@@ -147,6 +148,7 @@
                                     <div class="fw-semibold text-dark"><i class="bi bi-box-arrow-in-down-left me-1 text-success"></i> {{$t->to_warehouse_name }}</div>
                                 </td>
                                 <td>{{$t->business_unit_name ?? '-' }}</td>
+                                <td>{{$t->destination_business_unit_name ?? 'Belum ditentukan' }}</td>
                                 <td class="text-center">
                                     @if($t->status === 'draft')
                                         <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i> PENGAJUAN</span>
@@ -206,7 +208,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="text-center py-4 text-muted">
+                                <td colspan="8" class="text-center py-4 text-muted">
                                     <i class="bi bi-inbox fs-3 d-block mb-1"></i> Tidak ada data mutasi antar gudang ditemukan.
                                 </td>
                             </tr>
@@ -272,6 +274,12 @@
                                 @endforeach
                             </select>
                         </div>
+                        <div class="col-12">
+                            <div class="alert alert-light border py-2 mb-0 small">
+                                <strong>BU Tujuan Otomatis:</strong>
+                                <span id="destination-bu-label" class="text-primary">Pilih gudang tujuan untuk menentukan BU tujuan.</span>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Table Dynamic Items -->
@@ -333,8 +341,12 @@
                         <div class="fw-bold" id="det-date">-</div>
                     </div>
                     <div class="col-md-4">
-                        <div class="text-muted small">Unit Bisnis:</div>
+                        <div class="text-muted small">BU Pengirim:</div>
                         <div class="fw-bold" id="det-bu">-</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-muted small">BU Tujuan:</div>
+                        <div class="fw-bold text-primary" id="det-to-bu">-</div>
                     </div>
                     <div class="col-md-6">
                         <div class="text-muted small">Gudang Pengirim (Asal):</div>
@@ -427,72 +439,90 @@ document.addEventListener('DOMContentLoaded', function () {
 const businessUnitSelect = document.getElementById('input-bu');
 const fromWarehouse = document.getElementById('input-from-wh');
 const toWarehouse = document.getElementById('input-to-wh');
+const destinationBuLabel = document.getElementById('destination-bu-label');
 
-businessUnitSelect.addEventListener('change', function () {
-    // Perubahan BU membatalkan pilihan gudang dan barang yang berasal dari BU sebelumnya.
-    fromWarehouse.value = '';
-    toWarehouse.value = '';
+function clearProductRows() {
     productsData.length = 0;
     document.querySelectorAll('#tbody-items .item-product').forEach(select => {
         select.innerHTML = '<option value="">-- Pilih Barang --</option>';
         select.value = '';
     });
     document.querySelectorAll('#tbody-items .item-unit').forEach(unit => unit.textContent = '-');
-});
+}
 
-fromWarehouse.addEventListener('change', async function () {
-    const warehouseId = this.value;
+async function loadTransferProducts(preserveItems = []) {
+    const sourceBusinessUnitId = businessUnitSelect.value;
+    const sourceWarehouseId = fromWarehouse.value;
+    const destinationWarehouseId = toWarehouse.value;
 
-    // Gudang penerima tidak boleh sama dengan gudang pengirim
-    if (toWarehouse.value === warehouseId && warehouseId !== '') {
+    clearProductRows();
+    if (destinationBuLabel) destinationBuLabel.textContent = 'Pilih gudang tujuan untuk menentukan BU tujuan.';
+
+    if (!sourceBusinessUnitId || !sourceWarehouseId || !destinationWarehouseId) return;
+
+    if (sourceWarehouseId === destinationWarehouseId) {
         toWarehouse.value = '';
-    }
-
-    // Ambil barang sesuai stok gudang pengirim
-    if (!warehouseId) {
-        productsData.length = 0;
-        document.querySelectorAll('#tbody-items .item-product').forEach(select => {
-            select.innerHTML = '<option value="">-- Pilih Barang --</option>';
-        });
-        document.querySelectorAll('#tbody-items .item-unit').forEach(unit => unit.textContent = '-');
+        alert('Gudang pengirim dan gudang penerima tidak boleh sama.');
         return;
     }
 
     try {
-        const businessUnitId = document.getElementById('input-bu').value;
-        if (!businessUnitId) {
-            alert('Pilih Unit Bisnis terlebih dahulu.');
-            this.value = '';
-            return;
+        const url = `{{ url('/inventori/transfer/warehouse-products') }}/${sourceWarehouseId}?business_unit_id=${encodeURIComponent(sourceBusinessUnitId)}&to_warehouse_id=${encodeURIComponent(destinationWarehouseId)}`;
+        const response = await fetch(url);
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || 'Mapping gudang atau item tidak valid.');
+
+        productsData.push(...(result.products || []));
+        if (destinationBuLabel) {
+            destinationBuLabel.textContent = result.destination_business_unit_name || 'BU tujuan tidak ditemukan.';
         }
 
-        const response = await fetch(`{{ url('/inventori/transfer/warehouse-products') }}/${warehouseId}?business_unit_id=${encodeURIComponent(businessUnitId)}`);
-        if (!response.ok) throw new Error('Gagal mengambil stok gudang');
-
-        const products = await response.json();
-
-        productsData.length = 0;
-        productsData.push(...products);
+        // Saat edit, tetap tampilkan item lama agar bisa diperiksa/dihapus.
+        preserveItems.forEach(item => {
+            if (!productsData.some(product => String(product.id) === String(item.product_id ?? item.id))) {
+                productsData.push({
+                    id: item.product_id ?? item.id,
+                    code: item.product_code ?? item.code ?? '',
+                    name: item.product_name ?? item.name ?? '',
+                    unit_name: item.unit_name || '-',
+                    stock_qty: 0
+                });
+            }
+        });
 
         document.querySelectorAll('#tbody-items tr').forEach(row => {
             const select = row.querySelector('.item-product');
             const unit = row.querySelector('.item-unit');
-
             if (!select) return;
 
+            const currentValue = select.value;
             select.innerHTML = '<option value="">-- Pilih Barang --</option>';
-
-            products.forEach(product => {
-                select.innerHTML += `<option value="${product.id}">${product.code} - ${product.name}</option>`;
+            productsData.forEach(product => {
+                select.innerHTML += `<option value="${product.id}">${product.code} - ${product.name} (${product.unit_name || '-'})</option>`;
             });
-
-            select.value = '';
-            if (unit) unit.textContent = '-';
+            select.value = preserveItems.length ? (preserveItems.find(item => String(item.product_id) === String(currentValue))?.product_id ?? currentValue) : '';
+            const selected = productsData.find(product => String(product.id) === String(select.value));
+            if (unit) unit.textContent = selected?.unit_name || '-';
         });
     } catch (error) {
         console.error(error);
-        alert('Gagal mengambil daftar barang dari gudang pengirim.');
+        if (destinationBuLabel) destinationBuLabel.textContent = 'Mapping BU tujuan tidak valid.';
+        alert(error.message || 'Gagal mengambil daftar barang untuk kedua BU.');
     }
+}
+
+businessUnitSelect.addEventListener('change', function () {
+    fromWarehouse.value = '';
+    toWarehouse.value = '';
+    clearProductRows();
+    if (destinationBuLabel) destinationBuLabel.textContent = 'Pilih gudang tujuan untuk menentukan BU tujuan.';
+});
+
+fromWarehouse.addEventListener('change', function () {
+    if (toWarehouse.value === this.value && this.value !== '') {
+        toWarehouse.value = '';
+    }
+    loadTransferProducts();
 });
 
 toWarehouse.addEventListener('change', function () {
@@ -500,6 +530,7 @@ toWarehouse.addEventListener('change', function () {
         this.value = '';
         alert('Gudang pengirim dan gudang penerima tidak boleh sama.');
     }
+    loadTransferProducts();
 });
 
     // 1. Export Excel
@@ -572,6 +603,7 @@ toWarehouse.addEventListener('change', function () {
         document.getElementById('input-date').value = "{{ date('Y-m-d') }}";
         document.getElementById('input-memo').value = '';
         productsData.length = 0;
+        if (destinationBuLabel) destinationBuLabel.textContent = 'Pilih gudang tujuan untuk menentukan BU tujuan.';
         document.getElementById('tbody-items').innerHTML = '';
         addItemRow(); // default 1 row
     });
@@ -599,30 +631,10 @@ toWarehouse.addEventListener('change', function () {
                         const tbody = document.getElementById('tbody-items');
                         tbody.innerHTML = '';
 
-                        fetch(`{{ url('/inventori/transfer/warehouse-products') }}/${t.from_warehouse_id}?business_unit_id=${encodeURIComponent(t.business_unit_id)}`)
-                            .then(res => res.json())
-                            .then(products => {
-                                productsData.length = 0;
-                                productsData.push(...products);
-
-                                // Pertahankan item draft yang sudah ada walau stok sumbernya
-                                // sekarang nol; persetujuan pengirim tetap memvalidasi stok aktual.
-                                data.items.forEach(item => {
-                                    if (!productsData.some(product => String(product.id) === String(item.product_id))) {
-                                        productsData.push({
-                                            id: item.product_id,
-                                            code: item.product_code,
-                                            name: item.product_name,
-                                            unit_name: item.unit_name || '-',
-                                            stock_qty: 0
-                                        });
-                                    }
-                                });
-
-                                data.items.forEach(item => addItemRow(item.product_id, item.quantity));
-
-                                new bootstrap.Modal(document.getElementById('modal-mutasi')).show();
-                            })
+                        loadTransferProducts(data.items).then(() => {
+                            data.items.forEach(item => addItemRow(item.product_id, item.quantity));
+                            new bootstrap.Modal(document.getElementById('modal-mutasi')).show();
+                        })
                             .catch(error => {
                                 console.error(error);
                                 alert('Gagal mengambil barang dari gudang pengirim.');
@@ -659,6 +671,7 @@ toWarehouse.addEventListener('change', function () {
                         document.getElementById('det-no').innerText   = t.transfer_no;
                         document.getElementById('det-date').innerText = t.transfer_date;
                         document.getElementById('det-bu').innerText   = t.business_unit_name ?? '-';
+                        document.getElementById('det-to-bu').innerText = t.destination_business_unit_name ?? 'Belum ditentukan';
                         document.getElementById('det-from').innerText = t.from_warehouse_name;
                         document.getElementById('det-to').innerText   = t.to_warehouse_name;
                         document.getElementById('det-memo').innerText = t.memo ?? '-';
@@ -697,7 +710,7 @@ toWarehouse.addEventListener('change', function () {
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const transferTable = document.querySelector('#table-transfer');
-    const emptyTransferRow = transferTable?.querySelector('tbody td[colspan="7"]');
+    const emptyTransferRow = transferTable?.querySelector('tbody td[colspan="8"]');
 
     if (transferTable && !emptyTransferRow) {
         new DataTable('#table-transfer', {
