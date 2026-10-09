@@ -154,8 +154,10 @@
             </tbody>
         </table>
     </div>
-    @if($rows->hasPages())
-        <div class="card-footer">{{ $rows->links() }}</div>
+    @if(method_exists($rows, 'links'))
+        <div class="card-footer no-print">
+            {{ $rows->onEachSide(1)->links("pagination::bootstrap-5") }}
+        </div>
     @endif
 </div>
 @endsection
