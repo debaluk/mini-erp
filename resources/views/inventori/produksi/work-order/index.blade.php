@@ -707,6 +707,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const workerRows = document.getElementById('productionResultWorkerRows');
     const woWorkers = @json($woWorkers->groupBy('production_work_order_id'));
     const costsByWo = @json($woCosts->groupBy('production_work_order_id'));
+    const resultDraftLines = @json($resultDraftLines->groupBy('production_work_order_id'));
     const money = value => 'Rp ' + Number(value || 0).toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     const number = value => Number(value || 0).toLocaleString('id-ID', {maximumFractionDigits: 3});
     const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]));
@@ -720,7 +721,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const payType = row.dataset.payType;
             const goodCost = payType === 'satuan' ? good * rate : 0;
             const rejectCost = payType === 'satuan' ? reject * rate : 0;
-            row.querySelector('.result-good-cost').textContent = payType === 'satuan' ? money(good) + ' × ' + money(rate).replace('Rp ', 'Rp ') + ' = ' + money(goodCost) : 'Borongan';
+            row.querySelector('.result-good-cost').textContent = payType === 'satuan' ? number(good) + ' × ' + money(rate) + ' = ' + money(goodCost) : 'Borongan';
             row.querySelector('.result-reject-cost').textContent = payType === 'satuan' ? money(rejectCost) : '-';
             goodTotal += good; rejectTotal += reject; goodCostTotal += goodCost; rejectCostTotal += rejectCost;
         });
@@ -739,7 +740,11 @@ document.addEventListener('DOMContentLoaded', function () {
         const costMap = new Map(costs.map(cost => [String(cost.worker_id), cost]));
         document.getElementById('productionResultWorkOrder').textContent = 'SPK ' + button.dataset.no;
         resultForm.action = '{{ url('/produksi/work-order') }}/' + id + '/hasil-produksi';
-        document.getElementById('productionResultDate').value = document.getElementById('productionResultDateVisible').value || '{{ now()->toDateString() }}';
+        const savedDrafts = resultDraftLines[id] || [];
+        const draftDate = savedDrafts.length ? savedDrafts[0].production_date : '{{ now()->toDateString() }}';
+        document.getElementById('productionResultDateVisible').value = draftDate;
+        document.getElementById('productionResultDate').value = draftDate;
+        const savedForDate = new Map(savedDrafts.filter(line => line.production_date === draftDate).map(line => [String(line.worker_id), line]));
         workerRows.innerHTML = '';
         if (!workers.length) {
             workerRows.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-3">Setup pekerja SPK tidak ditemukan.</td></tr>';
@@ -748,6 +753,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const cost = costMap.get(String(worker.worker_id)) || {};
                 const payType = String(cost.pay_type || 'borongan').toLowerCase() === 'satuan' ? 'satuan' : 'borongan';
                 const rate = Number(payType === 'satuan' ? (cost.unit_rate || 0) : (cost.amount || 0));
+                const saved = savedForDate.get(String(worker.worker_id)) || {};
                 const row = document.createElement('tr');
                 row.dataset.workerId = worker.worker_id;
                 row.dataset.payType = payType;
@@ -755,9 +761,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 row.innerHTML = '<td><span class="fw-semibold">'+escapeHtml(worker.worker_name)+'</span><input type="hidden" name="worker_id[]" value="'+Number(worker.worker_id)+'"></td>'
                     + '<td>'+ (payType === 'satuan' ? 'Satuan' : 'Borongan') + '</td>'
                     + '<td class="text-end">'+money(rate)+'</td>'
-                    + '<td><input type="number" name="good_qty[]" class="form-control form-control-sm text-end result-good" min="0" step="0.001" value="0" required></td>'
+                    + '<td><input type="number" name="good_qty[]" class="form-control form-control-sm text-end result-good" min="0" step="0.001" value="'+Number(saved.good_qty || 0)+'" required></td>'
                     + '<td class="text-end result-good-cost">Rp 0,00</td>'
-                    + '<td><input type="number" name="reject_by_worker[]" class="form-control form-control-sm text-end result-reject" min="0" step="0.001" value="0" required></td>'
+                    + '<td><input type="number" name="reject_by_worker[]" class="form-control form-control-sm text-end result-reject" min="0" step="0.001" value="'+Number(saved.reject_qty || 0)+'" required></td>'
                     + '<td class="text-end result-reject-cost">Rp 0,00</td>';
                 workerRows.appendChild(row);
             });
