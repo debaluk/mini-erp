@@ -22,6 +22,9 @@
         <div class="fw-semibold">{{ $receipt->warehouse_name ?? '-' }}</div>
     </div>
 </div>
+@if($items->sum('returnable_qty') <= 0)
+    <div class="alert alert-warning py-2 mb-3">Tidak ada qty yang tersisa untuk diretur. Periksa retur yang masih berstatus Draft atau yang sudah Terposting.</div>
+@endif
 <div class="table-responsive">
     <table class="table table-sm table-bordered align-middle mb-2">
         <thead class="table-dark text-center">
