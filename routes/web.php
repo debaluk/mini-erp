@@ -47,6 +47,7 @@ use App\Http\Controllers\StockTransferController;
 use App\Http\Controllers\StockOpnameController;
 use App\Http\Controllers\StockAdjustmentController;
 use App\Http\Controllers\InventoryReportController;
+use App\Http\Controllers\PurchaseOperationalReportController;
 
 
 use Illuminate\Http\Request;
@@ -451,6 +452,10 @@ Route::get('/laporan/retur-penjualan/export', [SalesReturnReportController::clas
     Route::post('/laporan/penjualan/{id}/posting', [SalesController::class, 'postJournal'])->middleware('access:inventori')->name('laporan.penjualan.posting');
     Route::get('/laporan/pembelian', [PurchaseReportController::class, 'index'])->middleware('access:inventori')->name('laporan.pembelian');
     Route::get('/laporan/pembelian/export', [PurchaseReportController::class, 'export'])->middleware('access:inventori')->name('laporan.pembelian.export');
+    Route::get('/laporan/retur-pembelian', [PurchaseOperationalReportController::class, 'returns'])->middleware('access:inventori')->name('laporan.retur-pembelian');
+    Route::get('/laporan/retur-pembelian/export', [PurchaseOperationalReportController::class, 'exportReturns'])->middleware('access:inventori')->name('laporan.retur-pembelian.export');
+    Route::get('/laporan/hutang-pembelian', [PurchaseOperationalReportController::class, 'payables'])->middleware('access:inventori')->name('laporan.hutang-pembelian');
+    Route::get('/laporan/hutang-pembelian/export', [PurchaseOperationalReportController::class, 'exportPayables'])->middleware('access:inventori')->name('laporan.hutang-pembelian.export');
     Route::get('/laporan/persediaan', [InventoryReportController::class, 'index'])->middleware('access:inventori')->name('laporan.persediaan');
     Route::get('/laporan/persediaan/export', [InventoryReportController::class, 'export'])->middleware('access:inventori')->name('laporan.persediaan.export');
     Route::get('/laporan/produksi', fn () => view('inventori.laporan.produksi'))->middleware('access:inventori')->name('laporan.produksi');
