@@ -579,7 +579,7 @@ class StockTransferController extends Controller
             ]);
 
             DB::commit();
-            return redirect()->back()->with('success', "Penerimaan Barang [{$transfer->transfer_no}] DISETUJUI! Stok & HPP Gudang Tujuan telah diperbarui.");
+            return redirect()->back()->with('success', "Mutasi [{$transfer->transfer_no}] berhasil diterima.");
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()->back()->with('error', 'Gagal Persetujuan Penerima: ' . $e->getMessage());
