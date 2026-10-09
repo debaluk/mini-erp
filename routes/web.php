@@ -162,6 +162,7 @@ Route::middleware(['auth', 'access:inventori'])->prefix('inventori/penjualan/ret
         Route::get('/{id}', [PurchaseReturnController::class, 'show'])->name('.show');
         Route::get('/{id}/print', [PurchaseReturnController::class, 'printDetail'])->name('.print');
         Route::post('/{id}/post', [PurchaseReturnController::class, 'post'])->name('.post');
+        Route::post('/{id}/cancel', [PurchaseReturnController::class, 'cancel'])->name('.cancel');
     });
 
     //Route::get('/inventori/pembelian', [PurchaseController::class, 'index'])->middleware('access:inventori')->name('inventori.pembelian');
