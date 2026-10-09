@@ -65,10 +65,6 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-12 col-lg-2">
-                        <label class="form-label">Cari Item</label>
-                        <input name="search" value="{{ request('search') }}" class="form-control" placeholder="Kode / nama / SKU">
-                    </div>
                     <div class="col-12 col-lg-1 d-flex gap-2">
                         <button type="submit" class="btn btn-primary w-100">Tampilkan</button>
                     </div>
