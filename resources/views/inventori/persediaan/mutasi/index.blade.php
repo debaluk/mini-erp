@@ -241,7 +241,7 @@
                         </div>
 
                         <div class="col-md-4">
-                            <label class="form-label small fw-bold">Unit Bisnis <span class="text-danger">*</span></label>
+                            <label class="form-label small fw-bold">BU Pengirim / Penanggung Jawab <span class="text-danger">*</span></label>
                             <select name="business_unit_id" id="input-bu" class="form-select form-select-sm" required>
                                 <option value="">-- Pilih Unit Bisnis --</option>
                                 @foreach($businessUnits as $bu)
@@ -348,11 +348,11 @@
                         <div class="text-muted small">BU Tujuan:</div>
                         <div class="fw-bold text-primary" id="det-to-bu">-</div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="text-muted small">Gudang Pengirim (Asal):</div>
                         <div class="fw-bold text-danger" id="det-from">-</div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="text-muted small">Gudang Penerima (Tujuan):</div>
                         <div class="fw-bold text-success" id="det-to">-</div>
                     </div>
