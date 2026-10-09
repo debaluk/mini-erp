@@ -195,6 +195,25 @@ class InitialSetupController extends Controller
                 'Setup awal item ini untuk Business Unit tersebut sudah ada.'
             );
 
+            // Setup awal hanya boleh menjadi mutasi pertama barang pada gudang ini.
+            // Saldo nol tidak cukup sebagai bukti bahwa gudang belum pernah bergerak.
+            $stock = DB::table('warehouses_stocks')
+                ->where('entity_id', $entity)
+                ->where('warehouse_id', $warehouse->id)
+                ->where('product_id', $product->id)
+                ->lockForUpdate()
+                ->first();
+
+            abort_if(
+                DB::table('stock_movements')
+                    ->where('entity_id', $entity)
+                    ->where('warehouse_id', $warehouse->id)
+                    ->where('product_id', $product->id)
+                    ->exists(),
+                422,
+                'Barang sudah memiliki riwayat mutasi pada gudang ini. Initial Setup dibatalkan agar saldo stok dan kartu stok tidak menyimpang.'
+            );
+
             DB::table('item_initial_setups')->insert([
                 'entity_id' => $entity,
                 'business_unit_id' => $businessUnit->id,
@@ -208,13 +227,6 @@ class InitialSetupController extends Controller
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-
-            $stock = DB::table('warehouses_stocks')
-                ->where('entity_id', $entity)
-                ->where('warehouse_id', $warehouse->id)
-                ->where('product_id', $product->id)
-                ->lockForUpdate()
-                ->first();
 
             if ($stock) {
                 abort_unless(
