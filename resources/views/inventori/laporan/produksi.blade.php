@@ -49,15 +49,15 @@
             <tbody>
                 @forelse ($rows as $row)
                     <tr>
-                        <td>{{ \\Carbon\\Carbon::parse($row->date)->format('d/m/Y') }}</td>
+                        <td>{{ \Carbon\Carbon::parse($row->date)->format('d/m/Y') }}</td>
                         <td><div class="fw-semibold">{{ $row->wo_no }}</div><div class="text-secondary small">{{ $row->product_name }}</div></td>
-                        <td>{{ \\App\\Helpers\\FormatHelper::indo((float) $row->target, 3) }}</td>
+                        <td>{{ \App\Helpers\FormatHelper::indo((float) $row->target, 3) }}</td>
                         <td class="text-end">Rp {{ number_format((float) $row->estimated_cost, 2, ',', '.') }}</td>
                         <td class="text-end">Rp {{ number_format((float) $row->material_cost, 2, ',', '.') }}</td>
                         <td class="text-end">Rp {{ number_format((float) $row->labor_cost, 2, ',', '.') }}</td>
-                        <td class="text-end">{{ \\App\\Helpers\\FormatHelper::indo((float) $row->production_qty, 3) }}</td>
+                        <td class="text-end">{{ \App\Helpers\FormatHelper::indo((float) $row->production_qty, 3) }}</td>
                         <td class="text-end">@if ($row->hpp_unit !== null) Rp {{ number_format((float) $row->hpp_unit, 2, ',', '.') }} @else <span class="text-secondary">—</span> @endif</td>
-                        <td class="text-end">{{ \\App\\Helpers\\FormatHelper::indo((float) $row->reject_qty, 3) }}</td>
+                        <td class="text-end">{{ \App\Helpers\FormatHelper::indo((float) $row->reject_qty, 3) }}</td>
                     </tr>
                 @empty
                     <tr><td colspan="9" class="text-center text-secondary py-4">Tidak ada SPK pada periode ini.</td></tr>
