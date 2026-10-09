@@ -89,7 +89,7 @@ class StockTransferController extends Controller
                      ->on('pbu.business_unit_id', '=', 'wbu.business_unit_id');
             })
             ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
-            ->where('p.entity_id', DB::raw('ws.entity_id'))
+            ->whereColumn('p.entity_id', 'ws.entity_id')
             ->where('p.is_active', 1)
             ->where('p.manage_stock', 1)
             ->where('ws.qty', '>', 0)
@@ -422,7 +422,19 @@ class StockTransferController extends Controller
                 }
                 $unitCost = (float) $outMovements->first()->unit_cost;
 
-                // Cek stok di warehouses_stocks gudang penerima
+                // Pastikan baris saldo tujuan ada sebelum dikunci.
+                // insertOrIgnore menangani dua penerimaan bersamaan saat saldo awal belum ada;
+                // unique warehouse/product menjaga hanya satu baris saldo.
+                DB::table('warehouses_stocks')->insertOrIgnore([
+                    'entity_id'    => $transfer->entity_id ?? (auth()->user()->entity_id ?? 1),
+                    'warehouse_id' => $transfer->to_warehouse_id,
+                    'product_id'   => $item->product_id,
+                    'qty'          => 0,
+                    'avg_cost'     => 0,
+                    'created_at'   => now(),
+                    'updated_at'   => now(),
+                ]);
+
                 $destStock = DB::table('warehouses_stocks')
                     ->where('entity_id', $transfer->entity_id)
                     ->where('warehouse_id', $transfer->to_warehouse_id)
@@ -430,34 +442,26 @@ class StockTransferController extends Controller
                     ->lockForUpdate()
                     ->first();
 
-                // 1. Tambah stok & hitung ulang Moving Average Cost (avg_cost) gudang penerima
-                if ($destStock) {
-                    $oldQty     = (float) $destStock->qty;
-                    $oldAvgCost = (float) $destStock->avg_cost;
-                    $newQty     = $oldQty + (float) $item->quantity;
-
-                    $newAvgCost = ($newQty > 0)
-                        ? (($oldQty * $oldAvgCost) + ((float) $item->quantity * $unitCost)) / $newQty
-                        : $unitCost;
-
-                    DB::table('warehouses_stocks')
-                        ->where('id', $destStock->id)
-                        ->update([
-                            'qty'        => $newQty,
-                            'avg_cost'   => $newAvgCost,
-                            'updated_at' => now(),
-                        ]);
-                } else {
-                    DB::table('warehouses_stocks')->insert([
-                        'entity_id'    => $transfer->entity_id ?? (auth()->user()->entity_id ?? 1),
-                        'warehouse_id' => $transfer->to_warehouse_id,
-                        'product_id'   => $item->product_id,
-                        'qty'          => $item->quantity,
-                        'avg_cost'     => $unitCost,
-                        'created_at'   => now(),
-                        'updated_at'   => now(),
-                    ]);
+                if (!$destStock) {
+                    throw new \\Exception("Saldo stok gudang tujuan tidak dapat dikunci untuk item ID {$item->product_id}.");
                 }
+
+                // 1. Tambah stok & hitung ulang Moving Average Cost (avg_cost) gudang penerima.
+                $oldQty     = (float) $destStock->qty;
+                $oldAvgCost = (float) $destStock->avg_cost;
+                $newQty     = $oldQty + (float) $item->quantity;
+
+                $newAvgCost = ($newQty > 0)
+                    ? (($oldQty * $oldAvgCost) + ((float) $item->quantity * $unitCost)) / $newQty
+                    : $unitCost;
+
+                DB::table('warehouses_stocks')
+                    ->where('id', $destStock->id)
+                    ->update([
+                        'qty'        => $newQty,
+                        'avg_cost'   => $newAvgCost,
+                        'updated_at' => now(),
+                    ]);
 
                 $product = DB::table('products')->where('id', $item->product_id)->first();
 
