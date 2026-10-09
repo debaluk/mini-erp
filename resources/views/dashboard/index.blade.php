@@ -141,8 +141,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const labels = @json($trendLabels);
     const sales = @json($trendSales);
     const profit = @json($trendProfit);
-    const buLabels = @json($buCards->map(fn ($bu) => $bu->code . ' — ' . $bu->name)->values());
-    const buSales = @json($buCards->pluck('sales')->values());
+    const buLabels = @json($buChartLabels);
+    const buSales = @json($buChartValues);
     const rupiah = value => 'Rp ' + new Intl.NumberFormat('id-ID').format(value || 0);
 
     const trendCanvas = document.getElementById('chartSalesTrend');
