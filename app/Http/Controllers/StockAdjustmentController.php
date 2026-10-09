@@ -512,6 +512,9 @@ class StockAdjustmentController extends Controller
                 }
 
                 $unitCost = (float) $stock->avg_cost;
+                if ($unitCost <= 0) {
+                    throw new \Exception("HPP rata-rata untuk produk ID {$item->product_id} belum tersedia. Posting dibatalkan agar selisih tidak masuk stok tanpa nilai jurnal.");
+                }
                 $totalCost = $absQty * $unitCost;
                 $movementType = $adjQty < 0 ? 'ADJUSTMENT_OUT' : 'ADJUSTMENT_IN';
 
