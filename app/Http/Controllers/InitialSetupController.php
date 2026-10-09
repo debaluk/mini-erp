@@ -54,6 +54,8 @@ class InitialSetupController extends Controller
             })
             ->where('p.entity_id', $entity)
             ->where('p.is_active', 1)
+            ->where('p.item_type', 'barang')
+            ->where('p.manage_stock', 1)
             ->select(
                 'p.id',
                 'bu.id as business_unit_id',
@@ -86,6 +88,7 @@ class InitialSetupController extends Controller
             ->where('p.entity_id', $entity)
             ->where('p.is_active', 1)
             ->where('p.item_type', 'barang')
+            ->where('p.manage_stock', 1)
             ->whereNotExists(function ($q) use ($entity, $businessUnitId) {
                 $q->select(DB::raw(1))
                     ->from('item_initial_setups as existing')
@@ -140,6 +143,11 @@ class InitialSetupController extends Controller
             ->first();
 
         abort_unless($product, 422, 'Item tidak valid.');
+        abort_unless(
+            ($product->item_type ?? null) === 'barang' && (bool) ($product->manage_stock ?? false),
+            422,
+            'Initial Setup hanya berlaku untuk barang yang mengelola stok.'
+        );
 
         abort_unless(
             DB::table('product_business_units')
@@ -174,6 +182,19 @@ class InitialSetupController extends Controller
         );
 
         DB::transaction(function () use ($entity, $data, $product, $businessUnit, $warehouse): void {
+            // Kunci master produk agar dua request setup untuk item yang sama tidak berjalan bersamaan.
+            DB::table('products')->where('entity_id', $entity)->where('id', $product->id)->lockForUpdate()->first();
+
+            abort_if(
+                DB::table('item_initial_setups')
+                    ->where('entity_id', $entity)
+                    ->where('business_unit_id', $businessUnit->id)
+                    ->where('product_id', $product->id)
+                    ->exists(),
+                422,
+                'Setup awal item ini untuk Business Unit tersebut sudah ada.'
+            );
+
             DB::table('item_initial_setups')->insert([
                 'entity_id' => $entity,
                 'business_unit_id' => $businessUnit->id,
@@ -192,6 +213,7 @@ class InitialSetupController extends Controller
                 ->where('entity_id', $entity)
                 ->where('warehouse_id', $warehouse->id)
                 ->where('product_id', $product->id)
+                ->lockForUpdate()
                 ->first();
 
             if ($stock) {
