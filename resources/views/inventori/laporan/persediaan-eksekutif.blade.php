@@ -113,13 +113,6 @@
         </div>
         <div class="col-12 col-sm-6 col-xl-2">
             <div class="card shadow-sm report-kpi h-100"><div class="card-body">
-                <div class="label">Jenis Item</div>
-                <div class="value">{{ number_format((int) $summary->item_count, 0, ',', '.') }}</div>
-                <div class="hint">Item unik pada filter</div>
-            </div></div>
-        </div>
-        <div class="col-12 col-sm-6 col-xl-2">
-            <div class="card shadow-sm report-kpi h-100"><div class="card-body">
                 <div class="label">Lokasi Stok Nol/Minus</div>
                 <div class="value">{{ number_format((int) $summary->zero_or_negative, 0, ',', '.') }}</div>
                 <div class="hint">Item per gudang</div>
