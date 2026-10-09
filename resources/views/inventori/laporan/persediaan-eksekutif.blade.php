@@ -80,28 +80,28 @@
         <div class="col-12 col-sm-6 col-xl-3">
             <div class="card shadow-sm report-kpi h-100"><div class="card-body">
                 <div class="label">Nilai Persediaan Saat Ini</div>
-                <div class="value">Rp {{ number_format((float) $summary->stock_value, 0, ',', '.') }}</div>
+                <div class="value">Rp {{ format_id_number($summary->stock_value, 0) }}</div>
                 <div class="hint">Kuantitas saldo × HPP rata-rata</div>
             </div></div>
         </div>
         <div class="col-12 col-sm-6 col-xl-2">
             <div class="card shadow-sm report-kpi h-100"><div class="card-body">
                 <div class="label">Lokasi Stok Nol/Minus</div>
-                <div class="value">{{ number_format((int) $summary->zero_or_negative, 0, ',', '.') }}</div>
+                <div class="value">{{ format_id_number($summary->zero_or_negative, 0) }}</div>
                 <div class="hint">Item per gudang</div>
             </div></div>
         </div>
         <div class="col-12 col-sm-6 col-xl-2">
             <div class="card shadow-sm report-kpi h-100"><div class="card-body">
                 <div class="label">Baris Mutasi Masuk</div>
-                <div class="value">{{ number_format($movement['rowsIn'], 0, ',', '.') }}</div>
+                <div class="value">{{ format_id_number($movement['rowsIn'], 0) }}</div>
                 <div class="hint">Jumlah catatan pergerakan</div>
             </div></div>
         </div>
         <div class="col-12 col-sm-6 col-xl-3">
             <div class="card shadow-sm report-kpi h-100"><div class="card-body">
                 <div class="label">Baris Mutasi Keluar</div>
-                <div class="value">{{ number_format($movement['rowsOut'], 0, ',', '.') }}</div>
+                <div class="value">{{ format_id_number($movement['rowsOut'], 0) }}</div>
                 <div class="hint">Jumlah catatan pergerakan</div>
             </div></div>
         </div>
@@ -118,8 +118,8 @@
                         @forelse($byWarehouse as $warehouse)
                             <tr>
                                 <td class="fw-semibold">{{ $warehouse->warehouse_name }}</td>
-                                <td class="text-end">{{ number_format((int) $warehouse->stock_lines, 0, ',', '.') }}</td>
-                                <td class="text-end fw-semibold">Rp {{ number_format((float) $warehouse->stock_value, 0, ',', '.') }}</td>
+                                <td class="text-end">{{ format_id_number($warehouse->stock_lines, 0) }}</td>
+                                <td class="text-end fw-semibold">Rp {{ format_id_number($warehouse->stock_value, 0) }}</td>
                             </tr>
                         @empty
                             <tr><td colspan="3" class="text-center text-secondary py-4">Belum ada saldo persediaan.</td></tr>
@@ -140,8 +140,8 @@
                             <tr>
                                 <td><div class="fw-semibold">{{ $item->product_name }}</div><div class="small text-secondary">{{ $item->code ?: $item->sku ?: '-' }}</div></td>
                                 <td>{{ $item->warehouse_name }}</td>
-                                <td class="text-end">{{ number_format((float) $item->qty, 3, ',', '.') }} {{ $item->unit_code }}</td>
-                                <td class="text-end fw-semibold">Rp {{ number_format((float) $item->stock_value, 0, ',', '.') }}</td>
+                                <td class="text-end">{{ format_id_number($item->qty, 3) }} {{ $item->unit_code }}</td>
+                                <td class="text-end fw-semibold">Rp {{ format_id_number($item->stock_value, 0) }}</td>
                             </tr>
                         @empty
                             <tr><td colspan="4" class="text-center text-secondary py-4">Belum ada data stok.</td></tr>
@@ -172,9 +172,9 @@
                         <td>{{ $row->unit_name ?: $row->unit_code ?: '-' }}</td>
                         <td>{{ $row->business_unit_names ?: '-' }}</td>
                         <td>{{ $row->warehouse_name }}</td>
-                        <td class="text-end">{{ number_format((float) $row->qty, 3, ',', '.') }}</td>
-                        <td class="text-end">Rp {{ number_format((float) $row->avg_cost, 0, ',', '.') }}</td>
-                        <td class="text-end fw-semibold">Rp {{ number_format((float) $row->stock_value, 0, ',', '.') }}</td>
+                        <td class="text-end">{{ format_id_number($row->qty, 3) }}</td>
+                        <td class="text-end">Rp {{ format_id_number($row->avg_cost, 0) }}</td>
+                        <td class="text-end fw-semibold">Rp {{ format_id_number($row->stock_value, 0) }}</td>
                     </tr>
                 @empty
                     <tr><td colspan="9" class="text-center text-secondary py-4">Tidak ada data persediaan sesuai filter.</td></tr>
