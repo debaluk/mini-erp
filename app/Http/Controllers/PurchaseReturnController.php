@@ -310,7 +310,7 @@ class PurchaseReturnController extends Controller
 
             abort_unless($warehouse, 422, 'Gudang penerimaan faktur tidak ditemukan.');
 
-            $returnNo = 'PRT-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4));
+            $returnNo = $this->nextReturnNumber($entity, $data['return_date']);
 
             $returnId = DB::table('purchase_returns')->insertGetId([
                 'entity_id' => $entity,
