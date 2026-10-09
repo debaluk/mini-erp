@@ -405,7 +405,7 @@ class StockTransferController extends Controller
 
             foreach ($items as $item) {
                 // Ambil unit_cost dari record TRANSFER_OUT sebelumnya agar konsisten
-                $outMovement = DB::table('stock_movements')
+                $outMovements = DB::table('stock_movements')
                     ->where('entity_id', $transfer->entity_id)
                     ->where('business_unit_id', $transfer->business_unit_id)
                     ->where('warehouse_id', $transfer->from_warehouse_id)
@@ -414,12 +414,12 @@ class StockTransferController extends Controller
                     ->where('movement_type', 'TRANSFER_OUT')
                     ->where('product_id', $item->product_id)
                     ->lockForUpdate()
-                    ->first();
+                    ->get();
 
-                if (!$outMovement) {
-                    throw new \Exception("Penerimaan ditolak: catatan stok keluar untuk item ID {$item->product_id} tidak ditemukan.");
+                if ($outMovements->count() !== 1) {
+                    throw new \Exception("Penerimaan ditolak: catatan stok keluar untuk item ID {$item->product_id} tidak ditemukan atau tidak unik.");
                 }
-                $unitCost = (float) $outMovement->unit_cost;
+                $unitCost = (float) $outMovements->first()->unit_cost;
 
                 // Cek stok di warehouses_stocks gudang penerima
                 $destStock = DB::table('warehouses_stocks')
