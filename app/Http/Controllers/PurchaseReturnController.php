@@ -154,6 +154,10 @@ class PurchaseReturnController extends Controller
 
         abort_if($items->sum('returnable_qty') <= 0, 422, 'Tidak ada qty penerimaan yang tersedia untuk diretur.');
 
+        if (request()->ajax()) {
+            return view('inventori.pembelian.retur.partials.create-from-receipt-modal', compact('receipt', 'items'));
+        }
+
         return view('inventori.pembelian.retur.create-from-receipt', compact('receipt', 'items'));
     }
 
@@ -242,6 +246,14 @@ class PurchaseReturnController extends Controller
             abort_if($inserted === 0, 422, 'Isi qty minimal satu barang yang akan diretur.');
             return $returnId;
         });
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Draft retur berhasil dibuat dari penerimaan sumber.',
+                'redirect_url' => route('inventori.pembelian.retur.show', $returnId),
+            ]);
+        }
 
         return redirect()->route('inventori.pembelian.retur.show', $returnId)
             ->with('swal_success', 'Draft Retur Pembelian berhasil dibuat dari penerimaan sumber.');
