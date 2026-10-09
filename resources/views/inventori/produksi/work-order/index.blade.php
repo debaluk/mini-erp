@@ -728,7 +728,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const payType = row.dataset.payType;
             const goodCost = payType === 'satuan' ? good * rate : 0;
             const rejectCost = payType === 'satuan' ? reject * rate : 0;
-            row.querySelector('.result-good-cost').textContent = payType === 'satuan' ? number(good) + ' × ' + money(rate) + ' = ' + money(goodCost) : 'Borongan';
+            row.querySelector('.result-good-cost').textContent = payType === 'satuan' ? number(good) + ' × ' + money(rate) + ' = ' + money(goodCost) : 'Borongan: ' + money(rate);
             row.querySelector('.result-reject-cost').textContent = payType === 'satuan' ? number(reject) + ' × ' + money(rate) + ' = ' + money(rejectCost) : '-';
             goodTotal += good; rejectTotal += reject; goodCostTotal += goodCost; rejectCostTotal += rejectCost;
         });
