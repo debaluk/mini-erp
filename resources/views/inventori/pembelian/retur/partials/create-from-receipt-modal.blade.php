@@ -1,6 +1,5 @@
 @php($returnDate = now()->toDateString())
 <input type="hidden" name="return_date" value="{{ $returnDate }}">
-<div class="small text-secondary mb-2">Nomor retur dibuat otomatis saat disimpan dengan format <strong>RB-YYYYMMDD0001</strong>.</div>
 <div class="row g-2 mb-3">
     <div class="col-md-4">
         <div class="small text-secondary">No. Pembelian</div>
@@ -49,11 +48,3 @@
     </table>
 </div>
 <div class="small text-secondary">Isi qty yang diretur saja. Qty tidak boleh melebihi sisa. Harga pokok pembelian mengikuti penerimaan sumber.</div>
-<script>
-$('#return-receipt-body input[type="number"]').on('input', function () {
-    const max = Number($(this).attr('max') || 0);
-    const value = Number($(this).val() || 0);
-    if (value > max) $(this).val(max);
-    if (value < 0) $(this).val('');
-});
-</script>
