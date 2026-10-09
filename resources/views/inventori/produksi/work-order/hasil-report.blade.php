@@ -6,10 +6,8 @@
         <h4 class="mb-1">Laporan Hasil Produksi</h4>
         <div class="text-secondary small">Rekap hasil produksi dan rincian per pekerja.</div>
     </div>
-    <div class="d-flex gap-2">
+    <div>
         <a href="{{ route('produksi.work-order.hasil-report.export', request()->query()) }}" class="btn btn-success"><i class="bi bi-file-earmark-excel me-1"></i>Export Excel</a>
-        <button type="button" onclick="window.print()" class="btn btn-outline-primary"><i class="bi bi-printer me-1"></i>Cetak</button>
-        <a href="{{ route('produksi.work-order') }}" class="btn btn-outline-secondary">Kembali ke SPK</a>
     </div>
 </div>
 
