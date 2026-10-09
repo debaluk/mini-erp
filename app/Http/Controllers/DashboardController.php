@@ -214,12 +214,15 @@ class DashboardController extends Controller
                 ->get();
         }
 
+        $buChartLabels = $buCards->map(fn ($bu) => $bu->code . ' — ' . $bu->name)->values();
+        $buChartValues = $buCards->pluck('sales')->values();
+
         return view('dashboard.index', compact(
             'entityId', 'period', 'startDate', 'endDate', 'businessUnitId', 'businessUnits',
             'products', 'customers', 'suppliers', 'stockValue', 'salesTotal', 'purchasesTotal',
             'netSales', 'grossProfit', 'grossMargin', 'cashBankBalance', 'cashMovement',
             'trendLabels', 'trendSales', 'trendProfit', 'buCards', 'arBuckets', 'apBuckets',
-            'stockAdjustments', 'recentTransactions'
+            'stockAdjustments', 'recentTransactions', 'buChartLabels', 'buChartValues'
         ));
     }
 }
