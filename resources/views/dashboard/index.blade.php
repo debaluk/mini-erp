@@ -79,22 +79,7 @@
     </div>
 
 
-    <div class="row g-3 mb-4">
-        @foreach($buCards as $bu)
-        <div class="col-12 col-md-4"><div class="dash-card bg-white h-100">
-            <div class="p-3 border-bottom d-flex justify-content-between align-items-center gap-2"><div class="fw-bold">{{ $bu->code }} — {{ $bu->name }}</div><span class="badge text-bg-light border">Penjualan posted</span></div>
-            <div class="p-3"><div class="kpi-label mb-1">Total penjualan periode ini</div><div class="kpi-value">{{ $money($bu->sales) }}</div>
-                @if(strtoupper((string) $bu->code) === 'RET')
-                    <div class="small muted mt-2">Retail · margin dan peringatan erosi margin perlu divalidasi per item terhadap HPP aktual.</div>
-                @elseif(strtoupper((string) $bu->code) === 'PROD')
-                    <div class="small muted mt-2">Produksi · output bagus, afkir, dan rincian BUASO belum ditampilkan sebelum sumber datanya diverifikasi.</div>
-                @elseif(strtoupper((string) $bu->code) === 'JASA')
-                    <div class="small muted mt-2">Armada · pendapatan sewa dan biaya BBM/maintenance menunggu pemetaan transaksi biaya yang tervalidasi.</div>
-                @endif
-            </div>
-        </div></div>
-        @endforeach
-    </div>
+
 
     <div class="row g-3 mb-4">
         <div class="col-12 col-lg-4"><div class="dash-card bg-white p-3 h-100">
@@ -118,8 +103,27 @@
         </div></div>
     </div>
 
+
+
+
     <div class="section-heading">Performa Unit Bisnis</div>
 
+    <div class="row g-3 mb-4">
+        @foreach($buCards as $bu)
+        <div class="col-12 col-md-4"><div class="dash-card bg-white h-100">
+            <div class="p-3 border-bottom d-flex justify-content-between align-items-center gap-2"><div class="fw-bold">{{ $bu->code }} — {{ $bu->name }}</div><span class="badge text-bg-light border">Penjualan posted</span></div>
+            <div class="p-3"><div class="kpi-label mb-1">Total penjualan periode ini</div><div class="kpi-value">{{ $money($bu->sales) }}</div>
+                @if(strtoupper((string) $bu->code) === 'RET')
+                    <div class="small muted mt-2">Retail · margin dan peringatan erosi margin perlu divalidasi per item terhadap HPP aktual.</div>
+                @elseif(strtoupper((string) $bu->code) === 'PROD')
+                    <div class="small muted mt-2">Produksi · output bagus, afkir, dan rincian BUASO belum ditampilkan sebelum sumber datanya diverifikasi.</div>
+                @elseif(strtoupper((string) $bu->code) === 'JASA')
+                    <div class="small muted mt-2">Armada · pendapatan sewa dan biaya BBM/maintenance menunggu pemetaan transaksi biaya yang tervalidasi.</div>
+                @endif
+            </div>
+        </div></div>
+        @endforeach
+    </div>
 
 </div>
 @endsection
