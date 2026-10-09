@@ -10,7 +10,7 @@
             @if($return->status === 'draft')
                 <form method="POST" action="{{ route('inventori.pembelian.retur.post', $return->id) }}" class="d-inline">
                     @csrf
-                    <button class="btn btn-success btn-sm" onclick="return confirm('Post retur ini?')"><i class="bi bi-check-circle me-1"></i>Post Retur</button>
+                    <button class="btn btn-success btn-sm" onclick="return confirm('Lanjutkan posting Retur Pembelian ini?')"><i class="bi bi-check-circle me-1"></i>Posting Retur</button>
                 </form>
             @endif
         </div>
