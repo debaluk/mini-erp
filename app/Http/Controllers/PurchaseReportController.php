@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
@@ -102,7 +103,8 @@ class PurchaseReportController extends Controller
         $sheet->setCellValue('A4', 'Unit Bisnis: ' . $selectedUnitName . ' | Tanggal Export: ' . now()->format('d/m/Y'));
         $headers = ['No. Pembelian', 'Tanggal', 'Supplier', 'Unit Bisnis', 'Cara Bayar', 'Jatuh Tempo', 'Subtotal', 'Diskon', 'Total', 'Status'];
         foreach ($headers as $index => $header) {
-            $sheet->setCellValueByColumnAndRow($index + 1, 6, $header);
+            $column = Coordinate::stringFromColumnIndex($index + 1);
+            $sheet->setCellValue($column . '6', $header);
         }
         $rowNumber = 7;
         foreach ($rows as $row) {
@@ -119,7 +121,8 @@ class PurchaseReportController extends Controller
                 $row->status ?? '-',
             ];
             foreach ($values as $index => $value) {
-                $sheet->setCellValueByColumnAndRow($index + 1, $rowNumber, $value);
+                $column = Coordinate::stringFromColumnIndex($index + 1);
+                $sheet->setCellValue($column . $rowNumber, $value);
             }
             $rowNumber++;
         }
