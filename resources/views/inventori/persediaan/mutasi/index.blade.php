@@ -605,6 +605,20 @@ toWarehouse.addEventListener('change', function () {
                                 productsData.length = 0;
                                 productsData.push(...products);
 
+                                // Pertahankan item draft yang sudah ada walau stok sumbernya
+                                // sekarang nol; persetujuan pengirim tetap memvalidasi stok aktual.
+                                data.items.forEach(item => {
+                                    if (!productsData.some(product => String(product.id) === String(item.product_id))) {
+                                        productsData.push({
+                                            id: item.product_id,
+                                            code: item.product_code,
+                                            name: item.product_name,
+                                            unit_name: item.unit_name || '-',
+                                            stock_qty: 0
+                                        });
+                                    }
+                                });
+
                                 data.items.forEach(item => addItemRow(item.product_id, item.quantity));
 
                                 new bootstrap.Modal(document.getElementById('modal-mutasi')).show();
