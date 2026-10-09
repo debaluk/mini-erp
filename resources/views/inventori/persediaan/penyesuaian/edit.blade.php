@@ -42,6 +42,11 @@
                 <span class="fw-bold small"><i class="bi bi-box-seam me-1"></i> Edit Item Kuantitas Penyesuaian</span>
             </div>
             <div class="card-body p-0">
+                @if($adj->stock_opname_id)
+                    <div class="alert alert-info rounded-0 mb-0 py-2 small">
+                        Kuantitas dikunci mengikuti selisih Stock Opname. Tanggal dan catatan tetap dapat diperbarui.
+                    </div>
+                @endif
                 <div class="table-responsive">
                     <table class="table table-bordered table-hover align-middle mb-0" style="font-size: 0.88rem;">
                         <thead class="table-light text-center">
@@ -73,7 +78,7 @@
                                     <td class="text-center bg-light">{{ number_format($sys, 2, ',', '.') }}</td>
                                     <td>
                                         <input type="number" name="adjustment_qty[]" class="form-control form-control-sm text-center fw-bold input-adj-edit {{ $adj < 0 ? 'text-danger' : 'text-success' }}"
-                                               data-sys="{{ $sys }}" step="0.001" value="{{ $adj }}" required>
+                                               data-sys="{{ $sys }}" step="0.001" value="{{ $adj }}" required {{ $adj->stock_opname_id ? 'readonly' : '' }}>
                                     </td>
                                     <td class="text-center font-monospace fw-bold cell-final-edit">{{ number_format($sys + $adj, 2, ',', '.') }}</td>
                                     <td class="text-end font-monospace">Rp {{ number_format($cost, 0, ',', '.') }}</td>
