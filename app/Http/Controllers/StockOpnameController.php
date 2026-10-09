@@ -157,7 +157,7 @@ class StockOpnameController extends Controller
                 ->get();
 
             if ($stocks->isEmpty()) {
-                throw new \\Exception('Tidak ada item stok yang dialokasikan ke Unit Bisnis dan gudang terpilih.');
+                throw new \Exception('Tidak ada item stok yang dialokasikan ke Unit Bisnis dan gudang terpilih.');
             }
 
             $opnameNo = $this->generateOpnameCode();
@@ -241,7 +241,7 @@ class StockOpnameController extends Controller
                     'opname_date' => $request->opname_date,
                     'updated_at'  => now(),
                 ]);
-        } catch (\\Exception $e) {
+        } catch (\Exception $e) {
             return redirect()->back()->with('error', $e->getMessage());
         }
 
@@ -306,7 +306,7 @@ class StockOpnameController extends Controller
                 ->first();
 
             if (!$opname || $opname->status !== 'draft') {
-                throw new \\Exception('Dokumen opname tidak ditemukan atau sudah difinalisasi.');
+                throw new \Exception('Dokumen opname tidak ditemukan atau sudah difinalisasi.');
             }
 
             $this->validateOpnameMapping(
@@ -328,13 +328,13 @@ class StockOpnameController extends Controller
                 ->all();
 
             if ($expectedIds !== $submittedIds) {
-                throw new \\Exception('Semua item snapshot harus dikirim tepat satu kali. Muat ulang halaman dan coba lagi.');
+                throw new \Exception('Semua item snapshot harus dikirim tepat satu kali. Muat ulang halaman dan coba lagi.');
             }
 
             foreach ($request->input('item_ids') as $idx => $itemId) {
                 $item = $items->firstWhere('id', (int) $itemId);
                 if (!$item) {
-                    throw new \\Exception('Item tidak termasuk dalam dokumen opname ini.');
+                    throw new \Exception('Item tidak termasuk dalam dokumen opname ini.');
                 }
 
                 $actualQty = (float) $request->input('actual_qty')[$idx];
@@ -364,7 +364,7 @@ class StockOpnameController extends Controller
 
             return redirect()->route('inventori.stock-opname.index')
                 ->with('success', "Hasil fisik Stock Opname [{$opname->opname_no}] berhasil difinalisasi. Selisih dapat diproses melalui Penyesuaian Stok.");
-        } catch (\\Exception $e) {
+        } catch (\Exception $e) {
             DB::rollBack();
             return redirect()->back()->with('error', 'Gagal menyimpan hasil SO: ' . $e->getMessage());
         }
@@ -409,11 +409,11 @@ class StockOpnameController extends Controller
                 ->first();
 
             if (!$opname) {
-                throw new \\Exception('Dokumen Stock Opname tidak ditemukan.');
+                throw new \Exception('Dokumen Stock Opname tidak ditemukan.');
             }
 
             if ($opname->status !== 'draft') {
-                throw new \\Exception('Dokumen Stock Opname yang sudah difinalisasi tidak dapat dihapus.');
+                throw new \Exception('Dokumen Stock Opname yang sudah difinalisasi tidak dapat dihapus.');
             }
 
             DB::table('stock_opnames')
@@ -508,7 +508,7 @@ class StockOpnameController extends Controller
             ->exists();
 
         if (!$businessUnit) {
-            throw new \\Exception('Unit Bisnis tidak aktif atau bukan milik entitas ini.');
+            throw new \Exception('Unit Bisnis tidak aktif atau bukan milik entitas ini.');
         }
 
         $warehouse = DB::table('warehouses')
@@ -518,7 +518,7 @@ class StockOpnameController extends Controller
             ->exists();
 
         if (!$warehouse) {
-            throw new \\Exception('Gudang tidak aktif atau bukan milik entitas ini.');
+            throw new \Exception('Gudang tidak aktif atau bukan milik entitas ini.');
         }
 
         $mapped = DB::table('warehouse_business_units')
@@ -528,7 +528,7 @@ class StockOpnameController extends Controller
             ->exists();
 
         if (!$mapped) {
-            throw new \\Exception('Gudang tidak teralokasi ke Unit Bisnis yang dipilih.');
+            throw new \Exception('Gudang tidak teralokasi ke Unit Bisnis yang dipilih.');
         }
     }
 
