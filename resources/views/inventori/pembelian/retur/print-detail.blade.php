@@ -47,17 +47,17 @@
         <div class="col">
             <table class="no-border">
                 <tr><td style="width:130px;">Tanggal Retur</td><td>: {{ date('d/m/Y', strtotime($return->return_date)) }}</td></tr>
-                <tr><td>No. Faktur</td><td>: {{ $return->invoice_no ?? '-' }}</td></tr>
+                <tr><td>Penerimaan Sumber</td><td>: {{ $return->source_receipt_no ?? '-' }}</td></tr>
                 <tr><td>Unit Bisnis</td><td>: {{ $return->business_unit_name ?? '-' }}</td></tr>
                 <tr><td>Gudang</td><td>: {{ $return->warehouse_name ?? '-' }}</td></tr>
-                <tr><td>Status</td><td>: {{ strtoupper($return->status) }}</td></tr>
+                <tr><td>Status</td><td>: {{ $return->status === 'posted' ? 'Terposting' : ($return->status === 'cancelled' ? 'Dibatalkan' : 'Draft') }}</td></tr>
             </table>
         </div>
     </div>
 
     <table>
         <thead>
-            <tr><th>No</th><th>Kode</th><th>Nama Barang</th><th>Qty</th><th>Kondisi</th><th>Nilai/Unit</th><th>Total</th></tr>
+            <tr><th>No</th><th>Kode</th><th>Nama Barang</th><th>Qty</th><th>Kondisi</th><th>Harga Pokok Pembelian/Unit</th><th>Total</th></tr>
         </thead>
         <tbody>
         @foreach($items as $i => $item)
