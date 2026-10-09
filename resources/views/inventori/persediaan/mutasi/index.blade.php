@@ -195,6 +195,7 @@
                                             <form action="{{ route('inventori.transfer.approve-receiver',$t->id) }}" method="POST" class="d-inline form-approve-receiver">
                                                 @csrf
                                                 <input type="hidden" name="to_warehouse_id" value="{{ $t->to_warehouse_id }}">
+                                                <input type="hidden" name="to_warehouse_id" value="{{ $t->to_warehouse_id }}">
                                                 <button type="submit" class="btn btn-primary" title="Terima hanya di gudang tujuan dokumen">
                                                     <i class="bi bi-box-arrow-in-down"></i> Terima
                                                 </button>
@@ -410,7 +411,14 @@ fromWarehouse.addEventListener('change', async function () {
     }
 
     try {
-        const response = await fetch(`{{ url('/inventori/transfer/warehouse-products') }}/${warehouseId}`);
+        const businessUnitId = document.getElementById('input-bu').value;
+        if (!businessUnitId) {
+            alert('Pilih Unit Bisnis terlebih dahulu.');
+            this.value = '';
+            return;
+        }
+
+        const response = await fetch(`{{ url('/inventori/transfer/warehouse-products') }}/${warehouseId}?business_unit_id=${encodeURIComponent(businessUnitId)}`);
         if (!response.ok) throw new Error('Gagal mengambil stok gudang');
 
         const products = await response.json();
@@ -537,7 +545,7 @@ toWarehouse.addEventListener('change', function () {
                         const tbody = document.getElementById('tbody-items');
                         tbody.innerHTML = '';
 
-                        fetch(`{{ url('/inventori/transfer/warehouse-products') }}/${t.from_warehouse_id}`)
+                        fetch(`{{ url('/inventori/transfer/warehouse-products') }}/${t.from_warehouse_id}?business_unit_id=${encodeURIComponent(t.business_unit_id)}`)
                             .then(res => res.json())
                             .then(products => {
                                 productsData.length = 0;
