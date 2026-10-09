@@ -1,15 +1,24 @@
 @php($returnDate = now()->toDateString())
 <input type="hidden" name="return_date" value="{{ $returnDate }}">
+<div class="small text-secondary mb-2">Nomor retur dibuat otomatis saat disimpan dengan format <strong>RB-YYYYMMDD0001</strong>.</div>
 <div class="row g-2 mb-3">
+    <div class="col-md-4">
+        <div class="small text-secondary">No. Pembelian</div>
+        <div class="fw-bold">{{ $receipt->purchase_no ?? '-' }}</div>
+    </div>
     <div class="col-md-4">
         <div class="small text-secondary">No. Penerimaan</div>
         <div class="fw-bold">{{ $receipt->receipt_no }}</div>
     </div>
     <div class="col-md-4">
+        <div class="small text-secondary">No. PO</div>
+        <div class="fw-semibold">{{ $receipt->po_no ?? '-' }}</div>
+    </div>
+    <div class="col-md-6">
         <div class="small text-secondary">Supplier</div>
         <div class="fw-semibold">{{ $receipt->supplier_name ?? '-' }}</div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-6">
         <div class="small text-secondary">Gudang</div>
         <div class="fw-semibold">{{ $receipt->warehouse_name ?? '-' }}</div>
     </div>
