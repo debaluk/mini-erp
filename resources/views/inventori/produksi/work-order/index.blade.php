@@ -214,17 +214,18 @@
             <form method="POST" id="productionResultForm" action="{{ url('/produksi/work-order') }}">
                 @csrf
                 <input type="hidden" name="production_date" id="productionResultDate" value="{{ now()->toDateString() }}">
-                <div class="modal-header">
-                    <div>
-                        <h5 class="modal-title mb-1">Input Hasil Produksi</h5>
-                        <div class="small text-secondary" id="productionResultWorkOrder"></div>
-                    </div>
+                <div class="modal-header py-2">
+                    <h5 class="modal-title">Input Hasil Produksi</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row g-2 mb-3">
-                        <div class="col-md-4">
-                            <label for="productionResultDateVisible" class="form-label">Tanggal Produksi</label>
+                        <div class="col-md-6">
+                            <label class="form-label">No. SPK</label>
+                            <div class="form-control bg-light" id="productionResultWorkOrder">-</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="productionResultDateVisible" class="form-label">Tanggal QC</label>
                             <input type="date" class="form-control" id="productionResultDateVisible" value="{{ now()->toDateString() }}" required>
                         </div>
                     </div>
