@@ -64,26 +64,7 @@
         </div>
     </div>
 
-    {{-- IDENTITY --}}
-    <div class="card shadow-sm mb-3">
-        <div class="card-body py-2">
-            <div class="row small">
-                <div class="col-md-4">
-                    <span class="text-muted">Entitas:</span>
-                    <strong>{{ $entityName }}</strong>
-                </div>
-                <div class="col-md-4">
-                    <span class="text-muted">Periode:</span>
-                    <strong>{{ $startDate }} s/d {{ $endDate }}</strong>
-                </div>
-                <div class="col-md-4">
-                    <span class="text-muted">Business Unit:</span>
-                    <strong>{{ $selectedUnitName ?: 'Semua' }}</strong>
-                </div>
-            </div>
-        </div>
-    </div>
-
+  
     {{-- KPI --}}
     <div class="row g-3 mb-3">
 
@@ -158,7 +139,7 @@
                 <div class="card-body">
                     <div class="text-muted small">Retur Good</div>
                     <div class="fs-4 fw-bold">
-                        {{ number_format((float)($summary->good_qty ?? 0), 2, ',', '.') }}
+                        {{ number_format((float)($summary->good_qty ?? 0), 0, ',', '.') }}
                     </div>
                 </div>
             </div>
@@ -169,7 +150,7 @@
                 <div class="card-body">
                     <div class="text-muted small">Retur Reject</div>
                     <div class="fs-4 fw-bold">
-                        {{ number_format((float)($summary->reject_qty ?? 0), 2, ',', '.') }}
+                        {{ number_format((float)($summary->reject_qty ?? 0), 0, ',', '.') }}
                     </div>
                 </div>
             </div>
