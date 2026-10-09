@@ -315,7 +315,7 @@ Route::middleware(['auth', 'access:inventori'])->prefix('inventori/penyesuaian')
     Route::post('/{id}/approve', [ProductionMaterialUsageController::class, 'approve'])->name('.approve');
     Route::post('/{id}/reject', [ProductionMaterialUsageController::class, 'reject'])->name('.reject');
 });
-    Route::get('/produksi/hasil-produksi', fn () => app(ModuleController::class)->show('production-results'))->middleware('access:inventori')->name('produksi.hasil-produksi');
+    Route::get('/produksi/hasil-produksi', fn () => redirect()->route('produksi.work-order.hasil-report'))->middleware('access:inventori')->name('produksi.hasil-produksi');
     Route::get('/produksi/reject', fn () => app(ModuleController::class)->show('production-results'))->middleware('access:inventori')->name('produksi.reject');
     Route::get('/produksi/hpp', [HppController::class, 'index'])->middleware('access:inventori')->name('produksi.hpp');
 
