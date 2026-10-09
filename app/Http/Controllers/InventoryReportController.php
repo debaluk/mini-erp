@@ -175,9 +175,9 @@ class InventoryReportController extends Controller
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Persediaan');
-        $sheet->mergeCells('A1:I1');
+        $sheet->mergeCells('A1:J1');
         $sheet->setCellValue('A1', $entity->name ?? 'MINI ERP');
-        $sheet->mergeCells('A2:I2');
+        $sheet->mergeCells('A2:J2');
         $sheet->setCellValue('A2', 'LAPORAN PERSEDIAAN EKSEKUTIF');
         $sheet->setCellValue('A4', 'Periode Mutasi');
         $sheet->setCellValue('B4', date('d/m/Y', strtotime($startDate)) . ' s/d ' . date('d/m/Y', strtotime($endDate)));
