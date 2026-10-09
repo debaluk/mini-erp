@@ -421,7 +421,7 @@ class PurchaseReturnController extends Controller
                 $alreadyReturned = (float) DB::table('purchase_return_items as pri')
                     ->join('purchase_returns as pr', 'pr.id', '=', 'pri.purchase_return_id')
                     ->where('pri.receipt_item_id', $item->receipt_item_id)
-                    ->where('pr.status', 'posted')
+                    ->whereIn('pr.status', ['draft', 'posted'])
                     ->where('pri.id', '<>', $item->id)
                     ->sum('pri.base_qty');
 
