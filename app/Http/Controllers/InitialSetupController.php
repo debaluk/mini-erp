@@ -264,29 +264,106 @@ class InitialSetupController extends Controller
 
         abort_unless($businessUnit, 422, 'Business Unit tidak valid.');
 
-        $setup = DB::table('item_initial_setups')
-            ->where('entity_id', $entity)
-            ->where('business_unit_id', $businessUnit->id)
-            ->where('product_id', $product)
-            ->first();
-
-        abort_unless($setup, 404, 'Setup awal item belum ada.');
-
-        $hasTransaction =
-            DB::table('sale_items')->where('product_id', $product)->exists()
-            || DB::table('purchase_items')->where('product_id', $product)->exists();
-
-        abort_if(
-            $hasTransaction,
-            422,
-            'Data tidak dapat diedit karena item sudah memiliki transaksi Pembelian atau Penjualan.'
-        );
-
-        DB::transaction(function () use ($entity, $product, $data, $setup, $businessUnit): void {
-            DB::table('item_initial_setups')
+        DB::transaction(function () use ($entity, $product, $data, $businessUnit): void {
+            $setup = DB::table('item_initial_setups')
                 ->where('entity_id', $entity)
                 ->where('business_unit_id', $businessUnit->id)
                 ->where('product_id', $product)
+                ->lockForUpdate()
+                ->first();
+
+            abort_unless($setup, 404, 'Setup awal item belum ada.');
+
+            $warehouse = DB::table('warehouses')
+                ->where('entity_id', $entity)
+                ->where('business_unit_id', $businessUnit->id)
+                ->where('id', $setup->warehouse_id)
+                ->first();
+
+            abort_unless($warehouse, 422, 'Gudang setup awal tidak sesuai dengan Unit Bisnis.');
+
+            $stock = DB::table('warehouses_stocks')
+                ->where('entity_id', $entity)
+                ->where('warehouse_id', $setup->warehouse_id)
+                ->where('product_id', $product)
+                ->lockForUpdate()
+                ->first();
+
+            abort_unless($stock, 422, 'Saldo stok setup awal tidak ditemukan. Perubahan stok/HPP dibatalkan agar saldo tidak makin menyimpang.');
+
+            $openingMovement = DB::table('stock_movements')
+                ->where('entity_id', $entity)
+                ->where('business_unit_id', $businessUnit->id)
+                ->where('warehouse_id', $setup->warehouse_id)
+                ->where('product_id', $product)
+                ->where('movement_type', 'opening')
+                ->where('reference_type', 'item_initial_setup')
+                ->where('reference_id', $product)
+                ->lockForUpdate()
+                ->first();
+
+            $hasOtherMovements = DB::table('stock_movements')
+                ->where('entity_id', $entity)
+                ->where('warehouse_id', $setup->warehouse_id)
+                ->where('product_id', $product)
+                ->where(function ($query) use ($businessUnit, $setup, $product) {
+                    $query->where('business_unit_id', '!=', $businessUnit->id)
+                        ->orWhere(function ($opening) use ($setup, $product) {
+                            $opening->where('business_unit_id', $setup->business_unit_id)
+                                ->where(function ($notOpening) use ($product) {
+                                    $notOpening->where('movement_type', '!=', 'opening')
+                                        ->orWhere('reference_type', '!=', 'item_initial_setup')
+                                        ->orWhere('reference_id', '!=', $product);
+                                });
+                        });
+                })
+                ->exists();
+
+            $stockInputsChanged =
+                (string) $data['setup_date'] !== (string) $setup->setup_date
+                || abs((float) $data['purchase_price'] - (float) $setup->purchase_price) > 0.0001
+                || abs((float) $data['initial_stock'] - (float) $setup->initial_stock) > 0.0001;
+
+            if ($stockInputsChanged) {
+                abort_if(
+                    $hasOtherMovements,
+                    422,
+                    'Tanggal, stok awal, dan HPP awal tidak dapat diubah karena sudah ada mutasi stok setelah setup. Harga jual dan markup tetap dapat diperbarui.'
+                );
+
+                abort_unless(
+                    $openingMovement,
+                    422,
+                    'Mutasi saldo awal tidak ditemukan. Perubahan stok/HPP dibatalkan; periksa histori stok terlebih dahulu.'
+                );
+
+                abort_unless(
+                    abs((float) $stock->qty - (float) $setup->initial_stock) <= 0.0001
+                    && abs((float) $stock->avg_cost - (float) $setup->purchase_price) <= 0.0001,
+                    422,
+                    'Saldo stok atau HPP saat ini berbeda dari setup awal. Perubahan stok/HPP dibatalkan agar tidak menimpa saldo berjalan.'
+                );
+
+                DB::table('warehouses_stocks')
+                    ->where('id', $stock->id)
+                    ->update([
+                        'qty' => $data['initial_stock'],
+                        'avg_cost' => $data['purchase_price'],
+                        'updated_at' => now(),
+                    ]);
+
+                DB::table('stock_movements')
+                    ->where('id', $openingMovement->id)
+                    ->update([
+                        'qty' => $data['initial_stock'],
+                        'unit_cost' => $data['purchase_price'],
+                        'occurred_at' => $data['setup_date'].' 00:00:00',
+                        'updated_at' => now(),
+                    ]);
+            }
+
+            DB::table('item_initial_setups')
+                ->where('id', $setup->id)
                 ->update([
                     'setup_date' => $data['setup_date'],
                     'purchase_price' => $data['purchase_price'],
@@ -295,41 +372,9 @@ class InitialSetupController extends Controller
                     'selling_price' => $data['selling_price'],
                     'updated_at' => now(),
                 ]);
-
-            $stock = DB::table('warehouses_stocks')
-                ->where('entity_id', $entity)
-                ->where('warehouse_id', $setup->warehouse_id)
-                ->where('product_id', $product)
-                ->first();
-
-            if ($stock) {
-                $delta = (float) $data['initial_stock'] - (float) $setup->initial_stock;
-
-                DB::table('warehouses_stocks')
-                    ->where('id', $stock->id)
-                    ->update([
-                        'qty' => (float) $stock->qty + $delta,
-                        'avg_cost' => $data['purchase_price'],
-                        'updated_at' => now(),
-                    ]);
-            }
-
-            DB::table('stock_movements')
-                ->where('entity_id', $entity)
-                ->where('business_unit_id', $businessUnit->id)
-                ->where('warehouse_id', $setup->warehouse_id)
-                ->where('product_id', $product)
-                ->where('reference_type', 'item_initial_setup')
-                ->where('reference_id', $product)
-                ->update([
-                    'qty' => $data['initial_stock'],
-                    'unit_cost' => $data['purchase_price'],
-                    'occurred_at' => $data['setup_date'].' 00:00:00',
-                    'updated_at' => now(),
-                ]);
         });
 
-        return response()->json(['message' => 'Harga jual item berhasil diperbarui.']);
+        return response()->json(['message' => 'Initial Setup berhasil diperbarui.']);
     }
 
 }
