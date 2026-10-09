@@ -61,6 +61,10 @@
                     <td class="text-end fw-semibold">{{ (float) $row->selling_price > 0 ? 'Rp '.number_format((float) $row->selling_price, 0, ',', '.') : '-' }}</td>
                     <td class="text-center">
 @if($row->setup_date)
+@if((int) $row->has_later_movements === 1)
+<button type="button" class="btn btn-outline-secondary btn-sm" disabled
+    title="Tidak dapat diedit karena sudah ada mutasi stok pada Business Unit ini.">Edit</button>
+@else
 <button type="button" class="btn btn-outline-primary btn-sm btn-edit"
     data-id="{{ $row->id }}"
     data-name="{{ $row->name }}"
@@ -70,6 +74,7 @@
     data-stock="{{ (float) $row->initial_stock }}"
     data-up="{{ (float) $row->markup_percent }}"
     data-date="{{ $row->setup_date }}">Edit</button>
+@endif
 @else
 <button type="button" class="btn btn-primary btn-sm btn-setup"
     data-id="{{ $row->id }}"
