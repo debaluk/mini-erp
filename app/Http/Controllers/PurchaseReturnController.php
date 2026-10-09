@@ -111,6 +111,141 @@ class PurchaseReturnController extends Controller
         ]);
     }
 
+    public function createFromReceipt(int $receiptId)
+    {
+        $entity = $this->entityId();
+        $receipt = DB::table('receipts as r')
+            ->join('purchases as p', 'p.id', '=', 'r.purchase_id')
+            ->leftJoin('suppliers as s', 's.id', '=', 'r.supplier_id')
+            ->leftJoin('warehouses as w', 'w.id', '=', 'r.warehouse_id')
+            ->leftJoin('business_units as bu', 'bu.id', '=', 'r.business_unit_id')
+            ->where('r.entity_id', $entity)
+            ->where('r.id', $receiptId)
+            ->where('r.status', 'posted')
+            ->where('p.status', 'posted')
+            ->whereNull('p.deleted_at')
+            ->select('r.*', 'p.purchase_no', 's.name as supplier_name', 'w.name as warehouse_name', 'bu.name as business_unit_name')
+            ->first();
+
+        abort_unless($receipt, 404, 'Penerimaan sumber tidak ditemukan atau sudah dibatalkan.');
+
+        $items = DB::table('receipt_items as ri')
+            ->join('products as p', 'p.id', '=', 'ri.product_id')
+            ->leftJoin('units as u', 'u.id', '=', 'ri.unit_id')
+            ->where('ri.receipt_id', $receiptId)
+            ->select('ri.*', 'p.code as product_code', 'p.name as product_name', 'u.name as unit_name')
+            ->orderBy('ri.id')
+            ->get();
+
+        foreach ($items as $item) {
+            $returned = (float) DB::table('purchase_return_items as pri')
+                ->join('purchase_returns as pr', 'pr.id', '=', 'pri.purchase_return_id')
+                ->where('pri.receipt_item_id', $item->id)
+                ->where('pr.status', 'posted')
+                ->sum('pri.qty');
+            $drafted = (float) DB::table('purchase_return_items as pri')
+                ->join('purchase_returns as pr', 'pr.id', '=', 'pri.purchase_return_id')
+                ->where('pri.receipt_item_id', $item->id)
+                ->where('pr.status', 'draft')
+                ->sum('pri.qty');
+            $item->returnable_qty = max(0, (float) $item->qty - $returned - $drafted);
+        }
+
+        abort_if($items->sum('returnable_qty') <= 0, 422, 'Tidak ada qty penerimaan yang tersedia untuk diretur.');
+
+        return view('inventori.pembelian.retur.create-from-receipt', compact('receipt', 'items'));
+    }
+
+    public function storeFromReceipt(Request $request, int $receiptId)
+    {
+        $data = $request->validate([
+            'return_date' => ['required', 'date'],
+            'reason' => ['nullable', 'string', 'max:1000'],
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.qty' => ['nullable', 'numeric', 'gt:0'],
+            'items.*.condition' => ['nullable', 'in:good,reject'],
+        ]);
+
+        $entity = $this->entityId();
+        $returnId = DB::transaction(function () use ($data, $entity, $receiptId) {
+            $receipt = DB::table('receipts')
+                ->where('entity_id', $entity)->where('id', $receiptId)
+                ->lockForUpdate()->first();
+            abort_unless($receipt && $receipt->status === 'posted', 422, 'Penerimaan sumber tidak ditemukan atau sudah dibatalkan.');
+
+            $purchase = DB::table('purchases')
+                ->where('entity_id', $entity)->where('id', $receipt->purchase_id)
+                ->whereNull('deleted_at')->lockForUpdate()->first();
+            abort_unless($purchase && $purchase->status === 'posted', 422, 'Faktur pembelian sumber tidak valid.');
+
+            $period = DB::table('accounting_periods')
+                ->where('entity_id', $entity)
+                ->where('period_year', (int) substr((string) $data['return_date'], 0, 4))
+                ->where('period_month', (int) substr((string) $data['return_date'], 5, 2))
+                ->first();
+            abort_if($period && in_array($period->status, ['closing', 'closed'], true), 422, 'Periode akuntansi retur sedang closing atau sudah ditutup.');
+
+            $returnNo = 'PRT-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4));
+            $returnId = DB::table('purchase_returns')->insertGetId([
+                'entity_id' => $entity,
+                'business_unit_id' => $receipt->business_unit_id,
+                'warehouse_id' => $receipt->warehouse_id,
+                'supplier_id' => $receipt->supplier_id,
+                'user_id' => auth()->id(),
+                'return_no' => $returnNo,
+                'return_date' => $data['return_date'],
+                'reason' => $data['reason'] ?? null,
+                'status' => 'draft',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $inserted = 0;
+            foreach ($data['items'] as $receiptItemId => $input) {
+                if (!isset($input['qty']) || $input['qty'] === '') continue;
+                $qty = (float) $input['qty'];
+                $ri = DB::table('receipt_items')->where('id', (int) $receiptItemId)
+                    ->where('receipt_id', $receiptId)->lockForUpdate()->first();
+                abort_unless($ri, 422, 'Barang retur tidak sesuai dengan penerimaan sumber.');
+
+                $alreadyReturned = (float) DB::table('purchase_return_items as pri')
+                    ->join('purchase_returns as pr', 'pr.id', '=', 'pri.purchase_return_id')
+                    ->where('pri.receipt_item_id', $ri->id)
+                    ->whereIn('pr.status', ['draft', 'posted'])
+                    ->sum('pri.qty');
+                abort_if($qty > max(0, (float) $ri->qty - $alreadyReturned) + 0.0000001, 422, 'Qty retur melebihi sisa qty penerimaan yang belum diretur.');
+
+                $factor = (float) ($ri->conversion_factor ?: 1);
+                $basePerUnit = (float) $ri->qty > 0 ? (float) $ri->base_qty / (float) $ri->qty : $factor;
+                $baseQty = round($qty * $basePerUnit, 6);
+
+                DB::table('purchase_return_items')->insert([
+                    'purchase_return_id' => $returnId,
+                    'receipt_item_id' => $ri->id,
+                    'purchase_item_id' => $ri->purchase_item_id,
+                    'product_id' => $ri->product_id,
+                    'unit_id' => $ri->unit_id,
+                    'qty' => $qty,
+                    'conversion_factor' => $factor,
+                    'base_qty' => $baseQty,
+                    'unit_value' => 0,
+                    'return_value' => 0,
+                    'tax_amount' => 0,
+                    'condition' => $input['condition'] ?? 'good',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                $inserted++;
+            }
+
+            abort_if($inserted === 0, 422, 'Isi qty minimal satu barang yang akan diretur.');
+            return $returnId;
+        });
+
+        return redirect()->route('inventori.pembelian.retur.show', $returnId)
+            ->with('swal_success', 'Draft Retur Pembelian berhasil dibuat dari penerimaan sumber.');
+    }
+
     public function store(Request $request)
     {
         $data = $request->validate([
