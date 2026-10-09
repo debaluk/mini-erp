@@ -23,7 +23,7 @@
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
         <div>
             <h4 class="mb-1">Laporan Persediaan</h4>
-            <div class="text-secondary small">Ringkasan nilai, posisi stok, dan pergerakan persediaan untuk manajemen.</div>
+            <div class="text-secondary small">Ringkasan nilai, posisi stok, dan pergerakan persediaan.</div>
         </div>
         <div class="d-flex gap-2 no-print">
             <a href="{{ route('laporan.persediaan.export', request()->query()) }}" class="btn btn-outline-success">
