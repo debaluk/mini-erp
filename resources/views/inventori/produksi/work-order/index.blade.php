@@ -235,8 +235,25 @@
         -webkit-overflow-scrolling: touch;
     }
     #workOrderModal .form-label { margin-bottom: .2rem; }
-    #workOrderModal .cost-section-modal .card-header { padding: .45rem .65rem; }
-    #workOrderModal .modal-cost-row { margin-bottom: .35rem !important; }
+    #workOrderModal .cost-section-modal { margin-top: .4rem !important; }
+    #workOrderModal .cost-section-modal .card-header {
+        padding: .3rem .6rem;
+        min-height: 0;
+        gap: .5rem;
+    }
+    #workOrderModal .cost-section-modal .card-header .small { line-height: 1.2; }
+    #workOrderModal .cost-section-modal .card-header .btn {
+        padding: .2rem .45rem;
+        line-height: 1.2;
+        white-space: nowrap;
+        flex: 0 0 auto;
+    }
+    #workOrderModal .cost-section-modal .card-body { padding: .45rem .6rem !important; }
+    #workOrderModal .modal-cost-row { margin-bottom: .2rem !important; }
+    #workOrderModal .modal-cost-row .form-select,
+    #workOrderModal .modal-cost-row .form-control,
+    #workOrderModal .modal-cost-row .btn { min-height: 34px; }
+    #workOrderModal .modal-cost-row .worker-cost-preview { line-height: 1.2; margin-top: -.15rem; }
     #woMessagePopup {
         display:none;
         position:fixed !important;
