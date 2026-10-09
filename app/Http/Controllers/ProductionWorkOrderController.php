@@ -153,6 +153,16 @@ class ProductionWorkOrderController extends Controller
                 'unit_rate',
             ]);
 
+        $woWorkers = DB::table('production_work_order_workers as wow')
+            ->join('workers as w', 'w.id', '=', 'wow.worker_id')
+            ->whereIn('wow.production_work_order_id', $rows->pluck('id'))
+            ->orderBy('w.name')
+            ->get([
+                'wow.production_work_order_id',
+                'wow.worker_id',
+                'w.name as worker_name',
+            ]);
+
         return view('inventori.produksi.work-order.index', compact(
             'boms',
             'warehouses',
@@ -161,6 +171,7 @@ class ProductionWorkOrderController extends Controller
             'rows',
             'workerCounts',
             'woCosts',
+            'woWorkers',
             'dateFrom',
             'dateTo'
         ));
@@ -1177,6 +1188,52 @@ class ProductionWorkOrderController extends Controller
 
         return redirect()->route('produksi.work-order')
             ->with('success', 'Closing SPK berhasil. Stok barang jadi, upah, HPP, dan reject telah diproses.');
+    }
+
+    public function resultsReport(Request $request)
+    {
+        $entityId = $this->entityId();
+        $dateFrom = $request->input('date_from', now()->startOfMonth()->toDateString());
+        $dateTo = $request->input('date_to', now()->endOfMonth()->toDateString());
+
+        $results = DB::table('production_work_order_results as r')
+            ->join('production_work_orders as wo', 'wo.id', '=', 'r.production_work_order_id')
+            ->join('boms as b', 'b.id', '=', 'wo.bom_id')
+            ->join('products as p', 'p.id', '=', 'b.product_id')
+            ->leftJoin('production_work_order_result_lines as l', 'l.production_work_order_result_id', '=', 'r.id')
+            ->leftJoin('workers as w', 'w.id', '=', 'l.worker_id')
+            ->where('r.entity_id', $entityId)
+            ->whereDate('r.production_date', '>=', $dateFrom)
+            ->whereDate('r.production_date', '<=', $dateTo)
+            ->groupBy('r.id', 'r.production_date', 'r.status', 'wo.id', 'wo.wo_no', 'p.name')
+            ->orderByDesc('r.production_date')
+            ->orderByDesc('r.id')
+            ->get([
+                'r.id', 'r.production_date', 'r.status',
+                'wo.id as work_order_id', 'wo.wo_no', 'p.name as product_name',
+                DB::raw('SUM(l.good_qty) as good_qty'),
+                DB::raw('SUM(l.reject_qty) as reject_qty'),
+                DB::raw("SUM(CASE WHEN l.pay_type = 'satuan' THEN (l.good_qty + l.reject_qty) * l.unit_rate ELSE 0 END) as unit_labor_cost"),
+                DB::raw('COUNT(DISTINCT l.worker_id) as worker_count'),
+            ]);
+
+        $lines = DB::table('production_work_order_result_lines as l')
+            ->join('production_work_order_results as r', 'r.id', '=', 'l.production_work_order_result_id')
+            ->join('workers as w', 'w.id', '=', 'l.worker_id')
+            ->where('r.entity_id', $entityId)
+            ->whereDate('r.production_date', '>=', $dateFrom)
+            ->whereDate('r.production_date', '<=', $dateTo)
+            ->orderByDesc('r.production_date')
+            ->orderBy('w.name')
+            ->get([
+                'r.id as result_id', 'r.production_date', 'r.status',
+                'l.worker_id', 'w.name as worker_name', 'l.pay_type', 'l.unit_rate',
+                'l.good_qty', 'l.reject_qty',
+                DB::raw("CASE WHEN l.pay_type = 'satuan' THEN l.good_qty * l.unit_rate ELSE 0 END as good_cost"),
+                DB::raw("CASE WHEN l.pay_type = 'satuan' THEN l.reject_qty * l.unit_rate ELSE 0 END as reject_cost"),
+            ]);
+
+        return view('inventori.produksi.work-order.hasil-report', compact('results', 'lines', 'dateFrom', 'dateTo'));
     }
 
     public function destroy(int $id)
