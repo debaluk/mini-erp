@@ -166,7 +166,7 @@ class StockTransferController extends Controller
 
         DB::beginTransaction();
         try {
-            if (count($request->products) !== count($request->quantities)) {
+            if (count($request->products) !== count($request->quantities) || array_keys($request->products) !== array_keys($request->quantities)) {
                 throw new \Exception('Daftar item dan kuantitas tidak sesuai.');
             }
             if (count(array_unique(array_map('intval', $request->products))) !== count($request->products)) {
@@ -241,7 +241,7 @@ class StockTransferController extends Controller
             if (!$transfer || $transfer->status !== 'draft' || !empty($transfer->deleted_at)) {
                 throw new \Exception('Mutasi tidak dapat diubah karena sudah disetujui/dalam proses.');
             }
-            if (count($request->products) !== count($request->quantities)) {
+            if (count($request->products) !== count($request->quantities) || array_keys($request->products) !== array_keys($request->quantities)) {
                 throw new \Exception('Daftar item dan kuantitas tidak sesuai.');
             }
             if (count(array_unique(array_map('intval', $request->products))) !== count($request->products)) {
