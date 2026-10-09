@@ -3,10 +3,14 @@
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
-        <h4 class="mb-1">Laporan Detail Hasil Produksi</h4>
-        <div class="text-secondary small">Dasar pemeriksaan hasil per pekerja sebelum closing SPK.</div>
+        <h4 class="mb-1">Laporan Hasil Produksi</h4>
+        <div class="text-secondary small">Rekap hasil produksi dan rincian per pekerja.</div>
     </div>
-    <a href="{{ route('produksi.work-order') }}" class="btn btn-outline-secondary">Kembali ke SPK</a>
+    <div class="d-flex gap-2">
+        <a href="{{ route('produksi.work-order.hasil-report.export', request()->query()) }}" class="btn btn-success"><i class="bi bi-file-earmark-excel me-1"></i>Export Excel</a>
+        <button type="button" onclick="window.print()" class="btn btn-outline-primary"><i class="bi bi-printer me-1"></i>Cetak</button>
+        <a href="{{ route('produksi.work-order') }}" class="btn btn-outline-secondary">Kembali ke SPK</a>
+    </div>
 </div>
 
 <div class="card border-0 shadow-sm mb-3">
