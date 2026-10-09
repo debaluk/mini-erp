@@ -118,19 +118,7 @@
         </div></div>
     </div>
 
-    <div class="dash-card bg-white p-3">
-        <div class="section-heading"><i class="bi bi-clock-history text-info me-2"></i>Jurnal Terakhir pada Periode Terpilih</div>
-        <div class="table-responsive"><table class="table table-sm table-hover align-middle mb-0">
-            <thead class="table-light"><tr><th>Tanggal</th><th>No. Jurnal</th><th>Sumber</th><th>Unit</th><th>Deskripsi</th></tr></thead>
-            <tbody>
-            @forelse($recentTransactions as $transaction)
-                <tr><td class="text-nowrap">{{ \Carbon\Carbon::parse($transaction->journal_date)->format('d/m/Y') }}</td><td class="fw-semibold">{{ $transaction->journal_no ?? ('JRN-' . $transaction->id) }}</td><td>{{ $transaction->source_type ?: 'Umum' }}</td><td><span class="badge text-bg-light border">{{ $transaction->bu_code ?? '—' }}</span></td><td>{{ $transaction->description ?: '—' }}</td></tr>
-            @empty
-                <tr><td colspan="5" class="text-center muted py-4">Belum ada jurnal posted pada periode ini.</td></tr>
-            @endforelse
-            </tbody>
-        </table></div>
-    </div>
+
 </div>
 @endsection
 
