@@ -76,7 +76,7 @@
                         <td><span class="badge text-bg-{{ $statusClasses[$row->status] ?? 'secondary' }}">{{ $statusLabels[$row->status] ?? $row->status }}</span></td>
                         <td class="text-end text-nowrap">
                             @if($row->status === 'open')
-                                <form method="POST" action="{{ route('produksi.work-order.start', $row->id) }}" class="d-inline" onsubmit="return confirm('Mulai proses produksi untuk SPK {{ $row->wo_no }}?')">
+                                <form method="POST" action="{{ route('produksi.work-order.start', $row->id) }}" class="d-inline js-start-work-order" data-no="{{ $row->wo_no }}">
                                     @csrf
                                     <input type="hidden" name="started_at" value="{{ now()->toDateString() }}">
                                     <button type="submit" class="btn btn-sm btn-success" title="Mulai Produksi"><i class="bi bi-play-fill me-1"></i>Mulai</button>
@@ -478,6 +478,49 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    $(document).on('submit', '.js-start-work-order', function (e) {
+        e.preventDefault();
+        const startForm = this;
+
+        Swal.fire({
+            icon: 'question',
+            title: 'Konfirmasi',
+            text: 'Mulai proses produksi untuk SPK ' + startForm.dataset.no + '?',
+            showCancelButton: true,
+            confirmButtonText: 'Ya, mulai',
+            cancelButtonText: 'Batal',
+            reverseButtons: true
+        }).then(result => {
+            if (!result.isConfirmed) return;
+
+            $.ajax({
+                url: startForm.action,
+                type: 'POST',
+                data: $(startForm).serialize(),
+                headers: { 'Accept': 'application/json' },
+                success: function (res) {
+                    if (res.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil',
+                            text: res.message,
+                            timer: 1200,
+                            showConfirmButton: false
+                        }).then(() => window.location.reload());
+                    }
+                },
+                error: function (xhr) {
+                    const response = xhr.responseJSON || {};
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal',
+                        text: response.message || 'SPK gagal dimulai.'
+                    });
+                }
+            });
+        });
+    });
+
     $('#woDeleteForm').on('submit', function (e) {
         e.preventDefault();
 
@@ -491,21 +534,20 @@ document.addEventListener('DOMContentLoaded', function () {
             success: function (res) {
                 if (res.success) {
                     deleteModal.hide();
-                    window.location.reload();
                     Swal.fire({
                         icon: 'success',
-                        title: 'Berhasil!',
+                        title: 'Berhasil',
                         text: res.message,
-                        timer: 2000,
+                        timer: 1200,
                         showConfirmButton: false
-                    });
+                    }).then(() => window.location.reload());
                 }
             },
             error: function (xhr) {
                 const response = xhr.responseJSON || {};
                 Swal.fire({
                     icon: 'error',
-                    title: 'Gagal!',
+                    title: 'Gagal',
                     text: response.message || 'Gagal menghapus SPK.'
                 });
             }
