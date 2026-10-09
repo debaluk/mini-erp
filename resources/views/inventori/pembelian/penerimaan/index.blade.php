@@ -118,9 +118,9 @@
 <div class="modal fade" id="modal-return-receipt" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-warning-subtle py-2 px-3">
+            <div class="modal-header bg-primary text-white py-2 px-3">
                 <h6 class="modal-title fw-bold"><i class="bi bi-arrow-return-left me-2"></i>Retur Pembelian dari Penerimaan</h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form id="form-return-receipt">
                 <div class="modal-body p-3" id="return-receipt-body">
@@ -128,7 +128,7 @@
                 </div>
                 <div class="modal-footer py-2">
                     <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-warning btn-sm" id="btn-save-return-receipt"><i class="bi bi-save me-1"></i>Simpan Draft Retur</button>
+                    <button type="submit" class="btn btn-primary btn-sm" id="btn-save-return-receipt"><i class="bi bi-save me-1"></i>Simpan Draft Retur</button>
                 </div>
             </form>
         </div>
@@ -140,9 +140,38 @@
 @push('scripts')
 <script>
 $(function () {
-    function showNotice(title, message, onClose) {
-        window.alert(title + (message ? '\n\n' + message : ''));
-        if (typeof onClose === 'function') onClose();
+    function showNotice(title, message, onClose, type = 'info') {
+        const modalElement = document.getElementById('erpMessageModal');
+        if (!modalElement || typeof bootstrap === 'undefined') {
+            window.alert(title + (message ? '\n\n' + message : ''));
+            if (typeof onClose === 'function') onClose();
+            return;
+        }
+
+        const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+        const header = modalElement.querySelector('.modal-header');
+        const titleElement = document.getElementById('erpMessageTitle');
+        const bodyElement = document.getElementById('erpMessageBody');
+        const okButton = modalElement.querySelector('.modal-footer button');
+        header.classList.remove('bg-primary', 'bg-danger', 'bg-warning', 'text-white');
+        if (type === 'success') header.classList.add('bg-primary', 'text-white');
+        else if (type === 'danger') header.classList.add('bg-danger', 'text-white');
+        else if (type === 'warning') header.classList.add('bg-warning');
+        titleElement.textContent = title;
+        bodyElement.textContent = message || '';
+        okButton.className = 'btn btn-primary btn-sm';
+        okButton.textContent = 'OK';
+
+        if (typeof onClose === 'function') {
+            $(modalElement).one('hidden.bs.modal', function () {
+                if (modalElement.dataset.redirectAfterNotice === '1') {
+                    delete modalElement.dataset.redirectAfterNotice;
+                    onClose();
+                }
+            });
+            modalElement.dataset.redirectAfterNotice = '1';
+        }
+        modal.show();
     }
 
     const table = $('#table-receipt').DataTable({
@@ -317,14 +346,14 @@ $(function () {
             headers: { 'X-CSRF-TOKEN': "{{ csrf_token() }}", 'Accept': 'application/json' },
             success: function (response) {
                 returnModal.hide();
-                table.ajax.reload(null, false);
-                showNotice('Retur Berhasil Disimpan', response.message || 'Draft retur berhasil dibuat. Proses retur belum selesai sampai draft diposting.', function () {
-                    if (response.redirect_url) {
-                        window.location.href = response.redirect_url;
-                    } else {
-                        window.location.reload();
-                    }
-                });
+                showNotice(
+                    'Retur Berhasil Disimpan',
+                    'Draft retur berhasil dibuat. Belum ada perubahan stok maupun jurnal. Lanjutkan proses melalui daftar Retur Pembelian dan lakukan posting saat sudah siap.',
+                    function () {
+                        window.location.href = "{{ route('inventori.pembelian.retur') }}";
+                    },
+                    'success'
+                );
             },
             error: function (xhr) {
                 const response = xhr.responseJSON || {};
@@ -340,7 +369,7 @@ $(function () {
                     message = 'Terjadi kesalahan pada server. Draft retur belum dapat disimpan.';
                 }
 
-                showNotice('Retur Gagal Diproses', message);
+                showNotice('Retur Gagal Diproses', message, null, 'danger');
             },
             complete: function () {
                 button.prop('disabled', false).html(originalText);
