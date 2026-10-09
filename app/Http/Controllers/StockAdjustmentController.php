@@ -322,43 +322,113 @@ class StockAdjustmentController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $adj = DB::table('stock_adjustments')->where('id', $id)->whereNull('deleted_at')->firstOrFail();
-
-        if ($adj->status === 'posted') {
-            return redirect()->route('inventori.penyesuaian.index')
-                ->with('swal_error', 'Gagal Update: Transaksi berstatus POSTED bersifat permanen!');
-        }
-
         $request->validate([
             'adjustment_date' => 'required|date',
-            'adjustment_qty'  => 'required|array',
+            'item_ids' => 'required|array|min:1',
+            'item_ids.*' => 'required|integer|distinct',
+            'adjustment_qty' => 'required|array|min:1',
+            'adjustment_qty.*' => 'required|numeric',
         ]);
+
+        if (array_keys($request->input('item_ids', [])) !== array_keys($request->input('adjustment_qty', []))) {
+            return redirect()->back()->withInput()->with('swal_error', 'Daftar item dan kuantitas penyesuaian tidak sesuai.');
+        }
 
         DB::beginTransaction();
         try {
+            $adj = DB::table('stock_adjustments')
+                ->where('id', $id)
+                ->whereNull('deleted_at')
+                ->lockForUpdate()
+                ->first();
+
+            if (!$adj || $adj->status === 'posted') {
+                throw new \Exception('Draft tidak ditemukan atau sudah diposting dan tidak dapat diubah.');
+            }
+
+            $items = DB::table('stock_adjustment_items')
+                ->where('stock_adjustment_id', $id)
+                ->lockForUpdate()
+                ->get();
+
+            $expectedIds = $items->pluck('id')->map(fn ($v) => (int) $v)->sort()->values()->all();
+            $submittedIds = collect($request->input('item_ids'))->map(fn ($v) => (int) $v)->sort()->values()->all();
+            if ($expectedIds !== $submittedIds) {
+                throw new \Exception('Daftar item draft berubah atau tidak sesuai. Muat ulang halaman sebelum menyimpan.');
+            }
+
+            $sourceItems = collect();
+            if ($adj->stock_opname_id) {
+                $opname = DB::table('stock_opnames')
+                    ->where('id', $adj->stock_opname_id)
+                    ->whereNull('deleted_at')
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$opname || $opname->status !== 'posted'
+                    || (int) $opname->entity_id !== (int) $adj->entity_id
+                    || (int) $opname->business_unit_id !== (int) $adj->business_unit_id
+                    || (int) $opname->warehouse_id !== (int) $adj->warehouse_id) {
+                    throw new \Exception('Sumber Stock Opname tidak valid. Draft tidak dapat diperbarui.');
+                }
+
+                $sourceItems = DB::table('stock_opname_items')
+                    ->where('stock_opname_id', $opname->id)
+                    ->where('difference', '!=', 0)
+                    ->lockForUpdate()
+                    ->get();
+
+                $sourceProducts = $sourceItems->pluck('product_id')->map(fn ($v) => (int) $v)->sort()->values()->all();
+                $draftProducts = $items->pluck('product_id')->map(fn ($v) => (int) $v)->sort()->values()->all();
+                if ($sourceItems->isEmpty() || $sourceProducts !== $draftProducts) {
+                    throw new \Exception('Item draft harus sama persis dengan item berselisih pada Stock Opname.');
+                }
+            }
+
             DB::table('stock_adjustments')->where('id', $id)->update([
                 'adjustment_date' => $request->adjustment_date,
-                'reason'          => $request->reason,
-                'updated_at'      => now(),
+                'reason' => $request->reason,
+                'updated_at' => now(),
             ]);
 
-            foreach ($request->item_ids as $idx => $itemId) {
-                $adjQty = (float) $request->adjustment_qty[$idx];
-                $item   = DB::table('stock_adjustment_items')->where('id', $itemId)->first();
-
-                if ($item) {
-                    $systemQty = (float) $item->system_qty;
-                    $finalQty  = $systemQty + $adjQty;
-                    $unitCost  = (float) $item->unit_cost;
-                    $totalCost = abs($adjQty) * $unitCost;
-
-                    DB::table('stock_adjustment_items')->where('id', $itemId)->update([
-                        'adjustment_qty' => $adjQty,
-                        'final_qty'      => $finalQty,
-                        'total_cost'     => $totalCost,
-                        'updated_at'     => now(),
-                    ]);
+            $submittedIdsInOrder = array_map('intval', $request->input('item_ids'));
+            foreach ($items as $item) {
+                $idx = array_search((int) $item->id, $submittedIdsInOrder, true);
+                if ($idx === false) {
+                    throw new \Exception('Item draft tidak cocok dengan kuantitas yang dikirim.');
                 }
+
+                $submittedQty = (float) $request->input('adjustment_qty')[$idx];
+                $systemQty = (float) $item->system_qty;
+                $adjQty = $submittedQty;
+
+                if ($adj->stock_opname_id) {
+                    $sourceItem = $sourceItems->firstWhere('product_id', (int) $item->product_id);
+                    if (!$sourceItem) {
+                        throw new \Exception('Item tidak ditemukan pada sumber Stock Opname.');
+                    }
+
+                    $sourceQty = (float) $sourceItem->difference;
+                    if (abs($submittedQty - $sourceQty) > 0.000001) {
+                        throw new \Exception('Kuantitas adjustment dari Stock Opname tidak boleh diubah. Gunakan hasil hitung fisik yang sudah difinalisasi.');
+                    }
+
+                    $systemQty = (float) $sourceItem->system_qty;
+                    $adjQty = $sourceQty;
+                }
+
+                $finalQty = $systemQty + $adjQty;
+                if ($finalQty < -0.000001) {
+                    throw new \Exception('Kuantitas akhir tidak boleh negatif.');
+                }
+
+                DB::table('stock_adjustment_items')->where('id', $item->id)->update([
+                    'system_qty' => $systemQty,
+                    'adjustment_qty' => $adjQty,
+                    'final_qty' => max(0, $finalQty),
+                    'total_cost' => abs($adjQty) * (float) $item->unit_cost,
+                    'updated_at' => now(),
+                ]);
             }
 
             DB::commit();
@@ -368,12 +438,16 @@ class StockAdjustmentController extends Controller
             }
 
             return redirect()->route('inventori.penyesuaian.index')
-                ->with('swal_success', "Draft Penyesuaian [{$adj->adjustment_no}] berhasil diperbarui!");
+                ->with('swal_success', "Draft Penyesuaian [{$adj->adjustment_no}] berhasil diperbarui.");
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('swal_error', 'Gagal memperbarui draft: ' . $e->getMessage());
+            return redirect()->back()->withInput()->with('swal_error', 'Gagal memperbarui draft: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Detail & Audit Trail
+     */
 
     /**
      * Detail & Audit Trail
