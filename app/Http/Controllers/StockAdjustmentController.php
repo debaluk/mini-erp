@@ -457,7 +457,7 @@ class StockAdjustmentController extends Controller
                 ->first();
 
             if (!$adj || $adj->status === 'posted') {
-                throw new \\Exception('Dokumen penyesuaian sudah berstatus POSTED atau tidak ditemukan.');
+                throw new \Exception('Dokumen penyesuaian sudah berstatus POSTED atau tidak ditemukan.');
             }
 
             if ($adj->stock_opname_id) {
@@ -473,7 +473,7 @@ class StockAdjustmentController extends Controller
                     ->exists();
 
                 if ($otherAdjustment) {
-                    throw new \\Exception('Opname ini terhubung ke penyesuaian lain. Posting dibatalkan untuk mencegah posting ganda.');
+                    throw new \Exception('Opname ini terhubung ke penyesuaian lain. Posting dibatalkan untuk mencegah posting ganda.');
                 }
             }
 
@@ -490,29 +490,46 @@ class StockAdjustmentController extends Controller
                 $absQty = abs($adjQty);
                 if ($absQty < 0.0001) continue;
 
-                $stock = DB::table('warehouses_stocks')
+                $stockQuery = DB::table('warehouses_stocks')
+                    ->where('entity_id', $adj->entity_id)
                     ->where('warehouse_id', $adj->warehouse_id)
-                    ->where('product_id', $item->product_id)
-                    ->first();
+                    ->where('product_id', $item->product_id);
 
-                $unitCost  = $stock ? (float) $stock->avg_cost : 0.0000;
+                $stock = (clone $stockQuery)->lockForUpdate()->first();
+                if (!$stock) {
+                    DB::table('warehouses_stocks')->insertOrIgnore([
+                        'entity_id' => $adj->entity_id,
+                        'warehouse_id' => $adj->warehouse_id,
+                        'product_id' => $item->product_id,
+                        'qty' => 0,
+                        'avg_cost' => 0,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                    $stock = (clone $stockQuery)->lockForUpdate()->first();
+                }
+
+                if (!$stock) {
+                    throw new \Exception("Saldo stok produk ID {$item->product_id} tidak dapat dibuat.");
+                }
+
+                $unitCost = (float) $stock->avg_cost;
                 $totalCost = $absQty * $unitCost;
+                $movementType = $adjQty < 0 ? 'ADJUSTMENT_OUT' : 'ADJUSTMENT_IN';
 
-                $movementType = ($adjQty < 0) ? 'ADJUSTMENT_OUT' : 'ADJUSTMENT_IN';
+                DB::table('warehouses_stocks')
+                    ->where('id', $stock->id)
+                    ->update(['qty' => (float) $stock->qty + $adjQty, 'updated_at' => now()]);
+
+                DB::table('stock_adjustment_items')->where('id', $item->id)->update([
+                    'unit_cost' => $unitCost,
+                    'total_cost' => $totalCost,
+                    'updated_at' => now(),
+                ]);
 
                 if ($adjQty < 0) {
-                    DB::table('warehouses_stocks')
-                        ->where('warehouse_id', $adj->warehouse_id)
-                        ->where('product_id', $item->product_id)
-                        ->decrement('qty', $absQty);
-
                     $totalLossAmount += $totalCost;
                 } else {
-                    DB::table('warehouses_stocks')
-                        ->where('warehouse_id', $adj->warehouse_id)
-                        ->where('product_id', $item->product_id)
-                        ->increment('qty', $absQty);
-
                     $totalGainAmount += $totalCost;
                 }
 
@@ -542,6 +559,13 @@ class StockAdjustmentController extends Controller
             $invAccount  = ChartOfAccount::where('code', '1000401')->first() ?? ChartOfAccount::where('type', 'asset')->where('name', 'LIKE', '%Persediaan%')->first();
             $lossAccount = ChartOfAccount::where('code', '6000402')->first() ?? ChartOfAccount::where('type', 'expense')->where('name', 'LIKE', '%Kerusakan%')->first();
             $gainAccount = ChartOfAccount::where('code', '4000303')->first() ?? ChartOfAccount::where('type', 'revenue')->where('name', 'LIKE', '%Lain%')->first();
+
+            if ($totalLossAmount > 0 && (!$invAccount || !$lossAccount)) {
+                throw new \\Exception('Akun persediaan atau beban selisih stok belum dipetakan. Posting dibatalkan.');
+            }
+            if ($totalGainAmount > 0 && (!$invAccount || !$gainAccount)) {
+                throw new \\Exception('Akun persediaan atau pendapatan selisih stok belum dipetakan. Posting dibatalkan.');
+            }
 
             if ($totalLossAmount > 0 && $invAccount && $lossAccount) {
                 $jLoss = Journal::create([
