@@ -242,7 +242,6 @@
                             </tfoot>
                         </table>
                     </div>
-                    <div class="alert alert-info small mt-3 mb-0">Simpan saja belum mengubah stok atau membuat jurnal. Closing memproses seluruh hasil draft SPK sekaligus.</div>
                 </div>
                 <div class="modal-footer d-flex justify-content-between">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
