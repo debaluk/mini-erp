@@ -49,11 +49,38 @@ document.addEventListener('DOMContentLoaded', function () {
                     let html = '<div class="btn-group btn-group-sm">';
                     html += '<a href="{{ url('/inventori/pembelian/retur') }}/' + row.id + '" class="btn btn-outline-info" title="Detail"><i class="bi bi-eye"></i></a>';
                     html += '<a href="{{ url('/inventori/pembelian/retur') }}/' + row.id + '/print" target="_blank" class="btn btn-outline-secondary" title="Cetak"><i class="bi bi-printer"></i></a>';
-                    if (row.status === 'draft') html += '<button type="button" class="btn btn-success btn-post-return" data-id="' + row.id + '" data-no="' + row.return_no + '" title="Post"><i class="bi bi-check-circle"></i></button>';
+                    if (row.status === 'draft') html += '<button type="button" class="btn btn-success btn-post-return" data-id="' + row.id + '" data-no="' + row.return_no + '" title="Approval / Posting"><i class="bi bi-check-circle"></i></button>';
+                    if (row.status === 'draft' || row.status === 'posted') html += '<button type="button" class="btn btn-outline-danger btn-cancel-return" data-id="' + row.id + '" data-no="' + row.return_no + '" data-status="' + row.status + '" title="Batal Retur"><i class="bi bi-x-circle"></i></button>';
                     return html + '</div>';
                 }
             }
         ]
+    });
+
+    $(document).on('click', '.btn-cancel-return', function () {
+        const id = $(this).data('id');
+        const no = $(this).data('no');
+        const status = $(this).data('status');
+        const posted = status === 'posted';
+        Swal.fire({
+            title: 'Batalkan Retur Pembelian?',
+            html: posted
+                ? 'Retur <strong>' + no + '</strong> akan dibatalkan. Stok barang akan masuk kembali ke gudang dan jurnal pembalik dibuat.'
+                : 'Draft retur <strong>' + no + '</strong> akan dibatalkan.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            confirmButtonText: 'Ya, Batalkan Retur',
+            cancelButtonText: 'Kembali'
+        }).then(result => {
+            if (!result.isConfirmed) return;
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ url('/inventori/pembelian/retur') }}/' + id + '/cancel';
+            form.innerHTML = '@csrf';
+            document.body.appendChild(form);
+            form.submit();
+        });
     });
 
     $('#btn-print-list').on('click', function () { const q = new URLSearchParams({ start_date: $('#filter-start-date').val(), end_date: $('#filter-end-date').val(), business_unit_id: $('#filter-business-unit').val(), warehouse_id: $('#filter-warehouse').val() }); this.href = '{{ route('inventori.pembelian.retur.print-list') }}?' + q.toString(); });
