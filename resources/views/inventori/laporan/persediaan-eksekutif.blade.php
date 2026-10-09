@@ -127,16 +127,16 @@
         </div>
         <div class="col-12 col-sm-6 col-xl-2">
             <div class="card shadow-sm report-kpi h-100"><div class="card-body">
-                <div class="label">Barang Masuk</div>
-                <div class="value">{{ number_format($movement['qtyIn'], 3, ',', '.') }}</div>
-                <div class="hint">Akumulasi kuantitas mutasi</div>
+                <div class="label">Baris Mutasi Masuk</div>
+                <div class="value">{{ number_format($movement['rowsIn'], 0, ',', '.') }}</div>
+                <div class="hint">Jumlah catatan pergerakan</div>
             </div></div>
         </div>
         <div class="col-12 col-sm-6 col-xl-3">
             <div class="card shadow-sm report-kpi h-100"><div class="card-body">
-                <div class="label">Barang Keluar</div>
-                <div class="value">{{ number_format($movement['qtyOut'], 3, ',', '.') }}</div>
-                <div class="hint">Akumulasi kuantitas mutasi</div>
+                <div class="label">Baris Mutasi Keluar</div>
+                <div class="value">{{ number_format($movement['rowsOut'], 0, ',', '.') }}</div>
+                <div class="hint">Jumlah catatan pergerakan</div>
             </div></div>
         </div>
     </div>
