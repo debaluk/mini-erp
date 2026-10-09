@@ -127,7 +127,7 @@ class PurchaseReturnController extends Controller
         ]);
     }
 
-    public function createFromReceipt(int $receiptId)
+    public function createFromReceipt(Request $request, int $receiptId)
     {
         $entity = $this->entityId();
         $receipt = DB::table('receipts as r')
@@ -168,7 +168,13 @@ class PurchaseReturnController extends Controller
             $item->returnable_qty = max(0, (float) $item->qty - $returned - $drafted);
         }
 
-        abort_if($items->sum('returnable_qty') <= 0, 422, 'Tidak ada qty penerimaan yang tersedia untuk diretur.');
+        if ($items->sum('returnable_qty') <= 0) {
+            $message = 'Tidak ada qty penerimaan yang tersedia untuk diretur. Periksa apakah seluruh qty sudah diretur atau masih ada draft retur.';
+            if ($request->ajax()) {
+                return response()->json(['message' => $message], 422);
+            }
+            abort(422, $message);
+        }
 
         if (request()->ajax()) {
             return view('inventori.pembelian.retur.partials.create-from-receipt-modal', compact('receipt', 'items'));
