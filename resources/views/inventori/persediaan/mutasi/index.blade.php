@@ -194,7 +194,8 @@
                                             <!-- Approval Step 2: Penerima -->
                                             <form action="{{ route('inventori.transfer.approve-receiver',$t->id) }}" method="POST" class="d-inline form-approve-receiver">
                                                 @csrf
-                                                <button type="submit" class="btn btn-primary" title="Setujui Penerimaan">
+                                                <input type="hidden" name="to_warehouse_id" value="{{ $t->to_warehouse_id }}">
+                                                <button type="submit" class="btn btn-primary" title="Terima hanya di gudang tujuan dokumen">
                                                     <i class="bi bi-box-arrow-in-down"></i> Terima
                                                 </button>
                                             </form>
