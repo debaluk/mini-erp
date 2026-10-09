@@ -443,7 +443,7 @@ class StockTransferController extends Controller
                     ->first();
 
                 if (!$destStock) {
-                    throw new \\Exception("Saldo stok gudang tujuan tidak dapat dikunci untuk item ID {$item->product_id}.");
+                    throw new \Exception("Saldo stok gudang tujuan tidak dapat dikunci untuk item ID {$item->product_id}.");
                 }
 
                 // 1. Tambah stok & hitung ulang Moving Average Cost (avg_cost) gudang penerima.
