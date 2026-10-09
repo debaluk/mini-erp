@@ -1253,6 +1253,18 @@ class ProductionWorkOrderController extends Controller
         return view('inventori.produksi.work-order.hasil-report', compact('results', 'lines', 'dateFrom', 'dateTo'));
     }
 
+    public function exportResultsReport(Request $request)
+    {
+        return Excel::download(
+            new ProductionWorkOrderResultsExport(
+                $this->entityId(),
+                $request->string('date_from')->toString() ?: now()->startOfMonth()->toDateString(),
+                $request->string('date_to')->toString() ?: now()->endOfMonth()->toDateString()
+            ),
+            'laporan-hasil-produksi-'.now()->format('Ymd-His').'.xlsx'
+        );
+    }
+
     public function destroy(int $id)
     {
         $entityId = $this->entityId();
