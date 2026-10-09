@@ -38,6 +38,7 @@ class StockTransferController extends Controller
         // Query Data Mutasi
         $query = DB::table('stock_transfers as st')
             ->leftJoin('business_units as bu', 'bu.id', '=', 'st.business_unit_id')
+            ->leftJoin('business_units as bu_to', 'bu_to.id', '=', 'st.to_business_unit_id')
             ->join('warehouses as w_from', 'w_from.id', '=', 'st.from_warehouse_id')
             ->join('warehouses as w_to', 'w_to.id', '=', 'st.to_warehouse_id')
             ->join('users as u_creator', 'u_creator.id', '=', 'st.created_by')
@@ -60,6 +61,7 @@ class StockTransferController extends Controller
         $transfers = $query->select(
             'st.*',
             'bu.name as business_unit_name',
+            'bu_to.name as destination_business_unit_name',
             'w_from.name as from_warehouse_name',
             'w_to.name as to_warehouse_name',
             'u_creator.name as creator_name'
@@ -132,7 +134,11 @@ class StockTransferController extends Controller
             ->orderBy('p.name')
             ->get();
 
-        return response()->json($products);
+        return response()->json([
+            'products' => $products,
+            'destination_business_unit_id' => $destinationBusinessUnitId,
+            'destination_business_unit_name' => DB::table('business_units')->where('id', $destinationBusinessUnitId)->value('name'),
+        ]);
     }
 
     /**
@@ -142,6 +148,7 @@ class StockTransferController extends Controller
     {
         $transfer = DB::table('stock_transfers as st')
             ->leftJoin('business_units as bu', 'bu.id', '=', 'st.business_unit_id')
+            ->leftJoin('business_units as bu_to', 'bu_to.id', '=', 'st.to_business_unit_id')
             ->join('warehouses as w_from', 'w_from.id', '=', 'st.from_warehouse_id')
             ->join('warehouses as w_to', 'w_to.id', '=', 'st.to_warehouse_id')
             ->join('users as u_creator', 'u_creator.id', '=', 'st.created_by')
@@ -153,6 +160,7 @@ class StockTransferController extends Controller
             ->select(
                 'st.*',
                 'bu.name as business_unit_name',
+                'bu_to.name as destination_business_unit_name',
                 'w_from.name as from_warehouse_name',
                 'w_to.name as to_warehouse_name',
                 'u_creator.name as creator_name',
@@ -569,6 +577,7 @@ class StockTransferController extends Controller
     {
         $transfer = DB::table('stock_transfers as st')
             ->leftJoin('business_units as bu', 'bu.id', '=', 'st.business_unit_id')
+            ->leftJoin('business_units as bu_to', 'bu_to.id', '=', 'st.to_business_unit_id')
             ->join('warehouses as w_from', 'w_from.id', '=', 'st.from_warehouse_id')
             ->join('warehouses as w_to', 'w_to.id', '=', 'st.to_warehouse_id')
             ->join('users as u_creator', 'u_creator.id', '=', 'st.created_by')
@@ -579,6 +588,7 @@ class StockTransferController extends Controller
             ->whereNull('st.deleted_at')
             ->select(
                 'st.*', 'bu.name as business_unit_name',
+                'bu_to.name as destination_business_unit_name',
                 'w_from.name as from_warehouse_name', 'w_from.address as from_warehouse_address',
                 'w_to.name as to_warehouse_name', 'w_to.address as to_warehouse_address',
                 'u_creator.name as creator_name',
