@@ -25,6 +25,10 @@
         </div>
     @endif
 
+    <div class="alert alert-warning py-2 small" role="alert">
+        <strong>Perhatian:</strong> tombol finalisasi mengunci hasil hitung Stock Opname. Stok sistem tidak berubah dari proses ini; selisih diproses terpisah melalui menu <strong>Penyesuaian Stok</strong>.
+    </div>
+
     <form action="{{ route('inventori.stock-opname.store-count', $opname->id) }}" method="POST">
         @csrf
         <div class="card shadow-sm border-0 mb-4">
@@ -95,8 +99,8 @@
                     <button type="button" class="btn btn-secondary me-2" onclick="window.location.reload()">
                         Batal
                     </button>
-                    <button type="submit" class="btn btn-primary px-4 fw-bold">
-                        <i class="bi bi-save me-1"></i> Simpan Hasil Stock Opname
+                    <button type="submit" class="btn btn-primary px-4 fw-bold" onclick="return confirm('Finalisasi hasil hitung Stock Opname? Setelah finalisasi, hasil fisik tidak dapat diubah. Selisih diproses melalui Penyesuaian Stok.');">
+                        <i class="bi bi-check2-circle me-1"></i> Finalisasi Hasil Fisik
                     </button>
                 </div>
             </div>
