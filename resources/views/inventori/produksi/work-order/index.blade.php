@@ -56,7 +56,7 @@
                 <thead class="table-primary">
                     <tr>
                         <th>No. SPK</th><th>Tanggal</th><th>Produk</th><th>BOM</th><th>Gudang</th>
-                        <th class="text-end">Target</th><th class="text-center">Pekerja</th><th>Status</th><th class="text-end">Aksi</th>
+                        <th class="text-end">Target</th><th class="text-center">% Bahan</th><th class="text-end">Hasil Produksi</th><th class="text-center">Pekerja</th><th>Status</th><th class="text-end">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -72,6 +72,10 @@
                         <td><span class="badge text-bg-light border">{{ $row->bom_code }}</span></td>
                         <td>{{ $row->warehouse_name }}</td>
                         <td class="text-end">{{ \App\Helpers\FormatHelper::indo((float) $row->target_output_qty, 2) }}</td>
+                        <td class="text-center">
+                            <span class="badge text-bg-{{ $row->material_percent >= 100 ? 'success' : ($row->material_percent > 0 ? 'warning' : 'light border text-dark') }}">{{ \App\Helpers\FormatHelper::indo((float) $row->material_percent, 1) }}%</span>
+                        </td>
+                        <td class="text-end">{{ $row->good_output_qty > 0 ? \App\Helpers\FormatHelper::indo((float) $row->good_output_qty, 2) : '-' }}</td>
                         <td class="text-center">{{ $workerCounts[$row->id] ?? 0 }}</td>
                         <td><span class="badge text-bg-{{ $statusClasses[$row->status] ?? 'secondary' }}">{{ $statusLabels[$row->status] ?? $row->status }}</span></td>
                         <td class="text-end text-nowrap">
@@ -567,6 +571,8 @@ document.addEventListener('DOMContentLoaded', function () {
             '<span class="badge text-bg-light border">'+row.bom_code+'</span>',
             row.warehouse_name,
             '<span class="d-block text-end">'+Number(row.target_output_qty || 0).toLocaleString('id-ID',{minimumFractionDigits:0,maximumFractionDigits:2})+'</span>',
+            '<span class="badge text-bg-'+(Number(row.material_percent||0)>=100?'success':(Number(row.material_percent||0)>0?'warning':'light border text-dark'))+'">'+Number(row.material_percent||0).toLocaleString('id-ID',{minimumFractionDigits:1,maximumFractionDigits:1})+'%</span>',
+            '<span class="d-block text-end">'+(Number(row.good_output_qty||0)>0?Number(row.good_output_qty).toLocaleString('id-ID',{minimumFractionDigits:0,maximumFractionDigits:2}):'-')+'</span>',
             '<span class="d-block text-center">'+row.worker_count+'</span>',
             '<span class="badge text-bg-'+statusClass+'">'+statusLabel+'</span>',
             row.status === 'open'
@@ -634,7 +640,7 @@ document.addEventListener('DOMContentLoaded', function () {
         autoWidth:false,
         order:[[1,'desc']],
         language:{info:'Menampilkan _START_–_END_ dari _TOTAL_ SPK',infoEmpty:'Tidak ada SPK',zeroRecords:'Data tidak ditemukan',paginate:{previous:'‹',next:'›'}},
-        columnDefs:[{targets:[5,6,8],orderable:false}]
+        columnDefs:[{targets:[5,6,7,9,10],orderable:false}]
     });
     document.getElementById('workOrderPageLength').addEventListener('change',function(){table.page.len(this.value).draw()});
     document.getElementById('workOrderSearch').addEventListener('input',function(){table.search(this.value).draw()});
