@@ -157,10 +157,10 @@ class StockTransferController extends Controller
         DB::beginTransaction();
         try {
             if (count($request->products) !== count($request->quantities)) {
-                throw new \\Exception('Daftar item dan kuantitas tidak sesuai.');
+                throw new \Exception('Daftar item dan kuantitas tidak sesuai.');
             }
             if (count(array_unique(array_map('intval', $request->products))) !== count($request->products)) {
-                throw new \\Exception('Item yang sama tidak boleh dimasukkan lebih dari satu kali dalam satu mutasi.');
+                throw new \Exception('Item yang sama tidak boleh dimasukkan lebih dari satu kali dalam satu mutasi.');
             }
 
             $entityId = $this->transferEntityId();
@@ -175,7 +175,7 @@ class StockTransferController extends Controller
             $transferNo = $this->generateTransferCode();
 
             $transferId = DB::table('stock_transfers')->insertGetId([
-                'entity_id'         => auth()->user()->entity_id ?? 1,
+                'entity_id'         => $entityId,
                 'business_unit_id'  => $request->business_unit_id,
                 'transfer_no'       => $transferNo,
                 'from_warehouse_id' => $request->from_warehouse_id,
@@ -227,13 +227,13 @@ class StockTransferController extends Controller
         try {
             $transfer = DB::table('stock_transfers')->where('id', $id)->lockForUpdate()->first();
             if (!$transfer || $transfer->status !== 'draft' || !empty($transfer->deleted_at)) {
-                throw new \\Exception('Mutasi tidak dapat diubah karena sudah disetujui/dalam proses.');
+                throw new \Exception('Mutasi tidak dapat diubah karena sudah disetujui/dalam proses.');
             }
             if (count($request->products) !== count($request->quantities)) {
-                throw new \\Exception('Daftar item dan kuantitas tidak sesuai.');
+                throw new \Exception('Daftar item dan kuantitas tidak sesuai.');
             }
             if (count(array_unique(array_map('intval', $request->products))) !== count($request->products)) {
-                throw new \\Exception('Item yang sama tidak boleh dimasukkan lebih dari satu kali dalam satu mutasi.');
+                throw new \Exception('Item yang sama tidak boleh dimasukkan lebih dari satu kali dalam satu mutasi.');
             }
 
             $this->validateTransferMapping(
@@ -285,7 +285,7 @@ class StockTransferController extends Controller
         try {
             $transfer = DB::table('stock_transfers')->where('id', $id)->lockForUpdate()->first();
             if (!$transfer || $transfer->status !== 'draft' || !empty($transfer->deleted_at)) {
-                throw new \\Exception('Status mutasi tidak valid untuk persetujuan pengirim.');
+                throw new \Exception('Status mutasi tidak valid untuk persetujuan pengirim.');
             }
 
             $items = DB::table('stock_transfer_items')->where('stock_transfer_id', $id)->lockForUpdate()->get();
@@ -373,13 +373,13 @@ class StockTransferController extends Controller
         try {
             $transfer = DB::table('stock_transfers')->where('id', $id)->lockForUpdate()->first();
             if (!$transfer || $transfer->status !== 'shipped' || !empty($transfer->deleted_at)) {
-                throw new \\Exception('Status mutasi tidak valid untuk persetujuan penerima.');
+                throw new \Exception('Status mutasi tidak valid untuk persetujuan penerima.');
             }
 
             // Jika client mengirim gudang pilihan penerima, wajib sama dengan gudang tujuan dokumen.
             $selectedWarehouseId = $request->input('to_warehouse_id', $request->input('receiver_warehouse_id'));
             if ($selectedWarehouseId !== null && (int) $selectedWarehouseId !== (int) $transfer->to_warehouse_id) {
-                throw new \\Exception('Penerimaan ditolak: gudang yang dipilih berbeda dari gudang tujuan pada dokumen mutasi.');
+                throw new \Exception('Penerimaan ditolak: gudang yang dipilih berbeda dari gudang tujuan pada dokumen mutasi.');
             }
 
             $items = DB::table('stock_transfer_items')->where('stock_transfer_id', $id)->lockForUpdate()->get();
@@ -405,7 +405,7 @@ class StockTransferController extends Controller
                     ->first();
 
                 if (!$outMovement) {
-                    throw new \\Exception("Penerimaan ditolak: catatan stok keluar untuk item ID {$item->product_id} tidak ditemukan.");
+                    throw new \Exception("Penerimaan ditolak: catatan stok keluar untuk item ID {$item->product_id} tidak ditemukan.");
                 }
                 $unitCost = (float) $outMovement->unit_cost;
 
