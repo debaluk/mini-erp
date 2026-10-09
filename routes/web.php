@@ -180,6 +180,7 @@ Route::post('/inventori/penerimaan/{id}/cancel', [ReceiptController::class, 'can
     Route::get('/inventori/penerimaan/{id}', [ReceiptController::class, 'show'])->middleware('access:inventori')->name('inventori.penerimaan.show');
     Route::middleware(['auth', 'access:inventori'])->prefix('inventori/setok-persediaan')->name('inventori.setok-persediaan.')->group(function () {
         Route::get('/', [StockInventoryController::class, 'index'])->name('index');
+        Route::get('/export', [StockInventoryController::class, 'export'])->name('export');
         Route::get('/{product}/{warehouse}/history', [StockInventoryController::class, 'history'])->name('history');
     });
     Route::get('/inventori/stok', [StockController::class, 'index'])->middleware('access:inventori')->name('inventori.stok');
