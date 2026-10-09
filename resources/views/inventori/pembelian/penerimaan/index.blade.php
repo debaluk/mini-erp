@@ -287,7 +287,7 @@ $(function () {
                     '<div class="col-md-4"><div class="small text-secondary">Unit Bisnis</div><div class="fw-semibold">' + (r.business_unit_name || '-') + '</div></div>' +
                 '</div>' +
                 '<div class="table-responsive"><table class="table table-sm table-bordered align-middle mb-0">' +
-                    '<thead class="table-light"><tr><th class="text-center">#</th><th>Barang</th><th class="text-end">Qty</th><th>Satuan</th><th class="text-end">HPP</th><th class="text-end">Nilai</th></tr></thead>' +
+                    '<thead class="table-light"><tr><th class="text-center">#</th><th>Barang</th><th class="text-end">Qty</th><th>Satuan</th><th class="text-end">Harga Pokok Pembelian</th><th class="text-end">Nilai</th></tr></thead>' +
                     '<tbody>' + rows + '</tbody>' +
                 '</table></div>'
             );
