@@ -19,48 +19,20 @@
         </div>
     </div>
 
-    <!-- Alert Notifications -->
+    <!-- Notifikasi: inline agar tidak menumpuk modal atau perlu klik OK dua kali -->
     @if(session('success'))
-        <div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content border-0 shadow">
-                    <div class="modal-body text-center p-4">
-                        <div class="text-success mb-3">
-                            <i class="bi bi-check-circle-fill" style="font-size: 3.5rem;"></i>
-                        </div>
-                        <h5 class="fw-bold mb-2">Berhasil</h5>
-                        <div class="text-muted">{{ session('success') }}</div>
-                        <button type="button" class="btn btn-success mt-3 px-4" data-bs-dismiss="modal">OK</button>
-                    </div>
-                </div>
-            </div>
+        <div class="alert alert-success alert-dismissible fade show py-2 mb-3" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <strong>Berhasil.</strong> {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Tutup"></button>
         </div>
-        <script>
-            document.addEventListener('DOMContentLoaded', function () {
-                new bootstrap.Modal(document.getElementById('successModal')).show();
-            });
-        </script>
     @endif
     @if(session('error'))
-        <div class="modal fade" id="errorModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content border-0 shadow">
-                    <div class="modal-body text-center p-4">
-                        <div class="text-danger mb-3">
-                            <i class="bi bi-x-circle-fill" style="font-size: 3.5rem;"></i>
-                        </div>
-                        <h5 class="fw-bold mb-2">Gagal</h5>
-                        <div class="text-muted">{{ session('error') }}</div>
-                        <button type="button" class="btn btn-danger mt-3 px-4" data-bs-dismiss="modal">OK</button>
-                    </div>
-                </div>
-            </div>
+        <div class="alert alert-danger alert-dismissible fade show py-2 mb-3" role="alert">
+            <i class="bi bi-exclamation-circle-fill me-2"></i>
+            <strong>Gagal.</strong> {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Tutup"></button>
         </div>
-        <script>
-            document.addEventListener('DOMContentLoaded', function () {
-                new bootstrap.Modal(document.getElementById('errorModal')).show();
-            });
-        </script>
     @endif
 
     <!-- Filter Form -->
