@@ -86,7 +86,7 @@
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ route('produksi.work-order') }}">Work Order (SPK)</a></li>
                                 <li><a class="dropdown-item" href="{{ route('produksi.pemakaian-bahan') }}">Bahan Baku</a></li>
-                                <li><a class="dropdown-item" href="{{ route('produksi.hasil-produksi') }}">Hasil Produksi</a></li>
+                                <li><a class="dropdown-item" href="{{ route('produksi.work-order.hasil-report') }}">Laporan Hasil Produksi</a></li>
                             </ul>
                         </li>
                         <li class="dropdown-submenu">
