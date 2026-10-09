@@ -157,7 +157,6 @@ Route::middleware(['auth', 'access:inventori'])->prefix('inventori/penjualan/ret
         Route::get('/', [PurchaseReturnController::class, 'index'])->name('');
         Route::get('/data', [PurchaseReturnController::class, 'data'])->name('.data');
         Route::get('/print-list', [PurchaseReturnController::class, 'printList'])->name('.print-list');
-        Route::post('/', [PurchaseReturnController::class, 'store'])->name('.store');
         Route::get('/from-receipt/{receiptId}', [PurchaseReturnController::class, 'createFromReceipt'])->name('.from-receipt');
         Route::post('/from-receipt/{receiptId}', [PurchaseReturnController::class, 'storeFromReceipt'])->name('.store-from-receipt');
         Route::get('/{id}', [PurchaseReturnController::class, 'show'])->name('.show');
