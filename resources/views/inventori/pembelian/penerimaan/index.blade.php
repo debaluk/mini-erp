@@ -299,6 +299,13 @@ $(function () {
         $('#btn-save-return-receipt').prop('disabled', false);
     });
 
+    $(document).on('input', '#return-receipt-body input[type="number"]', function () {
+        const max = Number($(this).attr('max') || 0);
+        const value = Number($(this).val() || 0);
+        if (value > max) $(this).val(max);
+        if (value < 0) $(this).val('');
+    });
+
     $('#form-return-receipt').on('submit', function (event) {
         event.preventDefault();
         if (!returnReceiptId) return;
