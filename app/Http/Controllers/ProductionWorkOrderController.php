@@ -1077,6 +1077,45 @@ class ProductionWorkOrderController extends Controller
         return redirect()->route('produksi.work-order')->with('success', 'SPK Open berhasil dihapus.');
     }
 
+    private function materialProgressPercent(int $workOrderId, int $bomId, float $batchQty): float
+    {
+        $planned = DB::table('bom_items as bi')
+            ->join('products as p', 'p.id', '=', 'bi.product_id')
+            ->leftJoin('product_unit_conversions as puc', function ($join) {
+                $join->on('puc.product_id', '=', 'bi.product_id')
+                    ->on('puc.unit_id', '=', 'bi.unit_id')
+                    ->where('puc.is_active', 1);
+            })
+            ->where('bi.bom_id', $bomId)
+            ->groupBy('bi.product_id')
+            ->get([
+                'bi.product_id',
+                DB::raw('SUM(bi.qty * CASE WHEN bi.unit_id = p.base_unit_id THEN 1 ELSE COALESCE(puc.conversion_factor, 1) END) as planned_base_qty'),
+            ]);
+
+        if ($planned->isEmpty()) {
+            return 0.0;
+        }
+
+        $used = DB::table('production_wo_material_usages as u')
+            ->join('production_material_usage_items as ui', 'ui.production_material_usage_id', '=', 'u.id')
+            ->where('u.production_work_order_id', $workOrderId)
+            ->where('u.status', 'approved')
+            ->groupBy('ui.product_id')
+            ->pluck(DB::raw('SUM(ui.base_actual_qty)'), 'ui.product_id');
+
+        $percentages = $planned->map(function ($material) use ($used, $batchQty) {
+            $plannedQty = (float) $material->planned_base_qty * $batchQty;
+            if ($plannedQty <= 0) {
+                return null;
+            }
+
+            return min(100, ((float) ($used[$material->product_id] ?? 0) / $plannedQty) * 100);
+        })->filter(fn ($value) => $value !== null);
+
+        return $percentages->isNotEmpty() ? round($percentages->avg(), 1) : 0.0;
+    }
+
     private function workOrderRow(int $entityId, int $id): array
     {
         $row = DB::table('production_work_orders as wo')
@@ -1112,11 +1151,11 @@ class ProductionWorkOrderController extends Controller
             'bom_code' => $row->bom_code,
             'warehouse_name' => $row->warehouse_name,
             'target_output_qty' => (float) $row->target_output_qty,
-            'material_percent' => (float) DB::table('production_wo_material_usages as u')
-                ->join('production_material_usage_items as ui', 'ui.production_material_usage_id', '=', 'u.id')
-                ->where('u.production_work_order_id', $row->id)
-                ->where('u.status', 'approved')
-                ->sum('ui.base_actual_qty'),
+            'material_percent' => $this->materialProgressPercent(
+                (int) $row->id,
+                (int) $row->bom_id,
+                (float) $row->batch_qty
+            ),
             'good_output_qty' => (float) DB::table('productions')
                 ->where('production_work_order_id', $row->id)
                 ->where('status', 'posted')
