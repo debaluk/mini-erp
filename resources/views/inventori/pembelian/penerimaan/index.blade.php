@@ -325,11 +325,16 @@ $(function () {
                 table.ajax.reload(null, false);
                 Swal.fire({
                     icon: 'success',
-                    title: 'Draft Retur Tersimpan',
-                    text: response.message || 'Draft retur berhasil dibuat. Lanjutkan ke detail untuk posting.',
-                    confirmButtonText: 'Buka Draft'
+                    title: 'Berhasil',
+                    text: response.message || 'Draft retur berhasil disimpan.',
+                    timer: 1200,
+                    showConfirmButton: false
                 }).then(function () {
-                    if (response.redirect_url) window.location.href = response.redirect_url;
+                    if (response.redirect_url) {
+                        window.location.href = response.redirect_url;
+                    } else {
+                        window.location.reload();
+                    }
                 });
             },
             error: function (xhr) {
