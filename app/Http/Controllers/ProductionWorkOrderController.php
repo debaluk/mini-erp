@@ -605,18 +605,20 @@ class ProductionWorkOrderController extends Controller
                 'u.name as unit_name',
             ]);
 
-        $approvedUsage = DB::table('production_wo_material_usages')
-            ->where('production_work_order_id', $id)
-            ->where('status', 'approved')
-            ->latest('id')
-            ->first();
-
-        $actualItems = $approvedUsage
-            ? DB::table('production_material_usage_items')
-                ->where('production_material_usage_id', $approvedUsage->id)
-                ->get()
-                ->keyBy('product_id')
-            : collect();
+        $actualItems = DB::table('production_wo_material_usages as u')
+            ->join('production_material_usage_items as ui', 'ui.production_material_usage_id', '=', 'u.id')
+            ->where('u.production_work_order_id', $id)
+            ->where('u.status', 'approved')
+            ->groupBy('ui.product_id')
+            ->select(
+                'ui.product_id',
+                DB::raw('SUM(ui.actual_qty) as actual_qty'),
+                DB::raw('SUM(ui.base_actual_qty) as actual_base_qty'),
+                DB::raw('SUM(ui.total_cost) as total_cost'),
+                DB::raw('CASE WHEN SUM(ui.base_actual_qty) > 0 THEN SUM(ui.total_cost) / SUM(ui.base_actual_qty) ELSE 0 END as unit_cost')
+            )
+            ->get()
+            ->keyBy('product_id');
 
         $materials = $items->map(function ($item) use ($wo, $actualItems) {
             $factor = 1.0;
@@ -714,15 +716,15 @@ class ProductionWorkOrderController extends Controller
             abort_if($goodQty <= 0, 422, 'Hasil bagus harus lebih dari 0.');
             abort_if(($goodQty + $rejectQty) > ($targetQty + 0.000001), 422, 'Hasil bagus + reject melebihi target produksi.');
 
-            $usage = DB::table('production_wo_material_usages')
+            $approvedUsageIds = DB::table('production_wo_material_usages')
                 ->where('production_work_order_id', $wo->id)
                 ->where('status', 'approved')
                 ->lockForUpdate()
-                ->first();
-            abort_unless($usage, 422, 'Pemakaian bahan SPK harus sudah disetujui sebelum hasil produksi diposting.');
+                ->pluck('id');
+            abort_unless($approvedUsageIds->isNotEmpty(), 422, 'Pemakaian bahan SPK harus sudah disetujui sebelum hasil produksi diposting.');
 
             $materialCost = (float) DB::table('production_material_usage_items')
-                ->where('production_material_usage_id', $usage->id)
+                ->whereIn('production_material_usage_id', $approvedUsageIds)
                 ->sum('total_cost');
 
             $workers = DB::table('production_work_order_workers as wow')
