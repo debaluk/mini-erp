@@ -829,7 +829,7 @@ class ProductionWorkOrderController extends Controller
 
             $goodTotal = (float) $lines->sum('good_qty');
             $rejectTotal = (float) $lines->sum('reject_qty');
-            $workerIds = $setup->keys()->values()->all();
+            $workerIds = array_values($entry['worker_id']);
             $basis = [];
             $rates = [];
             $laborQty = [];
