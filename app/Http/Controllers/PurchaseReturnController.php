@@ -290,15 +290,25 @@ class PurchaseReturnController extends Controller
                     ->where('pri.id', '<>', $item->id)
                     ->sum('pri.base_qty');
 
-                $receivedBase = (float) DB::table('receipt_items')
-                    ->where('id', $item->receipt_item_id)
-                    ->value('base_qty');
+                $receiptItem = DB::table('receipt_items as ri')
+                    ->join('receipts as r', 'r.id', '=', 'ri.receipt_id')
+                    ->where('ri.id', $item->receipt_item_id)
+                    ->where('r.entity_id', $entity)
+                    ->where('r.status', 'posted')
+                    ->select('ri.*', 'r.warehouse_id as receipt_warehouse_id')
+                    ->lockForUpdate()
+                    ->first();
 
+                abort_unless($receiptItem, 422, 'Penerimaan sumber tidak ditemukan atau sudah dibatalkan.');
+                abort_unless((int) $receiptItem->receipt_warehouse_id === (int) $return->warehouse_id, 422, 'Gudang retur harus sama dengan gudang penerimaan sumber.');
+                abort_unless((int) $receiptItem->product_id === (int) $item->product_id, 422, 'Barang retur tidak sesuai dengan penerimaan sumber.');
+
+                $receivedBase = (float) $receiptItem->base_qty;
                 abort_if((float) $item->base_qty > max(0, $receivedBase - $alreadyReturned) + 0.0000001, 422, 'Qty retur sudah tidak tersedia.');
 
                 $stock = DB::table('warehouses_stocks')
                     ->where('entity_id', $entity)
-                    ->where('warehouse_id', $return->warehouse_id)
+                    ->where('warehouse_id', $receiptItem->receipt_warehouse_id)
                     ->where('product_id', $item->product_id)
                     ->lockForUpdate()
                     ->first();
@@ -306,7 +316,9 @@ class PurchaseReturnController extends Controller
                 abort_unless($stock, 422, 'Stok produk tidak ditemukan.');
                 abort_if((float) $stock->qty < (float) $item->base_qty - 0.0000001, 422, 'Stok tidak mencukupi untuk retur.');
 
-                $unitCost = (float) $stock->avg_cost;
+                // Nilai retur memakai HPP historis saat penerimaan, bukan moving average saat retur.
+                $unitCost = (float) $receiptItem->base_unit_cost;
+                abort_if($unitCost < 0, 422, 'HPP pada penerimaan sumber tidak valid.');
                 $value = round((float) $item->base_qty * $unitCost, 2);
 
                 DB::table('warehouses_stocks')->where('id', $stock->id)->update([
