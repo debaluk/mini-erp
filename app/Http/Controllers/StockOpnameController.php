@@ -282,7 +282,7 @@ class StockOpnameController extends Controller
     }
 
     /**
-     * TAHAP 2B: Simpan Hasil Fisik & Hitung Selisih (Status: POSTED)
+     * TAHAP 2B: Finalisasi Hasil Hitung Fisik (tanpa posting stok atau jurnal)
      */
     public function storeCount(Request $request, $id)
     {
