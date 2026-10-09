@@ -277,7 +277,8 @@ $(function () {
             headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'text/html' },
             success: function (html) {
                 $('#return-receipt-body').html(html);
-                $('#btn-save-return-receipt').prop('disabled', false);
+                const hasReturnableItems = $('#return-receipt-body input[name$="[qty]"]').length > 0;
+                $('#btn-save-return-receipt').prop('disabled', !hasReturnableItems);
             },
             error: function (xhr) {
                 returnModal.hide();
