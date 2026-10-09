@@ -20,6 +20,12 @@
     .executive-dashboard .table { --bs-table-bg: transparent; }
 
     .executive-dashboard .small-label { font-size: .78rem; }
+
+    .executive-dashboard .brand-mark { display:inline-flex; flex:0 0 54px; width:54px; height:54px; align-items:center; justify-content:center; border-radius:16px; color:#fff; font-size:1.55rem; background:linear-gradient(135deg,#064bb5 0%,#1687ff 55%,#16c7d8 100%); box-shadow:0 7px 18px rgba(13,110,253,.3); }
+    .executive-dashboard .brand-name { font-size:clamp(1.45rem,2.4vw,2rem); line-height:1.05; font-weight:900; letter-spacing:.12em; color:#0759c7; }
+    .executive-dashboard .brand-tagline { margin-top:.25rem; color:#07839a; font-family:monospace; font-size:.72rem; letter-spacing:.025em; font-weight:700; }
+    .executive-dashboard .dash-card:has(.brand-name) { border:1px solid #d7e7fb; background:linear-gradient(110deg,#ffffff 0%,#f3f8ff 70%,#e8fbff 100%); }
+    @media (max-width:575.98px) { .executive-dashboard .brand-mark { width:46px; height:46px; flex-basis:46px; border-radius:13px; } .executive-dashboard .brand-tagline { font-size:.64rem; } }
     /* Warna dashboard dibuat lebih tegas, tanpa mengubah data atau logika HPP. */
     .executive-dashboard > .row:first-of-type > div:nth-child(1) .dash-card { background: linear-gradient(135deg,#0759c7,#1687ff) !important; color:#fff; border-color:#0759c7; box-shadow:0 6px 16px rgba(13,110,253,.22); }
     .executive-dashboard > .row:first-of-type > div:nth-child(2) .dash-card { background: linear-gradient(135deg,#087443,#18a66a) !important; color:#fff; border-color:#087443; box-shadow:0 6px 16px rgba(25,135,84,.2); }
@@ -55,10 +61,11 @@
     <div class="dash-card bg-white p-3 mb-3">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
             <div class="d-flex align-items-center gap-3">
-                <span class="kpi-icon bg-primary-subtle text-primary"><i class="bi bi-speedometer2"></i></span>
+                <span class="brand-mark"><i class="bi bi-bar-chart-line-fill"></i></span>
                 <div>
-                    <h4 class="fw-bold mb-1">Executive Dashboard</h4>
-                    <div class="muted small">Ringkasan operasional dan keuangan berdasarkan transaksi tercatat.</div>
+                    <h4 class="brand-name mb-0">AKUNTARA</h4>
+                    <div class="brand-tagline">Kontrol Operasional dan Akuntansi Presisi</div>
+                    <div class="muted small mt-2">Ringkasan operasional dan keuangan berdasarkan transaksi tercatat.</div>
                     <div class="muted small mt-1">Periode {{ \Carbon\Carbon::parse($startDate)->translatedFormat('F Y') }} · Cut-off {{ \Carbon\Carbon::parse($endDate)->format('d/m/Y') }}</div>
                 </div>
             </div>
