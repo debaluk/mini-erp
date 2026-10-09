@@ -882,7 +882,7 @@ class ProductionWorkOrderController extends Controller
             'labor_rate' => ['required', 'array', 'min:1'],
             'labor_rate.*' => ['required', 'numeric', 'gt:0'],
             'labor_qty' => ['required', 'array', 'min:1'],
-            'labor_qty.*' => ['required', 'numeric', 'gt:0'],
+            'labor_qty.*' => ['required', 'numeric', 'gte:0'],
             'good_output_qty' => ['required', 'numeric', 'gt:0'],
             'reject_qty' => ['required', 'numeric', 'gte:0'],
         ]);
