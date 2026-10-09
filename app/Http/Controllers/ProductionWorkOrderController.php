@@ -243,7 +243,8 @@ class ProductionWorkOrderController extends Controller
         $entityId = $this->entityId();
         abort_unless($entityId, 422, 'Entitas belum tersedia.');
 
-        DB::transaction(function () use ($data, $entityId): void {
+        $woId = null;
+        DB::transaction(function () use ($data, $entityId, &$woId): void {
             $warehouse = DB::table('warehouses')
                 ->where('entity_id', $entityId)
                 ->where('is_active', 1)
