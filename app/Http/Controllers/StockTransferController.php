@@ -156,6 +156,22 @@ class StockTransferController extends Controller
 
         DB::beginTransaction();
         try {
+            if (count($request->products) !== count($request->quantities)) {
+                throw new \\Exception('Daftar item dan kuantitas tidak sesuai.');
+            }
+            if (count(array_unique(array_map('intval', $request->products))) !== count($request->products)) {
+                throw new \\Exception('Item yang sama tidak boleh dimasukkan lebih dari satu kali dalam satu mutasi.');
+            }
+
+            $entityId = $this->transferEntityId();
+            $this->validateTransferMapping(
+                $entityId,
+                (int) $request->business_unit_id,
+                (int) $request->from_warehouse_id,
+                (int) $request->to_warehouse_id,
+                $request->products
+            );
+
             $transferNo = $this->generateTransferCode();
 
             $transferId = DB::table('stock_transfers')->insertGetId([
@@ -198,11 +214,6 @@ class StockTransferController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $transfer = DB::table('stock_transfers')->where('id', $id)->first();
-        if (!$transfer || $transfer->status !== 'draft') {
-            return redirect()->back()->with('error', 'Mutasi tidak dapat diubah karena sudah disetujui/dalam proses.');
-        }
-
         $request->validate([
             'business_unit_id'  => 'required|exists:business_units,id',
             'from_warehouse_id' => 'required|exists:warehouses,id',
@@ -214,6 +225,25 @@ class StockTransferController extends Controller
 
         DB::beginTransaction();
         try {
+            $transfer = DB::table('stock_transfers')->where('id', $id)->lockForUpdate()->first();
+            if (!$transfer || $transfer->status !== 'draft' || !empty($transfer->deleted_at)) {
+                throw new \\Exception('Mutasi tidak dapat diubah karena sudah disetujui/dalam proses.');
+            }
+            if (count($request->products) !== count($request->quantities)) {
+                throw new \\Exception('Daftar item dan kuantitas tidak sesuai.');
+            }
+            if (count(array_unique(array_map('intval', $request->products))) !== count($request->products)) {
+                throw new \\Exception('Item yang sama tidak boleh dimasukkan lebih dari satu kali dalam satu mutasi.');
+            }
+
+            $this->validateTransferMapping(
+                (int) $transfer->entity_id,
+                (int) $request->business_unit_id,
+                (int) $request->from_warehouse_id,
+                (int) $request->to_warehouse_id,
+                $request->products
+            );
+
             DB::table('stock_transfers')->where('id', $id)->update([
                 'business_unit_id'  => $request->business_unit_id,
                 'from_warehouse_id' => $request->from_warehouse_id,
@@ -251,20 +281,29 @@ class StockTransferController extends Controller
      */
     public function approveSender($id)
     {
-        $transfer = DB::table('stock_transfers')->where('id', $id)->first();
-        if (!$transfer || $transfer->status !== 'draft') {
-            return redirect()->back()->with('error', 'Status mutasi tidak valid untuk persetujuan pengirim.');
-        }
-
         DB::beginTransaction();
         try {
-            $items = DB::table('stock_transfer_items')->where('stock_transfer_id', $id)->get();
+            $transfer = DB::table('stock_transfers')->where('id', $id)->lockForUpdate()->first();
+            if (!$transfer || $transfer->status !== 'draft' || !empty($transfer->deleted_at)) {
+                throw new \\Exception('Status mutasi tidak valid untuk persetujuan pengirim.');
+            }
+
+            $items = DB::table('stock_transfer_items')->where('stock_transfer_id', $id)->lockForUpdate()->get();
+            $this->validateTransferMapping(
+                (int) $transfer->entity_id,
+                (int) $transfer->business_unit_id,
+                (int) $transfer->from_warehouse_id,
+                (int) $transfer->to_warehouse_id,
+                $items->pluck('product_id')->map(fn ($value) => (int) $value)->all()
+            );
 
             foreach ($items as $item) {
                 // Ambil data stok & avg_cost dari warehouses_stocks gudang pengirim
                 $stock = DB::table('warehouses_stocks')
+                    ->where('entity_id', $transfer->entity_id)
                     ->where('warehouse_id', $transfer->from_warehouse_id)
                     ->where('product_id', $item->product_id)
+                    ->lockForUpdate()
                     ->first();
 
                 if (!$stock || $stock->qty < $item->quantity) {
@@ -328,32 +367,54 @@ class StockTransferController extends Controller
     /**
      * Approval Step 2: Gudang Penerima (TRANSFER_IN)
      */
-    public function approveReceiver($id)
+    public function approveReceiver(Request $request, $id)
     {
-        $transfer = DB::table('stock_transfers')->where('id', $id)->first();
-        if (!$transfer || $transfer->status !== 'shipped') {
-            return redirect()->back()->with('error', 'Status mutasi tidak valid untuk persetujuan penerima.');
-        }
-
         DB::beginTransaction();
         try {
-            $items = DB::table('stock_transfer_items')->where('stock_transfer_id', $id)->get();
+            $transfer = DB::table('stock_transfers')->where('id', $id)->lockForUpdate()->first();
+            if (!$transfer || $transfer->status !== 'shipped' || !empty($transfer->deleted_at)) {
+                throw new \\Exception('Status mutasi tidak valid untuk persetujuan penerima.');
+            }
+
+            // Jika client mengirim gudang pilihan penerima, wajib sama dengan gudang tujuan dokumen.
+            $selectedWarehouseId = $request->input('to_warehouse_id', $request->input('receiver_warehouse_id'));
+            if ($selectedWarehouseId !== null && (int) $selectedWarehouseId !== (int) $transfer->to_warehouse_id) {
+                throw new \\Exception('Penerimaan ditolak: gudang yang dipilih berbeda dari gudang tujuan pada dokumen mutasi.');
+            }
+
+            $items = DB::table('stock_transfer_items')->where('stock_transfer_id', $id)->lockForUpdate()->get();
+            $this->validateTransferMapping(
+                (int) $transfer->entity_id,
+                (int) $transfer->business_unit_id,
+                (int) $transfer->from_warehouse_id,
+                (int) $transfer->to_warehouse_id,
+                $items->pluck('product_id')->map(fn ($value) => (int) $value)->all()
+            );
 
             foreach ($items as $item) {
                 // Ambil unit_cost dari record TRANSFER_OUT sebelumnya agar konsisten
                 $outMovement = DB::table('stock_movements')
+                    ->where('entity_id', $transfer->entity_id)
+                    ->where('business_unit_id', $transfer->business_unit_id)
+                    ->where('warehouse_id', $transfer->from_warehouse_id)
                     ->where('reference_type', 'transfer')
                     ->where('reference_id', $transfer->id)
                     ->where('movement_type', 'TRANSFER_OUT')
                     ->where('product_id', $item->product_id)
+                    ->lockForUpdate()
                     ->first();
 
-                $unitCost = $outMovement ? (float) $outMovement->unit_cost : 0.0000;
+                if (!$outMovement) {
+                    throw new \\Exception("Penerimaan ditolak: catatan stok keluar untuk item ID {$item->product_id} tidak ditemukan.");
+                }
+                $unitCost = (float) $outMovement->unit_cost;
 
                 // Cek stok di warehouses_stocks gudang penerima
                 $destStock = DB::table('warehouses_stocks')
+                    ->where('entity_id', $transfer->entity_id)
                     ->where('warehouse_id', $transfer->to_warehouse_id)
                     ->where('product_id', $item->product_id)
+                    ->lockForUpdate()
                     ->first();
 
                 // 1. Tambah stok & hitung ulang Moving Average Cost (avg_cost) gudang penerima
