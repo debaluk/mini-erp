@@ -163,6 +163,19 @@ class ProductionWorkOrderController extends Controller
                 'w.name as worker_name',
             ]);
 
+        $resultDraftLines = DB::table('production_work_order_results as r')
+            ->join('production_work_order_result_lines as l', 'l.production_work_order_result_id', '=', 'r.id')
+            ->whereIn('r.production_work_order_id', $rows->pluck('id'))
+            ->where('r.status', 'draft')
+            ->orderByDesc('r.production_date')
+            ->get([
+                'r.production_work_order_id',
+                'r.production_date',
+                'l.worker_id',
+                'l.good_qty',
+                'l.reject_qty',
+            ]);
+
         return view('inventori.produksi.work-order.index', compact(
             'boms',
             'warehouses',
@@ -172,6 +185,7 @@ class ProductionWorkOrderController extends Controller
             'workerCounts',
             'woCosts',
             'woWorkers',
+            'resultDraftLines',
             'dateFrom',
             'dateTo'
         ));
