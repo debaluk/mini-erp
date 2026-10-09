@@ -67,6 +67,7 @@ class ProductionWorkOrderController extends Controller
                 'b.code as bom_code',
                 'b.name as bom_name',
                 'p.name as product_name',
+                'p.base_unit_id as output_unit_id',
                 'w.name as warehouse_name',
                 'bu.name as business_unit_name'
             )
@@ -77,6 +78,60 @@ class ProductionWorkOrderController extends Controller
             ->orderByDesc('wo.id');
 
         $rows = $query->get();
+
+        $bomMaterials = DB::table('bom_items as bi')
+            ->join('products as p', 'p.id', '=', 'bi.product_id')
+            ->leftJoin('product_unit_conversions as puc', function ($join) {
+                $join->on('puc.product_id', '=', 'bi.product_id')
+                    ->on('puc.unit_id', '=', 'bi.unit_id')
+                    ->where('puc.is_active', 1);
+            })
+            ->whereIn('bi.bom_id', $rows->pluck('bom_id')->unique())
+            ->groupBy('bi.bom_id', 'bi.product_id')
+            ->get([
+                'bi.bom_id',
+                'bi.product_id',
+                DB::raw('SUM(bi.qty * CASE WHEN bi.unit_id = p.base_unit_id THEN 1 ELSE COALESCE(puc.conversion_factor, 1) END) as planned_base_qty'),
+            ])
+            ->groupBy('bom_id');
+
+        $usedMaterials = DB::table('production_wo_material_usages as u')
+            ->join('production_material_usage_items as ui', 'ui.production_material_usage_id', '=', 'u.id')
+            ->whereIn('u.production_work_order_id', $rows->pluck('id'))
+            ->where('u.status', 'approved')
+            ->groupBy('u.production_work_order_id', 'ui.product_id')
+            ->get([
+                'u.production_work_order_id',
+                'ui.product_id',
+                DB::raw('SUM(ui.base_actual_qty) as used_base_qty'),
+            ])
+            ->groupBy('production_work_order_id');
+
+        $productionResults = DB::table('productions')
+            ->whereIn('production_work_order_id', $rows->pluck('id'))
+            ->where('status', 'posted')
+            ->groupBy('production_work_order_id')
+            ->select('production_work_order_id', DB::raw('SUM(good_output_qty) as good_output_qty'))
+            ->pluck('good_output_qty', 'production_work_order_id');
+
+        foreach ($rows as $row) {
+            $materials = $bomMaterials->get($row->bom_id, collect());
+            $usedByProduct = $usedMaterials->get($row->id, collect())->keyBy('product_id');
+            $percentages = $materials->map(function ($material) use ($usedByProduct, $row) {
+                $planned = (float) $material->planned_base_qty * (float) $row->batch_qty;
+                if ($planned <= 0) {
+                    return null;
+                }
+
+                $used = (float) ($usedByProduct->get($material->product_id)->used_base_qty ?? 0);
+                return min(100, ($used / $planned) * 100);
+            })->filter(fn ($value) => $value !== null);
+
+            $row->material_percent = $percentages->isNotEmpty()
+                ? round($percentages->avg(), 1)
+                : 0;
+            $row->good_output_qty = (float) ($productionResults[$row->id] ?? 0);
+        }
 
         $workerCounts = DB::table('production_work_order_workers')
             ->select('production_work_order_id', DB::raw('COUNT(*) as total_workers'))
@@ -1035,6 +1090,11 @@ class ProductionWorkOrderController extends Controller
                 'wo.wo_no',
                 'wo.wo_date',
                 'wo.target_output_qty',
+                'wo.batch_qty',
+                'wo.bom_id',
+                'wo.business_unit_id',
+                'wo.warehouse_id',
+                'wo.notes',
                 'wo.status',
                 'b.code as bom_code',
                 'p.name as product_name',
@@ -1052,6 +1112,15 @@ class ProductionWorkOrderController extends Controller
             'bom_code' => $row->bom_code,
             'warehouse_name' => $row->warehouse_name,
             'target_output_qty' => (float) $row->target_output_qty,
+            'material_percent' => (float) DB::table('production_wo_material_usages as u')
+                ->join('production_material_usage_items as ui', 'ui.production_material_usage_id', '=', 'u.id')
+                ->where('u.production_work_order_id', $row->id)
+                ->where('u.status', 'approved')
+                ->sum('ui.base_actual_qty'),
+            'good_output_qty' => (float) DB::table('productions')
+                ->where('production_work_order_id', $row->id)
+                ->where('status', 'posted')
+                ->sum('good_output_qty'),
             'worker_count' => (int) DB::table('production_work_order_workers')
                 ->where('production_work_order_id', $row->id)
                 ->count(),
