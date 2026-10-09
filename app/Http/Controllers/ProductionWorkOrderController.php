@@ -709,6 +709,12 @@ class ProductionWorkOrderController extends Controller
                 ->exists();
             abort_if($alreadyPosted, 422, 'Hasil produksi SPK ini sudah diposting.');
 
+            $hasOpenMaterialUsage = DB::table('production_wo_material_usages')
+                ->where('production_work_order_id', $wo->id)
+                ->whereIn('status', ['draft', 'pending'])
+                ->exists();
+            abort_if($hasOpenMaterialUsage, 422, 'Selesaikan atau tolak pemakaian bahan yang masih Draft/Menunggu Approval sebelum SPK ditutup.');
+
             $goodQty = round((float) $data['good_output_qty'], 3);
             $rejectQty = round((float) $data['reject_qty'], 3);
             $targetQty = round((float) $wo->target_output_qty, 3);
