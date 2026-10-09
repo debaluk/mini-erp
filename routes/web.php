@@ -22,6 +22,7 @@ use App\Http\Controllers\SalesReceivableReportController;
 use App\Http\Controllers\PosController;
 use App\Http\Controllers\SalesController;
 use App\Http\Controllers\StockController;
+use App\Http\Controllers\StockInventoryController;
 use App\Http\Controllers\InitialSetupController;
 use App\Http\Controllers\ProductPriceController;
 use App\Http\Controllers\SettingsController;
@@ -177,6 +178,10 @@ Route::middleware(['auth', 'access:inventori'])->prefix('inventori/penjualan/ret
 Route::post('/inventori/penerimaan/{id}/cancel', [ReceiptController::class, 'cancel'])->middleware('access:inventori')->name('inventori.penerimaan.cancel');
     Route::get('/inventori/penerimaan/{id}/print', [ReceiptController::class, 'print'])->middleware('access:inventori')->name('inventori.penerimaan.print');
     Route::get('/inventori/penerimaan/{id}', [ReceiptController::class, 'show'])->middleware('access:inventori')->name('inventori.penerimaan.show');
+    Route::middleware(['auth', 'access:inventori'])->prefix('inventori/setok-persediaan')->name('inventori.setok-persediaan.')->group(function () {
+        Route::get('/', [StockInventoryController::class, 'index'])->name('index');
+        Route::get('/{product}/{warehouse}/history', [StockInventoryController::class, 'history'])->name('history');
+    });
     Route::get('/inventori/stok', [StockController::class, 'index'])->middleware('access:inventori')->name('inventori.stok');
     Route::get('/inventori/stok/export', [StockController::class, 'export'])->middleware('access:inventori')->name('inventori.stok.export');
     Route::get('/inventori/stok/{product}/{warehouse}', [StockController::class, 'detail'])->middleware('access:inventori')->name('inventori.stok.detail');
