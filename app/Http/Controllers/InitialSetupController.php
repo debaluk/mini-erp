@@ -72,6 +72,18 @@ class InitialSetupController extends Controller
                 's.initial_stock',
                 's.markup_percent'
             )
+            ->selectRaw("CASE WHEN EXISTS (
+                SELECT 1
+                FROM stock_movements sm
+                WHERE sm.entity_id = ?
+                  AND sm.business_unit_id = bu.id
+                  AND sm.product_id = p.id
+                  AND NOT (
+                      sm.movement_type = 'opening'
+                      AND sm.reference_type = 'item_initial_setup'
+                      AND sm.reference_id = p.id
+                  )
+            ) THEN 1 ELSE 0 END as has_later_movements", [$entity])
             ->orderBy('bu.name')
             ->orderBy('p.name')
             ->distinct()
@@ -307,6 +319,23 @@ class InitialSetupController extends Controller
                 ->first();
 
             abort_unless($setup, 404, 'Setup awal item belum ada.');
+
+            $hasBusinessUnitMovements = DB::table('stock_movements')
+                ->where('entity_id', $entity)
+                ->where('business_unit_id', $businessUnit->id)
+                ->where('product_id', $product)
+                ->where(function ($query) use ($product) {
+                    $query->where('movement_type', '!=', 'opening')
+                        ->orWhere('reference_type', '!=', 'item_initial_setup')
+                        ->orWhere('reference_id', '!=', $product);
+                })
+                ->exists();
+
+            abort_if(
+                $hasBusinessUnitMovements,
+                422,
+                'Initial Setup tidak dapat diedit karena barang ini sudah memiliki mutasi stok pada Business Unit tersebut.'
+            );
 
             $warehouse = DB::table('warehouses')
                 ->where('entity_id', $entity)
