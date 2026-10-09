@@ -109,9 +109,9 @@
                                     @elseif($op->status === 'posted')
                                         @if($op->total_variance_items > 0)
                                             <span class="badge bg-danger"><i class="bi bi-exclamation-triangle me-1"></i> PERHATIAN</span>
-                                            <div class="small text-danger fw-semibold mt-1">POSTED · Selisih: {{ $op->total_variance_items }} item</div>
+                                            <div class="small text-danger fw-semibold mt-1">DIFINALISASI · Selisih: {{ $op->total_variance_items }} item</div>
                                         @else
-                                            <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i> POSTED</span>
+                                            <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i> DIFINALISASI</span>
                                         @endif
                                     @else
                                         <span class="badge bg-light text-dark">{{ strtoupper($op->status) }}</span>
