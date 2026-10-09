@@ -36,7 +36,7 @@
     <table style="margin-top:15px;">
         <thead>
             <tr>
-                <th>No</th><th>No. Retur</th><th>Tanggal</th><th>No. Faktur</th><th>Unit Bisnis</th><th>Supplier</th><th>Gudang</th><th>Qty</th><th>Total</th><th>Status</th>
+                <th>No</th><th>No. Retur</th><th>Tanggal</th><th>Penerimaan Sumber</th><th>Unit Bisnis</th><th>Supplier</th><th>Gudang</th><th>Qty</th><th>Total</th><th>Status</th>
             </tr>
         </thead>
         <tbody>
