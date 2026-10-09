@@ -25,7 +25,7 @@
     <div class="text-center border-bottom border-2 pb-2 mb-3">
         <h4 class="fw-bold mb-0">SURAT JALAN / BUKTI MUTASI BARANG</h4>
         <div class="text-uppercase fw-semibold">BU Pengirim: {{ $transfer->business_unit_name ?? '-' }}</div>
-        <div class="text-uppercase fw-semibold">BU Tujuan: {{ $transfer->destination_business_unit_name ?? 'Belum ditentukan' }}</div>
+        <div class="text-uppercase fw-semibold">BU Tujuan: {{ $transfer->destination_business_unit_name ?? $transfer->business_unit_name ?? 'Belum ditentukan' }}</div>
     </div>
 
     <div class="row g-2 mb-3">
