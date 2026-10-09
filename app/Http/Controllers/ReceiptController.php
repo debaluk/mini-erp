@@ -693,6 +693,20 @@ class ReceiptController extends Controller
                 abort_unless($receipt, 404, 'Penerimaan tidak ditemukan.');
                 abort_if($receipt->status !== 'posted', 422, 'Penerimaan sudah dibatalkan.');
 
+                // Jangan membatalkan penerimaan yang sudah dipakai sebagai sumber retur.
+                $hasActiveReturn = DB::table('purchase_return_items as pri')
+                    ->join('purchase_returns as pr', 'pr.id', '=', 'pri.purchase_return_id')
+                    ->join('receipt_items as ri', 'ri.id', '=', 'pri.receipt_item_id')
+                    ->where('ri.receipt_id', $receipt->id)
+                    ->whereIn('pr.status', ['draft', 'posted'])
+                    ->exists();
+
+                abort_if(
+                    $hasActiveReturn,
+                    422,
+                    'Penerimaan tidak dapat dibatalkan karena sudah memiliki Retur Pembelian.'
+                );
+
                 $purchase = DB::table('purchases')
                     ->where('entity_id', $entityId)
                     ->where('id', $receipt->purchase_id)
