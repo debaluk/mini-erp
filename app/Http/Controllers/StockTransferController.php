@@ -546,6 +546,83 @@ class StockTransferController extends Controller
         return Excel::download(new StockTransferExport($request), 'Laporan_Mutasi_Gudang_' . date('Ymd_His') . '.xlsx');
     }
 
+
+    /**
+     * Validasi relasi BU -> gudang -> item untuk mutasi satu BU.
+     * Transfer antar-BU selalu ditolak.
+     */
+    private function validateTransferMapping(int $entityId, int $businessUnitId, int $fromWarehouseId, int $toWarehouseId, array $productIds): void
+    {
+        $businessUnit = DB::table('business_units')
+            ->where('id', $businessUnitId)
+            ->where('entity_id', $entityId)
+            ->where('is_active', 1)
+            ->first();
+
+        if (!$businessUnit) {
+            throw new \Exception('Unit Bisnis tidak aktif atau bukan milik entitas ini.');
+        }
+
+        if ($fromWarehouseId === $toWarehouseId) {
+            throw new \Exception('Gudang asal dan tujuan tidak boleh sama.');
+        }
+
+        $warehouses = DB::table('warehouses')
+            ->whereIn('id', [$fromWarehouseId, $toWarehouseId])
+            ->where('entity_id', $entityId)
+            ->where('is_active', 1)
+            ->get()
+            ->keyBy('id');
+
+        if (!$warehouses->has($fromWarehouseId) || !$warehouses->has($toWarehouseId)) {
+            throw new \Exception('Gudang asal/tujuan tidak aktif atau bukan milik entitas ini.');
+        }
+
+        foreach ([$fromWarehouseId, $toWarehouseId] as $warehouseId) {
+            $mapped = DB::table('warehouse_business_units')
+                ->where('entity_id', $entityId)
+                ->where('warehouse_id', $warehouseId)
+                ->where('business_unit_id', $businessUnitId)
+                ->exists();
+
+            if (!$mapped) {
+                throw new \Exception('Mutasi ditolak: gudang asal dan tujuan harus teralokasi ke Unit Bisnis yang sama.');
+            }
+        }
+
+        $productIds = array_values(array_unique(array_map('intval', $productIds)));
+        if (count($productIds) === 0) {
+            throw new \Exception('Mutasi harus memiliki minimal satu item.');
+        }
+
+        foreach ($productIds as $productId) {
+            $product = DB::table('products')
+                ->where('id', $productId)
+                ->where('entity_id', $entityId)
+                ->where('is_active', 1)
+                ->where('manage_stock', 1)
+                ->first();
+
+            if (!$product) {
+                throw new \Exception("Item ID {$productId} tidak aktif, bukan milik entitas ini, atau tidak mengelola stok.");
+            }
+
+            $allocated = DB::table('product_business_units')
+                ->where('product_id', $productId)
+                ->where('business_unit_id', $businessUnitId)
+                ->exists();
+
+            if (!$allocated) {
+                throw new \Exception("Mutasi ditolak: item {$product->code} - {$product->name} belum dialokasikan ke Unit Bisnis ini.");
+            }
+        }
+    }
+
+    private function transferEntityId(): int
+    {
+        return (int) (auth()->user()->entity_id ?? 1);
+    }
+
     /**
      * Helper Generator Kode MUT-YYYYMMDD-XXX
      */
