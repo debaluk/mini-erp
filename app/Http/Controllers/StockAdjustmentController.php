@@ -448,14 +448,39 @@ class StockAdjustmentController extends Controller
 
     private function executePosting($id)
     {
-        $adj = DB::table('stock_adjustments')->where('id', $id)->whereNull('deleted_at')->first();
-        if (!$adj || $adj->status === 'posted') {
-            return redirect()->back()->with('swal_error', 'Dokumen penyesuaian sudah berstatus POSTED / tidak ditemukan.');
-        }
-
         DB::beginTransaction();
         try {
-            $items = DB::table('stock_adjustment_items')->where('stock_adjustment_id', $id)->get();
+            $adj = DB::table('stock_adjustments')
+                ->where('id', $id)
+                ->whereNull('deleted_at')
+                ->lockForUpdate()
+                ->first();
+
+            if (!$adj || $adj->status === 'posted') {
+                throw new \\Exception('Dokumen penyesuaian sudah berstatus POSTED atau tidak ditemukan.');
+            }
+
+            if ($adj->stock_opname_id) {
+                DB::table('stock_opnames')
+                    ->where('id', $adj->stock_opname_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                $otherAdjustment = DB::table('stock_adjustments')
+                    ->where('stock_opname_id', $adj->stock_opname_id)
+                    ->where('id', '!=', $adj->id)
+                    ->whereNull('deleted_at')
+                    ->exists();
+
+                if ($otherAdjustment) {
+                    throw new \\Exception('Opname ini terhubung ke penyesuaian lain. Posting dibatalkan untuk mencegah posting ganda.');
+                }
+            }
+
+            $items = DB::table('stock_adjustment_items')
+                ->where('stock_adjustment_id', $id)
+                ->lockForUpdate()
+                ->get();
 
             $totalLossAmount = 0;
             $totalGainAmount = 0;
