@@ -20,7 +20,6 @@
 
 <ul class="nav nav-tabs mb-3" role="tablist">
     <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabInformasi" type="button">Informasi</button></li>
-    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabHasilProduksi" type="button">Hasil Produksi</button></li>
 </ul>
 <div class="tab-content">
 <div class="tab-pane fade show active" id="tabInformasi">
@@ -89,9 +88,6 @@
 </div>
 
 </div>
-</div>
-<div class="tab-pane fade" id="tabHasilProduksi">
-    @include('inventori.produksi.work-order.hasil-produksi')
 </div>
 </div>
 
