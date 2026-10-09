@@ -528,18 +528,27 @@ class StockAdjustmentController extends Controller
                 ->lockForUpdate()
                 ->first();
 
-            if (!$adj || $adj->status === 'posted') {
-                throw new \Exception('Dokumen penyesuaian sudah berstatus POSTED atau tidak ditemukan.');
+            if (!$adj || $adj->status !== 'draft') {
+                throw new \Exception('Dokumen penyesuaian tidak ditemukan atau sudah diposting.');
             }
 
+            $sourceItems = collect();
             if ($adj->stock_opname_id) {
-                DB::table('stock_opnames')
+                $opname = DB::table('stock_opnames')
                     ->where('id', $adj->stock_opname_id)
+                    ->whereNull('deleted_at')
                     ->lockForUpdate()
                     ->first();
 
+                if (!$opname || $opname->status !== 'posted'
+                    || (int) $opname->entity_id !== (int) $adj->entity_id
+                    || (int) $opname->business_unit_id !== (int) $adj->business_unit_id
+                    || (int) $opname->warehouse_id !== (int) $adj->warehouse_id) {
+                    throw new \Exception('Sumber Stock Opname tidak valid atau tidak sesuai dengan Unit Bisnis dan gudang adjustment.');
+                }
+
                 $otherAdjustment = DB::table('stock_adjustments')
-                    ->where('stock_opname_id', $adj->stock_opname_id)
+                    ->where('stock_opname_id', $opname->id)
                     ->where('id', '!=', $adj->id)
                     ->whereNull('deleted_at')
                     ->exists();
@@ -547,6 +556,12 @@ class StockAdjustmentController extends Controller
                 if ($otherAdjustment) {
                     throw new \Exception('Opname ini terhubung ke penyesuaian lain. Posting dibatalkan untuk mencegah posting ganda.');
                 }
+
+                $sourceItems = DB::table('stock_opname_items')
+                    ->where('stock_opname_id', $opname->id)
+                    ->where('difference', '!=', 0)
+                    ->lockForUpdate()
+                    ->get();
             }
 
             $items = DB::table('stock_adjustment_items')
@@ -554,13 +569,36 @@ class StockAdjustmentController extends Controller
                 ->lockForUpdate()
                 ->get();
 
+            if ($items->isEmpty()) {
+                throw new \Exception('Penyesuaian tidak memiliki item untuk diposting.');
+            }
+
+            if ($adj->stock_opname_id) {
+                $sourceProducts = $sourceItems->pluck('product_id')->map(fn ($v) => (int) $v)->sort()->values()->all();
+                $adjustmentProducts = $items->pluck('product_id')->map(fn ($v) => (int) $v)->sort()->values()->all();
+                if ($sourceItems->isEmpty() || $sourceProducts !== $adjustmentProducts) {
+                    throw new \Exception('Daftar item adjustment tidak sama dengan item berselisih pada Stock Opname.');
+                }
+            }
+
             $totalLossAmount = 0;
             $totalGainAmount = 0;
+            $postedItemCount = 0;
 
             foreach ($items as $item) {
                 $adjQty = (float) $item->adjustment_qty;
-                $absQty = abs($adjQty);
-                if ($absQty < 0.0001) continue;
+                if (abs($adjQty) < 0.000001) {
+                    continue;
+                }
+
+                $sourceItem = null;
+                if ($adj->stock_opname_id) {
+                    $sourceItem = $sourceItems->firstWhere('product_id', (int) $item->product_id);
+                    if (!$sourceItem || abs($adjQty - (float) $sourceItem->difference) > 0.000001
+                        || abs((float) $item->system_qty - (float) $sourceItem->system_qty) > 0.000001) {
+                        throw new \Exception('Kuantitas adjustment tidak sesuai dengan hasil Stock Opname yang difinalisasi.');
+                    }
+                }
 
                 $stockQuery = DB::table('warehouses_stocks')
                     ->where('entity_id', $adj->entity_id)
@@ -585,20 +623,32 @@ class StockAdjustmentController extends Controller
                     throw new \Exception("Saldo stok produk ID {$item->product_id} tidak dapat dibuat.");
                 }
 
+                $currentQty = (float) $stock->qty;
+                if ($sourceItem && abs($currentQty - (float) $sourceItem->system_qty) > 0.000001) {
+                    throw new \Exception("Stok produk ID {$item->product_id} sudah berubah sejak opname. Posting dibatalkan; lakukan opname ulang agar saldo fisik tidak salah diterapkan.");
+                }
+
+                $newQty = $currentQty + $adjQty;
+                if ($newQty < -0.000001) {
+                    throw new \Exception("Kuantitas akhir produk ID {$item->product_id} tidak boleh negatif.");
+                }
+
                 $unitCost = (float) $stock->avg_cost;
                 if ($unitCost <= 0) {
-                    throw new \Exception("HPP rata-rata untuk produk ID {$item->product_id} belum tersedia. Posting dibatalkan agar selisih tidak masuk stok tanpa nilai jurnal.");
+                    throw new \Exception("HPP rata-rata untuk produk ID {$item->product_id} belum tersedia. Posting dibatalkan agar stok tidak berubah tanpa nilai jurnal.");
                 }
-                $totalCost = $absQty * $unitCost;
+
+                $totalCost = abs($adjQty) * $unitCost;
                 $movementType = $adjQty < 0 ? 'ADJUSTMENT_OUT' : 'ADJUSTMENT_IN';
 
                 DB::table('warehouses_stocks')
                     ->where('id', $stock->id)
-                    ->update(['qty' => (float) $stock->qty + $adjQty, 'updated_at' => now()]);
+                    ->update(['qty' => max(0, $newQty), 'updated_at' => now()]);
 
                 DB::table('stock_adjustment_items')->where('id', $item->id)->update([
                     'unit_cost' => $unitCost,
                     'total_cost' => $totalCost,
+                    'final_qty' => max(0, $newQty),
                     'updated_at' => now(),
                 ]);
 
@@ -609,31 +659,38 @@ class StockAdjustmentController extends Controller
                 }
 
                 $product = DB::table('products')->where('id', $item->product_id)->first();
-
                 DB::table('stock_movements')->insert([
-                    'entity_id'         => $adj->entity_id,
-                    'business_unit_id'  => $adj->business_unit_id,
-                    'warehouse_id'      => $adj->warehouse_id,
-                    'product_id'        => $item->product_id,
-                    'unit_id'           => $product->base_unit_id ?? null,
-                    'transaction_qty'   => $absQty,
+                    'entity_id' => $adj->entity_id,
+                    'business_unit_id' => $adj->business_unit_id,
+                    'warehouse_id' => $adj->warehouse_id,
+                    'product_id' => $item->product_id,
+                    'unit_id' => $product->base_unit_id ?? null,
+                    'transaction_qty' => abs($adjQty),
                     'conversion_factor' => 1.000000,
-                    'movement_type'     => $movementType,
-                    'qty'               => $adjQty,
-                    'unit_cost'         => $unitCost,
-                    'reference_type'    => 'stock_adjustment',
-                    'reference_id'      => $adj->id,
-                    'occurred_at'       => now(),
-                    'created_by'        => auth()->id() ?? 1,
-                    'created_at'        => now(),
-                    'updated_at'        => now(),
+                    'movement_type' => $movementType,
+                    'qty' => $adjQty,
+                    'unit_cost' => $unitCost,
+                    'reference_type' => 'stock_adjustment',
+                    'reference_id' => $adj->id,
+                    'occurred_at' => now(),
+                    'created_by' => auth()->id() ?? 1,
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
+
+                $postedItemCount++;
             }
 
-            // Auto-Jurnal GL
-            $invAccount  = ChartOfAccount::where('code', '1000401')->first() ?? ChartOfAccount::where('type', 'asset')->where('name', 'LIKE', '%Persediaan%')->first();
-            $lossAccount = ChartOfAccount::where('code', '6000402')->first() ?? ChartOfAccount::where('type', 'expense')->where('name', 'LIKE', '%Kerusakan%')->first();
-            $gainAccount = ChartOfAccount::where('code', '4000303')->first() ?? ChartOfAccount::where('type', 'revenue')->where('name', 'LIKE', '%Lain%')->first();
+            if ($postedItemCount === 0) {
+                throw new \Exception('Semua kuantitas adjustment bernilai nol. Tidak ada perubahan stok untuk diposting.');
+            }
+
+            $invAccount = ChartOfAccount::where('code', '1000401')->first()
+                ?? ChartOfAccount::where('type', 'asset')->where('name', 'LIKE', '%Persediaan%')->first();
+            $lossAccount = ChartOfAccount::where('code', '6000402')->first()
+                ?? ChartOfAccount::where('type', 'expense')->where('name', 'LIKE', '%Kerusakan%')->first();
+            $gainAccount = ChartOfAccount::where('code', '4000303')->first()
+                ?? ChartOfAccount::where('type', 'revenue')->where('name', 'LIKE', '%Lain%')->first();
 
             if ($totalLossAmount > 0 && (!$invAccount || !$lossAccount)) {
                 throw new \Exception('Akun persediaan atau beban selisih stok belum dipetakan. Posting dibatalkan.');
@@ -642,48 +699,53 @@ class StockAdjustmentController extends Controller
                 throw new \Exception('Akun persediaan atau pendapatan selisih stok belum dipetakan. Posting dibatalkan.');
             }
 
-            if ($totalLossAmount > 0 && $invAccount && $lossAccount) {
+            if ($totalLossAmount > 0) {
                 $jLoss = Journal::create([
-                    'entity_id'        => $adj->entity_id,
+                    'entity_id' => $adj->entity_id,
                     'business_unit_id' => $adj->business_unit_id,
-                    'journal_no'       => 'JRN-ADJ-LOSS-' . date('YmdHis'),
-                    'journal_date'     => $adj->adjustment_date,
-                    'source_type'      => 'stock_adjustment_loss',
-                    'source_id'        => $adj->id,
-                    'description'      => "Beban Kerusakan/Selisih Stok Minus #{$adj->adjustment_no}",
-                    'status'           => 'posted',
+                    'journal_no' => 'JRN-ADJ-LOSS-' . date('YmdHis') . '-' . $adj->id,
+                    'journal_date' => $adj->adjustment_date,
+                    'source_type' => 'stock_adjustment_loss',
+                    'source_id' => $adj->id,
+                    'description' => "Beban Kerusakan/Selisih Stok Minus #{$adj->adjustment_no}",
+                    'status' => 'posted',
                 ]);
-
                 JournalEntry::create(['journal_id' => $jLoss->id, 'account_id' => $lossAccount->id, 'debit' => $totalLossAmount, 'credit' => 0]);
                 JournalEntry::create(['journal_id' => $jLoss->id, 'account_id' => $invAccount->id, 'debit' => 0, 'credit' => $totalLossAmount]);
             }
 
-            if ($totalGainAmount > 0 && $invAccount && $gainAccount) {
+            if ($totalGainAmount > 0) {
                 $jGain = Journal::create([
-                    'entity_id'        => $adj->entity_id,
+                    'entity_id' => $adj->entity_id,
                     'business_unit_id' => $adj->business_unit_id,
-                    'journal_no'       => 'JRN-ADJ-GAIN-' . date('YmdHis'),
-                    'journal_date'     => $adj->adjustment_date,
-                    'source_type'      => 'stock_adjustment_gain',
-                    'source_id'        => $adj->id,
-                    'description'      => "Penyesuaian Selisih Stok Plus #{$adj->adjustment_no}",
-                    'status'           => 'posted',
+                    'journal_no' => 'JRN-ADJ-GAIN-' . date('YmdHis') . '-' . $adj->id,
+                    'journal_date' => $adj->adjustment_date,
+                    'source_type' => 'stock_adjustment_gain',
+                    'source_id' => $adj->id,
+                    'description' => "Penyesuaian Selisih Stok Plus #{$adj->adjustment_no}",
+                    'status' => 'posted',
                 ]);
-
                 JournalEntry::create(['journal_id' => $jGain->id, 'account_id' => $invAccount->id, 'debit' => $totalGainAmount, 'credit' => 0]);
                 JournalEntry::create(['journal_id' => $jGain->id, 'account_id' => $gainAccount->id, 'debit' => 0, 'credit' => $totalGainAmount]);
             }
 
-            DB::table('stock_adjustments')->where('id', $id)->update(['status' => 'posted', 'updated_at' => now()]);
+            DB::table('stock_adjustments')
+                ->where('id', $id)
+                ->where('status', 'draft')
+                ->update(['status' => 'posted', 'updated_at' => now()]);
 
             DB::commit();
             return redirect()->route('inventori.penyesuaian.show', $id)
-                ->with('swal_success', "Penyesuaian Stok [{$adj->adjustment_no}] BERHASIL DIPOSTING! Stok & Jurnal GL telah diperbarui.");
+                ->with('swal_success', "Penyesuaian Stok [{$adj->adjustment_no}] berhasil diposting. Stok, mutasi, dan jurnal diperbarui.");
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()->back()->with('swal_error', 'Gagal memproses posting: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Cetak Rekap List Penyesuaian
+     */
 
     /**
      * Cetak Rekap List Penyesuaian
