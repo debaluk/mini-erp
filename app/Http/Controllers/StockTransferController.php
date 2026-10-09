@@ -80,8 +80,18 @@ class StockTransferController extends Controller
                 $join->on('ws.product_id', '=', 'p.id')
                      ->where('ws.warehouse_id', '=', $warehouseId);
             })
+            ->join('warehouse_business_units as wbu', function ($join) {
+                $join->on('wbu.warehouse_id', '=', 'ws.warehouse_id')
+                     ->on('wbu.entity_id', '=', 'ws.entity_id');
+            })
+            ->join('product_business_units as pbu', function ($join) {
+                $join->on('pbu.product_id', '=', 'p.id')
+                     ->on('pbu.business_unit_id', '=', 'wbu.business_unit_id');
+            })
             ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
+            ->where('p.entity_id', DB::raw('ws.entity_id'))
             ->where('p.is_active', 1)
+            ->where('p.manage_stock', 1)
             ->where('ws.qty', '>', 0)
             ->select(
                 'p.id',
@@ -220,7 +230,9 @@ class StockTransferController extends Controller
             'to_warehouse_id'   => 'required|exists:warehouses,id|different:from_warehouse_id',
             'transfer_date'     => 'required|date',
             'products'          => 'required|array|min:1',
+            'products.*'        => 'required|integer|exists:products,id',
             'quantities'        => 'required|array|min:1',
+            'quantities.*'      => 'required|numeric|min:0.01',
         ]);
 
         DB::beginTransaction();
