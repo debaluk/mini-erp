@@ -452,9 +452,9 @@ class PurchaseReturnController extends Controller
                 abort_unless($stock, 422, 'Stok produk tidak ditemukan.');
                 abort_if((float) $stock->qty < (float) $item->base_qty - 0.0000001, 422, 'Stok tidak mencukupi untuk retur.');
 
-                // Nilai retur memakai HPP historis saat penerimaan, bukan moving average saat retur.
+                // Nilai retur memakai harga pokok pembelian saat penerimaan sumber.
                 $unitCost = (float) $receiptItem->base_unit_cost;
-                abort_if($unitCost < 0, 422, 'HPP pada penerimaan sumber tidak valid.');
+                abort_if($unitCost < 0, 422, 'Harga pokok pembelian pada penerimaan sumber tidak valid.');
                 $value = round((float) $item->base_qty * $unitCost, 2);
 
                 DB::table('warehouses_stocks')->where('id', $stock->id)->update([
