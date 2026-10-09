@@ -422,22 +422,6 @@ class PurchaseReturnController extends Controller
             abort_unless($return, 404, 'Retur pembelian tidak ditemukan.');
             abort_unless($return->status === 'draft', 422, 'Retur sudah diposting.');
 
-            $purchaseId = DB::table('purchase_return_items as pri')
-                ->join('purchase_items as pi', 'pi.id', '=', 'pri.purchase_item_id')
-                ->where('pri.purchase_return_id', $return->id)
-                ->value('pi.purchase_id');
-
-            abort_unless($purchaseId, 422, 'Faktur sumber retur tidak ditemukan.');
-
-            $purchase = DB::table('purchases')
-                ->where('entity_id', $entity)
-                ->where('id', $purchaseId)
-                ->whereNull('deleted_at')
-                ->lockForUpdate()
-                ->first();
-
-            abort_unless($purchase && $purchase->status === 'posted', 422, 'Faktur sumber tidak valid.');
-
             $items = DB::table('purchase_return_items')
                 ->where('purchase_return_id', $return->id)
                 ->lockForUpdate()
@@ -499,7 +483,7 @@ class PurchaseReturnController extends Controller
 
                 DB::table('stock_movements')->insert([
                     'entity_id' => $entity,
-                    'business_unit_id' => $purchase->business_unit_id,
+                    'business_unit_id' => $return->business_unit_id,
                     'warehouse_id' => $return->warehouse_id,
                     'product_id' => $item->product_id,
                     'movement_type' => 'purchase_return',
@@ -518,24 +502,18 @@ class PurchaseReturnController extends Controller
 
             abort_if($totalValue <= 0, 422, 'Nilai retur harus lebih besar dari nol.');
 
-            $paymentMethod = strtolower((string) ($purchase->payment_method ?? 'credit'));
-            $debitKey = match ($paymentMethod) {
-                'cash', 'tunai' => 'cash',
-                'bank', 'transfer', 'qris' => 'bank',
-                default => 'payable',
-            };
-
-            $debitAccount = $this->mappingAccountId($entity, (int) $purchase->business_unit_id, $debitKey);
-            $inventoryAccount = $this->mappingAccountId($entity, (int) $purchase->business_unit_id, 'inventory');
+            // Posting retur berbasis penerimaan; tidak membaca faktur atau metode pembayaran.
+            $debitAccount = $this->mappingAccountId($entity, (int) $return->business_unit_id, 'payable');
+            $inventoryAccount = $this->mappingAccountId($entity, (int) $return->business_unit_id, 'inventory');
 
             $journalId = DB::table('journals')->insertGetId([
                 'entity_id' => $entity,
-                'business_unit_id' => $purchase->business_unit_id,
+                'business_unit_id' => $return->business_unit_id,
                 'journal_no' => 'JRN-PRT-'.$return->id,
                 'journal_date' => $return->return_date,
                 'source_type' => 'purchase_return',
                 'source_id' => $return->id,
-                'description' => 'Retur pembelian '.$return->return_no.' / '.$purchase->purchase_no,
+                'description' => 'Retur pembelian '.$return->return_no,
                 'status' => 'posted',
                 'created_at' => now(),
                 'updated_at' => now(),
