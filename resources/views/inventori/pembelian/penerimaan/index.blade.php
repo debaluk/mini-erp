@@ -114,6 +114,27 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="modal-return-receipt" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-warning-subtle py-2 px-3">
+                <h6 class="modal-title fw-bold"><i class="bi bi-arrow-return-left me-2"></i>Retur Pembelian dari Penerimaan</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="form-return-receipt">
+                <div class="modal-body p-3" id="return-receipt-body">
+                    <div class="text-center py-4 text-secondary"><div class="spinner-border spinner-border-sm me-2"></div>Memuat data penerimaan...</div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-warning btn-sm" id="btn-save-return-receipt"><i class="bi bi-save me-1"></i>Simpan Draft Retur</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')
@@ -160,7 +181,7 @@ $(function () {
                     return '<div class="btn-group btn-group-sm" role="group">' +
                         '<button type="button" class="btn btn-outline-primary btn-detail-receipt" title="Detil" data-id="' + row.id + '"><i class="bi bi-eye"></i></button>' +
                         '<a target="_blank" href="' + "{{ url('/inventori/penerimaan') }}" + '/' + row.id + '/print" class="btn btn-outline-secondary" title="Print"><i class="bi bi-printer"></i></a>' +
-                        (row.status === 'posted' ? '<a href="' + "{{ url('/inventori/pembelian/retur/from-receipt') }}" + '/' + row.id + '" class="btn btn-outline-warning" title="Retur dari Penerimaan Ini"><i class="bi bi-arrow-return-left"></i></a>' : '') +
+                        (row.status === 'posted' ? '<button type="button" class="btn btn-outline-warning btn-return-receipt" title="Retur dari Penerimaan Ini" data-id="' + row.id + '" data-receipt="' + row.receipt_no + '"><i class="bi bi-arrow-return-left"></i></button>' : '') +
                         (row.status === 'posted' && row.purchase_order_id !== null && row.purchase_order_id !== undefined ? '<button type="button" class="btn btn-outline-danger btn-cancel-receipt" title="Batal Penerimaan" data-id="' + row.id + '" data-bs-toggle="modal" data-bs-target="#modal-cancel-receipt"><i class="bi bi-x-circle"></i></button>' : '') +
                         '</div>';
                 }
@@ -241,6 +262,75 @@ $(function () {
                     text: message,
                     confirmButtonText: 'OK'
                 });
+            }
+        });
+    });
+
+
+    let returnReceiptId = null;
+    const returnModalElement = document.getElementById('modal-return-receipt');
+    const returnModal = bootstrap.Modal.getOrCreateInstance(returnModalElement);
+
+    $(document).on('click', '.btn-return-receipt', function () {
+        returnReceiptId = $(this).data('id');
+        $('#return-receipt-body').html('<div class="text-center py-4 text-secondary"><div class="spinner-border spinner-border-sm me-2"></div>Memuat data penerimaan...</div>');
+        $('#btn-save-return-receipt').prop('disabled', true);
+        returnModal.show();
+
+        $.ajax({
+            url: "{{ url('/inventori/pembelian/retur/from-receipt') }}/" + returnReceiptId,
+            method: 'GET',
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'text/html' },
+            success: function (html) {
+                $('#return-receipt-body').html(html);
+                $('#btn-save-return-receipt').prop('disabled', false);
+            },
+            error: function (xhr) {
+                returnModal.hide();
+                Swal.fire({ icon: 'error', title: 'Gagal', text: xhr.responseJSON?.message || 'Data retur tidak dapat dimuat.' });
+            }
+        });
+    });
+
+    $('#modal-return-receipt').on('hidden.bs.modal', function () {
+        returnReceiptId = null;
+        $('#form-return-receipt')[0].reset();
+        $('#return-receipt-body').empty();
+        $('#btn-save-return-receipt').prop('disabled', false);
+    });
+
+    $('#form-return-receipt').on('submit', function (event) {
+        event.preventDefault();
+        if (!returnReceiptId) return;
+
+        const form = $(this);
+        const button = $('#btn-save-return-receipt');
+        const originalText = button.html();
+        button.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Menyimpan...');
+
+        $.ajax({
+            url: "{{ url('/inventori/pembelian/retur/from-receipt') }}/" + returnReceiptId,
+            method: 'POST',
+            data: form.serialize(),
+            headers: { 'X-CSRF-TOKEN': "{{ csrf_token() }}", 'Accept': 'application/json' },
+            success: function (response) {
+                returnModal.hide();
+                table.ajax.reload(null, false);
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Draft Retur Tersimpan',
+                    text: response.message || 'Draft retur berhasil dibuat. Lanjutkan ke detail untuk posting.',
+                    confirmButtonText: 'Buka Draft'
+                }).then(function () {
+                    if (response.redirect_url) window.location.href = response.redirect_url;
+                });
+            },
+            error: function (xhr) {
+                const message = xhr.responseJSON?.message || 'Draft retur gagal disimpan.';
+                Swal.fire({ icon: 'error', title: 'Gagal', text: message });
+            },
+            complete: function () {
+                button.prop('disabled', false).html(originalText);
             }
         });
     });
