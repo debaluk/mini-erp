@@ -9,6 +9,13 @@
     <link href="https://cdn.datatables.net/2.3.3/css/dataTables.bootstrap5.css" rel="stylesheet">
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
+        .akuntara-navbar { background: linear-gradient(110deg, #073b91 0%, #0878e8 55%, #10bcd4 100%); }
+        .akuntara-navbar .navbar-brand { color: #fff; font-weight: 900 !important; letter-spacing: .09em; text-shadow: 0 1px 2px rgba(0,0,0,.12); }
+        .akuntara-navbar .navbar-brand:hover, .akuntara-navbar .navbar-brand:focus { color: #e1fbff; }
+        .akuntara-navbar .navbar-nav .nav-link { color: rgba(255,255,255,.92); font-weight: 600; }
+        .akuntara-navbar .navbar-nav .nav-link:hover, .akuntara-navbar .navbar-nav .nav-link:focus, .akuntara-navbar .navbar-nav .nav-link.show { color: #fff; background: rgba(255,255,255,.13); border-radius: .4rem; }
+        .akuntara-navbar .navbar-toggler { border-color: rgba(255,255,255,.55); }
+        .akuntara-navbar .navbar-toggler:focus { box-shadow: 0 0 0 .2rem rgba(255,255,255,.2); }
         .navbar .dropdown-menu { min-width: 230px; }
         .navbar .dropdown-menu .dropdown-header { font-weight: 700; color: var(--bs-primary); }
         .navbar .dropdown-menu .dropdown-submenu { position: relative; }
@@ -34,7 +41,7 @@
     </style>
 </head>
 <body class="bg-light">
-<nav class="navbar navbar-expand-xl navbar-dark bg-dark sticky-top shadow-sm">
+<nav class="navbar navbar-expand-xl navbar-dark akuntara-navbar sticky-top shadow-sm">
     <div class="container-fluid px-3">
         <a class="navbar-brand fw-bold" href="{{ route('dashboard') }}">AKUNTARA</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topMenu" aria-controls="topMenu" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
