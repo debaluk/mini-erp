@@ -264,7 +264,7 @@ class StockAdjustmentController extends Controller
                 $systemQty = $sourceItem ? (float) $sourceItem->system_qty : (float) ($stock->qty ?? 0);
                 $finalQty = $systemQty + $adjQty;
                 if ($finalQty < -0.000001) {
-                    throw new \\Exception("Kuantitas akhir produk ID {$prodId} tidak boleh negatif.");
+                    throw new \Exception("Kuantitas akhir produk ID {$prodId} tidak boleh negatif.");
                 }
                 $unitCost = (float) ($stock->avg_cost ?? 0);
                 DB::table('stock_adjustment_items')->insert([
