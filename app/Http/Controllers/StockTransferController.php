@@ -27,9 +27,10 @@ class StockTransferController extends Controller
         $statusFilter   = $request->query('status');
         $search         = $request->query('search');
 
-        $businessUnits = BusinessUnit::where('is_active', 1)->orderBy('code')->get();
-        $warehouses    = Warehouse::where('is_active', 1)->orderBy('name')->get();
-        $products      = Product::where('is_active', 1)->orderBy('name')->get();
+        $entityId      = $this->transferEntityId();
+        $businessUnits = BusinessUnit::where('entity_id', $entityId)->where('is_active', 1)->orderBy('code')->get();
+        $warehouses    = Warehouse::where('entity_id', $entityId)->where('is_active', 1)->orderBy('name')->get();
+        $products      = collect();
 
         // Generate Kode Mutasi Otomatis (MUT-YYYYMMDD-XXX)
         $autoCode = $this->generateTransferCode();
@@ -40,6 +41,7 @@ class StockTransferController extends Controller
             ->join('warehouses as w_from', 'w_from.id', '=', 'st.from_warehouse_id')
             ->join('warehouses as w_to', 'w_to.id', '=', 'st.to_warehouse_id')
             ->join('users as u_creator', 'u_creator.id', '=', 'st.created_by')
+            ->where('st.entity_id', $entityId)
             ->whereDate('st.transfer_date', '>=', $startDate)
             ->whereDate('st.transfer_date', '<=', $endDate)
             ->whereNull('st.deleted_at');
@@ -73,8 +75,30 @@ class StockTransferController extends Controller
     /**
      * AJAX Endpoint: Get Products with Stock for Source Warehouse
      */
-    public function getWarehouseProducts($warehouseId)
+    public function getWarehouseProducts(Request $request, $warehouseId)
     {
+        $entityId = $this->transferEntityId();
+        $businessUnitId = (int) $request->query('business_unit_id');
+
+        if ($businessUnitId <= 0) {
+            return response()->json(['message' => 'Pilih Unit Bisnis terlebih dahulu.'], 422);
+        }
+
+        $warehouseMapped = DB::table('warehouses as w')
+            ->join('warehouse_business_units as wbu', function ($join) {
+                $join->on('wbu.warehouse_id', '=', 'w.id')
+                    ->on('wbu.entity_id', '=', 'w.entity_id');
+            })
+            ->where('w.id', $warehouseId)
+            ->where('w.entity_id', $entityId)
+            ->where('w.is_active', 1)
+            ->where('wbu.business_unit_id', $businessUnitId)
+            ->exists();
+
+        if (!$warehouseMapped) {
+            return response()->json(['message' => 'Gudang pengirim tidak teralokasi ke Unit Bisnis yang dipilih.'], 422);
+        }
+
         $products = DB::table('products as p')
             ->join('warehouses_stocks as ws', function ($join) use ($warehouseId) {
                 $join->on('ws.product_id', '=', 'p.id')
@@ -90,6 +114,8 @@ class StockTransferController extends Controller
             })
             ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
             ->whereColumn('p.entity_id', 'ws.entity_id')
+            ->where('ws.entity_id', $entityId)
+            ->where('wbu.business_unit_id', $businessUnitId)
             ->where('p.is_active', 1)
             ->where('p.manage_stock', 1)
             ->where('ws.qty', '>', 0)
@@ -120,6 +146,8 @@ class StockTransferController extends Controller
             ->leftJoin('users as u_sender', 'u_sender.id', '=', 'st.approved_sender_by')
             ->leftJoin('users as u_receiver', 'u_receiver.id', '=', 'st.approved_receiver_by')
             ->where('st.id', $id)
+            ->where('st.entity_id', $this->transferEntityId())
+            ->whereNull('st.deleted_at')
             ->select(
                 'st.*',
                 'bu.name as business_unit_name',
@@ -237,7 +265,11 @@ class StockTransferController extends Controller
 
         DB::beginTransaction();
         try {
-            $transfer = DB::table('stock_transfers')->where('id', $id)->lockForUpdate()->first();
+            $transfer = DB::table('stock_transfers')
+                ->where('id', $id)
+                ->where('entity_id', $this->transferEntityId())
+                ->lockForUpdate()
+                ->first();
             if (!$transfer || $transfer->status !== 'draft' || !empty($transfer->deleted_at)) {
                 throw new \Exception('Mutasi tidak dapat diubah karena sudah disetujui/dalam proses.');
             }
@@ -295,7 +327,11 @@ class StockTransferController extends Controller
     {
         DB::beginTransaction();
         try {
-            $transfer = DB::table('stock_transfers')->where('id', $id)->lockForUpdate()->first();
+            $transfer = DB::table('stock_transfers')
+                ->where('id', $id)
+                ->where('entity_id', $this->transferEntityId())
+                ->lockForUpdate()
+                ->first();
             if (!$transfer || $transfer->status !== 'draft' || !empty($transfer->deleted_at)) {
                 throw new \Exception('Status mutasi tidak valid untuk persetujuan pengirim.');
             }
@@ -384,7 +420,11 @@ class StockTransferController extends Controller
     {
         DB::beginTransaction();
         try {
-            $transfer = DB::table('stock_transfers')->where('id', $id)->lockForUpdate()->first();
+            $transfer = DB::table('stock_transfers')
+                ->where('id', $id)
+                ->where('entity_id', $this->transferEntityId())
+                ->lockForUpdate()
+                ->first();
             if (!$transfer || $transfer->status !== 'shipped' || !empty($transfer->deleted_at)) {
                 throw new \Exception('Status mutasi tidak valid untuk persetujuan penerima.');
             }
@@ -396,6 +436,7 @@ class StockTransferController extends Controller
             }
 
             $items = DB::table('stock_transfer_items')->where('stock_transfer_id', $id)->lockForUpdate()->get();
+            $this->assertTransferItemsValid($items);
             $this->validateTransferMapping(
                 (int) $transfer->entity_id,
                 (int) $transfer->business_unit_id,
@@ -514,6 +555,8 @@ class StockTransferController extends Controller
             ->leftJoin('users as u_sender', 'u_sender.id', '=', 'st.approved_sender_by')
             ->leftJoin('users as u_receiver', 'u_receiver.id', '=', 'st.approved_receiver_by')
             ->where('st.id', $id)
+            ->where('st.entity_id', $this->transferEntityId())
+            ->whereNull('st.deleted_at')
             ->select(
                 'st.*', 'bu.name as business_unit_name',
                 'w_from.name as from_warehouse_name', 'w_from.address as from_warehouse_address',
