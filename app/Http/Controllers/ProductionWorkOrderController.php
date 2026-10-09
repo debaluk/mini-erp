@@ -723,6 +723,125 @@ class ProductionWorkOrderController extends Controller
 
     public function saveProductionResult(Request $request, int $id)
     {
+        $action = (string) $request->input('action', 'close');
+        $resultIdsToPost = collect();
+
+        // Input langsung dari list SPK: hasil bagus/reject dicatat per pekerja.
+        if ($request->has('good_qty') && $request->has('reject_by_worker')) {
+            $entry = $request->validate([
+                'production_date' => ['required', 'date'],
+                'worker_id' => ['required', 'array', 'min:1'],
+                'worker_id.*' => ['required', 'integer', 'distinct'],
+                'good_qty' => ['required', 'array'],
+                'good_qty.*' => ['required', 'numeric', 'gte:0'],
+                'reject_by_worker' => ['required', 'array'],
+                'reject_by_worker.*' => ['required', 'numeric', 'gte:0'],
+            ]);
+            abort_unless(count($entry['worker_id']) === count($entry['good_qty'])
+                && count($entry['worker_id']) === count($entry['reject_by_worker']), 422, 'Data hasil per pekerja tidak lengkap.');
+
+            $entityIdForResult = $this->entityId();
+            $woForResult = DB::table('production_work_orders')
+                ->where('entity_id', $entityIdForResult)->where('id', $id)->first();
+            abort_unless($woForResult, 404, 'SPK tidak ditemukan.');
+            abort_unless($woForResult->status === 'in_progress', 422, 'Hanya SPK yang sedang diproses dapat menerima hasil produksi.');
+
+            $setup = DB::table('production_work_order_workers as wow')
+                ->join('production_work_order_costs as c', function ($join) {
+                    $join->on('c.production_work_order_id', '=', 'wow.production_work_order_id')
+                        ->on('c.worker_id', '=', 'wow.worker_id')
+                        ->where('c.cost_group', '=', 'U');
+                })
+                ->where('wow.production_work_order_id', $id)
+                ->get(['wow.worker_id', 'c.pay_type', 'c.unit_rate', 'c.amount'])
+                ->keyBy('worker_id');
+            abort_unless($setup->count() === count($entry['worker_id']), 422, 'Daftar pekerja tidak sesuai setup SPK.');
+            foreach ($entry['worker_id'] as $workerId) {
+                abort_unless($setup->has($workerId), 422, 'Pekerja hasil tidak ditemukan pada setup SPK.');
+            }
+
+            DB::transaction(function () use ($entry, $setup, $woForResult, $entityIdForResult, $id) {
+                $result = DB::table('production_work_order_results')
+                    ->where('production_work_order_id', $id)
+                    ->where('production_date', $entry['production_date'])
+                    ->where('status', 'draft')
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($result) {
+                    $resultId = $result->id;
+                    DB::table('production_work_order_result_lines')->where('production_work_order_result_id', $resultId)->delete();
+                    DB::table('production_work_order_results')->where('id', $resultId)->update([
+                        'updated_at' => now(),
+                    ]);
+                } else {
+                    $resultId = DB::table('production_work_order_results')->insertGetId([
+                        'entity_id' => $entityIdForResult,
+                        'production_work_order_id' => $id,
+                        'production_date' => $entry['production_date'],
+                        'status' => 'draft',
+                        'created_by' => auth()->id(),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+
+                foreach ($entry['worker_id'] as $i => $workerId) {
+                    $cost = $setup->get($workerId);
+                    DB::table('production_work_order_result_lines')->insert([
+                        'production_work_order_result_id' => $resultId,
+                        'worker_id' => $workerId,
+                        'pay_type' => strtolower((string) $cost->pay_type) === 'satuan' ? 'satuan' : 'borongan',
+                        'unit_rate' => round((float) ($cost->unit_rate ?? $cost->amount), 2),
+                        'good_qty' => round((float) $entry['good_qty'][$i], 3),
+                        'reject_qty' => round((float) $entry['reject_by_worker'][$i], 3),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            });
+
+            if ($action === 'save') {
+                return redirect()->route('produksi.work-order')
+                    ->with('success', 'Hasil produksi berhasil disimpan. Stok dan jurnal belum diposting.');
+            }
+
+            $draftResults = DB::table('production_work_order_results')
+                ->where('production_work_order_id', $id)
+                ->where('status', 'draft')
+                ->orderBy('production_date')
+                ->get();
+            $resultIdsToPost = $draftResults->pluck('id');
+            $lines = DB::table('production_work_order_result_lines')
+                ->whereIn('production_work_order_result_id', $resultIdsToPost)
+                ->get();
+
+            $goodTotal = (float) $lines->sum('good_qty');
+            $rejectTotal = (float) $lines->sum('reject_qty');
+            $workerIds = $setup->keys()->values()->all();
+            $basis = [];
+            $rates = [];
+            $laborQty = [];
+            foreach ($workerIds as $workerId) {
+                $cost = $setup->get($workerId);
+                $basis[] = strtolower((string) $cost->pay_type) === 'satuan' ? 'BIJI' : 'BORONGAN';
+                $rates[] = round((float) ($cost->unit_rate ?? $cost->amount), 2);
+                $workerLines = $lines->where('worker_id', $workerId);
+                $laborQty[] = strtolower((string) $cost->pay_type) === 'satuan'
+                    ? (float) $workerLines->sum('good_qty') + (float) $workerLines->sum('reject_qty')
+                    : 1;
+            }
+
+            $request->merge([
+                'worker_id' => $workerIds,
+                'labor_basis' => $basis,
+                'labor_rate' => $rates,
+                'labor_qty' => $laborQty,
+                'good_output_qty' => $goodTotal,
+                'reject_qty' => $rejectTotal,
+            ]);
+        }
+
         $request->merge([
             'labor_rate' => collect($request->input('labor_rate', []))->map(fn ($value) => FormatHelper::parse($value))->all(),
             'labor_qty' => collect($request->input('labor_qty', []))->map(fn ($value) => FormatHelper::parse($value))->all(),
@@ -1049,8 +1168,15 @@ class ProductionWorkOrderController extends Controller
             ]);
         });
 
-        return redirect()->route('produksi.work-order.show', $id)
-            ->with('success', 'Hasil produksi berhasil diposting. Stok barang jadi, upah, HPP, dan reject telah diproses.');
+        if ($resultIdsToPost->isNotEmpty()) {
+            DB::table('production_work_order_results')->whereIn('id', $resultIdsToPost)->update([
+                'status' => 'posted',
+                'updated_at' => now(),
+            ]);
+        }
+
+        return redirect()->route('produksi.work-order')
+            ->with('success', 'Closing SPK berhasil. Stok barang jadi, upah, HPP, dan reject telah diproses.');
     }
 
     public function destroy(int $id)
