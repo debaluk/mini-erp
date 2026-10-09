@@ -45,13 +45,13 @@
                 <td class="center">{{ $i + 1 }}</td>
                 <td>{{ $row->return_no }}</td>
                 <td class="center">{{ date('d/m/Y', strtotime($row->return_date)) }}</td>
-                <td>{{ $row->invoice_no ?? '-' }}</td>
+                <td>{{ $row->source_receipt_no ?? '-' }}</td>
                 <td>{{ $row->business_unit_name ?? '-' }}</td>
                 <td>{{ $row->supplier_name ?? '-' }}</td>
                 <td>{{ $row->warehouse_name ?? '-' }}</td>
                 <td class="right">{{ number_format($row->return_qty, 2, ',', '.') }}</td>
                 <td class="right">Rp {{ number_format($row->total, 0, ',', '.') }}</td>
-                <td class="center">{{ strtoupper($row->status) }}</td>
+                <td class="center">{{ $row->status === 'posted' ? 'Terposting' : ($row->status === 'cancelled' ? 'Dibatalkan' : 'Draft') }}</td>
             </tr>
         @empty
             <tr><td colspan="10" class="center">Tidak ada data retur pembelian.</td></tr>
