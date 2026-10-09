@@ -543,11 +543,11 @@ class StockTransferController extends Controller
                     ->first();
 
                 if (!$transfer) {
-                    throw new \\Exception('Mutasi tidak ditemukan.');
+                    throw new \Exception('Mutasi tidak ditemukan.');
                 }
 
                 if ($transfer->status !== 'draft') {
-                    throw new \\Exception('Mutasi yang sudah dikirim atau diterima tidak dapat dihapus.');
+                    throw new \Exception('Mutasi yang sudah dikirim atau diterima tidak dapat dihapus.');
                 }
 
                 DB::table('stock_transfers')
@@ -561,7 +561,7 @@ class StockTransferController extends Controller
             });
 
             return redirect()->back()->with('success', "Mutasi {$transferNo} berhasil dihapus.");
-        } catch (\\Exception $e) {
+        } catch (\Exception $e) {
             return redirect()->back()->with('error', $e->getMessage());
         }
     }
@@ -650,17 +650,17 @@ class StockTransferController extends Controller
     private function assertTransferItemsValid($items): void
     {
         if ($items->isEmpty()) {
-            throw new \\Exception('Mutasi harus memiliki minimal satu item.');
+            throw new \Exception('Mutasi harus memiliki minimal satu item.');
         }
 
         $productIds = $items->pluck('product_id')->map(fn ($value) => (int) $value)->all();
         if (count(array_unique($productIds)) !== count($productIds)) {
-            throw new \\Exception('Mutasi ditolak: item yang sama tercatat lebih dari satu kali.');
+            throw new \Exception('Mutasi ditolak: item yang sama tercatat lebih dari satu kali.');
         }
 
         foreach ($items as $item) {
             if (!is_numeric($item->quantity) || (float) $item->quantity <= 0) {
-                throw new \\Exception('Mutasi ditolak: kuantitas item harus lebih besar dari nol.');
+                throw new \Exception('Mutasi ditolak: kuantitas item harus lebih besar dari nol.');
             }
         }
     }
