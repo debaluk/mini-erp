@@ -127,17 +127,37 @@ class StockOpnameController extends Controller
 
         DB::beginTransaction();
         try {
-            // Ambil daftar produk yang aktif mengelola stok di gudang terpilih
-            $stocks = DB::table('warehouses_stocks as ws')
-                ->join('products as p', 'p.id', '=', 'ws.product_id')
-                ->where('ws.warehouse_id', $request->warehouse_id)
+            $entityId = (int) (auth()->user()->entity_id ?? 1);
+            $this->validateOpnameMapping(
+                $entityId,
+                (int) $request->business_unit_id,
+                (int) $request->warehouse_id
+            );
+
+            // Snapshot semua item stok yang dialokasikan ke BU dan gudang ini,
+            // termasuk item yang saldo sistemnya nol.
+            $stocks = DB::table('products as p')
+                ->join('product_business_units as pbu', 'pbu.product_id', '=', 'p.id')
+                ->join('warehouse_business_units as wbu', function ($join) use ($entityId, $request) {
+                    $join->on('wbu.business_unit_id', '=', 'pbu.business_unit_id')
+                        ->where('wbu.entity_id', '=', $entityId)
+                        ->where('wbu.warehouse_id', '=', $request->warehouse_id);
+                })
+                ->leftJoin('warehouses_stocks as ws', function ($join) use ($request, $entityId) {
+                    $join->on('ws.product_id', '=', 'p.id')
+                        ->where('ws.warehouse_id', '=', $request->warehouse_id)
+                        ->where('ws.entity_id', '=', $entityId);
+                })
+                ->where('pbu.business_unit_id', $request->business_unit_id)
+                ->where('p.entity_id', $entityId)
                 ->where('p.is_active', 1)
                 ->where('p.manage_stock', 1)
-                ->select('p.id as product_id', 'ws.qty as system_qty')
+                ->select('p.id as product_id', DB::raw('COALESCE(ws.qty, 0) as system_qty'))
+                ->distinct()
                 ->get();
 
             if ($stocks->isEmpty()) {
-                return redirect()->back()->with('error', 'Gagal: Tidak ada item barang terdaftar di gudang terpilih!');
+                throw new \\Exception('Tidak ada item stok yang dialokasikan ke Unit Bisnis dan gudang terpilih.');
             }
 
             $opnameNo = $this->generateOpnameCode();
@@ -192,22 +212,55 @@ class StockOpnameController extends Controller
             'opname_date'      => 'required|date',
         ]);
 
-        DB::table('stock_opnames')
-            ->where('id', $id)
-            ->update([
-                'business_unit_id' => $request->business_unit_id,
-                'warehouse_id'     => $request->warehouse_id,
-                'opname_date'      => $request->opname_date,
-                'status'           => $request->boolean('approve_post') ? 'posted' : 'draft',
-                'updated_at'       => now(),
-            ]);
+        if ((int) $request->business_unit_id !== (int) $opname->business_unit_id
+            || (int) $request->warehouse_id !== (int) $opname->warehouse_id) {
+            return redirect()->back()->with('error', 'Unit Bisnis dan gudang tidak boleh diganti setelah snapshot dibuat. Buat dokumen opname baru jika lokasi salah.');
+        }
+
+        $hasCountedItems = DB::table('stock_opname_items')
+            ->where('stock_opname_id', $id)
+            ->whereColumn('updated_at', '>', 'created_at')
+            ->exists();
+
+        if ($hasCountedItems) {
+            return redirect()->back()->with('error', 'Snapshot tidak dapat diubah karena hasil hitung fisik sudah mulai disimpan.');
+        }
+
+        try {
+            $this->validateOpnameMapping(
+                (int) ($opname->entity_id ?? (auth()->user()->entity_id ?? 1)),
+                (int) $opname->business_unit_id,
+                (int) $opname->warehouse_id
+            );
+
+            DB::table('stock_opnames')
+                ->where('id', $id)
+                ->where('status', 'draft')
+                ->whereNull('deleted_at')
+                ->update([
+                    'opname_date' => $request->opname_date,
+                    'updated_at'  => now(),
+                ]);
+        } catch (\\Exception $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
 
         return redirect()->route('inventori.stock-opname.index')
-            ->with('success', "Stock Opname [{$opname->opname_no}] berhasil diperbarui.");
+            ->with('success', "Tanggal Stock Opname [{$opname->opname_no}] berhasil diperbarui.");
     }
 
     public function inputCount($id)
     {
+        $opnameStatus = DB::table('stock_opnames')
+            ->where('id', $id)
+            ->whereNull('deleted_at')
+            ->value('status');
+
+        if ($opnameStatus !== 'draft') {
+            return redirect()->route('inventori.stock-opname.show', $id)
+                ->with('error', 'Hasil fisik untuk dokumen yang sudah difinalisasi tidak dapat diubah.');
+        }
+
         $opname = DB::table('stock_opnames as so')
             ->leftJoin('business_units as bu', 'bu.id', '=', 'so.business_unit_id')
             ->join('warehouses as w', 'w.id', '=', 'so.warehouse_id')
@@ -233,35 +286,85 @@ class StockOpnameController extends Controller
      */
     public function storeCount(Request $request, $id)
     {
-        $opname = DB::table('stock_opnames')->where('id', $id)->whereNull('deleted_at')->firstOrFail();
-
         $request->validate([
-            'item_ids'   => 'required|array',
-            'actual_qty' => 'required|array',
+            'item_ids'   => 'required|array|min:1',
+            'item_ids.*' => 'required|integer|distinct',
+            'actual_qty' => 'required|array|min:1',
+            'actual_qty.*' => 'required|numeric|min:0',
         ]);
+
+        if (array_keys($request->input('item_ids', [])) !== array_keys($request->input('actual_qty', []))) {
+            return redirect()->back()->with('error', 'Daftar item dan hasil hitung fisik tidak sesuai.');
+        }
 
         DB::beginTransaction();
         try {
-            foreach ($request->item_ids as $idx => $itemId) {
-                $actualQty = (float) $request->actual_qty[$idx];
+            $opname = DB::table('stock_opnames')
+                ->where('id', $id)
+                ->whereNull('deleted_at')
+                ->lockForUpdate()
+                ->first();
 
-                $item = DB::table('stock_opname_items')->where('id', $itemId)->first();
-                if ($item) {
-                    $systemQty = (float) $item->system_qty;
-                    $difference = $actualQty - $systemQty;
+            if (!$opname || $opname->status !== 'draft') {
+                throw new \\Exception('Dokumen opname tidak ditemukan atau sudah difinalisasi.');
+            }
 
-                    DB::table('stock_opname_items')->where('id', $itemId)->update([
+            $this->validateOpnameMapping(
+                (int) $opname->entity_id,
+                (int) $opname->business_unit_id,
+                (int) $opname->warehouse_id
+            );
+
+            $items = DB::table('stock_opname_items')
+                ->where('stock_opname_id', $id)
+                ->lockForUpdate()
+                ->get();
+
+            $expectedIds = $items->pluck('id')->map(fn ($value) => (int) $value)->sort()->values()->all();
+            $submittedIds = collect($request->input('item_ids'))
+                ->map(fn ($value) => (int) $value)
+                ->sort()
+                ->values()
+                ->all();
+
+            if ($expectedIds !== $submittedIds) {
+                throw new \\Exception('Semua item snapshot harus dikirim tepat satu kali. Muat ulang halaman dan coba lagi.');
+            }
+
+            foreach ($request->input('item_ids') as $idx => $itemId) {
+                $item = $items->firstWhere('id', (int) $itemId);
+                if (!$item) {
+                    throw new \\Exception('Item tidak termasuk dalam dokumen opname ini.');
+                }
+
+                $actualQty = (float) $request->input('actual_qty')[$idx];
+                $systemQty = (float) $item->system_qty;
+                $difference = $actualQty - $systemQty;
+
+                DB::table('stock_opname_items')
+                    ->where('id', $item->id)
+                    ->where('stock_opname_id', $id)
+                    ->update([
                         'actual_qty' => $actualQty,
                         'difference' => $difference,
                         'updated_at' => now(),
                     ]);
-                }
             }
 
+            // Finalisasi hasil hitung saja. Perubahan stok dilakukan melalui
+            // Penyesuaian Stok yang mereferensikan dokumen opname ini.
+            DB::table('stock_opnames')
+                ->where('id', $id)
+                ->update([
+                    'status' => 'posted',
+                    'updated_at' => now(),
+                ]);
+
             DB::commit();
+
             return redirect()->route('inventori.stock-opname.index')
-                ->with('success', "Hasil Perhitungan Fisik SO [{$opname->opname_no}] berhasil disimpan!");
-        } catch (\Exception $e) {
+                ->with('success', "Hasil fisik Stock Opname [{$opname->opname_no}] berhasil difinalisasi. Selisih dapat diproses melalui Penyesuaian Stok.");
+        } catch (\\Exception $e) {
             DB::rollBack();
             return redirect()->back()->with('error', 'Gagal menyimpan hasil SO: ' . $e->getMessage());
         }
@@ -297,11 +400,27 @@ class StockOpnameController extends Controller
      */
     public function destroy($id)
     {
-        $opname = DB::table('stock_opnames')->where('id', $id)->whereNull('deleted_at')->firstOrFail();
-
         DB::beginTransaction();
         try {
-            DB::table('stock_opnames')->where('id', $id)->update(['deleted_at' => now()]);
+            $opname = DB::table('stock_opnames')
+                ->where('id', $id)
+                ->whereNull('deleted_at')
+                ->lockForUpdate()
+                ->first();
+
+            if (!$opname) {
+                throw new \\Exception('Dokumen Stock Opname tidak ditemukan.');
+            }
+
+            if ($opname->status !== 'draft') {
+                throw new \\Exception('Dokumen Stock Opname yang sudah difinalisasi tidak dapat dihapus.');
+            }
+
+            DB::table('stock_opnames')
+                ->where('id', $id)
+                ->where('status', 'draft')
+                ->whereNull('deleted_at')
+                ->update(['deleted_at' => now()]);
             DB::commit();
             return redirect()->route('inventori.stock-opname.index')
                 ->with('success', "Dokumen Stock Opname [{$opname->opname_no}] berhasil dihapus.");
@@ -375,6 +494,42 @@ class StockOpnameController extends Controller
     {
         $opname = DB::table('stock_opnames')->where('id', $id)->firstOrFail();
         return Excel::download(new StockOpnameDetailExport($id), 'Stock_Opname_' . $opname->opname_no . '.xlsx');
+    }
+
+    /**
+     * Validasi konsistensi entity -> BU -> gudang untuk Stock Opname.
+     */
+    private function validateOpnameMapping(int $entityId, int $businessUnitId, int $warehouseId): void
+    {
+        $businessUnit = DB::table('business_units')
+            ->where('id', $businessUnitId)
+            ->where('entity_id', $entityId)
+            ->where('is_active', 1)
+            ->exists();
+
+        if (!$businessUnit) {
+            throw new \\Exception('Unit Bisnis tidak aktif atau bukan milik entitas ini.');
+        }
+
+        $warehouse = DB::table('warehouses')
+            ->where('id', $warehouseId)
+            ->where('entity_id', $entityId)
+            ->where('is_active', 1)
+            ->exists();
+
+        if (!$warehouse) {
+            throw new \\Exception('Gudang tidak aktif atau bukan milik entitas ini.');
+        }
+
+        $mapped = DB::table('warehouse_business_units')
+            ->where('entity_id', $entityId)
+            ->where('warehouse_id', $warehouseId)
+            ->where('business_unit_id', $businessUnitId)
+            ->exists();
+
+        if (!$mapped) {
+            throw new \\Exception('Gudang tidak teralokasi ke Unit Bisnis yang dipilih.');
+        }
     }
 
     private function generateOpnameCode()
