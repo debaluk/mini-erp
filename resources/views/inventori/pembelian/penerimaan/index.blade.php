@@ -350,7 +350,7 @@ $(function () {
                 returnModal.hide();
                 showNotice(
                     'Retur Berhasil Disimpan',
-                    'Draft retur berhasil dibuat. Belum ada perubahan stok maupun jurnal. Lanjutkan proses melalui daftar Retur Pembelian dan lakukan posting saat sudah siap.',
+                    'Retur sudah berhasil dibuat. Lanjutkan proses approval melalui Retur Pembelian.',
                     function () {
                         window.location.href = "{{ route('inventori.pembelian.retur') }}";
                     },
