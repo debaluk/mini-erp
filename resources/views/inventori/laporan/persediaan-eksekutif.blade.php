@@ -76,29 +76,6 @@
         </div>
     </div>
 
-    <div class="card shadow-sm mb-3">
-        <div class="card-body py-3">
-            <div class="row g-2 small">
-                <div class="col-12 col-md-3">
-                    <div class="text-secondary">Entitas</div>
-                    <div class="fw-semibold">{{ $entityName }}</div>
-                </div>
-                <div class="col-12 col-md-3">
-                    <div class="text-secondary">Periode Pergerakan</div>
-                    <div class="fw-semibold">{{ \Carbon\Carbon::parse($startDate)->format('d/m/Y') }} s/d {{ \Carbon\Carbon::parse($endDate)->format('d/m/Y') }}</div>
-                </div>
-                <div class="col-12 col-md-3">
-                    <div class="text-secondary">Unit Bisnis</div>
-                    <div class="fw-semibold">{{ $selectedUnitName }}</div>
-                </div>
-                <div class="col-12 col-md-3">
-                    <div class="text-secondary">Gudang</div>
-                    <div class="fw-semibold">{{ $selectedWarehouseName }}</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <div class="row g-3 mb-3">
         <div class="col-12 col-sm-6 col-xl-3">
             <div class="card shadow-sm report-kpi h-100"><div class="card-body">
