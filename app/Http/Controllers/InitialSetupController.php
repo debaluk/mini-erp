@@ -350,7 +350,7 @@ class InitialSetupController extends Controller
                 abort_if(
                     $hasOtherMovements,
                     422,
-                    'Tanggal, stok awal, dan HPP awal tidak dapat diubah karena sudah ada mutasi stok setelah setup. Harga jual dan markup tetap dapat diperbarui.'
+                    'Tanggal, stok awal, dan HPP awal tidak dapat diubah karena sudah ada mutasi stok setelah setup. Kembalikan ketiga nilai tersebut seperti semula, lalu simpan perubahan harga jual atau markup.'
                 );
 
                 abort_unless(
