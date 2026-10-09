@@ -65,7 +65,10 @@ class ProductionSummaryReportController extends Controller
             $rejectQty = 0.0;
 
             if ($production) {
-                $actualMaterial = (float) DB::table('production_material_usages')->where('production_id', $production->id)->sum('total_cost');
+                $actualMaterial = (float) DB::table('production_wo_material_usages as u')
+                    ->join('production_material_usage_items as ui', 'ui.production_material_usage_id', '=', 'u.id')
+                    ->where('u.production_work_order_id', $wo->id)->where('u.status', 'approved')
+                    ->sum('ui.total_cost');
                 $actualLabor = (float) DB::table('production_costs')->where('production_id', $production->id)->where('cost_group', 'U')->sum('amount');
                 $output = DB::table('production_outputs')->where('production_id', $production->id)->where('output_type', 'good')->orderByDesc('id')->first(['unit_cost', 'qty']);
                 $goodQty = (float) ($output->qty ?? $production->good_output_qty ?? 0);
