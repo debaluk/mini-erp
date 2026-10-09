@@ -36,8 +36,8 @@
                 <td>{{ $item->product_code }}</td>
                 <td>{{ $item->product_name }}</td>
                 <td>{{ $item->unit_name ?? '-' }}</td>
-                <td class="text-end">{{ number_format((float) $item->qty, 3, ',', '.') }}</td>
-                <td class="text-end fw-semibold">{{ number_format((float) $item->returnable_qty, 3, ',', '.') }}</td>
+                <td class="text-end">{{ rtrim(rtrim(number_format((float) $item->qty, 3, ',', '.'), '0'), ',') }}</td>
+                <td class="text-end fw-semibold">{{ rtrim(rtrim(number_format((float) $item->returnable_qty, 3, ',', '.'), '0'), ',') }}</td>
                 <td>
                     @if($item->returnable_qty > 0)
                         <input type="number" name="items[{{ $item->id }}][qty]" class="form-control form-control-sm text-end" min="0.001" max="{{ $item->returnable_qty }}" step="0.001" placeholder="0" data-remaining="{{ $item->returnable_qty }}">
