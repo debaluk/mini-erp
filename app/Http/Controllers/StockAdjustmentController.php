@@ -561,10 +561,10 @@ class StockAdjustmentController extends Controller
             $gainAccount = ChartOfAccount::where('code', '4000303')->first() ?? ChartOfAccount::where('type', 'revenue')->where('name', 'LIKE', '%Lain%')->first();
 
             if ($totalLossAmount > 0 && (!$invAccount || !$lossAccount)) {
-                throw new \\Exception('Akun persediaan atau beban selisih stok belum dipetakan. Posting dibatalkan.');
+                throw new \Exception('Akun persediaan atau beban selisih stok belum dipetakan. Posting dibatalkan.');
             }
             if ($totalGainAmount > 0 && (!$invAccount || !$gainAccount)) {
-                throw new \\Exception('Akun persediaan atau pendapatan selisih stok belum dipetakan. Posting dibatalkan.');
+                throw new \Exception('Akun persediaan atau pendapatan selisih stok belum dipetakan. Posting dibatalkan.');
             }
 
             if ($totalLossAmount > 0 && $invAccount && $lossAccount) {
