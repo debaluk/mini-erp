@@ -148,7 +148,7 @@
                                     <div class="fw-semibold text-dark"><i class="bi bi-box-arrow-in-down-left me-1 text-success"></i> {{$t->to_warehouse_name }}</div>
                                 </td>
                                 <td>{{$t->business_unit_name ?? '-' }}</td>
-                                <td>{{$t->destination_business_unit_name ?? 'Belum ditentukan' }}</td>
+                                <td>{{$t->destination_business_unit_name ?? $t->business_unit_name ?? 'Belum ditentukan' }}</td>
                                 <td class="text-center">
                                     @if($t->status === 'draft')
                                         <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i> PENGAJUAN</span>
@@ -698,7 +698,7 @@ filterWarehouseOptions();
                         document.getElementById('det-no').innerText   = t.transfer_no;
                         document.getElementById('det-date').innerText = t.transfer_date;
                         document.getElementById('det-bu').innerText   = t.business_unit_name ?? '-';
-                        document.getElementById('det-to-bu').innerText = t.destination_business_unit_name ?? 'Belum ditentukan';
+                        document.getElementById('det-to-bu').innerText = t.destination_business_unit_name ?? t.business_unit_name ?? 'Belum ditentukan';
                         document.getElementById('det-from').innerText = t.from_warehouse_name;
                         document.getElementById('det-to').innerText   = t.to_warehouse_name;
                         document.getElementById('det-memo').innerText = t.memo ?? '-';
