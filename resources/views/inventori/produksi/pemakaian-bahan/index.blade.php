@@ -85,9 +85,9 @@
                         <td>{{ $wo->warehouse_name }}</td>
                         <td class="text-end">{{ number_format((float) $wo->target_output_qty, 2, ',', '.') }}</td>
                         <td class="text-end">
-                            <a href="{{ route('produksi.pemakaian-bahan.create', $wo->id) }}" class="btn btn-sm btn-primary">
-                                Pemakaian Bahan
-                            </a>
+                            <button type="button" class="btn btn-sm btn-primary btn-open-material-usage" data-id="{{ $wo->id }}">
+                                Pemakaian
+                            </button>
                         </td>
                     </tr>
                 @empty
@@ -168,4 +168,111 @@
     </div>
     @endif
 </div>
+
+{{-- Modal input pemakaian bahan --}}
+<div class="modal fade" id="materialUsageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <form method="POST" id="materialUsageForm">
+                @csrf
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title mb-1">Pemakaian Bahan</h5>
+                        <div class="small text-secondary" id="materialUsageWoInfo"></div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Tanggal Pemakaian</label>
+                            <input type="date" name="usage_date" class="form-control" value="{{ now()->toDateString() }}" required>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered align-middle mb-2">
+                            <thead class="table-primary">
+                                <tr><th>Kode</th><th>Material</th><th class="text-end">Rencana</th><th>Satuan</th><th style="width:180px">Aktual Dipakai</th></tr>
+                            </thead>
+                            <tbody id="materialUsageRows"></tbody>
+                        </table>
+                    </div>
+                    <div class="small text-secondary">Rencana dihitung dari kuantitas BOM × jumlah batch SPK. Periksa jumlah aktual sebelum disimpan.</div>
+                    <div class="mt-3">
+                        <label class="form-label">Catatan</label>
+                        <textarea name="notes" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan Draft</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const workOrders = @json($workOrders->keyBy('id'));
+    const modalElement = document.getElementById('materialUsageModal');
+    const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+    const form = document.getElementById('materialUsageForm');
+    const rows = document.getElementById('materialUsageRows');
+    const info = document.getElementById('materialUsageWoInfo');
+    const storeUrlTemplate = @json(route('produksi.pemakaian-bahan.store', ['workOrderId' => '__WO_ID__']));
+    const formatQty = value => Number(value || 0).toLocaleString('id-ID', {maximumFractionDigits: 3});
+
+    document.querySelectorAll('.btn-open-material-usage').forEach(button => {
+        button.addEventListener('click', function () {
+            const wo = workOrders[this.dataset.id];
+            if (!wo) return;
+            form.action = storeUrlTemplate.replace('__WO_ID__', wo.id);
+            info.textContent = wo.wo_no + ' · ' + wo.product_name + ' · Target ' + formatQty(wo.target_output_qty);
+            rows.replaceChildren();
+
+            (wo.materials || []).forEach((item, index) => {
+                const tr = document.createElement('tr');
+                const values = [item.sku || '-', item.name || '-', formatQty(item.planned_qty), item.unit || '-'];
+                values.forEach((value, cellIndex) => {
+                    const td = document.createElement('td');
+                    td.textContent = value;
+                    if (cellIndex === 2) td.className = 'text-end';
+                    tr.appendChild(td);
+                });
+                const actualCell = document.createElement('td');
+                const productInput = document.createElement('input');
+                productInput.type = 'hidden';
+                productInput.name = 'product_id[]';
+                productInput.value = item.product_id;
+                const actualInput = document.createElement('input');
+                actualInput.type = 'number';
+                actualInput.name = 'actual_qty[]';
+                actualInput.className = 'form-control form-control-sm text-end';
+                actualInput.min = '0.001';
+                actualInput.step = '0.001';
+                actualInput.required = true;
+                actualInput.value = item.planned_qty;
+                actualCell.append(productInput, actualInput);
+                tr.appendChild(actualCell);
+                rows.appendChild(tr);
+            });
+
+            if (!(wo.materials || []).length) {
+                const tr = document.createElement('tr');
+                const td = document.createElement('td');
+                td.colSpan = 5;
+                td.className = 'text-center text-muted py-3';
+                td.textContent = 'BOM SPK belum memiliki material.';
+                tr.appendChild(td);
+                rows.appendChild(tr);
+            }
+            modal.show();
+        });
+    });
+});
+</script>
+@endpush
+
 @endsection
