@@ -301,6 +301,7 @@ class StockTransferController extends Controller
             }
 
             $items = DB::table('stock_transfer_items')->where('stock_transfer_id', $id)->lockForUpdate()->get();
+            $this->assertTransferItemsValid($items);
             $this->validateTransferMapping(
                 (int) $transfer->entity_id,
                 (int) $transfer->business_unit_id,
@@ -533,24 +534,36 @@ class StockTransferController extends Controller
      */
     public function destroy($id)
     {
-        $transfer = DB::table('stock_transfers')
-            ->where('id', $id)
-            ->whereNull('deleted_at')
-            ->first();
+        try {
+            $transferNo = DB::transaction(function () use ($id) {
+                $transfer = DB::table('stock_transfers')
+                    ->where('id', $id)
+                    ->whereNull('deleted_at')
+                    ->lockForUpdate()
+                    ->first();
 
-        if (!$transfer) {
-            return redirect()->back()->with('error', 'Mutasi tidak ditemukan.');
+                if (!$transfer) {
+                    throw new \\Exception('Mutasi tidak ditemukan.');
+                }
+
+                if ($transfer->status !== 'draft') {
+                    throw new \\Exception('Mutasi yang sudah dikirim atau diterima tidak dapat dihapus.');
+                }
+
+                DB::table('stock_transfers')
+                    ->where('id', $id)
+                    ->update([
+                        'deleted_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+
+                return $transfer->transfer_no;
+            });
+
+            return redirect()->back()->with('success', "Mutasi {$transferNo} berhasil dihapus.");
+        } catch (\\Exception $e) {
+            return redirect()->back()->with('error', $e->getMessage());
         }
-
-        if ($transfer->status !== 'draft') {
-            return redirect()->back()->with('error', 'Mutasi yang sudah dikirim atau diterima tidak dapat dihapus.');
-        }
-
-        DB::table('stock_transfers')
-            ->where('id', $id)
-            ->update(['deleted_at' => now()]);
-
-        return redirect()->back()->with('success', "Mutasi {$transfer->transfer_no} berhasil dihapus.");
     }
 
     public function exportList(Request $request)
@@ -626,6 +639,28 @@ class StockTransferController extends Controller
 
             if (!$allocated) {
                 throw new \Exception("Mutasi ditolak: item {$product->code} - {$product->name} belum dialokasikan ke Unit Bisnis ini.");
+            }
+        }
+    }
+
+    /**
+     * Pastikan item mutasi valid sebelum stok bergerak, termasuk data lama
+     * yang mungkin dibuat sebelum validasi form diperketat.
+     */
+    private function assertTransferItemsValid($items): void
+    {
+        if ($items->isEmpty()) {
+            throw new \\Exception('Mutasi harus memiliki minimal satu item.');
+        }
+
+        $productIds = $items->pluck('product_id')->map(fn ($value) => (int) $value)->all();
+        if (count(array_unique($productIds)) !== count($productIds)) {
+            throw new \\Exception('Mutasi ditolak: item yang sama tercatat lebih dari satu kali.');
+        }
+
+        foreach ($items as $item) {
+            if (!is_numeric($item->quantity) || (float) $item->quantity <= 0) {
+                throw new \\Exception('Mutasi ditolak: kuantitas item harus lebih besar dari nol.');
             }
         }
     }
