@@ -329,6 +329,7 @@ Route::middleware(['auth', 'access:inventori'])->prefix('inventori/penyesuaian')
     Route::get('/produksi/work-order/{id}/print', [ProductionWorkOrderController::class, 'print'])->middleware('access:inventori')->name('produksi.work-order.print');
     Route::get('/produksi/work-order/export', [ProductionWorkOrderController::class, 'export'])->middleware('access:inventori')->name('produksi.work-order.export');
     Route::get('/produksi/work-order/hasil-report', [ProductionWorkOrderController::class, 'resultsReport'])->middleware('access:inventori')->name('produksi.work-order.hasil-report');
+    Route::get('/produksi/work-order/hasil-report/export', [ProductionWorkOrderController::class, 'exportResultsReport'])->middleware('access:inventori')->name('produksi.work-order.hasil-report.export');
     Route::get('/produksi/work-order/{id}', [ProductionWorkOrderController::class, 'show'])->middleware('access:inventori')->name('produksi.work-order.show');
     Route::post('/produksi/work-order/{id}/start', [ProductionWorkOrderController::class, 'startWork'])->middleware('access:inventori')->name('produksi.work-order.start');
     Route::post('/produksi/work-order/{id}/hasil-produksi', [ProductionWorkOrderController::class, 'saveProductionResult'])->middleware('access:inventori')->name('produksi.work-order.hasil-produksi');
