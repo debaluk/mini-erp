@@ -891,9 +891,12 @@ class ProductionWorkOrderController extends Controller
             && count($data['worker_id']) === count($data['labor_rate'])
             && count($data['worker_id']) === count($data['labor_qty']), 422, 'Data upah pekerja tidak lengkap.');
 
+        $postingDate = $resultIdsToPost->isNotEmpty()
+            ? (DB::table('production_work_order_results')->whereIn('id', $resultIdsToPost)->max('production_date') ?: now()->toDateString())
+            : now()->toDateString();
         $entityId = $this->entityId();
 
-        DB::transaction(function () use ($data, $entityId, $id): void {
+        DB::transaction(function () use ($data, $entityId, $id, $postingDate): void {
             $wo = DB::table('production_work_orders')
                 ->where('entity_id', $entityId)
                 ->where('id', $id)
@@ -1016,7 +1019,7 @@ class ProductionWorkOrderController extends Controller
                 'production_work_order_id' => $wo->id,
                 'user_id' => auth()->id(),
                 'production_no' => 'PROD-'.now()->format('YmdHis').'-'.Str::upper(Str::random(3)),
-                'production_date' => now(),
+                'production_date' => $postingDate.' 00:00:00',
                 'qty' => $wo->batch_qty,
                 'total_cost' => $totalCost,
                 'good_output_qty' => $goodQty,
@@ -1097,7 +1100,7 @@ class ProductionWorkOrderController extends Controller
                 'unit_cost' => $goodUnitCost,
                 'reference_type' => 'production_work_order',
                 'reference_id' => $wo->id,
-                'occurred_at' => now(),
+                'occurred_at' => $postingDate.' 00:00:00',
                 'created_by' => auth()->id() ?? 1,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -1120,7 +1123,7 @@ class ProductionWorkOrderController extends Controller
                 'entity_id' => $entityId,
                 'business_unit_id' => $wo->business_unit_id,
                 'journal_no' => 'JRN-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4)),
-                'journal_date' => now()->toDateString(),
+                'journal_date' => $postingDate,
                 'source_type' => 'PRODUCTION_LABOR',
                 'source_id' => $productionId,
                 'description' => 'Pengakuan upah produksi '.$wo->wo_no,
