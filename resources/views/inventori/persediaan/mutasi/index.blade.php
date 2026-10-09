@@ -260,7 +260,7 @@
                             <select name="from_warehouse_id" id="input-from-wh" class="form-select form-select-sm" required>
                                 <option value="">-- Pilih Gudang Pengirim --</option>
                                 @foreach($warehouses as $w)
-                                    <option value="{{ $w->id }}">{{ $w->name }}</option>
+                                    <option value="{{ $w->id }}" data-bu-ids="{{ $warehouseBusinessUnitMap->where('warehouse_id', $w->id)->pluck('business_unit_id')->implode(',') }}">{{ $w->name }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -270,7 +270,7 @@
                             <select name="to_warehouse_id" id="input-to-wh" class="form-select form-select-sm" required>
                                 <option value="">-- Pilih Gudang Penerima --</option>
                                 @foreach($warehouses as $w)
-                                    <option value="{{ $w->id }}">{{ $w->name }}</option>
+                                    <option value="{{ $w->id }}" data-bu-ids="{{ $warehouseBusinessUnitMap->where('warehouse_id', $w->id)->pluck('business_unit_id')->implode(',') }}">{{ $w->name }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -441,6 +441,28 @@ const fromWarehouse = document.getElementById('input-from-wh');
 const toWarehouse = document.getElementById('input-to-wh');
 const destinationBuLabel = document.getElementById('destination-bu-label');
 
+function filterWarehouseOptions() {
+    const sourceBusinessUnitId = businessUnitSelect.value;
+    [fromWarehouse, toWarehouse].forEach((select, index) => {
+        Array.from(select.options).forEach(option => {
+            if (!option.value) return;
+            const mappedBusinessUnits = (option.dataset.buIds || '')
+                .split(',')
+                .map(value => value.trim())
+                .filter(Boolean);
+            const isMapped = mappedBusinessUnits.length > 0;
+            const isUniqueDestinationMapping = index !== 1 || mappedBusinessUnits.length === 1;
+            const matchesSourceBU = index !== 0 || (sourceBusinessUnitId !== '' && mappedBusinessUnits.includes(String(sourceBusinessUnitId)));
+            const visible = isMapped && isUniqueDestinationMapping && matchesSourceBU;
+            option.hidden = !visible;
+            option.disabled = !visible;
+        });
+        if (select.selectedOptions.length && (select.selectedOptions[0].hidden || select.selectedOptions[0].disabled)) {
+            select.value = '';
+        }
+    });
+}
+
 function clearProductRows() {
     productsData.length = 0;
     document.querySelectorAll('#tbody-items .item-product').forEach(select => {
@@ -514,6 +536,7 @@ async function loadTransferProducts(preserveItems = []) {
 businessUnitSelect.addEventListener('change', function () {
     fromWarehouse.value = '';
     toWarehouse.value = '';
+    filterWarehouseOptions();
     clearProductRows();
     if (destinationBuLabel) destinationBuLabel.textContent = 'Pilih gudang tujuan untuk menentukan BU tujuan.';
 });
@@ -532,6 +555,8 @@ toWarehouse.addEventListener('change', function () {
     }
     loadTransferProducts();
 });
+
+filterWarehouseOptions();
 
     // 1. Export Excel
     document.getElementById('btn-export-excel')?.addEventListener('click', function () {
@@ -600,6 +625,7 @@ toWarehouse.addEventListener('change', function () {
         document.getElementById('input-bu').value = '';
         document.getElementById('input-from-wh').value = '';
         document.getElementById('input-to-wh').value = '';
+        filterWarehouseOptions();
         document.getElementById('input-date').value = "{{ date('Y-m-d') }}";
         document.getElementById('input-memo').value = '';
         productsData.length = 0;
@@ -623,6 +649,7 @@ toWarehouse.addEventListener('change', function () {
 
                         document.getElementById('input-transfer-no').value = t.transfer_no;
                         document.getElementById('input-bu').value = t.business_unit_id;
+                        filterWarehouseOptions();
                         document.getElementById('input-date').value = t.transfer_date;
                         document.getElementById('input-from-wh').value = t.from_warehouse_id;
                         document.getElementById('input-to-wh').value = t.to_warehouse_id;
