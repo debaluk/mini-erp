@@ -1,14 +1,9 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-    <div>
-        <h4 class="mb-1">Master Data Pekerja</h4>
-        <div class="text-secondary small">Data tenaga kerja yang dapat ditetapkan pada Work Order / SPK produksi.</div>
-    </div>
-    <button type="button" class="btn btn-primary" id="btnAddMaster">
-        <i class="bi bi-plus-lg me-1"></i> Tambah Pekerja
-    </button>
+<div class="mb-3">
+    <h4 class="mb-1">Master Data Pekerja</h4>
+    <div class="text-secondary small">Data tenaga kerja yang dapat ditetapkan pada Work Order / SPK produksi.</div>
 </div>
 
 
@@ -24,11 +19,16 @@
 @endif
 
 <div class="card border-0 shadow-sm">
-    <div class="card-header bg-primary bg-opacity-10 text-primary border-bottom d-flex justify-content-between align-items-center py-3">
+    <div class="card-header bg-primary bg-opacity-10 text-primary border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2 py-2">
         <div class="fw-semibold">
             <i class="bi bi-people me-2"></i>Daftar Pekerja
         </div>
-        <span class="badge rounded-pill bg-white text-primary border border-primary-subtle" id="workerCount">Data pekerja</span>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge rounded-pill bg-white text-primary border border-primary-subtle" id="workerCount">Data pekerja</span>
+            <button type="button" class="btn btn-primary btn-sm" id="btnAddMaster">
+                <i class="bi bi-plus-lg me-1"></i>Tambah Pekerja
+            </button>
+        </div>
     </div>
 
     <div class="table-responsive">
@@ -49,7 +49,7 @@
 </div>
 
 <div class="modal fade" id="masterModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-dialog modal-md modal-dialog-scrollable">
         <div class="modal-content">
             <form id="masterForm" novalidate>
                 <div class="modal-header">
@@ -61,17 +61,17 @@
                 </div>
 
                 <div class="modal-body">
-                    <div class="row g-2">
+                    <div class="row g-1">
                         @foreach($config['fields'] as $key => $field)
                             @continue($key === 'code')
-                            <div class="{{ $key === 'address' ? 'col-12' : 'col-md-6' }}">
-                                <label class="form-label">{{ $field['label'] }}@if($field['required'] ?? false) <span class="text-danger">*</span>@endif</label>
+                            <div class="col-12 mb-1">
+                                <label class="form-label mb-1">{{ $field['label'] }}@if($field['required'] ?? false) <span class="text-danger">*</span>@endif</label>
 
                                 @if($field['type'] === 'textarea')
                                     <textarea
                                         name="{{ $key }}"
                                         class="form-control @if($field['required'] ?? false) required-field @endif"
-                                        rows="3"
+                                        rows="2"
                                         @if($field['required'] ?? false) data-required="1" @endif
                                     ></textarea>
                                 @elseif($field['type'] === 'select')
