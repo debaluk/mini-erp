@@ -117,6 +117,7 @@ class HppController extends Controller
                     SUM(CASE WHEN cost_group = "O" THEN amount ELSE 0 END) overhead_cost,
                     SUM(amount) additional_cost
                     FROM production_costs GROUP BY production_id) pc'), 'pc.production_id', '=', 'pr.id')
+                ->leftJoin(DB::raw('(SELECT production_id, SUM(CASE WHEN output_type = "good" THEN total_cost ELSE 0 END) good_total_cost FROM production_outputs GROUP BY production_id) po'), 'po.production_id', '=', 'pr.id')
                 ->where('pr.entity_id', $entityId)
                 ->where('pr.business_unit_id', $productionBu->id)
                 ->whereBetween('pr.production_date', [$startDate.' 00:00:00', $endDate.' 23:59:59'])
@@ -129,12 +130,12 @@ class HppController extends Controller
                     'b.code as bom',
                     'pr.good_output_qty as qty',
                     'pr.reject_qty',
-                    DB::raw('COALESCE(mu.total_material,0) as material_cost'),
+                    DB::raw('CASE WHEN pr.production_work_order_id IS NOT NULL THEN COALESCE((SELECT SUM(ui.total_cost) FROM production_wo_material_usages u JOIN production_material_usage_items ui ON ui.production_material_usage_id = u.id WHERE u.production_work_order_id = pr.production_work_order_id AND u.status = "approved"), 0) ELSE COALESCE(mu.total_material,0) END as material_cost'),
                     DB::raw('COALESCE(pc.labor_cost,0) as labor_cost'),
                     DB::raw('COALESCE(pc.equipment_cost,0) as equipment_cost'),
                     DB::raw('COALESCE(pc.rental_cost,0) as rental_cost'),
                     DB::raw('COALESCE(pc.overhead_cost,0) as overhead_cost'),
-                    'pr.total_cost'
+                    DB::raw('COALESCE(po.good_total_cost, pr.total_cost) as total_cost')
                 )
                 ->orderByDesc('pr.production_date')
                 ->orderByDesc('pr.id')
