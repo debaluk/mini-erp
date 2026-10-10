@@ -6,9 +6,6 @@
         <h4 class="mb-1">Master Formula / BOM</h4>
         <div class="text-secondary small">Standar resep produksi — produk jadi, output, dan kebutuhan material.</div>
     </div>
-    <button type="button" class="btn btn-primary" id="btnAddBom">
-        <i class="bi bi-plus-lg me-1"></i> Tambah BOM
-    </button>
 </div>
 
 
@@ -26,7 +23,7 @@
 <div class="card border-0 shadow-sm">
     <div class="card-header bg-primary bg-opacity-10 text-primary border-bottom d-flex justify-content-between align-items-center py-3">
         <div class="fw-semibold"><i class="bi bi-list-ul me-2"></i>Daftar Formula Produksi</div>
-        <span class="badge rounded-pill bg-white text-primary border border-primary-subtle">{{ $boms->total() }} BOM</span>
+        <button type="button" class="btn btn-primary btn-sm" id="btnAddBom"><i class="bi bi-plus-lg me-1"></i>Tambah BOM</button>
     </div>
 
     <div class="table-responsive">
