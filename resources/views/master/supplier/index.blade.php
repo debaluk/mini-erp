@@ -221,15 +221,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const emailInput = form.elements.namedItem('email');
     const validateEmail = (serverMessage = '') => {
         if (!emailInput || @json($type) !== 'suppliers') return true;
+
         const value = String(emailInput.value ?? '').trim();
-        const valid = value === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-        emailInput.classList.toggle('is-invalid', !valid || Boolean(serverMessage));
-        emailInput.setAttribute('aria-invalid', (!valid || Boolean(serverMessage)) ? 'true' : 'false');
+        emailInput.value = value;
+        const valid = value === '' || (
+            emailInput.type === 'email' &&
+            emailInput.checkValidity() &&
+            /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+        );
+        const invalid = !valid || Boolean(serverMessage);
+
+        emailInput.classList.toggle('is-invalid', invalid);
+        emailInput.setAttribute('aria-invalid', invalid ? 'true' : 'false');
+        emailInput.setCustomValidity(invalid ? (serverMessage || 'Format email tidak valid. Contoh: nama@domain.com.') : '');
+
         const feedback = document.getElementById('supplierEmailError');
         if (feedback) {
             feedback.textContent = serverMessage || 'Format email tidak valid. Contoh: nama@domain.com.';
         }
-        return valid && !serverMessage;
+
+        return !invalid;
     };
 
     form.addEventListener('input', e => {
