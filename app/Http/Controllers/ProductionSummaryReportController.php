@@ -11,7 +11,7 @@ class ProductionSummaryReportController extends Controller
 {
     private function rows(Request $request)
     {
-        $entityId = (int) (DB::table('entities')->value('id') ?? 0);
+        $entityId = (int) (auth()->user()?->entity_id ?? 0);
         abort_unless($entityId, 422, 'Entitas belum tersedia.');
 
         $dateFrom = $request->input('date_from', now()->startOfMonth()->toDateString());
