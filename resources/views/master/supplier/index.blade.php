@@ -126,6 +126,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let deleteId = null;
 
     const dataTable = new DataTable('#masterDataTable', {
+        scrollX: true,
+        autoWidth: false,
         processing: true,
         serverSide: true,
         pageLength: 15,
