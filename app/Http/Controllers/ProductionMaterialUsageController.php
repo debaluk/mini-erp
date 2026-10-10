@@ -9,7 +9,7 @@ use Illuminate\Validation\ValidationException;
 
 class ProductionMaterialUsageController extends Controller
 {
-    private function entityId(): int { return (int) (DB::table('entities')->value('id') ?? 0); }
+    private function entityId(): int { return (int) (auth()->user()?->entity_id ?? 0); }
 
     public function index(Request $request)
     {
