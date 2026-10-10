@@ -96,7 +96,7 @@
 
             </div>
         </div>
-        <div class="login-footer">AKUNTARA · Sistem Informasi Terpadu</div>
+        <div class="login-footer">© {{ date('Y') }} AKUNTARA</div>
     </div>
 
 </body>
