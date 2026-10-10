@@ -48,7 +48,7 @@
         </div>
 
         <div class="border rounded p-3 mb-3">
-            <div class="d-flex justify-content-between align-items-center mb-2"><div class="fw-semibold">Unit</div><span class="text-secondary small">Pilih minimal satu Unit</span></div>
+            <div class="d-flex justify-content-between align-items-center mb-2"><div class="fw-semibold">Unit <span class="text-danger">*</span></div><span class="text-secondary small">Pilih minimal satu Unit</span></div>
             <div class="row">
                 @foreach($businessUnits as $businessUnit)
                     <div class="col-md-4"><div class="form-check">
@@ -70,7 +70,7 @@
 
         <div class="row">
             <div class="col-md-4 mb-3">
-                <label class="form-label d-block">Kelola sebagai Persediaan?</label>
+                <label class="form-label d-block">Kelola sebagai Persediaan? <span class="text-danger">*</span></label>
                 <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="manage_stock" value="1" @checked((string)old('manage_stock',$item->manage_stock?'1':'0')==='1')><label class="form-check-label">Ya</label></div>
                 <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="manage_stock" value="0" @checked((string)old('manage_stock',$item->manage_stock?'1':'0')==='0')><label class="form-check-label">Tidak</label></div>
             </div>
@@ -79,7 +79,7 @@
                 <input type="number" name="minimum_stock" id="minimum_stock" class="form-control" min="0" step="0.001" value="{{ old('minimum_stock',$item->minimum_stock) }}">
             </div>
             <div class="col-md-4 mb-3">
-                <label class="form-label d-block">Status</label>
+                <label class="form-label d-block">Status <span class="text-danger">*</span></label>
                 <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="status" value="1" @checked((string)old('status',$item->is_active?'1':'0')==='1')><label class="form-check-label">Aktif</label></div>
                 <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="status" value="0" @checked((string)old('status',$item->is_active?'1':'0')==='0')><label class="form-check-label">Nonaktif</label></div>
             </div>
