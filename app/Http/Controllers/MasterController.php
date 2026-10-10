@@ -1,15 +1,15 @@
 <?php
 
-namespace App\\Http\\Controllers;
+namespace App\Http\Controllers;
 
-use App\\Models\\Product;
-use App\\Models\\Customer;
-use App\\Models\\Supplier;
-use App\\Models\\Warehouse;
-use App\\Models\\Unit;
-use App\\Models\\Tariff;
-use App\\Models\\Vehicle;
-use App\\Models\\Driver;
+use App\Models\Product;
+use App\Models\Customer;
+use App\Models\Supplier;
+use App\Models\Warehouse;
+use App\Models\Unit;
+use App\Models\Tariff;
+use App\Models\Vehicle;
+use App\Models\Driver;
 
 class MasterController extends Controller
 {
