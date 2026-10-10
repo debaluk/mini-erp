@@ -98,7 +98,7 @@
 
         <div class="row">
             <div class="col-md-4 mb-3">
-                <label class="form-label d-block">Kelola sebagai Persediaan?</label>
+                <label class="form-label d-block">Kelola sebagai Persediaan? <span class="text-danger">*</span></label>
                 <div class="form-check form-check-inline">
                     <input class="form-check-input" type="radio" name="manage_stock" id="manage_stock_yes" value="1" @checked(old('manage_stock', '1') === '1')>
                     <label class="form-check-label" for="manage_stock_yes">Ya</label>
@@ -115,7 +115,7 @@
             </div>
 
             <div class="col-md-4 mb-3">
-                <label class="form-label d-block">Status</label>
+                <label class="form-label d-block">Status <span class="text-danger">*</span></label>
                 <div class="form-check form-check-inline">
                     <input class="form-check-input" type="radio" name="status" id="status_active" value="1" @checked(old('status', '1') === '1')>
                     <label class="form-check-label" for="status_active">Aktif</label>
@@ -128,9 +128,12 @@
         </div>
     </div>
 
-    <div class="card-footer bg-white d-flex justify-content-end gap-2">
+    <div class="card-footer bg-white d-flex justify-content-between align-items-center gap-2">
+        <small class="text-secondary"><span class="text-danger">*</span> Wajib diisi</small>
+        <div class="d-flex gap-2">
         <a href="{{ route('master.menu.produk') }}" class="btn btn-outline-secondary">Batal</a>
         <button type="submit" class="btn btn-primary">Simpan</button>
+        </div>
     </div>
 </form>
 @endsection
