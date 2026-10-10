@@ -177,62 +177,61 @@ class InventoryReportController extends Controller
         $this->filters($request);
         $entityId = $this->entityId($request);
         abort_if($startDate > $endDate, 422, 'Periode tanggal tidak valid.');
-
+        $mode = $request->query('mode') === 'analisis-harga' ? 'analisis-harga' : 'ringkasan';
         $entity = DB::table('entities')->where('id', $entityId)->first();
         abort_unless($entity, 404, 'Data entitas tidak ditemukan.');
-        $rows = $this->stockQuery($request, $entityId)->orderBy('p.name')->orderBy('w.name')->get();
-        $unitName = $request->filled('business_unit_id')
-            ? (DB::table('business_units')->where('entity_id', $entityId)->where('id', $request->integer('business_unit_id'))->value('name') ?? 'Unit Bisnis')
-            : 'Semua Unit Bisnis';
-        $warehouseName = $request->filled('warehouse_id')
-            ? (DB::table('warehouses')->where('entity_id', $entityId)->where('id', $request->integer('warehouse_id'))->value('name') ?? 'Gudang')
-            : 'Semua Gudang';
-
+        $query = $mode === 'analisis-harga' ? $this->priceComparisonQuery($request, $entityId) : $this->stockQuery($request, $entityId);
+        $rows = $query->orderBy('p.name')->orderBy('w.name')->get();
+        $unitName = $request->filled('business_unit_id') ? (DB::table('business_units')->where('entity_id', $entityId)->where('id', $request->integer('business_unit_id'))->value('name') ?? 'Unit Bisnis') : 'Semua Unit Bisnis';
+        $warehouseName = $request->filled('warehouse_id') ? (DB::table('warehouses')->where('entity_id', $entityId)->where('id', $request->integer('warehouse_id'))->value('name') ?? 'Gudang') : 'Semua Gudang';
+        $headers = $mode === 'analisis-harga'
+            ? ['No.', 'Kode Item', 'SKU', 'Nama Item', 'Unit Bisnis', 'Gudang', 'Qty', 'HPP/Unit', 'Harga Jual/Unit', 'Nilai Stok', 'Potensi Penjualan', 'Selisih/Unit', 'Potensi Laba Kotor', 'Margin (%)']
+            : ['No.', 'Kode Item', 'SKU', 'Nama Item', 'Satuan Dasar', 'Unit Bisnis', 'Gudang', 'Qty Saat Ini', 'HPP Rata-rata', 'Nilai Stok'];
+        $lastColumn = $mode === 'analisis-harga' ? 'N' : 'J';
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
-        $sheet->setTitle('Persediaan');
-        $sheet->mergeCells('A1:J1');
+        $sheet->setTitle($mode === 'analisis-harga' ? 'Harga vs Stok' : 'Persediaan');
+        $sheet->mergeCells('A1:' . $lastColumn . '1');
         $sheet->setCellValue('A1', $entity->name ?? 'MINI ERP');
-        $sheet->mergeCells('A2:J2');
-        $sheet->setCellValue('A2', 'LAPORAN PERSEDIAAN EKSEKUTIF');
+        $sheet->mergeCells('A2:' . $lastColumn . '2');
+        $sheet->setCellValue('A2', $mode === 'analisis-harga' ? 'ANALISIS HARGA JUAL VS NILAI STOK' : 'LAPORAN PERSEDIAAN');
         $sheet->setCellValue('A4', 'Periode Mutasi');
         $sheet->setCellValue('B4', date('d/m/Y', strtotime($startDate)) . ' s/d ' . date('d/m/Y', strtotime($endDate)));
-        $sheet->setCellValue('A5', 'Unit Bisnis');
-        $sheet->setCellValue('B5', $unitName);
-        $sheet->setCellValue('A6', 'Gudang');
-        $sheet->setCellValue('B6', $warehouseName);
-        $sheet->setCellValue('A7', 'Tanggal Cetak');
-        $sheet->setCellValue('B7', now()->format('d/m/Y H:i'));
-        $sheet->fromArray([['No.', 'Kode Item', 'SKU', 'Nama Item', 'Satuan Dasar', 'Unit Bisnis', 'Gudang', 'Qty Saat Ini', 'HPP Rata-rata', 'Nilai Stok']], null, 'A9');
-
+        $sheet->setCellValue('A5', 'Unit Bisnis'); $sheet->setCellValue('B5', $unitName);
+        $sheet->setCellValue('A6', 'Gudang'); $sheet->setCellValue('B6', $warehouseName);
+        $sheet->setCellValue('A7', 'Tanggal Cetak'); $sheet->setCellValue('B7', now()->format('d/m/Y H:i'));
+        $sheet->fromArray([$headers], null, 'A9');
         $rowNumber = 10;
         foreach ($rows as $index => $row) {
-            $sheet->fromArray([[$index + 1, $row->code ?: '-', $row->sku ?: '-', $row->product_name,
-                $row->unit_name ?: $row->unit_code ?: '-', $row->business_unit_names ?: '-',
-                $row->warehouse_name, (float) $row->qty, (float) $row->avg_cost, (float) $row->stock_value]], null, 'A' . $rowNumber);
+            if ($mode === 'analisis-harga') {
+                $data = [$index + 1, $row->code ?: '-', $row->sku ?: '-', $row->product_name, $row->business_unit_name ?: '-', $row->warehouse_name, (float) $row->qty, (float) $row->avg_cost, $row->selling_price !== null ? (float) $row->selling_price : null, (float) $row->stock_value, $row->potential_sales !== null ? (float) $row->potential_sales : null, $row->selling_price !== null ? (float) $row->selling_price - (float) $row->avg_cost : null, $row->potential_gross_profit !== null ? (float) $row->potential_gross_profit : null, $row->gross_margin_percent !== null ? (float) $row->gross_margin_percent : null];
+            } else {
+                $data = [$index + 1, $row->code ?: '-', $row->sku ?: '-', $row->product_name, $row->unit_name ?: $row->unit_code ?: '-', $row->business_unit_names ?: '-', $row->warehouse_name, (float) $row->qty, (float) $row->avg_cost, (float) $row->stock_value];
+            }
+            $sheet->fromArray([$data], null, 'A' . $rowNumber);
             $rowNumber++;
         }
         $lastRow = max(9, $rowNumber - 1);
-        $sheet->getStyle('A1:J1')->getFont()->setBold(true)->setSize(16);
-        $sheet->getStyle('A1:J2')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-        $sheet->getStyle('A9:J9')->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
-        $sheet->getStyle('A9:J9')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('343A40');
-        $sheet->getStyle('A9:J' . $lastRow)->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
+        $sheet->getStyle('A1:' . $lastColumn . '1')->getFont()->setBold(true)->setSize(16);
+        $sheet->getStyle('A1:' . $lastColumn . '2')->getAlignment()->setHorizontal(\\PhpOffice\\PhpSpreadsheet\\Style\\Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('A9:' . $lastColumn . '9')->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
+        $sheet->getStyle('A9:' . $lastColumn . '9')->getFill()->setFillType(\\PhpOffice\\PhpSpreadsheet\\Style\\Fill::FILL_SOLID)->getStartColor()->setRGB('343A40');
+        $sheet->getStyle('A9:' . $lastColumn . $lastRow)->getBorders()->getAllBorders()->setBorderStyle(\\PhpOffice\\PhpSpreadsheet\\Style\\Border::BORDER_THIN);
         if ($rowNumber > 10) {
-            $sheet->getStyle('H10:H' . $lastRow)->getNumberFormat()->setFormatCode('#,##0.000');
-            $sheet->getStyle('I10:J' . $lastRow)->getNumberFormat()->setFormatCode('#,##0');
+            if ($mode === 'analisis-harga') {
+                $sheet->getStyle('G10:G' . $lastRow)->getNumberFormat()->setFormatCode('#,##0.000');
+                $sheet->getStyle('H10:M' . $lastRow)->getNumberFormat()->setFormatCode('#,##0.00');
+                $sheet->getStyle('N10:N' . $lastRow)->getNumberFormat()->setFormatCode('0.00');
+            } else {
+                $sheet->getStyle('H10:H' . $lastRow)->getNumberFormat()->setFormatCode('#,##0.000');
+                $sheet->getStyle('I10:J' . $lastRow)->getNumberFormat()->setFormatCode('#,##0');
+            }
         }
-        foreach (range('A', 'J') as $column) $sheet->getColumnDimension($column)->setAutoSize(true);
+        foreach (range('A', $lastColumn) as $column) $sheet->getColumnDimension($column)->setAutoSize(true);
         $sheet->getColumnDimension('D')->setWidth(32);
-        $sheet->getColumnDimension('F')->setWidth(24);
         $sheet->freezePane('A10');
-        $sheet->setAutoFilter('A9:J' . $lastRow);
-
+        $sheet->setAutoFilter('A9:' . $lastColumn . $lastRow);
         $writer = new Xlsx($spreadsheet);
-        return response()->streamDownload(function () use ($writer) {
-            $writer->save('php://output');
-        }, 'laporan-persediaan-eksekutif-' . now()->format('Ymd-His') . '.xlsx', [
-            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        ]);
+        return response()->streamDownload(function () use ($writer) { $writer->save('php://output'); }, ($mode === 'analisis-harga' ? 'analisis-harga-jual-vs-stok-' : 'laporan-persediaan-') . now()->format('Ymd-His') . '.xlsx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
     }
 }
