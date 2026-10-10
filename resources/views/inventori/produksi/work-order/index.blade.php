@@ -214,6 +214,7 @@
             <form method="POST" id="productionResultForm" action="{{ url('/produksi/work-order') }}">
                 @csrf
                 <input type="hidden" name="production_date" id="productionResultDate" value="{{ now()->toDateString() }}">
+                <input type="hidden" name="action" id="productionResultAction" value="save">
                 <div class="modal-header py-2">
                     <h5 class="modal-title">Input Hasil Produksi</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
@@ -246,8 +247,8 @@
                 <div class="modal-footer d-flex justify-content-between">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
                     <div class="d-flex gap-2">
-                        <button type="submit" name="action" value="save" class="btn btn-outline-primary"><i class="bi bi-save me-1"></i>Simpan Saja</button>
-                        <button type="submit" name="action" value="close" class="btn btn-success"><i class="bi bi-check2-circle me-1"></i>Closing SPK</button>
+                        <button type="submit" value="save" class="btn btn-outline-primary"><i class="bi bi-save me-1"></i>Simpan Saja</button>
+                        <button type="submit" value="close" class="btn btn-success"><i class="bi bi-check2-circle me-1"></i>Closing SPK</button>
                     </div>
                 </div>
             </form>
@@ -791,13 +792,29 @@ document.addEventListener('DOMContentLoaded', function () {
         recalculateResult();
     });
     workerRows.addEventListener('input', recalculateResult);
+    let resultSubmitting = false;
     resultForm.addEventListener('submit', function (event) {
         const submitter = event.submitter;
+
+        // Konfirmasi harus dilakukan sebelum tombol dikunci.
         if (submitter && submitter.value === 'close' && !confirm('Closing SPK akan memposting seluruh hasil draft, stok, HPP, dan jurnal. Lanjutkan?')) {
             event.preventDefault();
             return;
         }
+
+        // Cegah double-click / Enter berulang mengirim lebih dari satu request.
+        if (resultSubmitting) {
+            event.preventDefault();
+            return;
+        }
+        resultSubmitting = true;
+
         document.getElementById('productionResultDate').value = document.getElementById('productionResultDateVisible').value;
+        document.getElementById('productionResultAction').value = submitter && submitter.value === 'close' ? 'close' : 'save';
+
+        resultForm.querySelectorAll('button[type="submit"]').forEach(button => {
+            button.disabled = true;
+        });
     });
 });
 </script>
