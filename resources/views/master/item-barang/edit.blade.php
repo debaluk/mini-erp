@@ -85,11 +85,13 @@
             </div>
         </div>
     </div>
-    <div class="card-footer bg-white d-flex justify-content-end gap-2">
+    <div class="card-footer bg-white d-flex justify-content-between align-items-center gap-2">
+        <small class="text-secondary"><span class="text-danger">*</span> Wajib diisi</small>
+        <div class="d-flex gap-2">
         <a href="{{ route('master.menu.produk') }}" class="btn btn-outline-secondary">Batal</a>
         <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+        </div>
     </div>
-<div class="card-footer bg-light"><small class="text-secondary"><span class="text-danger">*</span> Wajib diisi</small></div>
 </form>
 @endsection
 
