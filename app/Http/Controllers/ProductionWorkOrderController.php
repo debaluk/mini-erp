@@ -905,11 +905,9 @@ class ProductionWorkOrderController extends Controller
 
             $goodQty = round((float) $data['good_output_qty'], 3);
             $rejectQty = round((float) $data['reject_qty'], 3);
-            $targetQty = round((float) $wo->target_output_qty, 3);
-
+            
             abort_if($goodQty <= 0, 422, 'Hasil bagus harus lebih dari 0.');
-            abort_if(($goodQty + $rejectQty) > ($targetQty + 0.000001), 422, 'Hasil bagus + reject melebihi target produksi.');
-
+            
             $approvedUsageIds = DB::table('production_wo_material_usages')
                 ->where('production_work_order_id', $wo->id)
                 ->where('status', 'approved')
@@ -956,7 +954,8 @@ class ProductionWorkOrderController extends Controller
 
             // HPP barang jadi tidak memasukkan upah; upah dijurnal terpisah.
             $totalCost = round($materialCost + (float) $otherCosts, 2);
-            $rejectCost = $targetQty > 0 ? round($totalCost * ($rejectQty / $targetQty), 2) : 0.0;
+            $actualOutputQty = $goodQty + $rejectQty;
+            $rejectCost = $actualOutputQty > 0 ? round($totalCost * ($rejectQty / $actualOutputQty), 2) : 0.0;
             $goodCost = round($totalCost - $rejectCost, 2);
             $goodUnitCost = $goodQty > 0 ? round($goodCost / $goodQty, 6) : 0.0;
 
