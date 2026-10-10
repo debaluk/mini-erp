@@ -53,11 +53,11 @@
                     <div class="modal-body">
                         <div class="mb-3"><label class="form-label">Parent Akun</label><input class="form-control bg-light" value="{{ $a->code }} — {{ $a->name }}" disabled></div>
                         <div class="mb-3"><label class="form-label">Nomor Akun</label><input class="form-control bg-light fw-semibold" value="{{ $nextCodes[$a->id] ?? '' }}" disabled></div>
-                        <div class="mb-3"><label class="form-label">Nama Akun</label><input name="name" class="form-control" required></div>
-                        <div class="mb-3"><label class="form-label">Normal Balance</label><select name="normal_balance" class="form-select" required><option value="debit" @selected($a->normal_balance==='debit')>Debit</option><option value="credit" @selected($a->normal_balance==='credit')>Credit</option></select></div>
+                        <div class="mb-3"><label class="form-label">Nama Akun <span class="text-danger">*</span></label><input name="name" class="form-control" required></div>
+                        <div class="mb-3"><label class="form-label">Normal Balance <span class="text-danger">*</span></label><select name="normal_balance" class="form-select" required><option value="debit" @selected($a->normal_balance==='debit')>Debit</option><option value="credit" @selected($a->normal_balance==='credit')>Credit</option></select></div>
                         <div><label class="form-label">Keterangan <span class="text-secondary">(opsional)</span></label><textarea name="description" class="form-control" rows="2"></textarea></div>
                     </div>
-                    <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary px-4">Simpan</button></div>
+                    <div class="modal-footer"><small class="text-secondary me-auto"><span class="text-danger">*</span> Wajib diisi</small><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary px-4">Simpan</button></div>
                 </form>
             </div>
         </div>
@@ -73,11 +73,11 @@
                     <div class="modal-header"><h5 class="modal-title">Edit Akun</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                     <div class="modal-body">
                         <div class="mb-3"><label class="form-label">Nomor Akun</label><input class="form-control bg-light fw-semibold" value="{{ $a->code }}" disabled></div>
-                        <div class="mb-3"><label class="form-label">Nama Akun</label><input name="name" class="form-control" value="{{ $a->name }}" required></div>
-                        <div class="mb-3"><label class="form-label">Normal Balance</label><select name="normal_balance" class="form-select" required><option value="debit" @selected($a->normal_balance==='debit')>Debit</option><option value="credit" @selected($a->normal_balance==='credit')>Credit</option></select></div>
+                        <div class="mb-3"><label class="form-label">Nama Akun <span class="text-danger">*</span></label><input name="name" class="form-control" value="{{ $a->name }}" required></div>
+                        <div class="mb-3"><label class="form-label">Normal Balance <span class="text-danger">*</span></label><select name="normal_balance" class="form-select" required><option value="debit" @selected($a->normal_balance==='debit')>Debit</option><option value="credit" @selected($a->normal_balance==='credit')>Credit</option></select></div>
                         <div><label class="form-label">Keterangan <span class="text-secondary">(opsional)</span></label><textarea name="description" class="form-control" rows="2">{{ $a->description }}</textarea></div>
                     </div>
-                    <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary px-4">Simpan Perubahan</button></div>
+                    <div class="modal-footer"><small class="text-secondary me-auto"><span class="text-danger">*</span> Wajib diisi</small><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary px-4">Simpan Perubahan</button></div>
                 </form>
             </div>
         </div>
