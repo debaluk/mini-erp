@@ -8,7 +8,7 @@ use Illuminate\Support\Str;
 
 class ErpExtraController extends Controller
 {
-    private function entityId(): int { return DB::table('entities')->first()->id; }
+    private function entityId(): int     {         $entityId = (int) (auth()->user()?->entity_id ?? 0);         abort_unless($entityId > 0, 403, 'Entitas pengguna tidak valid.');          return $entityId;     }
 
     public function shiftStore(Request $r){$d=$r->validate(['opening_cash'=>'required|numeric|min:0']);DB::table('cash_shifts')->insert(['entity_id'=>$this->entityId(),'user_id'=>auth()->id(),'opened_at'=>now(),'opening_cash'=>$d['opening_cash'],'status'=>'open','created_at'=>now(),'updated_at'=>now()]);return back()->with('success','Shift kasir dibuka.');}
     public function bomStore(Request $r){$d=$r->validate(['product_id'=>'required|integer','code'=>'required|string','name'=>'required|string','output_qty'=>'required|numeric|min:0.001','material_product_id'=>'required|integer','material_qty'=>'required|numeric|min:0.001']);$eid=$this->entityId();DB::transaction(function()use($d,$eid){$bom=DB::table('boms')->insertGetId(['entity_id'=>$eid,'product_id'=>$d['product_id'],'code'=>$d['code'],'name'=>$d['name'],'output_qty'=>$d['output_qty'],'is_active'=>1,'created_at'=>now(),'updated_at'=>now()]);DB::table('bom_items')->insert(['bom_id'=>$bom,'product_id'=>$d['material_product_id'],'qty'=>$d['material_qty'],'created_at'=>now(),'updated_at'=>now()]);});return back()->with('success','BOM berhasil disimpan.');}
