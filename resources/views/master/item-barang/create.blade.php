@@ -65,7 +65,7 @@
 
         <div class="border rounded p-3 mb-3">
             <div class="d-flex justify-content-between align-items-center mb-2">
-                <div class="fw-semibold">Unit</div>
+                <div class="fw-semibold">Unit <span class="text-danger">*</span></div>
                 <span class="text-secondary small">Pilih minimal satu Unit</span>
             </div>
             <div class="row">
