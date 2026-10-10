@@ -61,6 +61,7 @@
                     <div class="small text-secondary mt-2">Contoh: Base Unit Semen = KG; 1 SAK = 50 KG, maka faktor = 50. Base Unit tidak diubah dari menu ini.</div>
                 </div>
                 <div class="modal-footer py-2">
+                    <small class="text-secondary me-auto"><span class="text-danger">*</span> Wajib diisi</small>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
                     <button class="btn btn-primary" type="submit">Simpan</button>
                 </div>
