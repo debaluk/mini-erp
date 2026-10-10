@@ -48,9 +48,7 @@
 <div class="modal fade" id="masterModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-md modal-dialog-scrollable" style="max-height: calc(100vh - 1rem);">
         <div class="modal-content" style="max-height: calc(100vh - 1rem);">
-            <form id="masterForm" method="POST" action="{{ url('/master/suppliers') }}" novalidate>
-                @csrf
-                <input type="hidden" name="_method" id="masterFormMethod" value="PUT" disabled>
+            <form id="masterForm" novalidate>
                 <div class="modal-header py-2">
                     <div>
                         <h5 class="modal-title mb-1" id="masterModalTitle">Tambah Supplier</h5>
@@ -62,7 +60,7 @@
                     <div class="row g-2">
                         @foreach($config['fields'] as $key => $field)
                             <div class="{{ in_array($type, ['customers', 'suppliers'], true) ? 'col-12' : ($type === 'warehouses' ? 'col-md-6' : 'col-md-4') }}">
-                                <label class="form-label fw-medium mb-1">{{ $field['label'] }}@if($field['required'] ?? false) <span class="text-danger">*</span>@endif</label>
+                                <label class="form-label fw-medium mb-1">{{ $field['label'] }}</label>
                                 @if($field['type'] === 'textarea')
                                     <textarea name="{{ $key }}" class="form-control @if($field['required'] ?? false) required-field @endif" rows="2" @if($field['required'] ?? false) data-required="1" @endif></textarea>
                                 @elseif($field['type'] === 'select')
@@ -72,17 +70,13 @@
                                         @endforeach
                                     </select>
                                 @else
-                                    <input name="{{ $key }}" type="{{ $field['type'] }}" step="{{ $field['step'] ?? 'any' }}" class="form-control @if($field['required'] ?? false) required-field @endif" placeholder="{{ $field['placeholder'] ?? ($key === 'email' ? 'nama@domain.com' : '') }}" @if($field['readonly'] ?? false) readonly @endif @if($field['required'] ?? false) data-required="1" @endif @if($type === 'suppliers' && $key === 'email') autocomplete="email" aria-describedby="supplierEmailError" @endif>
-                                    @if($type === 'suppliers' && $key === 'email')
-                                        <div class="invalid-feedback" id="supplierEmailError">Format email tidak valid. Contoh: nama@domain.com.</div>
-                                    @endif
+                                    <input name="{{ $key }}" type="{{ $field['type'] }}" step="{{ $field['step'] ?? 'any' }}" class="form-control @if($field['required'] ?? false) required-field @endif" placeholder="{{ $field['placeholder'] ?? '' }}" @if($field['readonly'] ?? false) readonly @endif @if($field['required'] ?? false) data-required="1" @endif>
                                 @endif
                             </div>
                         @endforeach
                     </div>
                 </div>
                 <div class="modal-footer bg-light py-2">
-                    <small class="text-secondary me-auto"><span class="text-danger">*</span> Wajib diisi</small>
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
                     <button type="submit" class="btn btn-success px-4" id="masterSubmit">
                         <i class="bi bi-check-lg me-1"></i>Simpan Supplier
@@ -183,19 +177,10 @@ document.addEventListener('DOMContentLoaded', () => {
         ]
     });
 
-    const methodInput = document.getElementById('masterFormMethod');
-
     const resetForm = () => {
         form.reset();
-        form.action = baseUrl;
-        methodInput.disabled = true;
         editId = null;
-        form.querySelectorAll('.is-invalid').forEach(input => {
-            input.classList.remove('is-invalid');
-            input.removeAttribute('aria-invalid');
-        });
-        const emailFeedback = document.getElementById('supplierEmailError');
-        if (emailFeedback) emailFeedback.textContent = 'Format email tidak valid. Contoh: nama@domain.com.';
+        form.querySelectorAll('.required-field').forEach(input => input.classList.remove('is-invalid'));
         title.textContent = 'Tambah Supplier';
         submitButton.innerHTML = '<i class="bi bi-check-lg me-1"></i>Simpan Supplier';
     };
@@ -218,44 +203,16 @@ document.addEventListener('DOMContentLoaded', () => {
         modal.show();
     });
 
-    const emailInput = form.elements.namedItem('email');
-    const validateEmail = (serverMessage = '') => {
-        if (!emailInput || @json($type) !== 'suppliers') return true;
-
-        const value = String(emailInput.value ?? '').trim();
-        emailInput.value = value;
-        emailInput.setCustomValidity('');
-        const valid = value === '' || (
-            emailInput.type === 'email' &&
-            emailInput.checkValidity() &&
-            /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
-        );
-        const invalid = !valid || Boolean(serverMessage);
-
-        emailInput.classList.toggle('is-invalid', invalid);
-        emailInput.setAttribute('aria-invalid', invalid ? 'true' : 'false');
-        emailInput.setCustomValidity(invalid ? (serverMessage || 'Format email tidak valid. Contoh: nama@domain.com.') : '');
-
-        const feedback = document.getElementById('supplierEmailError');
-        if (feedback) {
-            feedback.textContent = serverMessage || 'Format email tidak valid. Contoh: nama@domain.com.';
-        }
-
-        return !invalid;
-    };
-
     form.addEventListener('input', e => {
         if (e.target.matches('.required-field') && String(e.target.value ?? '').trim()) {
             e.target.classList.remove('is-invalid');
         }
-        if (e.target === emailInput) validateEmail();
     });
 
     form.addEventListener('change', e => {
         if (e.target.matches('.required-field') && String(e.target.value ?? '').trim()) {
             e.target.classList.remove('is-invalid');
         }
-        if (e.target === emailInput) validateEmail();
     });
 
     form.addEventListener('submit', async e => {
@@ -266,13 +223,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        if (!validateEmail()) {
-            emailInput.focus();
-            return;
-        }
-
         const url = editId ? baseUrl + '/' + editId : baseUrl;
         const payload = new FormData(form);
+        if (editId) payload.append('_method', 'PUT');
 
         try {
             const response = await fetch(url, {
@@ -288,17 +241,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json().catch(() => ({}));
 
             if (!response.ok) {
-                const errors = data.errors || {};
-                const rawEmailError = errors.email;
-                const emailError = Array.isArray(rawEmailError) ? rawEmailError[0] : (typeof rawEmailError === 'string' ? rawEmailError : '');
-
-                if (emailError && emailInput) {
-                    validateEmail(emailError);
-                    emailInput.focus();
-                } else {
-                    const firstError = Object.values(errors).flat().find(Boolean);
-                    window.erpNotify(String(firstError || data.message || 'Data supplier gagal disimpan. Periksa kembali isian.'), 'danger');
-                }
+                const errors = Object.values(data.errors || {}).flat();
+                window.erpNotify(data.message || (errors.length ? errors : 'Gagal menyimpan data.'), 'danger');
                 return;
             }
 
@@ -317,8 +261,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const row = JSON.parse(decodeURIComponent(edit.dataset.row));
             resetForm();
             editId = edit.dataset.id;
-            form.action = baseUrl + '/' + editId;
-            methodInput.disabled = false;
 
             Object.keys(row).forEach(key => {
                 const input = form.elements.namedItem(key);
