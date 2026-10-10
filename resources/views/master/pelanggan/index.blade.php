@@ -148,8 +148,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 className: 'text-end text-nowrap',
                 render: (data, type, row) => {
                     const json = encodeURIComponent(JSON.stringify(row));
-                    return '<button type="button" class="btn btn-outline-primary btn-sm btn-edit-master" data-id="' + row.id + '" data-row="' + json + '">Edit</button> ' +
-                           '<button type="button" class="btn btn-outline-danger btn-sm btn-delete-master" data-id="' + row.id + '">Hapus</button>';
+                    return '<div class="btn-group btn-group-sm" role="group" aria-label="Aksi pelanggan">' +
+                           '<button type="button" class="btn btn-outline-primary btn-edit-master" data-id="' + row.id + '" data-row="' + json + '" title="Edit"><i class="bi bi-pencil-square"></i></button>' +
+                           '<button type="button" class="btn btn-outline-danger btn-delete-master" data-id="' + row.id + '" title="Hapus"><i class="bi bi-trash"></i></button>' +
+                           '</div>';
                 }
             }
         ]
