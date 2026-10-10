@@ -8,7 +8,13 @@ use Illuminate\Validation\ValidationException;
 
 class AccountController extends Controller
 {
-    private function entityId(): int { return (int)(DB::table('entities')->value('id') ?? 0); }
+    private function entityId(): int
+    {
+        $entityId = (int) (auth()->user()?->entity_id ?? 0);
+        abort_unless($entityId > 0, 403, 'Entitas pengguna tidak valid.');
+
+        return $entityId;
+    }
     private function level(?object $account): int { return $account ? (int)$account->level : 0; }
 
     private function nextCode(int $entity, object $parent): string
@@ -80,7 +86,7 @@ class AccountController extends Controller
     public function destroy(int $id)
     {
         $entity=$this->entityId(); $account=DB::table('chart_of_accounts')->where('entity_id',$entity)->where('id',$id)->first(); abort_unless($account,404);
-        if(DB::table('chart_of_accounts')->where('parent_id',$id)->exists()||DB::table('journal_entries')->where('account_id',$id)->exists()) return back()->with('error','Akun tidak dapat dihapus karena sudah memiliki turunan atau transaksi jurnal.');
+        if(DB::table('chart_of_accounts')->where('entity_id',$entity)->where('parent_id',$id)->exists()||DB::table('journal_entries')->where('account_id',$id)->exists()) return back()->with('error','Akun tidak dapat dihapus karena sudah memiliki turunan atau transaksi jurnal.');
         DB::table('chart_of_accounts')->where('entity_id',$entity)->where('id',$id)->delete();
         return back()->with('success','Akun berhasil dihapus.');
     }
