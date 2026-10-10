@@ -741,81 +741,94 @@ class ErpController extends Controller
         $config = $this->masterConfig($type);
         $entity = $this->entityId();
 
-        try {
-            if ($type === 'warehouses') {
-                $warehouse = DB::table('warehouses')
-                    ->where('entity_id', $entity)
-                    ->where('id', $id)
-                    ->first();
+        $record = DB::table($config['table'])
+            ->where('entity_id', $entity)
+            ->where('id', $id)
+            ->first();
 
-                abort_unless($warehouse, 404, 'Gudang tidak ditemukan.');
+        abort_unless($record, 404, 'Data tidak ditemukan.');
 
-                $references = DB::select(
-                    "SELECT TABLE_NAME, COLUMN_NAME
-                     FROM information_schema.KEY_COLUMN_USAGE
-                     WHERE REFERENCED_TABLE_SCHEMA = DATABASE()
-                       AND REFERENCED_TABLE_NAME = 'warehouses'
-                       AND REFERENCED_COLUMN_NAME = 'id'"
-                );
-
-                foreach ($references as $reference) {
-                    $table = $reference->TABLE_NAME;
-                    $column = $reference->COLUMN_NAME;
-                    if (DB::table($table)->where($column, $id)->exists()) {
-                        abort(
-                            422,
-                            'Gudang tidak dapat dihapus karena sudah digunakan oleh data/transaksi lain.'
-                        );
-                    }
-                }
-            }
-            if ($type === 'workers') {
-                $worker = DB::table('workers')
-                    ->where('entity_id', $entity)
-                    ->where('id', $id)
-                    ->first();
-
-                abort_unless($worker, 404, 'Pekerja tidak ditemukan.');
-
-                $references = DB::select(
-                    "SELECT TABLE_NAME, COLUMN_NAME
-                     FROM information_schema.KEY_COLUMN_USAGE
-                     WHERE REFERENCED_TABLE_SCHEMA = DATABASE()
-                       AND REFERENCED_TABLE_NAME = 'workers'
-                       AND REFERENCED_COLUMN_NAME = 'id'"
-                );
-
-                foreach ($references as $reference) {
-                    $table = $reference->TABLE_NAME;
-                    $column = $reference->COLUMN_NAME;
-                    if (DB::table($table)->where($column, $id)->exists()) {
-                        abort(422, 'Pekerja tidak dapat dihapus karena sudah digunakan oleh data/transaksi lain.');
-                    }
-                }
-            }
-
-            $deleted=DB::table($config['table'])
-                ->where('entity_id',$entity)
-                ->where('id',$id)
-                ->delete();
-            abort_unless($deleted,404,'Data tidak ditemukan.');
-        } catch (\Throwable $e) {
-            if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface) {
-                $status = $e->getStatusCode();
-                $message = $e->getMessage();
-                return $request->expectsJson()
-                    ? response()->json(['message'=>$message],$status)
-                    : back()->withErrors(['delete'=>$message]);
-            }
-
-            return $request->expectsJson()
-                ? response()->json(['message'=>'Data tidak dapat dihapus karena sudah digunakan oleh transaksi/data lain.'],422)
-                : back()->withErrors(['delete'=>'Data tidak dapat dihapus karena sudah digunakan oleh transaksi/data lain.']);
+        if (in_array($type, ['customers', 'suppliers'], true) && (int) $id === 1) {
+            abort(422, 'Data default Umum tidak dapat dihapus.');
         }
+
+        // Pemeriksaan relasi mencakup tabel tanpa foreign key yang eksplisit.
+        $referenceColumns = [
+            'customers' => ['customer_id'],
+            'suppliers' => ['supplier_id'],
+            'warehouses' => ['warehouse_id', 'source_warehouse_id', 'destination_warehouse_id', 'from_warehouse_id', 'to_warehouse_id'],
+            'workers' => ['worker_id'],
+            'units' => ['unit_id', 'base_unit_id'],
+            'tariffs' => ['tariff_id'],
+            'vehicles' => ['vehicle_id'],
+            'drivers' => ['driver_id'],
+            'products' => ['product_id'],
+        ];
+
+        foreach ($referenceColumns[$type] ?? [] as $column) {
+            $references = DB::select(
+                "SELECT TABLE_NAME
+                 FROM information_schema.COLUMNS
+                 WHERE TABLE_SCHEMA = DATABASE()
+                   AND COLUMN_NAME = ?
+                   AND TABLE_NAME <> ?",
+                [$column, $config['table']]
+            );
+
+            foreach ($references as $reference) {
+                $table = $reference->TABLE_NAME;
+                if (DB::table($table)->where($column, $id)->exists()) {
+                    abort(
+                        422,
+                        $config['title'].' tidak dapat dihapus karena sudah digunakan oleh data/master/transaksi lain. Nonaktifkan jika tidak digunakan lagi.'
+                    );
+                }
+            }
+        }
+
+        // Lapisan tambahan untuk semua foreign key yang mengacu ke master ini.
+        $foreignKeys = DB::select(
+            "SELECT TABLE_NAME, COLUMN_NAME
+             FROM information_schema.KEY_COLUMN_USAGE
+             WHERE REFERENCED_TABLE_SCHEMA = DATABASE()
+               AND REFERENCED_TABLE_NAME = ?
+               AND REFERENCED_COLUMN_NAME = 'id'",
+            [$config['table']]
+        );
+
+        foreach ($foreignKeys as $reference) {
+            $table = $reference->TABLE_NAME;
+            $column = $reference->COLUMN_NAME;
+
+            if ($table !== $config['table'] && DB::table($table)->where($column, $id)->exists()) {
+                abort(
+                    422,
+                    $config['title'].' tidak dapat dihapus karena masih menjadi acuan data lain. Nonaktifkan jika tidak digunakan lagi.'
+                );
+            }
+        }
+
+        try {
+            $deleted = DB::table($config['table'])
+                ->where('entity_id', $entity)
+                ->where('id', $id)
+                ->delete();
+
+            abort_unless($deleted, 404, 'Data tidak ditemukan.');
+        } catch (\\Throwable $e) {
+            if ($e instanceof \\Symfony\\Component\\HttpKernel\\Exception\\HttpExceptionInterface) {
+                throw $e;
+            }
+
+            report($e);
+            abort(422, 'Data tidak dapat dihapus karena masih digunakan oleh data/master/transaksi lain. Nonaktifkan jika tidak digunakan lagi.');
+        }
+
         return $request->expectsJson()
-            ? response()->json(['message'=>$config['title'].' berhasil dihapus.'])
-            : back()->with('success',$config['title'].' berhasil dihapus.');
+            ? response()->json(['message' => $config['title'].' berhasil dihapus.'])
+            : back()->with('success', $config['title'].' berhasil dihapus.');
     }
+
     public function module(string $module)
     {
         $titles=['pos'=>'POS Retail','sales'=>'Transaksi Penjualan','payments'=>'Pembayaran','shifts'=>'Shift Kasir','purchases'=>'Pembelian','receipts'=>'Penerimaan Barang','payables'=>'Hutang','stock'=>'Stok','movements'=>'Mutasi Stok','opname'=>'Stock Opname','bom'=>'Formula / BOM','production'=>'Produksi Batako','production-results'=>'Hasil Produksi','material-usage'=>'Pemakaian Bahan','production-cost'=>'HPP Produksi','fleet'=>'Armada & Jasa','deliveries'=>'Pengiriman','operations'=>'Operasional Armada','fleet-costs'=>'Biaya Armada','journals'=>'Jurnal','ledger'=>'Buku Besar','receivables'=>'Piutang','cashbank'=>'Kas & Bank','cogs'=>'HPP','profit-loss'=>'Laba Rugi','balance-sheet'=>'Neraca','cash-flow'=>'Arus Kas'];
