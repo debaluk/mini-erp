@@ -43,7 +43,7 @@
             <div class="login-body">
 
                 <h2 class="h5 fw-bold mb-1">Silakan masuk untuk melanjutkan</h2>
-                <p class="text-secondary small mb-4">Masukkan username dan password Anda.</p>
+                <p class="text-secondary small mb-4">Masukkan email dan password Anda.</p>
 
                 @if ($errors->any())
                     <div class="alert alert-danger">
@@ -55,13 +55,13 @@
                     @csrf
 
                     <div class="mb-3">
-                        <label for="username" class="form-label">Username</label>
+                        <label for="email" class="form-label">Email</label>
                         <input
-                            type="text"
+                            type="email"
                             class="form-control form-control-lg"
-                            id="username"
-                            name="username"
-                            value="{{ old('username') }}"
+                            id="email"
+                            name="email"
+                            value="{{ old('email') }}"
                             required
                             autofocus
                         >
