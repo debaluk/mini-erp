@@ -183,7 +183,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const resetForm = () => {
         form.reset();
         editId = null;
-        form.querySelectorAll('.required-field').forEach(input => input.classList.remove('is-invalid'));
+        form.querySelectorAll('.is-invalid').forEach(input => {
+            input.classList.remove('is-invalid');
+            input.removeAttribute('aria-invalid');
+        });
         title.textContent = 'Tambah Supplier';
         submitButton.innerHTML = '<i class="bi bi-check-lg me-1"></i>Simpan Supplier';
     };
