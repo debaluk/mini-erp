@@ -83,8 +83,8 @@
                             </div>
                             <div id="new-uom-form" class="border rounded p-2 mb-2 d-none">
                                 <div class="row g-1">
-                                    <div class="col-4"><input type="text" id="new-uom-code" class="form-control form-control-sm" placeholder="Kode satuan"></div>
-                                    <div class="col-5"><input type="text" id="new-uom-name" class="form-control form-control-sm" placeholder="Nama satuan"></div>
+                                    <div class="col-4"><input type="text" id="new-uom-code" class="form-control form-control-sm" placeholder="Kode satuan *"></div>
+                                    <div class="col-5"><input type="text" id="new-uom-name" class="form-control form-control-sm" placeholder="Nama satuan *"></div>
                                     <div class="col-3 d-flex gap-1">
                                         <button type="button" class="btn btn-primary btn-sm flex-fill" id="save-new-uom">Simpan</button>
                                         <button type="button" class="btn btn-outline-secondary btn-sm" id="cancel-new-uom">Batal</button>
@@ -111,8 +111,8 @@
                         </div>
                         <div id="new-business-unit-form" class="border rounded p-2 mb-2 d-none">
                             <div class="row g-1">
-                                <div class="col-4"><input type="text" id="new-business-unit-code" class="form-control form-control-sm" placeholder="Kode unit"></div>
-                                <div class="col-5"><input type="text" id="new-business-unit-name" class="form-control form-control-sm" placeholder="Nama unit"></div>
+                                <div class="col-4"><input type="text" id="new-business-unit-code" class="form-control form-control-sm" placeholder="Kode unit *"></div>
+                                <div class="col-5"><input type="text" id="new-business-unit-name" class="form-control form-control-sm" placeholder="Nama unit *"></div>
                                 <div class="col-3 d-flex gap-1">
                                     <button type="button" class="btn btn-primary btn-sm flex-fill" id="save-new-business-unit">Simpan</button>
                                     <button type="button" class="btn btn-outline-secondary btn-sm" id="cancel-new-business-unit">Batal</button>
@@ -171,6 +171,7 @@
                     </div>
                 </div>
                 <div class="modal-footer py-2">
+                    <small class="text-secondary me-auto"><span class="text-danger">*</span> Wajib diisi</small>
                     <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
                     <button type="submit" class="btn btn-primary btn-sm" id="item-save">Simpan</button>
                 </div>
