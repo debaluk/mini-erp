@@ -1,9 +1,10 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\\Http\\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use App\\Models\\User;
+use Illuminate\\Http\\Request;
+use Illuminate\\Support\\Facades\\Auth;
 
 class AuthController extends Controller
 {
@@ -19,13 +20,27 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $credentials = $request->validate([
-            'username' => ['required', 'string'],
+            'username' => ['required', 'string', 'max:255'],
             'password' => ['required', 'string'],
         ]);
 
-        $credentials['is_active'] = true;
+        $identifier = trim($credentials['username']);
 
-        if (Auth::attempt($credentials, $request->boolean('remember'))) {
+        // Kolom identitas pada tabel users adalah email, bukan username.
+        // Tetap dukung input "owner" dengan mencocokkan bagian sebelum @.
+        $user = User::query()->where('email', $identifier)->first();
+
+        if (!$user && !str_contains($identifier, '@')) {
+            $user = User::query()
+                ->whereRaw("SUBSTRING_INDEX(email, '@', 1) = ?", [$identifier])
+                ->first();
+        }
+
+        if ($user && $user->is_active && Auth::attempt([
+            'email' => $user->email,
+            'password' => $credentials['password'],
+            'is_active' => true,
+        ], $request->boolean('remember'))) {
             $request->session()->regenerate();
 
             return redirect()->intended(route('dashboard'));
