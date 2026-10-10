@@ -9,7 +9,10 @@ class UnitConversionController extends Controller
 {
     private function entityId(): int
     {
-        return (int) DB::table('entities')->orderBy('id')->value('id');
+        $entityId = (int) (auth()->user()?->entity_id ?? 0);
+        abort_unless($entityId > 0, 403, 'Entitas pengguna tidak valid.');
+
+        return $entityId;
     }
 
     public function index(Request $request)
@@ -106,7 +109,7 @@ class UnitConversionController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('master.satuan.conversion', compact('rows', 'products', 'units'));
+        return view('master.satuan.konversi', compact('rows', 'products', 'units'));
     }
 
     private function save(Request $request, ?int $id = null)
