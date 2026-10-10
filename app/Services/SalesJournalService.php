@@ -91,9 +91,13 @@ class SalesJournalService
                 ->where('sale_id', $sale->id)
                 ->sum('hpp_total');
 
+            $inventoryKey = $sale->business_type === 'production'
+                ? 'inventory_finished_goods'
+                : 'inventory';
+
             if (in_array($sale->business_type, ['retail', 'production'], true) && $hppTotal > 0) {
                 $required[] = $sale->business_type === 'retail' ? 'cogs_merchandise' : 'cogs_finished_goods';
-                $required[] = 'inventory';
+                $required[] = $inventoryKey;
             }
 
             $missing = array_values(array_filter($required, fn ($key) => !isset($mapped[$key])));
@@ -157,7 +161,7 @@ class SalesJournalService
 
                 $entries[] = [
                     'journal_id' => $journalId,
-                    'account_id' => $mapped['inventory'],
+                    'account_id' => $mapped[$inventoryKey],
                     'debit' => 0,
                     'credit' => round($hppTotal, 2),
                     'created_at' => now(),
