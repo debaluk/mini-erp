@@ -70,7 +70,10 @@
                                         @endforeach
                                     </select>
                                 @else
-                                    <input name="{{ $key }}" type="{{ $field['type'] }}" step="{{ $field['step'] ?? 'any' }}" class="form-control @if($field['required'] ?? false) required-field @endif" placeholder="{{ $field['placeholder'] ?? '' }}" @if($field['readonly'] ?? false) readonly @endif @if($field['required'] ?? false) data-required="1" @endif>
+                                    <input name="{{ $key }}" type="{{ $field['type'] }}" step="{{ $field['step'] ?? 'any' }}" class="form-control @if($field['required'] ?? false) required-field @endif" placeholder="{{ $field['placeholder'] ?? ($key === 'email' ? 'nama@domain.com' : '') }}" @if($field['readonly'] ?? false) readonly @endif @if($field['required'] ?? false) data-required="1" @endif @if($type === 'suppliers' && $key === 'email') autocomplete="email" aria-describedby="supplierEmailError" @endif>
+                                    @if($type === 'suppliers' && $key === 'email')
+                                        <div class="invalid-feedback" id="supplierEmailError">Format email tidak valid. Contoh: nama@domain.com.</div>
+                                    @endif
                                 @endif
                             </div>
                         @endforeach
@@ -203,16 +206,28 @@ document.addEventListener('DOMContentLoaded', () => {
         modal.show();
     });
 
+    const emailInput = form.elements.namedItem('email');
+    const validateEmail = () => {
+        if (!emailInput || @json($type) !== 'suppliers') return true;
+        const value = String(emailInput.value ?? '').trim();
+        const valid = value === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+        emailInput.classList.toggle('is-invalid', !valid);
+        emailInput.setAttribute('aria-invalid', valid ? 'false' : 'true');
+        return valid;
+    };
+
     form.addEventListener('input', e => {
         if (e.target.matches('.required-field') && String(e.target.value ?? '').trim()) {
             e.target.classList.remove('is-invalid');
         }
+        if (e.target === emailInput) validateEmail();
     });
 
     form.addEventListener('change', e => {
         if (e.target.matches('.required-field') && String(e.target.value ?? '').trim()) {
             e.target.classList.remove('is-invalid');
         }
+        if (e.target === emailInput) validateEmail();
     });
 
     form.addEventListener('submit', async e => {
@@ -220,6 +235,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (validateRequired().length) {
             form.querySelector('[data-required="1"].is-invalid')?.focus();
+            return;
+        }
+
+        if (!validateEmail()) {
+            emailInput.focus();
             return;
         }
 
