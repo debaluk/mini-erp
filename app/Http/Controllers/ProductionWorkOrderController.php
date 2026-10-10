@@ -1147,8 +1147,8 @@ class ProductionWorkOrderController extends Controller
 
             abort_unless(!in_array(null, $costAccounts, true), 422, 'Mapping akun HPP produksi belum lengkap.');
 
-            $goodShare = $targetQty > 0 ? ($goodCost / $totalCost) : 0;
-            $rejectShare = $targetQty > 0 ? ($rejectCost / $totalCost) : 0;
+            $goodShare = $targetQty > 0 && $totalCost > 0 ? ($goodCost / $totalCost) : 0;
+            $rejectShare = $targetQty > 0 && $totalCost > 0 ? ($rejectCost / $totalCost) : 0;
             $hppJournalId = DB::table('journals')->insertGetId([
                 'entity_id' => $entityId,
                 'business_unit_id' => $wo->business_unit_id,
