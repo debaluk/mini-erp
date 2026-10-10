@@ -140,7 +140,7 @@
                         <div>
                             <div class="row g-3">
                                 <div class="col-lg-5">
-                                    <label class="form-label">Produk Jadi</label>
+                                    <label class="form-label">Produk Jadi <span class="text-danger">*</span></label>
                                     <select name="product_id" id="bomProduct" class="form-select" required>
                                         <option value="">Pilih produk jadi</option>
                                         @foreach($products as $p)
@@ -153,15 +153,15 @@
                                     <div class="form-text">Output menggunakan base unit produk jadi.</div>
                                 </div>
                                 <div class="col-lg-2">
-                                    <label class="form-label">Kode BOM</label>
+                                    <label class="form-label">Kode BOM <span class="text-danger">*</span></label>
                                     <input type="text" name="code" id="bomCode" class="form-control" maxlength="100" required>
                                 </div>
                                 <div class="col-lg-3">
-                                    <label class="form-label">Nama Formula</label>
+                                    <label class="form-label">Nama Formula <span class="text-danger">*</span></label>
                                     <input type="text" name="name" id="bomName" class="form-control" maxlength="255" required>
                                 </div>
                                 <div class="col-lg-2">
-                                    <label class="form-label">Output</label>
+                                    <label class="form-label">Output <span class="text-danger">*</span></label>
                                     <div class="input-group">
                                         <input type="text" name="output_qty" id="bomOutput" class="form-control qty-input" inputmode="decimal" autocomplete="off" required>
                                         <span class="input-group-text" id="outputUnit">-</span>
