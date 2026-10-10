@@ -235,6 +235,8 @@
     let units = @json($units);
     let businessUnits = @json($businessUnits);
     const dt = new DataTable('#items-table', {
+        scrollX: true,
+        autoWidth: false,
         ajax: {
             url: '{{ route('master.menu.produk') }}',
             data: function (d) {
