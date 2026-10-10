@@ -97,7 +97,7 @@
                             <input type="text" id="oldPriceDisplay" class="form-control text-end fw-semibold bg-light" disabled>
                         </div>
                         <div class="col-md-3">
-                            <label for="newPrice" class="form-label small text-secondary">Harga Baru</label>
+                            <label for="newPrice" class="form-label small text-secondary">Harga Baru <span class="text-danger">*</span></label>
                             <input type="text" name="selling_price" id="newPrice" class="form-control text-end fw-semibold" inputmode="decimal" autocomplete="off" required>
                         </div>
                         <div class="col-md-3">
@@ -105,7 +105,7 @@
                             <input type="text" id="changePercent" class="form-control text-end fw-semibold bg-light" value="-" disabled>
                         </div>
                         <div class="col-md-3">
-                            <label for="priceChangeDateDisplay" class="form-label small text-secondary">Tanggal Setup</label>
+                            <label for="priceChangeDateDisplay" class="form-label small text-secondary">Tanggal Setup <span class="text-danger">*</span></label>
                             <input type="text" id="priceChangeDateDisplay" class="form-control" inputmode="numeric" placeholder="dd/mm/yyyy" autocomplete="off" maxlength="10" required>
                             <input type="hidden" name="change_date" id="priceChangeDate">
                         </div>
@@ -113,6 +113,7 @@
                 </div>
 
                 <div class="modal-footer px-4 py-3">
+                    <small class="text-secondary me-auto"><span class="text-danger">*</span> Wajib diisi</small>
                     <button type="button" class="btn btn-light border btn-close-modal">Batal</button>
                     <button type="submit" class="btn btn-primary px-4" id="priceSaveButton">Simpan Harga</button>
                 </div>
