@@ -58,6 +58,22 @@ class InventoryReportController extends Controller
             );
     }
 
+    private function priceComparisonQuery(Request $request, int $entityId)
+    {
+        return DB::table('warehouses_stocks as ws')
+            ->join('products as p', function ($join) { $join->on('p.id', '=', 'ws.product_id')->on('p.entity_id', '=', 'ws.entity_id'); })
+            ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
+            ->join('warehouses as w', function ($join) { $join->on('w.id', '=', 'ws.warehouse_id')->on('w.entity_id', '=', 'ws.entity_id'); })
+            ->leftJoin('warehouse_business_units as wbu', function ($join) use ($entityId) { $join->on('wbu.warehouse_id', '=', 'w.id')->where('wbu.entity_id', '=', $entityId); })
+            ->leftJoin('business_units as bu', function ($join) { $join->on('bu.id', '=', 'wbu.business_unit_id')->on('bu.entity_id', '=', 'wbu.entity_id'); })
+            ->leftJoin('product_prices as pp', function ($join) { $join->on('pp.product_id', '=', 'p.id')->on('pp.business_unit_id', '=', 'bu.id')->on('pp.unit_id', '=', 'p.base_unit_id')->where('pp.price_type', '=', 'retail'); })
+            ->where('ws.entity_id', $entityId)
+            ->when($request->filled('business_unit_id'), fn ($q) => $q->where('bu.id', $request->integer('business_unit_id')))
+            ->when($request->filled('warehouse_id'), fn ($q) => $q->where('ws.warehouse_id', $request->integer('warehouse_id')))
+            ->when($request->filled('search'), function ($q) use ($request) { $term = '%' . trim((string) $request->query('search')) . '%'; $q->where(fn ($sub) => $sub->where('p.name', 'like', $term)->orWhere('p.code', 'like', $term)->orWhere('p.sku', 'like', $term)); })
+            ->select('p.id as product_id', 'p.code', 'p.sku', 'p.name as product_name', 'u.code as unit_code', 'u.name as unit_name', 'w.id as warehouse_id', 'w.name as warehouse_name', 'bu.id as business_unit_id', 'bu.code as business_unit_code', 'bu.name as business_unit_name', 'ws.qty', 'ws.avg_cost', DB::raw('(ws.qty * ws.avg_cost) as stock_value'), 'pp.selling_price', DB::raw('(ws.qty * pp.selling_price) as potential_sales'), DB::raw('(ws.qty * (pp.selling_price - ws.avg_cost)) as potential_gross_profit'), DB::raw('CASE WHEN pp.selling_price IS NULL THEN NULL ELSE ((pp.selling_price - ws.avg_cost) / NULLIF(pp.selling_price, 0)) * 100 END as gross_margin_percent'));
+    }
+
     private function movementSummary(Request $request, int $entityId): array
     {
         $incomingTypes = ['opening', 'purchase_in', 'receipt_in', 'production_in', 'transfer_in', 'adjustment_in', 'return_in'];
@@ -129,14 +145,14 @@ class InventoryReportController extends Controller
             ? ($warehouses->firstWhere('id', $request->integer('warehouse_id'))->name ?? 'Gudang')
             : 'Semua Gudang';
 
+        $mode = $request->query('mode') === 'analisis-harga' ? 'analisis-harga' : 'ringkasan';
         $summary = (clone $this->stockQuery($request, $entityId))->reorder()->select([])
-            ->selectRaw('COUNT(*) as stock_lines, COUNT(DISTINCT ws.product_id) as item_count,
-                COALESCE(SUM(ws.qty * ws.avg_cost), 0) as stock_value,
-                COALESCE(SUM(CASE WHEN ws.qty <= 0 THEN 1 ELSE 0 END), 0) as zero_or_negative')
+            ->selectRaw('COUNT(*) as stock_lines, COUNT(DISTINCT ws.product_id) as item_count, COALESCE(SUM(ws.qty * ws.avg_cost), 0) as stock_value, COALESCE(SUM(CASE WHEN ws.qty <= 0 THEN 1 ELSE 0 END), 0) as zero_or_negative')
             ->first();
-
-        $rows = $this->stockQuery($request, $entityId)
-            ->orderBy('p.name')->orderBy('w.name')->paginate(20)->withQueryString();
+        $priceSummary = (clone $this->priceComparisonQuery($request, $entityId))->reorder()->select([])
+            ->selectRaw('COALESCE(SUM(ws.qty * ws.avg_cost), 0) as stock_value, COALESCE(SUM(CASE WHEN pp.selling_price IS NOT NULL THEN ws.qty * pp.selling_price ELSE 0 END), 0) as potential_sales, COALESCE(SUM(CASE WHEN pp.selling_price IS NOT NULL THEN ws.qty * (pp.selling_price - ws.avg_cost) ELSE 0 END), 0) as potential_gross_profit, SUM(CASE WHEN pp.selling_price IS NULL THEN 1 ELSE 0 END) as missing_price_count')
+            ->first();
+        $rows = ($mode === 'analisis-harga' ? $this->priceComparisonQuery($request, $entityId) : $this->stockQuery($request, $entityId))->orderBy('p.name')->orderBy('w.name')->paginate(20)->withQueryString();
 
         $topStock = $this->stockQuery($request, $entityId)
             ->orderByDesc('stock_value')->limit(10)->get();
@@ -149,7 +165,7 @@ class InventoryReportController extends Controller
         return view('inventori.laporan.persediaan-eksekutif', compact(
             'businessUnits', 'warehouses', 'entityName', 'selectedUnitName',
             'selectedWarehouseName', 'startDate', 'endDate', 'summary', 'rows',
-            'topStock', 'byWarehouse', 'movement'
+            'topStock', 'byWarehouse', 'movement', 'mode', 'priceSummary'
         ));
     }
 
