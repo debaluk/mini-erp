@@ -613,10 +613,10 @@ class ErpController extends Controller
         $config = $this->masterConfig($type);
         $rules=[];
         foreach ($config['fields'] as $key=>$field) if (($field['required'] ?? false)) $rules[$key]=['required'];
-        if (in_array($type, ['customers', 'suppliers'], true)) {
+        if ($type === 'customers') {
             $rules['email'] = ['nullable', 'string', 'email:rfc', 'max:255'];
         }
-        $messages = in_array($type, ['customers', 'suppliers'], true) ? [
+        $messages = $type === 'customers' ? [
             'email.string' => 'Email harus berupa teks yang valid.',
             'email.email' => 'Format email tidak valid. Gunakan format nama@domain.com.',
             'email.max' => 'Email maksimal 255 karakter.',
@@ -679,10 +679,10 @@ class ErpController extends Controller
         $config = $this->masterConfig($type);
         $rules=[];
         foreach ($config['fields'] as $key=>$field) if (($field['required'] ?? false)) $rules[$key]=['required'];
-        if (in_array($type, ['customers', 'suppliers'], true)) {
+        if ($type === 'customers') {
             $rules['email'] = ['nullable', 'string', 'email:rfc', 'max:255'];
         }
-        $messages = in_array($type, ['customers', 'suppliers'], true) ? [
+        $messages = $type === 'customers' ? [
             'email.string' => 'Email harus berupa teks yang valid.',
             'email.email' => 'Format email tidak valid. Gunakan format nama@domain.com.',
             'email.max' => 'Email maksimal 255 karakter.',
