@@ -23,6 +23,8 @@ class ProductionController extends Controller
 
     public function index()
     {
+        return redirect()->route('produksi.work-order');
+
         $entityId = $this->entityId();
         abort_unless($entityId, 422, 'Entitas belum tersedia.');
 
@@ -72,6 +74,9 @@ class ProductionController extends Controller
 
     public function store(Request $request)
     {
+        return redirect()->route('produksi.work-order')
+            ->with('error', 'Posting produksi langsung sudah tidak digunakan. Silakan gunakan alur SPK.');
+
         $data = $request->validate([
             'bom_id' => ['required', 'integer'],
             'warehouse_id' => ['required', 'integer'],
