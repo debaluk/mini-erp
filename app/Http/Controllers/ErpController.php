@@ -26,11 +26,12 @@ class ErpController extends Controller
                 'minimum_stock'=>['label'=>'Minimum Stok','type'=>'number','step'=>'0.001']]],
             'customers'=>[
                 'title'=>'Customer','table'=>'customers',
-                'columns'=>['code','name','phone','address','is_active'],
-                'column_labels'=>['code'=>'Kode Customer','name'=>'Nama Customer','phone'=>'No. Telepon','address'=>'Alamat','is_active'=>'Status'],
+                'columns'=>['code','name','phone','email','address','is_active'],
+                'column_labels'=>['code'=>'Kode Customer','name'=>'Nama Customer','phone'=>'No. Telepon','email'=>'Email','address'=>'Alamat','is_active'=>'Status'],
                 'fields'=>[
                     'name'=>['label'=>'Nama Customer','type'=>'text','required'=>true],
                     'phone'=>['label'=>'No. Telepon','type'=>'text'],
+                    'email'=>['label'=>'Email','type'=>'email'],
                     'address'=>['label'=>'Alamat','type'=>'textarea'],
                     'is_active'=>['label'=>'Status','type'=>'select','options'=>['1'=>'Aktif','0'=>'Nonaktif']]
                 ]
@@ -612,7 +613,15 @@ class ErpController extends Controller
         $config = $this->masterConfig($type);
         $rules=[];
         foreach ($config['fields'] as $key=>$field) if (($field['required'] ?? false)) $rules[$key]=['required'];
-        $data=$request->validate($rules);
+        if (in_array($type, ['customers', 'suppliers'], true)) {
+            $rules['email'] = ['nullable', 'string', 'email:rfc', 'max:255'];
+        }
+        $messages = in_array($type, ['customers', 'suppliers'], true) ? [
+            'email.string' => 'Email harus berupa teks yang valid.',
+            'email.email' => 'Format email tidak valid. Gunakan format nama@domain.com.',
+            'email.max' => 'Email maksimal 255 karakter.',
+        ] : [];
+        $data=$request->validate($rules, $messages);
         foreach ($config['fields'] as $key=>$field) {
             if (array_key_exists($key, $data)) continue;
             $value = $request->input($key);
@@ -670,7 +679,15 @@ class ErpController extends Controller
         $config = $this->masterConfig($type);
         $rules=[];
         foreach ($config['fields'] as $key=>$field) if (($field['required'] ?? false)) $rules[$key]=['required'];
-        $data=$request->validate($rules);
+        if (in_array($type, ['customers', 'suppliers'], true)) {
+            $rules['email'] = ['nullable', 'string', 'email:rfc', 'max:255'];
+        }
+        $messages = in_array($type, ['customers', 'suppliers'], true) ? [
+            'email.string' => 'Email harus berupa teks yang valid.',
+            'email.email' => 'Format email tidak valid. Gunakan format nama@domain.com.',
+            'email.max' => 'Email maksimal 255 karakter.',
+        ] : [];
+        $data=$request->validate($rules, $messages);
         foreach ($config['fields'] as $key=>$field) {
             if (array_key_exists($key, $data)) continue;
             $value = $request->input($key);
