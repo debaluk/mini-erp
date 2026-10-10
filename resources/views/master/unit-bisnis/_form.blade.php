@@ -36,7 +36,7 @@
                 </div>
             </div>
             <div class="col-md-2">
-                <div class="d-flex align-items-center gap-2 mb-2"><small class="text-secondary"><span class="text-danger">*</span> Wajib diisi</small></div>
+                <div class="d-flex align-items-center justify-content-between gap-2 mb-2"><small class="text-secondary"><span class="text-danger">*</span> Wajib diisi</small></div>
                 <div class="d-flex gap-2">
                     <button class="btn btn-primary flex-fill">{{ isset($editUnit) ? 'Update' : 'Simpan' }}</button>
                     @if(isset($editUnit))
