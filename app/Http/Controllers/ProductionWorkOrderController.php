@@ -1106,7 +1106,7 @@ class ProductionWorkOrderController extends Controller
                 ->where('entity_id', $entityId)->where('business_unit_id', $wo->business_unit_id)
                 ->where('mapping_key', 'inventory_damage_loss')->value('account_id');
 
-            app(\\App\\Services\\ProductionJournalService::class)->post(
+            app(\App\Services\ProductionJournalService::class)->post(
                 $entityId,
                 (int) $wo->business_unit_id,
                 $postingDate,
@@ -1136,7 +1136,7 @@ class ProductionWorkOrderController extends Controller
                 $hppEntries[] = ['account_id' => (int) $damageAccount, 'debit' => round($rejectCost, 2), 'credit' => 0];
             }
 
-            app(\\App\\Services\\ProductionJournalService::class)->post(
+            app(\App\Services\ProductionJournalService::class)->post(
                 $entityId,
                 (int) $wo->business_unit_id,
                 $postingDate,
