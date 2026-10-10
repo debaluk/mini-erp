@@ -345,10 +345,21 @@ class ErpController extends Controller
         $item = DB::table('products')->where('entity_id', $entity)->find($id);
         abort_unless($item, 404);
 
-        $hasTransactions = DB::table('stock_movements')->where('product_id', $id)->exists()
-            || DB::table('purchase_items')->where('product_id', $id)->exists()
-            || DB::table('sale_items')->where('product_id', $id)->exists();
-        abort_if($hasTransactions, 422, 'Item sudah digunakan dalam transaksi dan tidak dapat dihapus. Nonaktifkan item jika tidak digunakan lagi.');
+        // Periksa seluruh relasi product_id, termasuk produksi/BOM dan tabel tanpa foreign key.
+        // Tabel konversi dan mapping BU adalah data turunan yang akan dibersihkan di bawah.
+        $references = DB::select(
+            "SELECT TABLE_NAME
+             FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND COLUMN_NAME = 'product_id'
+               AND TABLE_NAME NOT IN ('products', 'product_unit_conversions', 'product_business_units')"
+        );
+
+        foreach ($references as $reference) {
+            if (DB::table($reference->TABLE_NAME)->where('product_id', $id)->exists()) {
+                abort(422, 'Item sudah digunakan dalam master lain atau transaksi dan tidak dapat dihapus. Nonaktifkan item jika tidak digunakan lagi.');
+            }
+        }
 
         DB::transaction(function () use ($id, $entity): void {
             DB::table('product_unit_conversions')->where('product_id', $id)->delete();
@@ -546,12 +557,19 @@ class ErpController extends Controller
         $unit = DB::table('units')->where('entity_id', $entity)->where('id', $id)->first();
         abort_unless($unit, 404, 'Satuan tidak ditemukan.');
 
-        $inUse = DB::table('products')->where('entity_id', $entity)->where(function ($q) use ($id) {
-            $q->where('base_unit_id', $id);
-        })->exists()
-            || DB::table('product_unit_conversions')->where('unit_id', $id)->exists();
+        $references = DB::select(
+            "SELECT TABLE_NAME, COLUMN_NAME
+             FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND COLUMN_NAME IN ('unit_id', 'base_unit_id', 'purchase_unit_id', 'sale_unit_id')
+               AND TABLE_NAME <> 'units'"
+        );
 
-        abort_if($inUse, 422, 'Satuan sudah digunakan oleh Item atau konversi dan tidak dapat dihapus. Nonaktifkan satuan jika tidak digunakan lagi.');
+        foreach ($references as $reference) {
+            if (DB::table($reference->TABLE_NAME)->where($reference->COLUMN_NAME, $id)->exists()) {
+                abort(422, 'Satuan sudah digunakan oleh item, master lain, atau transaksi dan tidak dapat dihapus. Nonaktifkan satuan jika tidak digunakan lagi.');
+            }
+        }
 
         DB::table('units')->where('entity_id', $entity)->where('id', $id)->delete();
 
