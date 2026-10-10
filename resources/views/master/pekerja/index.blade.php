@@ -64,7 +64,7 @@
                     <div class="row g-3">
                         @foreach($config['fields'] as $key => $field)
                             <div class="{{ $key === 'address' ? 'col-12' : 'col-md-6' }}">
-                                <label class="form-label">{{ $field['label'] }}</label>
+                                <label class="form-label">{{ $field['label'] }}@if($field['required'] ?? false) <span class="text-danger">*</span>@endif</label>
 
                                 @if($field['type'] === 'textarea')
                                     <textarea
@@ -99,6 +99,7 @@
                 </div>
 
                 <div class="modal-footer bg-light">
+                    <small class="text-secondary me-auto"><span class="text-danger">*</span> Wajib diisi</small>
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
                     <button type="submit" class="btn btn-success px-4" id="masterSubmit">
                         <i class="bi bi-check-lg me-1"></i>Simpan Pekerja
