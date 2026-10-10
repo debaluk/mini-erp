@@ -9,9 +9,6 @@
     <a href="{{ route('pengaturan.konfigurasi') }}" class="btn btn-outline-secondary">Kembali</a>
 </div>
 
-@if(session('success'))
-    <div class="alert alert-success py-2">{{ session('success') }}</div>
-@endif
 
 @if($errors->any())
     <div class="alert alert-danger py-2">
