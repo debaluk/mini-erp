@@ -29,7 +29,6 @@ class ErpController extends Controller
                 'columns'=>['code','name','phone','address','is_active'],
                 'column_labels'=>['code'=>'Kode Customer','name'=>'Nama Customer','phone'=>'No. Telepon','address'=>'Alamat','is_active'=>'Status'],
                 'fields'=>[
-                    'code'=>['label'=>'Kode Customer','type'=>'text','readonly'=>true],
                     'name'=>['label'=>'Nama Customer','type'=>'text','required'=>true],
                     'phone'=>['label'=>'No. Telepon','type'=>'text'],
                     'address'=>['label'=>'Alamat','type'=>'textarea'],
@@ -41,15 +40,12 @@ class ErpController extends Controller
                 'columns'=>['code','name','category','phone','whatsapp','email','website','address','country','is_active'],
                 'column_labels'=>['code'=>'Kode Supplier','name'=>'Nama Supplier','category'=>'Kategori','phone'=>'No. Telepon','whatsapp'=>'WhatsApp','email'=>'Email','website'=>'Website','address'=>'Alamat','country'=>'Negara','is_active'=>'Status'],
                 'fields'=>[
-                    'code'=>['label'=>'Kode Supplier','type'=>'text','readonly'=>true],
                     'name'=>['label'=>'Nama Supplier','type'=>'text','required'=>true],
-                    'category'=>['label'=>'Kategori','type'=>'text'],
                     'phone'=>['label'=>'No. Telepon','type'=>'text'],
                     'whatsapp'=>['label'=>'WhatsApp','type'=>'text'],
                     'email'=>['label'=>'Email','type'=>'email'],
                     'website'=>['label'=>'Website','type'=>'url'],
                     'address'=>['label'=>'Alamat','type'=>'textarea'],
-                    'country'=>['label'=>'Negara','type'=>'text'],
                     'is_active'=>['label'=>'Status','type'=>'select','options'=>['1'=>'Aktif','0'=>'Nonaktif']]
                 ]
             ],
