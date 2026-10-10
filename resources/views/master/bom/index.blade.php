@@ -174,7 +174,7 @@
                     <div class="border-top pt-3">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <div>
-                                <div class="fw-semibold">Material / Bahan Baku</div>
+                                <div class="fw-semibold">Material / Bahan Baku <span class="text-danger">*</span></div>
                                 <div class="text-secondary small">Satuan mengikuti base unit atau konversi produk.</div>
                             </div>
                             <button type="button" class="btn btn-outline-primary btn-sm" id="addMaterial">
@@ -201,6 +201,7 @@
                 </div>
 
                 <div class="modal-footer bg-light">
+                    <small class="text-secondary me-auto"><span class="text-danger">*</span> Wajib diisi</small>
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
                     <button type="submit" class="btn btn-success px-4">
                         <i class="bi bi-check-lg me-1"></i><span id="bomSubmitText">Simpan BOM</span>
