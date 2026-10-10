@@ -143,7 +143,7 @@
 
                     <div class="row g-2 mt-1">
                         <div class="col-md-4">
-                            <label class="form-label d-block">Kelola sebagai Persediaan?</label>
+                            <label class="form-label d-block">Kelola sebagai Persediaan? <span class="text-danger">*</span></label>
                             <div class="form-check form-check-inline">
                                 <input class="form-check-input" type="radio" name="manage_stock" value="1" checked>
                                 <label class="form-check-label small">Ya</label>
@@ -158,7 +158,7 @@
                             <input type="number" name="minimum_stock" id="item-minimum-stock" class="form-control" min="0" step="1" inputmode="numeric" value="0">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label d-block">Status</label>
+                            <label class="form-label d-block">Status <span class="text-danger">*</span></label>
                             <div class="form-check form-check-inline">
                                 <input class="form-check-input" type="radio" name="status" value="1" checked>
                                 <label class="form-check-label small">Aktif</label>
