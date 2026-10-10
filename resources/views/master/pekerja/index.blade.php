@@ -32,7 +32,7 @@
     </div>
 
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0" id="masterDataTable" style="width:100%">
+        <table class="table table-hover align-middle mb-0 text-nowrap" id="masterDataTable" style="width:100%; min-width:900px;">
             <thead class="table-primary">
                 <tr>
                     <th style="width:50px;">No</th>
@@ -61,8 +61,9 @@
                 </div>
 
                 <div class="modal-body">
-                    <div class="row g-3">
+                    <div class="row g-2">
                         @foreach($config['fields'] as $key => $field)
+                            @continue($key === 'code')
                             <div class="{{ $key === 'address' ? 'col-12' : 'col-md-6' }}">
                                 <label class="form-label">{{ $field['label'] }}@if($field['required'] ?? false) <span class="text-danger">*</span>@endif</label>
 
@@ -156,6 +157,8 @@ document.addEventListener('DOMContentLoaded', () => {
         serverSide: true,
         pageLength: 15,
         lengthMenu: [[15, 25, 50, 100], [15, 25, 50, 100]],
+        scrollX: true,
+        autoWidth: false,
         order: [[1, 'asc']],
         language: {
             lengthMenu: 'Tampilkan _MENU_ data',
