@@ -41,7 +41,7 @@
                     <div class="row g-2">
                         @foreach($config['fields'] as $key => $field)
                             <div class="{{ in_array($type, ['customers', 'suppliers'], true) ? 'col-12' : ($type === 'warehouses' ? 'col-md-6' : 'col-md-4') }}">
-                                <label class="form-label fw-medium mb-1">{{ $field['label'] }}</label>
+                                <label class="form-label fw-medium mb-1">{{ $field['label'] }}@if($field['required'] ?? false) <span class="text-danger">*</span>@endif</label>
                                 @if($field['type'] === 'textarea')
                                     <textarea name="{{ $key }}" class="form-control @if($field['required'] ?? false) required-field @endif" rows="2" @if($field['required'] ?? false) data-required="1" @endif></textarea>
                                 @elseif($field['type'] === 'select')
@@ -58,6 +58,7 @@
                     </div>
                 </div>
                 <div class="modal-footer py-2">
+                    <small class="text-secondary me-auto"><span class="text-danger">*</span> Wajib diisi</small>
                     <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Batal</button>
                     <button type="submit" class="btn btn-primary btn-sm" id="masterSubmit">Simpan</button>
                 </div>
