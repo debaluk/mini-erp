@@ -832,8 +832,8 @@ class ErpController extends Controller
                 ->delete();
 
             abort_unless($deleted, 404, 'Data tidak ditemukan.');
-        } catch (\\Throwable $e) {
-            if ($e instanceof \\Symfony\\Component\\HttpKernel\\Exception\\HttpExceptionInterface) {
+        } catch (\Throwable $e) {
+            if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface) {
                 $status = $e->getStatusCode();
                 $message = $e->getMessage();
 
