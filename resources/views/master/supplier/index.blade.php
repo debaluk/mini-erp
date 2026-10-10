@@ -56,11 +56,11 @@
                     </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body py-3">
+                <div class="modal-body p-4">
                     <div class="row g-3">
                         @foreach($config['fields'] as $key => $field)
-                            <div class="{{ $type === 'warehouses' ? 'col-md-6' : (in_array($type, ['customers','suppliers'], true) ? 'col-md-6' : 'col-md-4') }}">
-                                <label class="form-label mb-1">{{ $field['label'] }}</label>
+                            <div class="{{ in_array($type, ['customers', 'suppliers'], true) ? 'col-12' : ($type === 'warehouses' ? 'col-md-6' : 'col-md-4') }}">
+                                <label class="form-label fw-medium mb-2">{{ $field['label'] }}</label>
                                 @if($field['type'] === 'textarea')
                                     <textarea name="{{ $key }}" class="form-control @if($field['required'] ?? false) required-field @endif" rows="2" @if($field['required'] ?? false) data-required="1" @endif></textarea>
                                 @elseif($field['type'] === 'select')
