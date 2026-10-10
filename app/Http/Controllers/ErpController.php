@@ -759,87 +759,95 @@ class ErpController extends Controller
         $config = $this->masterConfig($type);
         $entity = $this->entityId();
 
-        $record = DB::table($config['table'])
-            ->where('entity_id', $entity)
-            ->where('id', $id)
-            ->first();
+        try {
+            $record = DB::table($config['table'])
+                ->where('entity_id', $entity)
+                ->where('id', $id)
+                ->first();
 
-        abort_unless($record, 404, 'Data tidak ditemukan.');
+            abort_unless($record, 404, 'Data tidak ditemukan.');
 
-        if (in_array($type, ['customers', 'suppliers'], true) && (int) $id === 1) {
-            abort(422, 'Data default Umum tidak dapat dihapus.');
-        }
+            if (in_array($type, ['customers', 'suppliers'], true) && (int) $id === 1) {
+                abort(422, 'Data default Umum tidak dapat dihapus.');
+            }
 
-        // Pemeriksaan relasi mencakup tabel tanpa foreign key yang eksplisit.
-        $referenceColumns = [
-            'customers' => ['customer_id'],
-            'suppliers' => ['supplier_id'],
-            'warehouses' => ['warehouse_id', 'source_warehouse_id', 'destination_warehouse_id', 'from_warehouse_id', 'to_warehouse_id'],
-            'workers' => ['worker_id'],
-            'units' => ['unit_id', 'base_unit_id'],
-            'tariffs' => ['tariff_id'],
-            'vehicles' => ['vehicle_id'],
-            'drivers' => ['driver_id'],
-            'products' => ['product_id'],
-        ];
+            // Pemeriksaan relasi mencakup tabel tanpa foreign key yang eksplisit.
+            $referenceColumns = [
+                'customers' => ['customer_id'],
+                'suppliers' => ['supplier_id'],
+                'warehouses' => ['warehouse_id', 'source_warehouse_id', 'destination_warehouse_id', 'from_warehouse_id', 'to_warehouse_id'],
+                'workers' => ['worker_id'],
+                'units' => ['unit_id', 'base_unit_id'],
+                'tariffs' => ['tariff_id'],
+                'vehicles' => ['vehicle_id'],
+                'drivers' => ['driver_id'],
+                'products' => ['product_id'],
+            ];
 
-        foreach ($referenceColumns[$type] ?? [] as $column) {
-            $references = DB::select(
-                "SELECT TABLE_NAME
-                 FROM information_schema.COLUMNS
-                 WHERE TABLE_SCHEMA = DATABASE()
-                   AND COLUMN_NAME = ?
-                   AND TABLE_NAME <> ?",
-                [$column, $config['table']]
+            foreach ($referenceColumns[$type] ?? [] as $column) {
+                $references = DB::select(
+                    "SELECT TABLE_NAME
+                     FROM information_schema.COLUMNS
+                     WHERE TABLE_SCHEMA = DATABASE()
+                       AND COLUMN_NAME = ?
+                       AND TABLE_NAME <> ?",
+                    [$column, $config['table']]
+                );
+
+                foreach ($references as $reference) {
+                    if (DB::table($reference->TABLE_NAME)->where($column, $id)->exists()) {
+                        abort(
+                            422,
+                            $config['title'].' tidak dapat dihapus karena sudah digunakan oleh data/master/transaksi lain. Nonaktifkan jika tidak digunakan lagi.'
+                        );
+                    }
+                }
+            }
+
+            // Lapisan tambahan untuk semua foreign key yang mengacu ke master ini.
+            $foreignKeys = DB::select(
+                "SELECT TABLE_NAME, COLUMN_NAME
+                 FROM information_schema.KEY_COLUMN_USAGE
+                 WHERE REFERENCED_TABLE_SCHEMA = DATABASE()
+                   AND REFERENCED_TABLE_NAME = ?
+                   AND REFERENCED_COLUMN_NAME = 'id'",
+                [$config['table']]
             );
 
-            foreach ($references as $reference) {
+            foreach ($foreignKeys as $reference) {
                 $table = $reference->TABLE_NAME;
-                if (DB::table($table)->where($column, $id)->exists()) {
+                $column = $reference->COLUMN_NAME;
+
+                if ($table !== $config['table'] && DB::table($table)->where($column, $id)->exists()) {
                     abort(
                         422,
-                        $config['title'].' tidak dapat dihapus karena sudah digunakan oleh data/master/transaksi lain. Nonaktifkan jika tidak digunakan lagi.'
+                        $config['title'].' tidak dapat dihapus karena masih menjadi acuan data lain. Nonaktifkan jika tidak digunakan lagi.'
                     );
                 }
             }
-        }
 
-        // Lapisan tambahan untuk semua foreign key yang mengacu ke master ini.
-        $foreignKeys = DB::select(
-            "SELECT TABLE_NAME, COLUMN_NAME
-             FROM information_schema.KEY_COLUMN_USAGE
-             WHERE REFERENCED_TABLE_SCHEMA = DATABASE()
-               AND REFERENCED_TABLE_NAME = ?
-               AND REFERENCED_COLUMN_NAME = 'id'",
-            [$config['table']]
-        );
-
-        foreach ($foreignKeys as $reference) {
-            $table = $reference->TABLE_NAME;
-            $column = $reference->COLUMN_NAME;
-
-            if ($table !== $config['table'] && DB::table($table)->where($column, $id)->exists()) {
-                abort(
-                    422,
-                    $config['title'].' tidak dapat dihapus karena masih menjadi acuan data lain. Nonaktifkan jika tidak digunakan lagi.'
-                );
-            }
-        }
-
-        try {
             $deleted = DB::table($config['table'])
                 ->where('entity_id', $entity)
                 ->where('id', $id)
                 ->delete();
 
             abort_unless($deleted, 404, 'Data tidak ditemukan.');
-        } catch (\Throwable $e) {
-            if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface) {
-                throw $e;
+        } catch (\\Throwable $e) {
+            if ($e instanceof \\Symfony\\Component\\HttpKernel\\Exception\\HttpExceptionInterface) {
+                $status = $e->getStatusCode();
+                $message = $e->getMessage();
+
+                return $request->expectsJson()
+                    ? response()->json(['message' => $message], $status)
+                    : back()->withErrors(['delete' => $message]);
             }
 
             report($e);
-            abort(422, 'Data tidak dapat dihapus karena masih digunakan oleh data/master/transaksi lain. Nonaktifkan jika tidak digunakan lagi.');
+            $message = 'Data tidak dapat dihapus karena masih digunakan oleh data/master/transaksi lain. Nonaktifkan jika tidak digunakan lagi.';
+
+            return $request->expectsJson()
+                ? response()->json(['message' => $message], 422)
+                : back()->withErrors(['delete' => $message]);
         }
 
         return $request->expectsJson()
