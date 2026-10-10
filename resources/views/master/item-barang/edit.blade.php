@@ -89,6 +89,7 @@
         <a href="{{ route('master.menu.produk') }}" class="btn btn-outline-secondary">Batal</a>
         <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
     </div>
+<div class="card-footer bg-light"><small class="text-secondary"><span class="text-danger">*</span> Wajib diisi</small></div>
 </form>
 @endsection
 
