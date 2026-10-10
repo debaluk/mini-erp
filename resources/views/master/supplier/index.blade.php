@@ -46,8 +46,8 @@
 </div>
 
 <div class="modal fade" id="masterModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
-    <div class="modal-dialog modal-md modal-dialog-scrollable">
-        <div class="modal-content">
+    <div class="modal-dialog modal-md modal-dialog-scrollable" style="max-height: calc(100vh - 1rem);">
+        <div class="modal-content" style="max-height: calc(100vh - 1rem);">
             <form id="masterForm" novalidate>
                 <div class="modal-header py-2">
                     <div>
@@ -56,7 +56,7 @@
                     </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body px-3 py-2">
+                <div class="modal-body px-3 py-2" style="overflow-y: auto; max-height: calc(100vh - 170px);">
                     <div class="row g-2">
                         @foreach($config['fields'] as $key => $field)
                             <div class="{{ in_array($type, ['customers', 'suppliers'], true) ? 'col-12' : ($type === 'warehouses' ? 'col-md-6' : 'col-md-4') }}">
