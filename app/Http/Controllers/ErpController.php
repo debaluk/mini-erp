@@ -11,11 +11,10 @@ class ErpController extends Controller
 {
     private function entityId(): int
     {
-        $entity = DB::table('entities')->first();
-        if (!$entity) {
-            return DB::table('entities')->insertGetId(['code'=>'ENT-001','name'=>'Entitas Utama','is_active'=>1,'created_at'=>now(),'updated_at'=>now()]);
-        }
-        return $entity->id;
+        $entityId = (int) (auth()->user()?->entity_id ?? 0);
+        abort_unless($entityId > 0, 403, 'Entitas pengguna tidak valid.');
+
+        return $entityId;
     }
 
     private function masterConfig(string $type): array
