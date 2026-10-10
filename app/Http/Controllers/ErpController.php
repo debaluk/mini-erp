@@ -37,14 +37,13 @@ class ErpController extends Controller
             ],
             'suppliers'=>[
                 'title'=>'Supplier','table'=>'suppliers',
-                'columns'=>['code','name','category','phone','whatsapp','email','website','address','country','is_active'],
-                'column_labels'=>['code'=>'Kode Supplier','name'=>'Nama Supplier','category'=>'Kategori','phone'=>'No. Telepon','whatsapp'=>'WhatsApp','email'=>'Email','website'=>'Website','address'=>'Alamat','country'=>'Negara','is_active'=>'Status'],
+                'columns'=>['code','name','phone','whatsapp','email','website','address','is_active'],
+                'column_labels'=>['code'=>'Kode Supplier','name'=>'Nama Supplier','phone'=>'No. Telepon','whatsapp'=>'WhatsApp','email'=>'Email','website'=>'Website','address'=>'Alamat','is_active'=>'Status'],
                 'fields'=>[
                     'name'=>['label'=>'Nama Supplier','type'=>'text','required'=>true],
                     'phone'=>['label'=>'No. Telepon','type'=>'text'],
                     'whatsapp'=>['label'=>'WhatsApp','type'=>'text'],
                     'email'=>['label'=>'Email','type'=>'email'],
-                    'website'=>['label'=>'Website','type'=>'url'],
                     'address'=>['label'=>'Alamat','type'=>'textarea'],
                     'is_active'=>['label'=>'Status','type'=>'select','options'=>['1'=>'Aktif','0'=>'Nonaktif']]
                 ]
