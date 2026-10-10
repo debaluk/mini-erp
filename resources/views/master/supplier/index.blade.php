@@ -6,9 +6,6 @@
         <h4 class="mb-1">Master Data Supplier</h4>
         <div class="text-secondary small">Data pemasok barang dan jasa untuk kebutuhan pembelian.</div>
     </div>
-    <button type="button" class="btn btn-primary" id="btnAddMaster">
-        <i class="bi bi-plus-lg me-1"></i> Tambah Supplier
-    </button>
 </div>
 
 
@@ -28,7 +25,7 @@
         <div class="fw-semibold">
             <i class="bi bi-truck me-2"></i>Daftar Supplier
         </div>
-        <span class="badge rounded-pill bg-white text-primary border border-primary-subtle" id="supplierCount">Data supplier</span>
+        <button type="button" class="btn btn-primary btn-sm" id="btnAddMaster"><i class="bi bi-plus-lg me-1"></i>Tambah Supplier</button>
     </div>
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0" id="masterDataTable" style="width:100%">
@@ -122,7 +119,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('masterForm');
     const title = document.getElementById('masterModalTitle');
     const submitButton = document.getElementById('masterSubmit');
-    const countBadge = document.getElementById('supplierCount');
     const baseUrl = @json(url('/master/suppliers'));
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content || @json(csrf_token());
 
@@ -154,10 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ajax: {
             url: baseUrl,
             type: 'GET',
-            dataSrc: json => {
-                countBadge.textContent = (json.recordsFiltered ?? json.recordsTotal ?? 0) + ' supplier';
-                return json.data || [];
-            }
+            dataSrc: json => json.data || []
         },
         columns: [
             @foreach($config['columns'] as $column)
