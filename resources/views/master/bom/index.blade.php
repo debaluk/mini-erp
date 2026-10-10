@@ -27,7 +27,7 @@
     </div>
 
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
+        <table class="table table-hover align-middle mb-0 text-nowrap" style="min-width: 900px;">
             <thead class="table-primary">
                 <tr>
                     <th style="width: 50px;">No</th>
