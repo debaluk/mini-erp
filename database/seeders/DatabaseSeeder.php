@@ -589,6 +589,11 @@ class DatabaseSeeder extends Seeder
 
         foreach ($buMappings as $buCode=>$keys) {
             foreach ($keys as $key) {
+                // Persediaan produksi menggunakan akun Persediaan Bahan Baku.
+                $accountCode = ($buCode === 'PROD' && $key === 'inventory')
+                    ? '1000402'
+                    : $mappingAccounts[$key];
+
                 DB::table('business_unit_account_mappings')->updateOrInsert(
                     [
                         'business_unit_id'=>$buIds[$buCode],
@@ -596,7 +601,7 @@ class DatabaseSeeder extends Seeder
                     ],
                     [
                         'entity_id'=>$entityId,
-                        'account_id'=>$coaIds[$mappingAccounts[$key]],
+                        'account_id'=>$coaIds[$accountCode],
                         'updated_at'=>$now,
                     ]
                 );
