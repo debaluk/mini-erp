@@ -33,7 +33,7 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-2">
-                        <label class="form-label">Produk</label>
+                        <label class="form-label">Produk <span class="text-danger">*</span></label>
                         <select name="product_id" id="product_id" class="form-select" required>
                             <option value="">Pilih produk</option>
                             @foreach($products as $product)
@@ -42,7 +42,7 @@
                         </select>
                     </div>
                     <div class="mb-2">
-                        <label class="form-label">Satuan</label>
+                        <label class="form-label">Satuan <span class="text-danger">*</span></label>
                         <select name="unit_id" id="unit_id" class="form-select" required>
                             <option value="">Pilih satuan</option>
                             @foreach($units as $unit)
@@ -51,7 +51,7 @@
                         </select>
                     </div>
                     <div class="mb-2">
-                        <label class="form-label">Faktor ke satuan dasar</label>
+                        <label class="form-label">Faktor ke satuan dasar <span class="text-danger">*</span></label>
                         <input name="conversion_factor" id="conversion_factor" type="number" step="0.000001" min="0.000001" class="form-control" value="1" required>
                     </div>
                     <div class="row g-2">
