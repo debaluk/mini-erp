@@ -103,7 +103,7 @@
 
                     <div class="border rounded p-2 mt-2">
                         <div class="d-flex justify-content-between align-items-center mb-1">
-                            <div class="fw-semibold small">Unit</div>
+                            <div class="fw-semibold small">Unit <span class="text-danger">*</span></div>
                             <div>
                                 <span class="text-secondary small me-2">Pilih minimal satu Unit</span>
                                 <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" id="btn-add-business-unit">+ Unit</button>
