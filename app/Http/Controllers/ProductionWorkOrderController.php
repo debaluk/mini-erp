@@ -786,6 +786,21 @@ class ProductionWorkOrderController extends Controller
             }
 
             DB::transaction(function () use ($entry, $setup, $woForResult, $entityIdForResult, $id) {
+                // Kunci baris SPK sebagai mutex agar request Simpan Hasil bersamaan diproses bergantian.
+                // Ini tetap bekerja ketika batch draft belum ada, saat lockForUpdate pada draft saja belum cukup.
+                $lockedWorkOrder = DB::table('production_work_orders')
+                    ->where('entity_id', $entityIdForResult)
+                    ->where('id', $id)
+                    ->lockForUpdate()
+                    ->first();
+
+                abort_unless($lockedWorkOrder, 404, 'SPK tidak ditemukan.');
+                abort_unless($lockedWorkOrder->status === 'in_progress', 422, 'Hanya SPK yang sedang diproses dapat menerima hasil produksi.');
+
+                // Simpan kuantitas sebagai angka, bukan string format tampilan Indonesia.
+                $goodQuantities = array_map(static fn ($value) => round((float) $value, 3), $entry['good_qty']);
+                $rejectQuantities = array_map(static fn ($value) => round((float) $value, 3), $entry['reject_by_worker']);
+
                 // Satu batch draft per SPK per tanggal. Simpan ulang atau Closing pada tanggal yang sama
                 // memperbarui draft yang ada, bukan menggandakan hasil dan biaya upah.
                 $existingDraft = DB::table('production_work_order_results')
@@ -823,8 +838,8 @@ class ProductionWorkOrderController extends Controller
                         'worker_id' => $workerId,
                         'pay_type' => strtolower((string) $cost->pay_type) === 'satuan' ? 'satuan' : 'borongan',
                         'unit_rate' => round((float) ($cost->unit_rate ?? $cost->amount), 2),
-                        'good_qty' => round((float) $entry['good_qty'][$i], 3),
-                        'reject_qty' => round((float) $entry['reject_by_worker'][$i], 3),
+                        'good_qty' => $goodQuantities[$i],
+                        'reject_qty' => $rejectQuantities[$i],
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]);
