@@ -48,7 +48,9 @@
 <div class="modal fade" id="masterModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-md modal-dialog-scrollable" style="max-height: calc(100vh - 1rem);">
         <div class="modal-content" style="max-height: calc(100vh - 1rem);">
-            <form id="masterForm" novalidate>
+            <form id="masterForm" method="POST" action="{{ url('/master/suppliers') }}" novalidate>
+                @csrf
+                <input type="hidden" name="_method" id="masterFormMethod" value="PUT" disabled>
                 <div class="modal-header py-2">
                     <div>
                         <h5 class="modal-title mb-1" id="masterModalTitle">Tambah Supplier</h5>
@@ -181,8 +183,12 @@ document.addEventListener('DOMContentLoaded', () => {
         ]
     });
 
+    const methodInput = document.getElementById('masterFormMethod');
+
     const resetForm = () => {
         form.reset();
+        form.action = baseUrl;
+        methodInput.disabled = true;
         editId = null;
         form.querySelectorAll('.is-invalid').forEach(input => {
             input.classList.remove('is-invalid');
@@ -249,7 +255,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const url = editId ? baseUrl + '/' + editId : baseUrl;
         const payload = new FormData(form);
-        if (editId) payload.append('_method', 'PUT');
 
         try {
             const response = await fetch(url, {
@@ -285,6 +290,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const row = JSON.parse(decodeURIComponent(edit.dataset.row));
             resetForm();
             editId = edit.dataset.id;
+            form.action = baseUrl + '/' + editId;
+            methodInput.disabled = false;
 
             Object.keys(row).forEach(key => {
                 const input = form.elements.namedItem(key);
