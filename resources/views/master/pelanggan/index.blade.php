@@ -173,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!emailInput) return true;
         const value = String(emailInput.value ?? '').trim();
         emailInput.value = value;
-        const valid = value === '' || /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(value);
+        const valid = value === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
         emailInput.classList.toggle('is-invalid', !valid);
         emailInput.setAttribute('aria-invalid', valid ? 'false' : 'true');
         const feedback = document.getElementById('customerEmailError');
