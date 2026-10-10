@@ -53,13 +53,13 @@
                     @csrf
 
                     <div class="mb-3">
-                        <label for="email" class="form-label">Email</label>
+                        <label for="username" class="form-label">Username</label>
                         <input
-                            type="email"
+                            type="text"
                             class="form-control form-control-lg"
-                            id="email"
-                            name="email"
-                            value="{{ old('email') }}"
+                            id="username"
+                            name="username"
+                            value="{{ old('username') }}"
                             required
                             autofocus
                         >
