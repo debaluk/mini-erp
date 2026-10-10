@@ -26,7 +26,7 @@
             <div class="text-secondary small">Ringkasan nilai, posisi stok, dan pergerakan persediaan.</div>
         </div>
         <div class="d-flex gap-2 no-print">
-            <a href="{{ route('laporan.persediaan.export', request()->query()) }}" class="btn btn-outline-success">
+            <a href="{{ route('laporan.persediaan.export', array_merge(request()->query(), ['mode' => $mode])) }}" class="btn btn-outline-success">
                 <i class="bi bi-file-earmark-excel me-1"></i> Export Excel
             </a>
             <button type="button" onclick="window.print()" class="btn btn-outline-secondary">
@@ -35,9 +35,15 @@
         </div>
     </div>
 
+    <div class="btn-group btn-group-sm mb-3 no-print" role="group" aria-label="Tampilan laporan persediaan">
+        <a href="{{ route('laporan.persediaan', array_merge(request()->query(), ['mode' => 'ringkasan'])) }}" class="btn {{ $mode === 'ringkasan' ? 'btn-primary' : 'btn-outline-primary' }}">Ringkasan Persediaan</a>
+        <a href="{{ route('laporan.persediaan', array_merge(request()->query(), ['mode' => 'analisis-harga'])) }}" class="btn {{ $mode === 'analisis-harga' ? 'btn-primary' : 'btn-outline-primary' }}">Harga Jual vs Nilai Stok</a>
+    </div>
+
     <div class="card shadow-sm mb-3 no-print">
         <div class="card-body">
             <form method="GET" action="{{ route('laporan.persediaan') }}">
+                <input type="hidden" name="mode" value="{{ $mode }}">
                 <div class="row g-3 align-items-end">
                     <div class="col-12 col-sm-6 col-lg-2">
                         <label class="form-label">Mulai Mutasi</label>
@@ -76,6 +82,13 @@
         </div>
     </div>
 
+    @if($mode === 'analisis-harga')
+    <div class="row g-3 mb-3">
+        <div class="col-12 col-md-4"><div class="card shadow-sm report-kpi h-100"><div class="card-body"><div class="label">Nilai Stok</div><div class="value">Rp {{ format_id_number($priceSummary->stock_value, 0) }}</div><div class="hint">Saldo aktual × HPP rata-rata</div></div></div></div>
+        <div class="col-12 col-md-4"><div class="card shadow-sm report-kpi h-100"><div class="card-body"><div class="label">Potensi Penjualan</div><div class="value">Rp {{ format_id_number($priceSummary->potential_sales, 0) }}</div><div class="hint">Stok × harga jual eceran yang tersedia</div></div></div></div>
+        <div class="col-12 col-md-4"><div class="card shadow-sm report-kpi h-100"><div class="card-body"><div class="label">Potensi Laba Kotor</div><div class="value">Rp {{ format_id_number($priceSummary->potential_gross_profit, 0) }}</div><div class="hint">Belum termasuk biaya penjualan lainnya</div></div></div></div>
+    </div>
+    @else
     <div class="row g-3 mb-3">
         <div class="col-12 col-sm-6 col-xl-3">
             <div class="card shadow-sm report-kpi h-100"><div class="card-body">
@@ -153,6 +166,8 @@
         </div>
     </div>
 
+    @endif
+
     <div class="card shadow-sm">
         <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
             <div><div class="report-section-title">Rincian Posisi Persediaan</div><div class="small text-secondary">Saldo saat ini per item dan gudang, menggunakan satuan dasar item.</div></div>
@@ -161,23 +176,36 @@
         <div class="table-responsive">
             <table class="table table-hover report-table report-detail mb-0">
                 <thead class="table-light">
+                    @if($mode === 'analisis-harga')
+                    <tr><th>No.</th><th>Kode Item</th><th>Nama Item</th><th>Unit Bisnis</th><th>Gudang</th><th class="text-end">Stok</th><th class="text-end">HPP/Unit</th><th class="text-end">Harga Jual/Unit</th><th class="text-end">Nilai Stok</th><th class="text-end">Potensi Penjualan</th><th class="text-end">Selisih/Unit</th><th class="text-end">Potensi Laba Kotor</th><th class="text-end">Margin</th></tr>
+                    @else
                     <tr><th>No.</th><th>Kode Item</th><th>Nama Item</th><th>Satuan Dasar</th><th>Unit Bisnis</th><th>Gudang</th><th class="text-end">Qty</th><th class="text-end">HPP Rata-rata</th><th class="text-end">Nilai Stok</th></tr>
+                    @endif
                 </thead>
                 <tbody>
                 @forelse($rows as $row)
+                    @if($mode === 'analisis-harga')
                     <tr>
-                        <td>{{ $rows->firstItem() + $loop->index }}</td>
-                        <td class="fw-semibold">{{ $row->code ?: $row->sku ?: '-' }}</td>
-                        <td>{{ $row->product_name }}</td>
-                        <td>{{ $row->unit_name ?: $row->unit_code ?: '-' }}</td>
-                        <td>{{ $row->business_unit_names ?: '-' }}</td>
-                        <td>{{ $row->warehouse_name }}</td>
-                        <td class="text-end">{{ format_id_number($row->qty, 3) }}</td>
+                        <td>{{ $rows->firstItem() + $loop->index }}</td><td class="fw-semibold">{{ $row->code ?: $row->sku ?: '-' }}</td><td>{{ $row->product_name }}</td>
+                        <td>{{ $row->business_unit_name ?: '-' }}</td><td>{{ $row->warehouse_name }}</td>
+                        <td class="text-end">{{ format_id_number($row->qty, 3) }} {{ $row->unit_code }}</td>
                         <td class="text-end">Rp {{ format_id_number($row->avg_cost, 0) }}</td>
-                        <td class="text-end fw-semibold">Rp {{ format_id_number($row->stock_value, 0) }}</td>
+                        <td class="text-end">@if($row->selling_price !== null) Rp {{ format_id_number($row->selling_price, 0) }} @else <span class="text-danger">Belum diatur</span> @endif</td>
+                        <td class="text-end">Rp {{ format_id_number($row->stock_value, 0) }}</td>
+                        <td class="text-end">@if($row->selling_price !== null) Rp {{ format_id_number($row->potential_sales, 0) }} @else - @endif</td>
+                        <td class="text-end">@if($row->selling_price !== null) Rp {{ format_id_number($row->selling_price - $row->avg_cost, 0) }} @else - @endif</td>
+                        <td class="text-end">@if($row->selling_price !== null) Rp {{ format_id_number($row->potential_gross_profit, 0) }} @else - @endif</td>
+                        <td class="text-end">@if($row->gross_margin_percent !== null) {{ format_id_number($row->gross_margin_percent, 2) }}% @else - @endif</td>
                     </tr>
+                    @else
+                    <tr>
+                        <td>{{ $rows->firstItem() + $loop->index }}</td><td class="fw-semibold">{{ $row->code ?: $row->sku ?: '-' }}</td><td>{{ $row->product_name }}</td>
+                        <td>{{ $row->unit_name ?: $row->unit_code ?: '-' }}</td><td>{{ $row->business_unit_names ?: '-' }}</td><td>{{ $row->warehouse_name }}</td>
+                        <td class="text-end">{{ format_id_number($row->qty, 3) }}</td><td class="text-end">Rp {{ format_id_number($row->avg_cost, 0) }}</td><td class="text-end fw-semibold">Rp {{ format_id_number($row->stock_value, 0) }}</td>
+                    </tr>
+                    @endif
                 @empty
-                    <tr><td colspan="9" class="text-center text-secondary py-4">Tidak ada data persediaan sesuai filter.</td></tr>
+                    <tr><td colspan="{{ $mode === 'analisis-harga' ? 13 : 9 }}" class="text-center text-secondary py-4">Tidak ada data persediaan sesuai filter.</td></tr>
                 @endforelse
                 </tbody>
             </table>
