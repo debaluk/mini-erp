@@ -224,6 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const value = String(emailInput.value ?? '').trim();
         emailInput.value = value;
+        emailInput.setCustomValidity('');
         const valid = value === '' || (
             emailInput.type === 'email' &&
             emailInput.checkValidity() &&
