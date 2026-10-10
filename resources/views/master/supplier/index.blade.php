@@ -219,13 +219,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const emailInput = form.elements.namedItem('email');
-    const validateEmail = () => {
+    const validateEmail = (serverMessage = '') => {
         if (!emailInput || @json($type) !== 'suppliers') return true;
         const value = String(emailInput.value ?? '').trim();
         const valid = value === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-        emailInput.classList.toggle('is-invalid', !valid);
-        emailInput.setAttribute('aria-invalid', valid ? 'false' : 'true');
-        return valid;
+        emailInput.classList.toggle('is-invalid', !valid || Boolean(serverMessage));
+        emailInput.setAttribute('aria-invalid', (!valid || Boolean(serverMessage)) ? 'true' : 'false');
+        const feedback = document.getElementById('supplierEmailError');
+        if (feedback) {
+            feedback.textContent = serverMessage || 'Format email tidak valid. Contoh: nama@domain.com.';
+        }
+        return valid && !serverMessage;
     };
 
     form.addEventListener('input', e => {
@@ -273,17 +277,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!response.ok) {
                 const errors = data.errors || {};
-                const emailError = Array.isArray(errors.email) ? errors.email[0] : null;
+                const rawEmailError = errors.email;
+                const emailError = Array.isArray(rawEmailError) ? rawEmailError[0] : (typeof rawEmailError === 'string' ? rawEmailError : '');
 
                 if (emailError && emailInput) {
-                    emailInput.classList.add('is-invalid');
-                    emailInput.setAttribute('aria-invalid', 'true');
-                    const feedback = document.getElementById('supplierEmailError');
-                    if (feedback) feedback.textContent = emailError;
+                    validateEmail(emailError);
                     emailInput.focus();
                 } else {
                     const firstError = Object.values(errors).flat().find(Boolean);
-                    window.erpNotify(firstError || data.message || 'Data supplier gagal disimpan. Periksa kembali isian.', 'danger');
+                    window.erpNotify(String(firstError || data.message || 'Data supplier gagal disimpan. Periksa kembali isian.'), 'danger');
                 }
                 return;
             }
