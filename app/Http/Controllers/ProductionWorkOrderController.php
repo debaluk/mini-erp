@@ -786,30 +786,16 @@ class ProductionWorkOrderController extends Controller
             }
 
             DB::transaction(function () use ($entry, $setup, $woForResult, $entityIdForResult, $id) {
-                $result = DB::table('production_work_order_results')
-                    ->where('production_work_order_id', $id)
-                    ->where('production_date', $entry['production_date'])
-                    ->where('status', 'draft')
-                    ->lockForUpdate()
-                    ->first();
-
-                if ($result) {
-                    $resultId = $result->id;
-                    DB::table('production_work_order_result_lines')->where('production_work_order_result_id', $resultId)->delete();
-                    DB::table('production_work_order_results')->where('id', $resultId)->update([
-                        'updated_at' => now(),
-                    ]);
-                } else {
-                    $resultId = DB::table('production_work_order_results')->insertGetId([
-                        'entity_id' => $entityIdForResult,
-                        'production_work_order_id' => $id,
-                        'production_date' => $entry['production_date'],
-                        'status' => 'draft',
-                        'created_by' => auth()->id(),
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-                }
+                // Setiap submit hasil adalah batch tersendiri. Tanggal sama tidak boleh menimpa batch sebelumnya.
+                $resultId = DB::table('production_work_order_results')->insertGetId([
+                    'entity_id' => $entityIdForResult,
+                    'production_work_order_id' => $id,
+                    'production_date' => $entry['production_date'],
+                    'status' => 'draft',
+                    'created_by' => auth()->id(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
 
                 foreach ($entry['worker_id'] as $i => $workerId) {
                     $cost = $setup->get($workerId);
