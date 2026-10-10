@@ -14,7 +14,7 @@ class ProductionWorkOrderController extends Controller
 {
     private function entityId(): int
     {
-        return (int) (DB::table('entities')->value('id') ?? 0);
+        return (int) (auth()->user()?->entity_id ?? 0);
     }
 
     public function index(Request $request)
