@@ -194,6 +194,8 @@ document.addEventListener('DOMContentLoaded', () => {
             input.classList.remove('is-invalid');
             input.removeAttribute('aria-invalid');
         });
+        const emailFeedback = document.getElementById('supplierEmailError');
+        if (emailFeedback) emailFeedback.textContent = 'Format email tidak valid. Contoh: nama@domain.com.';
         title.textContent = 'Tambah Supplier';
         submitButton.innerHTML = '<i class="bi bi-check-lg me-1"></i>Simpan Supplier';
     };
@@ -270,8 +272,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json().catch(() => ({}));
 
             if (!response.ok) {
-                const errors = Object.values(data.errors || {}).flat();
-                window.erpNotify(data.message || (errors.length ? errors : 'Gagal menyimpan data.'), 'danger');
+                const errors = data.errors || {};
+                const emailError = Array.isArray(errors.email) ? errors.email[0] : null;
+
+                if (emailError && emailInput) {
+                    emailInput.classList.add('is-invalid');
+                    emailInput.setAttribute('aria-invalid', 'true');
+                    const feedback = document.getElementById('supplierEmailError');
+                    if (feedback) feedback.textContent = emailError;
+                    emailInput.focus();
+                } else {
+                    const firstError = Object.values(errors).flat().find(Boolean);
+                    window.erpNotify(firstError || data.message || 'Data supplier gagal disimpan. Periksa kembali isian.', 'danger');
+                }
                 return;
             }
 
