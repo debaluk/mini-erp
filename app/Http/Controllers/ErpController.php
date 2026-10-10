@@ -615,7 +615,10 @@ class ErpController extends Controller
         if ($type === 'suppliers') {
             $rules['email'] = ['nullable', 'email'];
         }
-        $data=$request->validate($rules);
+        $messages = $type === 'suppliers'
+            ? ['email.email' => 'Format email supplier tidak valid. Gunakan format nama@domain.com.']
+            : [];
+        $data=$request->validate($rules, $messages);
         foreach ($config['fields'] as $key=>$field) {
             if (array_key_exists($key, $data)) continue;
             $value = $request->input($key);
@@ -676,7 +679,10 @@ class ErpController extends Controller
         if ($type === 'suppliers') {
             $rules['email'] = ['nullable', 'email'];
         }
-        $data=$request->validate($rules);
+        $messages = $type === 'suppliers'
+            ? ['email.email' => 'Format email supplier tidak valid. Gunakan format nama@domain.com.']
+            : [];
+        $data=$request->validate($rules, $messages);
         foreach ($config['fields'] as $key=>$field) {
             if (array_key_exists($key, $data)) continue;
             $value = $request->input($key);
