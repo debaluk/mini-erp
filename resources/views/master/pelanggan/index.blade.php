@@ -30,18 +30,18 @@
 </div>
 
 <div class="modal fade" id="masterModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-dialog modal-md modal-dialog-scrollable">
         <div class="modal-content">
             <form id="masterForm" novalidate>
                 <div class="modal-header py-2">
                     <h5 class="modal-title" id="masterModalTitle">Tambah {{ $config['title'] }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body p-4">
-                    <div class="row g-3">
+                <div class="modal-body px-3 py-2">
+                    <div class="row g-2">
                         @foreach($config['fields'] as $key => $field)
                             <div class="{{ in_array($type, ['customers', 'suppliers'], true) ? 'col-12' : ($type === 'warehouses' ? 'col-md-6' : 'col-md-4') }}">
-                                <label class="form-label fw-medium mb-2">{{ $field['label'] }}</label>
+                                <label class="form-label fw-medium mb-1">{{ $field['label'] }}</label>
                                 @if($field['type'] === 'textarea')
                                     <textarea name="{{ $key }}" class="form-control @if($field['required'] ?? false) required-field @endif" rows="2" @if($field['required'] ?? false) data-required="1" @endif></textarea>
                                 @elseif($field['type'] === 'select')
