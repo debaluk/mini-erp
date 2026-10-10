@@ -84,7 +84,7 @@
 
     @if($mode === 'analisis-harga')
     <div class="row g-3 mb-3">
-        <div class="col-12 col-md-4"><div class="card shadow-sm report-kpi h-100"><div class="card-body"><div class="label">Nilai Stok</div><div class="value">Rp {{ format_id_number($priceSummary->stock_value, 0) }}</div><div class="hint">Saldo aktual × HPP rata-rata</div></div></div></div>
+        <div class="col-12 col-md-4"><div class="card shadow-sm report-kpi h-100"><div class="card-body"><div class="label">Nilai Stok</div><div class="value">Rp {{ format_id_number($summary->stock_value, 0) }}</div><div class="hint">Saldo aktual × HPP rata-rata</div></div></div></div>
         <div class="col-12 col-md-4"><div class="card shadow-sm report-kpi h-100"><div class="card-body"><div class="label">Potensi Penjualan</div><div class="value">Rp {{ format_id_number($priceSummary->potential_sales, 0) }}</div><div class="hint">Stok × harga jual eceran yang tersedia</div></div></div></div>
         <div class="col-12 col-md-4"><div class="card shadow-sm report-kpi h-100"><div class="card-body"><div class="label">Potensi Laba Kotor</div><div class="value">Rp {{ format_id_number($priceSummary->potential_gross_profit, 0) }}</div><div class="hint">Belum termasuk biaya penjualan lainnya</div></div></div></div>
     </div>
