@@ -85,11 +85,11 @@
     @endif
 @endforeach
 
-@if(session('success') || session('error') || $errors->any())
+@if(session('error') || $errors->any())
 <div class="modal fade" id="account-message-modal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content border-0 shadow">
-        <div class="modal-header"><h5 class="modal-title {{ session('success') ? 'text-success' : 'text-danger' }}">{{ session('success') ? 'Berhasil' : 'Perhatian' }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body text-center py-4">{{ session('success') ?? session('error') ?? $errors->first() }}</div>
+        <div class="modal-header"><h5 class="modal-title text-danger">Perhatian</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body text-center py-4">{{ session('error') ?? $errors->first() }}</div>
         <div class="modal-footer justify-content-center"><button type="button" class="btn btn-primary px-4" data-bs-dismiss="modal">OK</button></div>
     </div></div>
 </div>
