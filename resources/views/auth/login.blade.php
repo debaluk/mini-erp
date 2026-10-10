@@ -37,13 +37,12 @@
                     <span class="brand-icon"><i class="bi bi-bar-chart-line-fill"></i></span>
                     <div>
                         <h1 class="brand-name h4">AKUNTARA</h1>
-                        <div class="brand-caption">Silakan masuk untuk melanjutkan</div>
                     </div>
                 </div>
             </div>
             <div class="login-body">
 
-                <h2 class="h5 fw-bold mb-1">Masuk ke akun</h2>
+                <h2 class="h5 fw-bold mb-1">Silakan masuk untuk melanjutkan</h2>
                 <p class="text-secondary small mb-4">Masukkan username dan password Anda.</p>
 
                 @if ($errors->any())
