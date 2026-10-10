@@ -18,7 +18,7 @@
                     <label for="unit-code" class="form-label mb-1">Kode Satuan <span class="text-danger">*</span></label>
                     <input type="text" id="unit-code" name="code" class="form-control form-control-sm" maxlength="50" autocomplete="off">
                 </div>
-                <div class="col-md-5">
+                <div class="col-md-4">
                     <label for="unit-name" class="form-label mb-1">Nama Satuan <span class="text-danger">*</span></label>
                     <input type="text" id="unit-name" name="name" class="form-control form-control-sm" maxlength="100" autocomplete="off">
                 </div>
@@ -35,10 +35,12 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-2 d-flex gap-1">
-                    <small class="text-secondary me-auto align-self-center"><span class="text-danger">*</span> Wajib diisi</small>
+                <div class="col-md-3 d-flex align-items-center justify-content-between gap-2">
+                    <small class="text-secondary"><span class="text-danger">*</span> Wajib diisi</small>
+                    <div class="d-flex gap-1">
                     <button type="submit" class="btn btn-primary btn-sm" id="unit-submit">Simpan</button>
                     <button type="button" class="btn btn-light btn-sm d-none" id="unit-cancel">Batal</button>
+                    </div>
                 </div>
             </div>
         </form>
