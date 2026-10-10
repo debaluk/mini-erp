@@ -36,6 +36,7 @@
                     </div>
                 </div>
                 <div class="col-md-2 d-flex gap-1">
+                    <small class="text-secondary me-auto align-self-center"><span class="text-danger">*</span> Wajib diisi</small>
                     <button type="submit" class="btn btn-primary btn-sm" id="unit-submit">Simpan</button>
                     <button type="button" class="btn btn-light btn-sm d-none" id="unit-cancel">Batal</button>
                 </div>
