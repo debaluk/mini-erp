@@ -54,8 +54,26 @@ class ProductionJournalService
             $creditTotal += $credit;
         }
 
+        if ($debitTotal == 0.0 && $creditTotal == 0.0) {
+            return 0;
+        }
+
         if (count($normalized) < 2 || abs($debitTotal - $creditTotal) >= 0.01) {
             throw new RuntimeException('Jurnal produksi tidak seimbang atau tidak memiliki baris yang cukup.');
+        }
+
+        $accountIds = array_values(array_unique(array_column($normalized, 'account_id')));
+        $validAccountIds = DB::table('chart_of_accounts')
+            ->where('entity_id', $entityId)
+            ->where('is_active', true)
+            ->where('is_postable', true)
+            ->whereIn('id', $accountIds)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        if (count($validAccountIds) !== count($accountIds)) {
+            throw new RuntimeException('Jurnal produksi memuat akun yang tidak aktif, tidak dapat diposting, atau bukan milik entitas ini.');
         }
 
         $existing = DB::table('journals')
