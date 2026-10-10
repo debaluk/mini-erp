@@ -968,7 +968,8 @@ class ProductionWorkOrderController extends Controller
                 ->whereIn('cost_group', ['A', 'S', 'O'])
                 ->sum('amount');
 
-            $totalCost = round($materialCost + $laborCost + (float) $otherCosts, 2);
+            // HPP barang jadi tidak memasukkan upah; upah dijurnal terpisah.
+            $totalCost = round($materialCost + (float) $otherCosts, 2);
             $rejectCost = $targetQty > 0 ? round($totalCost * ($rejectQty / $targetQty), 2) : 0.0;
             $goodCost = round($totalCost - $rejectCost, 2);
             $goodUnitCost = $goodQty > 0 ? round($goodCost / $goodQty, 6) : 0.0;
@@ -1139,7 +1140,6 @@ class ProductionWorkOrderController extends Controller
 
             $costAccounts = [
                 'B' => DB::table('business_unit_account_mappings')->where('entity_id', $entityId)->where('business_unit_id', $wo->business_unit_id)->where('mapping_key', 'direct_material')->value('account_id'),
-                'U' => $directLaborAccount,
                 'A' => DB::table('business_unit_account_mappings')->where('entity_id', $entityId)->where('business_unit_id', $wo->business_unit_id)->where('mapping_key', 'direct_equipment')->value('account_id'),
                 'S' => DB::table('business_unit_account_mappings')->where('entity_id', $entityId)->where('business_unit_id', $wo->business_unit_id)->where('mapping_key', 'direct_rent')->value('account_id'),
                 'O' => DB::table('business_unit_account_mappings')->where('entity_id', $entityId)->where('business_unit_id', $wo->business_unit_id)->where('mapping_key', 'direct_overhead')->value('account_id'),
@@ -1168,7 +1168,6 @@ class ProductionWorkOrderController extends Controller
             foreach ($costAccounts as $group => $accountId) {
                 $groupTotal = match ($group) {
                     'B' => $materialCost,
-                    'U' => $laborCost,
                     'A', 'S', 'O' => (float) $otherRows->where('cost_group', $group)->sum('amount'),
                 };
                 $goodGroup = round($groupTotal * $goodShare, 2);
