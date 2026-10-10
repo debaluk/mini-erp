@@ -278,7 +278,8 @@
 window.ERPNumber = {
     parse: function (value) {
         if (value === null || value === undefined || value === '') return 0;
-        let str = String(value).replace(/\./g, '').replace(/,/g, '.');
+        if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+        let str = String(value).trim().replace(/\./g, '').replace(/,/g, '.');
         return parseFloat(str) || 0;
     },
     format: function (value) {
