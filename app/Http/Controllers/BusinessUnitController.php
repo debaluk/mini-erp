@@ -112,8 +112,46 @@ class BusinessUnitController extends Controller
     public function destroy(Request $request, int $id)
     {
         $entityId = $this->entityId($request);
-
         $unit = BusinessUnit::where('entity_id', $entityId)->findOrFail($id);
+
+        // Periksa relasi yang memakai business_unit_id, termasuk tabel tanpa foreign key.
+        $references = DB::select(
+            "SELECT TABLE_NAME
+             FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND COLUMN_NAME = 'business_unit_id'
+               AND TABLE_NAME <> 'business_units'"
+        );
+
+        foreach ($references as $reference) {
+            $table = $reference->TABLE_NAME;
+
+            if (DB::table($table)->where('business_unit_id', $id)->exists()) {
+                return back()->withErrors([
+                    'delete' => 'Unit bisnis tidak dapat dihapus karena sudah digunakan oleh gudang, mapping, master, atau transaksi. Nonaktifkan unit bisnis jika tidak digunakan lagi.',
+                ]);
+            }
+        }
+
+        $foreignKeys = DB::select(
+            "SELECT TABLE_NAME, COLUMN_NAME
+             FROM information_schema.KEY_COLUMN_USAGE
+             WHERE REFERENCED_TABLE_SCHEMA = DATABASE()
+               AND REFERENCED_TABLE_NAME = 'business_units'
+               AND REFERENCED_COLUMN_NAME = 'id'"
+        );
+
+        foreach ($foreignKeys as $reference) {
+            $table = $reference->TABLE_NAME;
+            $column = $reference->COLUMN_NAME;
+
+            if ($table !== 'business_units' && DB::table($table)->where($column, $id)->exists()) {
+                return back()->withErrors([
+                    'delete' => 'Unit bisnis tidak dapat dihapus karena masih menjadi acuan data lain. Nonaktifkan unit bisnis jika tidak digunakan lagi.',
+                ]);
+            }
+        }
+
         $unit->delete();
 
         return back()->with('success', 'Unit bisnis berhasil dihapus.');
