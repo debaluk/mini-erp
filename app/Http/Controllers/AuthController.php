@@ -20,24 +20,12 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $credentials = $request->validate([
-            'username' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255'],
             'password' => ['required', 'string'],
         ]);
 
-        $identifier = trim($credentials['username']);
-
-        // Kolom identitas pada tabel users adalah email, bukan username.
-        // Tetap dukung input "owner" dengan mencocokkan bagian sebelum @.
-        $user = User::query()->where('email', $identifier)->first();
-
-        if (!$user && !str_contains($identifier, '@')) {
-            $user = User::query()
-                ->whereRaw("SUBSTRING_INDEX(email, '@', 1) = ?", [$identifier])
-                ->first();
-        }
-
-        if ($user && $user->is_active && Auth::attempt([
-            'email' => $user->email,
+        if (Auth::attempt([
+            'email' => trim($credentials['email']),
             'password' => $credentials['password'],
             'is_active' => true,
         ], $request->boolean('remember'))) {
@@ -48,9 +36,9 @@ class AuthController extends Controller
 
         return back()
             ->withErrors([
-                'username' => 'Username atau password tidak sesuai, atau akun tidak aktif.',
+                'email' => 'Email atau password tidak sesuai, atau akun tidak aktif.',
             ])
-            ->onlyInput('username');
+            ->onlyInput('email');
     }
 
     public function logout(Request $request)
