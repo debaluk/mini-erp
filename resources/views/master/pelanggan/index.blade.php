@@ -52,6 +52,9 @@
                                     </select>
                                 @else
                                     <input name="{{ $key }}" type="{{ $field['type'] }}" step="{{ $field['step'] ?? 'any' }}" class="form-control @if($field['required'] ?? false) required-field @endif" placeholder="{{ $field['placeholder'] ?? '' }}" @if($field['readonly'] ?? false) readonly @endif @if($field['required'] ?? false) data-required="1" @endif>
+                                    @if($type === 'customers' && $key === 'email')
+                                        <div class="invalid-feedback" id="customerEmailError">Format email tidak valid. Contoh: nama@domain.com.</div>
+                                    @endif
                                 @endif
                             </div>
                         @endforeach
@@ -158,9 +161,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const resetForm = () => {
         form.reset();
         editId = null;
-        form.querySelectorAll('.required-field').forEach(input => input.classList.remove('is-invalid'));
+        form.querySelectorAll('.required-field, [name="email"]').forEach(input => input.classList.remove('is-invalid'));
+        const emailError = document.getElementById('customerEmailError');
+        if (emailError) emailError.textContent = 'Format email tidak valid. Contoh: nama@domain.com.';
         title.textContent = 'Tambah {{ $config['title'] }}';
         submitButton.textContent = 'Simpan';
+    };
+
+    const emailInput = form.elements.namedItem('email');
+    const validateEmail = (showError = true) => {
+        if (!emailInput) return true;
+        const value = String(emailInput.value ?? '').trim();
+        emailInput.value = value;
+        const valid = value === '' || /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(value);
+        emailInput.classList.toggle('is-invalid', !valid);
+        emailInput.setAttribute('aria-invalid', valid ? 'false' : 'true');
+        const feedback = document.getElementById('customerEmailError');
+        if (feedback) feedback.textContent = 'Format email tidak valid. Contoh: nama@domain.com.';
+        if (!valid && showError) emailInput.focus();
+        return valid;
     };
 
     const validateRequired = () => {
@@ -182,6 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     form.addEventListener('input', e => {
+        if (e.target.name === 'email') validateEmail(false);
         if (e.target.matches('.required-field') && String(e.target.value ?? '').trim()) {
             e.target.classList.remove('is-invalid');
         }
@@ -200,6 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
             form.querySelector('[data-required="1"].is-invalid')?.focus();
             return;
         }
+        if (!validateEmail()) return;
 
         const url = editId ? baseUrl + '/' + editId : baseUrl;
         const payload = new FormData(form);
@@ -219,8 +240,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json().catch(() => ({}));
 
             if (!response.ok) {
+                const emailMessage = data.errors?.email?.[0];
+                if (emailMessage && emailInput) {
+                    emailInput.classList.add('is-invalid');
+                    emailInput.setAttribute('aria-invalid', 'true');
+                    const feedback = document.getElementById('customerEmailError');
+                    if (feedback) feedback.textContent = emailMessage;
+                    emailInput.focus();
+                    return;
+                }
                 const errors = Object.values(data.errors || {}).flat();
-                window.erpNotify(data.message || (errors.length ? errors : 'Gagal menyimpan data.'), 'danger');
+                window.erpNotify(data.message || (errors.length ? errors.join(' ') : 'Gagal menyimpan data.'), 'danger');
                 return;
             }
 
