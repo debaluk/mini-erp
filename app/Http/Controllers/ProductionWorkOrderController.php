@@ -1138,49 +1138,34 @@ class ProductionWorkOrderController extends Controller
                 ['journal_id' => $laborJournalId, 'account_id' => $salaryPayableAccount, 'debit' => 0, 'credit' => $laborCost, 'created_at' => now(), 'updated_at' => now()],
             ]);
 
-            $costAccounts = [
-                'B' => DB::table('business_unit_account_mappings')->where('entity_id', $entityId)->where('business_unit_id', $wo->business_unit_id)->where('mapping_key', 'direct_material')->value('account_id'),
-                'A' => DB::table('business_unit_account_mappings')->where('entity_id', $entityId)->where('business_unit_id', $wo->business_unit_id)->where('mapping_key', 'direct_equipment')->value('account_id'),
-                'S' => DB::table('business_unit_account_mappings')->where('entity_id', $entityId)->where('business_unit_id', $wo->business_unit_id)->where('mapping_key', 'direct_rent')->value('account_id'),
-                'O' => DB::table('business_unit_account_mappings')->where('entity_id', $entityId)->where('business_unit_id', $wo->business_unit_id)->where('mapping_key', 'direct_overhead')->value('account_id'),
-            ];
+            $inventoryWipAccount = DB::table('business_unit_account_mappings')
+                ->where('entity_id', $entityId)
+                ->where('business_unit_id', $wo->business_unit_id)
+                ->where('mapping_key', 'inventory_wip')
+                ->value('account_id');
 
-            abort_unless(!in_array(null, $costAccounts, true), 422, 'Mapping akun HPP produksi belum lengkap.');
+            abort_unless($finishedInventoryAccount && $inventoryWipAccount, 422, 'Mapping akun Persediaan Barang Jadi atau WIP belum lengkap.');
+            abort_unless($rejectQty <= 0 || $damageAccount, 422, 'Mapping akun Kerugian Reject Produksi belum tersedia.');
 
-            $goodShare = $targetQty > 0 && $totalCost > 0 ? ($goodCost / $totalCost) : 0;
-            $rejectShare = $targetQty > 0 && $totalCost > 0 ? ($rejectCost / $totalCost) : 0;
             $hppJournalId = DB::table('journals')->insertGetId([
                 'entity_id' => $entityId,
                 'business_unit_id' => $wo->business_unit_id,
                 'journal_no' => 'JRN-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4)),
-                'journal_date' => now()->toDateString(),
+                'journal_date' => $postingDate,
                 'source_type' => 'PRODUCTION_HPP',
                 'source_id' => $productionId,
-                'description' => 'Kapitalisasi HPP produksi '.$wo->wo_no,
+                'description' => 'Kapitalisasi barang jadi produksi '.$wo->wo_no,
                 'status' => 'posted',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
 
             $hppEntries = [
-                ['journal_id' => $hppJournalId, 'account_id' => $finishedInventoryAccount, 'debit' => $goodCost, 'credit' => 0, 'created_at' => now(), 'updated_at' => now()],
+                ['journal_id' => $hppJournalId, 'account_id' => $finishedInventoryAccount, 'debit' => round($goodCost, 2), 'credit' => 0, 'created_at' => now(), 'updated_at' => now()],
+                ['journal_id' => $hppJournalId, 'account_id' => $inventoryWipAccount, 'debit' => 0, 'credit' => round($totalCost, 2), 'created_at' => now(), 'updated_at' => now()],
             ];
-            foreach ($costAccounts as $group => $accountId) {
-                $groupTotal = match ($group) {
-                    'B' => $materialCost,
-                    'A', 'S', 'O' => (float) $otherRows->where('cost_group', $group)->sum('amount'),
-                };
-                $goodGroup = round($groupTotal * $goodShare, 2);
-                $rejectGroup = round($groupTotal * $rejectShare, 2);
-                if ($goodGroup > 0) {
-                    $hppEntries[] = ['journal_id' => $hppJournalId, 'account_id' => $accountId, 'debit' => 0, 'credit' => $goodGroup, 'created_at' => now(), 'updated_at' => now()];
-                }
-                if ($rejectGroup > 0) {
-                    $hppEntries[] = ['journal_id' => $hppJournalId, 'account_id' => $accountId, 'debit' => 0, 'credit' => $rejectGroup, 'created_at' => now(), 'updated_at' => now()];
-                }
-            }
             if ($rejectCost > 0) {
-                $hppEntries[] = ['journal_id' => $hppJournalId, 'account_id' => $damageAccount, 'debit' => $rejectCost, 'credit' => 0, 'created_at' => now(), 'updated_at' => now()];
+                $hppEntries[] = ['journal_id' => $hppJournalId, 'account_id' => $damageAccount, 'debit' => round($rejectCost, 2), 'credit' => 0, 'created_at' => now(), 'updated_at' => now()];
             }
 
             DB::table('journal_entries')->insert($hppEntries);
