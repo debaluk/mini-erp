@@ -612,6 +612,9 @@ class ErpController extends Controller
         $config = $this->masterConfig($type);
         $rules=[];
         foreach ($config['fields'] as $key=>$field) if (($field['required'] ?? false)) $rules[$key]=['required'];
+        if ($type === 'suppliers') {
+            $rules['email'] = ['nullable', 'email'];
+        }
         $data=$request->validate($rules);
         foreach ($config['fields'] as $key=>$field) {
             if (array_key_exists($key, $data)) continue;
@@ -670,6 +673,9 @@ class ErpController extends Controller
         $config = $this->masterConfig($type);
         $rules=[];
         foreach ($config['fields'] as $key=>$field) if (($field['required'] ?? false)) $rules[$key]=['required'];
+        if ($type === 'suppliers') {
+            $rules['email'] = ['nullable', 'email'];
+        }
         $data=$request->validate($rules);
         foreach ($config['fields'] as $key=>$field) {
             if (array_key_exists($key, $data)) continue;
