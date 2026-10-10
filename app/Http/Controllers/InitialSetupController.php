@@ -9,9 +9,10 @@ class InitialSetupController extends Controller
 {
     private function entityId(): int
     {
-        $entity = DB::table('entities')->first();
-        abort_unless($entity, 500, 'Entitas belum tersedia.');
-        return (int) $entity->id;
+        $entityId = (int) (auth()->user()?->entity_id ?? 0);
+        abort_unless($entityId > 0, 403, 'Entitas pengguna tidak valid.');
+
+        return $entityId;
     }
 
     public function index(Request $request)
