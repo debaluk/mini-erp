@@ -19,14 +19,22 @@ use Carbon\Carbon;
 
 class PurchaseInvoiceController extends Controller
 {
+    private function entityId(): int
+    {
+        $entityId = (int) (auth()->user()->entity_id ?? 0);
+        abort_unless($entityId > 0, 403, 'Entitas pengguna tidak valid.');
+        return $entityId;
+    }
+
     public function index(Request $request)
     {
+        $entityId = $this->entityId();
         $startDate      = $request->query('start_date', now()->startOfMonth()->format('Y-m-d'));
         $endDate        = $request->query('end_date', now()->endOfMonth()->format('Y-m-d'));
         
-        $businessUnits = BusinessUnit::where('is_active', 1)->orderBy('code')->get();
-        $warehouses    = Warehouse::where('is_active', 1)->orderBy('name')->get();
-        $suppliers     = Supplier::where('is_active', 1)->orderBy('name')->get();
+        $businessUnits = BusinessUnit::where('entity_id', $entityId)->where('is_active', 1)->orderBy('code')->get();
+        $warehouses    = Warehouse::where('entity_id', $entityId)->where('is_active', 1)->orderBy('name')->get();
+        $suppliers     = Supplier::where('entity_id', $entityId)->where('is_active', 1)->orderBy('name')->get();
 
         return view('inventori.pembelian.faktur.index', compact(
             'businessUnits', 'warehouses', 'suppliers', 'startDate', 'endDate'
@@ -46,6 +54,7 @@ class PurchaseInvoiceController extends Controller
             ->leftJoin('suppliers as s', 's.id', '=', 'p.supplier_id')
             ->leftJoin('purchase_orders as po', 'po.id', '=', 'p.purchase_order_id')
             ->join('users as u', 'u.id', '=', 'p.user_id')
+            ->where('p.entity_id', $this->entityId())
             ->whereNull('p.deleted_at')
             ->whereDate('p.purchase_date', '>=', $startDate)
             ->whereDate('p.purchase_date', '<=', $endDate);
@@ -120,8 +129,8 @@ class PurchaseInvoiceController extends Controller
      */
     public function create(Request $request)
     {
-        $entityId = (int) (auth()->user()->entity_id ?? 1);
-        $businessUnits = BusinessUnit::where('is_active', 1)->orderBy('code')->get();
+        $entityId = $this->entityId();
+        $businessUnits = BusinessUnit::where('entity_id', $entityId)->where('is_active', 1)->orderBy('code')->get();
         $warehouses    = Warehouse::where('entity_id', $entityId)->where('is_active', 1)->orderBy('name')->get();
         $suppliers     = Supplier::where('entity_id', $entityId)->where('is_active', 1)->orderBy('name')->get();
         $products      = Product::where('entity_id', $entityId)->where('is_active', 1)->orderBy('name')->get();
@@ -328,7 +337,23 @@ class PurchaseInvoiceController extends Controller
 
         try {
             $purchaseId = DB::transaction(function () use ($request, $isPo, $goodsReceived) {
-                $entityId = (int) (auth()->user()->entity_id ?? 1);
+                $entityId = $this->entityId();
+                $businessUnit = DB::table('business_units')
+                    ->where('entity_id', $entityId)
+                    ->where('id', $request->business_unit_id)
+                    ->where('is_active', 1)
+                    ->first();
+                abort_unless($businessUnit, 422, 'Unit Bisnis tidak aktif atau bukan milik entitas pengguna.');
+
+                if ($request->filled('supplier_id')) {
+                    $supplier = DB::table('suppliers')
+                        ->where('entity_id', $entityId)
+                        ->where('id', $request->supplier_id)
+                        ->where('is_active', 1)
+                        ->first();
+                    abort_unless($supplier, 422, 'Supplier tidak aktif atau bukan milik entitas pengguna.');
+                }
+
                 $purchaseNo = $this->generateInvoiceCode();
                 $dueDate = $request->payment_method === 'credit'
                     ? ($request->input('due_date') ?: now()->addDays(30)->toDateString())
@@ -383,7 +408,7 @@ class PurchaseInvoiceController extends Controller
                     $discount = (float) ($request->discount[$idx] ?? 0);
                     abort_if($qty <= 0, 422, 'Qty item harus lebih dari 0.');
 
-                    $product = Product::findOrFail($productId);
+                    $product = Product::where('entity_id', $entityId)->where('is_active', 1)->findOrFail($productId);
                     $factor = $isPo
                         ? (float) ($request->input("conversion_factor.$idx") ?: 1)
                         : 1.0;
@@ -454,6 +479,7 @@ class PurchaseInvoiceController extends Controller
             ->leftJoin('business_units as bu', 'bu.id', '=', 'p.business_unit_id')
             ->leftJoin('suppliers as s', 's.id', '=', 'p.supplier_id')
             ->leftJoin('purchase_orders as po', 'po.id', '=', 'p.purchase_order_id')
+            ->where('p.entity_id', $this->entityId())
             ->where('p.id', $id)->whereNull('p.deleted_at')
             ->select('p.*', 'bu.code as bu_code', 'bu.name as bu_name', 's.name as supplier_name', 'po.po_no')
             ->firstOrFail();
@@ -497,8 +523,25 @@ class PurchaseInvoiceController extends Controller
         }
 
         try {
-            $result = DB::transaction(function () use ($request, $id) {
-                $purchase = DB::table('purchases')->where('id',$id)->whereNull('deleted_at')->lockForUpdate()->first();
+            $entityId = $this->entityId();
+            $result = DB::transaction(function () use ($request, $id, $entityId) {
+                $businessUnit = DB::table('business_units')
+                    ->where('entity_id', $entityId)
+                    ->where('id', $request->business_unit_id)
+                    ->where('is_active', 1)
+                    ->first();
+                abort_unless($businessUnit, 422, 'Unit Bisnis tidak aktif atau bukan milik entitas pengguna.');
+
+                if ($request->filled('supplier_id')) {
+                    $supplier = DB::table('suppliers')
+                        ->where('entity_id', $entityId)
+                        ->where('id', $request->supplier_id)
+                        ->where('is_active', 1)
+                        ->first();
+                    abort_unless($supplier, 422, 'Supplier tidak aktif atau bukan milik entitas pengguna.');
+                }
+
+                $purchase = DB::table('purchases')->where('entity_id',$entityId)->where('id',$id)->whereNull('deleted_at')->lockForUpdate()->first();
                 if (!$purchase) throw new \RuntimeException('Faktur tidak ditemukan.');
                 if ($purchase->status === 'cancelled') throw new \RuntimeException('Faktur yang sudah dibatalkan hanya dapat dicetak.');
 
@@ -575,7 +618,7 @@ class PurchaseInvoiceController extends Controller
                 foreach($products as $i=>$productId){
                     $qty=(float)($qtys[$i]??0); $price=(float)($prices[$i]??0); $discount=(float)($discounts[$i]??0);
                     if($qty<=0) throw new \RuntimeException('Qty item harus lebih dari 0.');
-                    $product=Product::findOrFail($productId);
+                    $product=Product::where('entity_id', $entityId)->where('is_active', 1)->findOrFail($productId);
                     $factor=$purchase->source_type==='po'?(float)($oldItems[$i]->conversion_factor?:1):1.0;
                     $baseQty=$qty*$factor; $gross=$qty*$price; $net=max(0,$gross-$discount);
                     $subtotal += $gross; $discountTotal += $discount;
@@ -681,8 +724,10 @@ class PurchaseInvoiceController extends Controller
     private function executePosting($id, $warehouseId = null, ?Request $request = null)
     {
         try {
-            $purchaseNo = DB::transaction(function () use ($id, $warehouseId) {
+            $entityId = $this->entityId();
+            $purchaseNo = DB::transaction(function () use ($id, $warehouseId, $entityId) {
                 $purchase = DB::table('purchases')
+                    ->where('entity_id', $entityId)
                     ->whereNull('deleted_at')
                     ->where('id', $id)
                     ->lockForUpdate()
@@ -721,7 +766,7 @@ class PurchaseInvoiceController extends Controller
                     $receiptRequest = Request::create('/inventori/penerimaan', 'POST', [
                         'purchase_id' => $purchase->id,
                         'warehouse_id' => $warehouseId,
-                        'journal' => true,
+                        'journal' => false,
                         'receipt_date' => $purchase->purchase_date,
                         'memo' => 'Penerimaan langsung dari Faktur '.$purchase->purchase_no,
                         'items' => $items->map(fn ($item) => [
@@ -832,6 +877,7 @@ class PurchaseInvoiceController extends Controller
             ->leftJoin('suppliers as s', 's.id', '=', 'p.supplier_id')
             ->leftJoin('purchase_orders as po', 'po.id', '=', 'p.purchase_order_id')
             ->join('users as u', 'u.id', '=', 'p.user_id')
+            ->where('p.entity_id', $this->entityId())
             ->where('p.id', $id)
             ->whereNull('p.deleted_at')
             ->select(
@@ -1121,6 +1167,7 @@ class PurchaseInvoiceController extends Controller
             ->leftJoin('suppliers as s', 's.id', '=', 'p.supplier_id')
             ->leftJoin('purchase_orders as po', 'po.id', '=', 'p.purchase_order_id')
             ->join('users as u', 'u.id', '=', 'p.user_id')
+            ->where('p.entity_id', $this->entityId())
             ->where('p.id', $id)
             ->whereNull('p.deleted_at')
             ->select(
@@ -1164,6 +1211,7 @@ class PurchaseInvoiceController extends Controller
             ->leftJoin('suppliers as s', 's.id', '=', 'p.supplier_id')
             ->leftJoin('purchase_orders as po', 'po.id', '=', 'p.purchase_order_id')
             ->leftJoin('warehouses as w', 'w.id', '=', 'po.warehouse_id')
+            ->where('p.entity_id', $this->entityId())
             ->whereNull('p.deleted_at')
             ->whereDate('p.purchase_date', '>=', $startDate)
             ->whereDate('p.purchase_date', '<=', $endDate)
