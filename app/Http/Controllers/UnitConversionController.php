@@ -155,44 +155,61 @@ class UnitConversionController extends Controller
             );
         }
 
-        if (($data['is_default_purchase'] ?? false)) {
-            DB::table('product_unit_conversions')
-                ->where('product_id', $product->id)
-                ->when($id, fn ($q) => $q->where('id', '<>', $id))
-                ->update(['is_default_purchase' => 0, 'updated_at' => now()]);
-        }
+        // Perubahan default dan penyimpanan konversi harus atomik agar kegagalan update
+        // tidak meninggalkan produk tanpa satuan default pembelian atau penjualan.
+        DB::transaction(function () use ($data, $entity, $product, $id) {
+            if ($id) {
+                // Pastikan konversi yang diedit memang milik produk dalam entitas aktif.
+                abort_unless(
+                    DB::table('product_unit_conversions as puc')
+                        ->join('products as p', 'p.id', '=', 'puc.product_id')
+                        ->where('p.entity_id', $entity)
+                        ->where('puc.id', $id)
+                        ->exists(),
+                    404,
+                    'Konversi satuan tidak ditemukan.'
+                );
+            }
 
-        if (($data['is_default_sale'] ?? false)) {
-            DB::table('product_unit_conversions')
-                ->where('product_id', $product->id)
-                ->when($id, fn ($q) => $q->where('id', '<>', $id))
-                ->update(['is_default_sale' => 0, 'updated_at' => now()]);
-        }
+            if (($data['is_default_purchase'] ?? false)) {
+                DB::table('product_unit_conversions')
+                    ->where('product_id', $product->id)
+                    ->when($id, fn ($q) => $q->where('id', '<>', $id))
+                    ->update(['is_default_purchase' => 0, 'updated_at' => now()]);
+            }
 
-        $values = [
-            'product_id' => $product->id,
-            'unit_id' => $data['unit_id'],
-            'conversion_factor' => $data['conversion_factor'],
-            'is_default_purchase' => (bool) ($data['is_default_purchase'] ?? false),
-            'is_default_sale' => (bool) ($data['is_default_sale'] ?? false),
-            'is_active' => 1,
-            'updated_at' => now(),
-        ];
+            if (($data['is_default_sale'] ?? false)) {
+                DB::table('product_unit_conversions')
+                    ->where('product_id', $product->id)
+                    ->when($id, fn ($q) => $q->where('id', '<>', $id))
+                    ->update(['is_default_sale' => 0, 'updated_at' => now()]);
+            }
 
-        if ($id) {
-            $updated = DB::table('product_unit_conversions')
-                ->where('id', $id)
-                ->whereIn('product_id', DB::table('products')->select('id')->where('entity_id', $entity))
-                ->update($values);
+            $values = [
+                'product_id' => $product->id,
+                'unit_id' => $data['unit_id'],
+                'conversion_factor' => $data['conversion_factor'],
+                'is_default_purchase' => (bool) ($data['is_default_purchase'] ?? false),
+                'is_default_sale' => (bool) ($data['is_default_sale'] ?? false),
+                'is_active' => 1,
+                'updated_at' => now(),
+            ];
 
-            abort_unless($updated, 404, 'Konversi satuan tidak ditemukan.');
-        } else {
-            $values['created_at'] = now();
-            DB::table('product_unit_conversions')->updateOrInsert(
-                ['product_id' => $product->id, 'unit_id' => $data['unit_id']],
-                $values
-            );
-        }
+            if ($id) {
+                $updated = DB::table('product_unit_conversions')
+                    ->where('id', $id)
+                    ->whereIn('product_id', DB::table('products')->select('id')->where('entity_id', $entity))
+                    ->update($values);
+
+                abort_unless($updated, 404, 'Konversi satuan tidak ditemukan.');
+            } else {
+                $values['created_at'] = now();
+                DB::table('product_unit_conversions')->updateOrInsert(
+                    ['product_id' => $product->id, 'unit_id' => $data['unit_id']],
+                    $values
+                );
+            }
+        });
 
         return response()->json([
             'message' => $id ? 'Konversi satuan berhasil diperbarui.' : 'Konversi satuan berhasil disimpan.',
