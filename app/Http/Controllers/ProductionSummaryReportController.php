@@ -26,27 +26,11 @@ class ProductionSummaryReportController extends Controller
             ->whereDate('wo.wo_date', '>=', $dateFrom)
             ->whereDate('wo.wo_date', '<=', $dateTo)
             ->orderByDesc('wo.wo_date')->orderByDesc('wo.id')
-            ->get(['wo.id', 'wo.wo_no', 'wo.wo_date', 'wo.batch_qty', 'wo.target_output_qty', 'wo.bom_id', 'wo.warehouse_id', 'wo.status', 'p.id as product_id', 'p.name as product_name']);
+            ->get(['wo.id', 'wo.wo_no', 'wo.wo_date', 'wo.batch_qty', 'wo.target_output_qty', 'wo.estimated_material_cost', 'wo.bom_id', 'wo.warehouse_id', 'wo.status', 'p.id as product_id', 'p.name as product_name']);
 
         return $workOrders->map(function ($wo) use ($entityId) {
-            $estimatedMaterial = 0.0;
-            $bomItems = DB::table('bom_items as bi')
-                ->join('products as p', 'p.id', '=', 'bi.product_id')
-                ->where('bi.bom_id', $wo->bom_id)
-                ->get(['bi.product_id', 'bi.unit_id', 'bi.qty', 'p.base_unit_id']);
-
-            foreach ($bomItems as $item) {
-                $factor = 1.0;
-                if ((int) $item->unit_id !== (int) $item->base_unit_id) {
-                    $factor = (float) (DB::table('product_unit_conversions')
-                        ->where('product_id', $item->product_id)->where('unit_id', $item->unit_id)
-                        ->where('is_active', 1)->value('conversion_factor') ?? 0);
-                }
-                $avgCost = (float) (DB::table('warehouses_stocks')
-                    ->where('entity_id', $entityId)->where('warehouse_id', $wo->warehouse_id)
-                    ->where('product_id', $item->product_id)->value('avg_cost') ?? 0);
-                $estimatedMaterial += (float) $item->qty * $factor * (float) $wo->batch_qty * $avgCost;
-            }
+            // Snapshot saat SPK dibuat/terakhir diedit; jangan hitung ulang dari avg_cost stok terkini.
+            $estimatedMaterial = (float) $wo->estimated_material_cost;
 
             $costs = DB::table('production_work_order_costs')
                 ->where('production_work_order_id', $wo->id)->get(['cost_group', 'amount']);
