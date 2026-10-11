@@ -286,101 +286,13 @@ class ReceiptController extends Controller
                 abort_unless($po, 404, 'Purchase Order tidak ditemukan.');
                 abort_unless(in_array($po->status, ['approved', 'partial'], true), 422, 'PO belum dapat diterima.');
 
+                // Penerimaan PO tidak membuat faktur. Faktur dibuat melalui menu Faktur Pembelian.
                 $purchase = DB::table('purchases')
                     ->where('entity_id', $entityId)
                     ->where('purchase_order_id', $po->id)
                     ->whereNull('deleted_at')
                     ->lockForUpdate()
                     ->first();
-
-                if (!$purchase) {
-                    $date = Carbon::now();
-                    $dateStr = $date->format('Ymd');
-                    $monthStr = $date->format('Ym');
-                    $lastPurchase = DB::table('purchases')
-                        ->where('purchase_no', 'LIKE', "FB-{$monthStr}%")
-                        ->orderByDesc('purchase_no')
-                        ->first();
-                    $nextSeq = $lastPurchase ? ((int) substr($lastPurchase->purchase_no, -5)) + 1 : 1;
-                    $purchaseNo = 'FB-' . $dateStr . str_pad($nextSeq, 5, '0', STR_PAD_LEFT);
-
-                    $purchaseId = DB::table('purchases')->insertGetId([
-                        'entity_id' => $entityId,
-                        'business_unit_id' => $po->business_unit_id,
-                        'supplier_id' => $po->supplier_id,
-                        'purchase_order_id' => $po->id,
-                        'user_id' => $userId ?? 1,
-                        'document_type' => 'invoice',
-                        'source_type' => 'po',
-                        'goods_received' => false,
-                        'posting_status' => 'draft',
-                        'purchase_no' => $purchaseNo,
-                        'supplier_invoice_no' => $purchaseNo,
-                        'supplier_invoice_date' => $po->po_date,
-                        'purchase_date' => $po->po_date,
-                        'subtotal' => 0,
-                        'discount' => 0,
-                        'total' => 0,
-                        'payment_method' => 'credit',
-                        'due_date' => null,
-                        'dpp' => 0,
-                        'ppn_amount' => 0,
-                        'tax_condition' => 'non_ppn',
-                        'memo' => 'Purchase dari PO '.$po->po_no,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-
-                    $poItems = DB::table('purchase_order_items')
-                        ->where('purchase_order_id', $po->id)
-                        ->orderBy('id')
-                        ->get();
-
-                    $subtotal = 0.0;
-                    $discountTotal = 0.0;
-
-                    foreach ($poItems as $poi) {
-                        $qty = (float) $poi->qty;
-                        $factor = (float) ($poi->conversion_factor ?: 1);
-                        $baseQty = (float) ($poi->base_qty ?: ($qty * $factor));
-                        $lineTotal = (float) $poi->total;
-                        $unitCost = $qty > 0 ? $lineTotal / $qty : 0;
-                        $baseUnitCost = $baseQty > 0 ? $lineTotal / $baseQty : 0;
-
-                        DB::table('purchase_items')->insert([
-                            'purchase_id' => $purchaseId,
-                            'product_id' => $poi->product_id,
-                            'unit_id' => $poi->unit_id,
-                            'qty' => $qty,
-                            'conversion_factor' => $factor,
-                            'base_qty' => $baseQty,
-                            'unit_cost' => $unitCost,
-                            'base_unit_cost' => $baseUnitCost,
-                            'discount' => (float) $poi->discount,
-                            'total' => $lineTotal,
-                            'line_subtotal' => $qty * (float) $poi->unit_price,
-                            'line_discount' => (float) $poi->discount,
-                            'taxable_amount' => $lineTotal,
-                            'tax_rate' => 0,
-                            'tax_amount' => 0,
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ]);
-
-                        $subtotal += $qty * (float) $poi->unit_price;
-                        $discountTotal += (float) $poi->discount;
-                    }
-
-                    DB::table('purchases')->where('id', $purchaseId)->update([
-                        'subtotal' => $subtotal,
-                        'discount' => $discountTotal,
-                        'total' => max(0, $subtotal - $discountTotal),
-                        'dpp' => max(0, $subtotal - $discountTotal),
-                        'updated_at' => now(),
-                    ]);
-
-                    $purchase = DB::table('purchases')->where('id', $purchaseId)->lockForUpdate()->first();
-                }
             } else {
                 $purchase = DB::table('purchases')
                     ->where('entity_id', $entityId)
@@ -391,6 +303,10 @@ class ReceiptController extends Controller
                 abort_unless($purchase, 404, 'Faktur pembelian tidak ditemukan.');
                 abort_if($purchase->status === 'cancelled', 422, 'Faktur pembelian sudah dibatalkan.');
             }
+
+            $businessUnitId = (int) ($po->business_unit_id ?? $purchase->business_unit_id);
+            $supplierId = $po->supplier_id ?? $purchase->supplier_id;
+            $purchaseDate = $purchase->purchase_date ?? $po->po_date ?? ($data['receipt_date'] ?? now()->toDateString());
 
             $warehouseId = $po
                 ? (int) $po->warehouse_id
@@ -406,12 +322,12 @@ class ReceiptController extends Controller
 
             $businessUnit = DB::table('business_units')
                 ->where('entity_id', $entityId)
-                ->where('id', $purchase->business_unit_id)
+                ->where('id', $businessUnitId)
                 ->where('is_active', 1)
                 ->first();
             abort_unless($businessUnit, 422, 'Unit Bisnis penerimaan tidak aktif atau bukan milik entitas pengguna.');
 
-            if ((int) $warehouse->business_unit_id !== (int) $purchase->business_unit_id) {
+            if ((int) $warehouse->business_unit_id !== $businessUnitId) {
                 abort(422, 'Gudang harus berada pada Unit Bisnis pembelian.');
             }
 
@@ -436,14 +352,14 @@ class ReceiptController extends Controller
 
             $receiptId = DB::table('receipts')->insertGetId([
                 'entity_id' => $entityId,
-                'business_unit_id' => $purchase->business_unit_id,
+                'business_unit_id' => $businessUnitId,
                 'warehouse_id' => $warehouse->id,
-                'supplier_id' => $purchase->supplier_id,
+                'supplier_id' => $supplierId,
                 'user_id' => $userId,
                 'receipt_no' => $receiptNo,
                 'receipt_date' => $receiptDate,
-                'source_type' => $purchase->source_type ?? 'po',
-                'purchase_id' => $purchase->id,
+                'source_type' => $po ? 'po' : ($purchase->source_type ?? 'direct'),
+                'purchase_id' => $purchase->id ?? null,
                 'memo' => $data['memo'] ?? null,
                 'status' => 'posted',
                 'verification_status' => 'not_required',
@@ -457,7 +373,9 @@ class ReceiptController extends Controller
                 $purchaseItem = null;
                 $purchaseOrderItemId = $row['purchase_order_item_id'] ?? null;
 
-                if ($purchaseOrderItemId) {
+                $isPoItem = !empty($purchaseOrderItemId);
+
+                if ($isPoItem) {
                     abort_unless($po && (int) $purchaseOrderItemId > 0, 422, 'Item PO tidak valid.');
 
                     $poi = DB::table('purchase_order_items')
@@ -465,19 +383,37 @@ class ReceiptController extends Controller
                         ->where('purchase_order_id', $po->id)
                         ->lockForUpdate()
                         ->first();
-
                     abort_unless($poi, 422, 'Item PO tidak valid.');
 
-                    $purchaseItem = DB::table('purchase_items as pi')
-                        ->join('products as p', 'p.id', '=', 'pi.product_id')
-                        ->where('pi.purchase_id', $purchase->id)
-                        ->where('pi.product_id', $poi->product_id)
-                        ->orderBy('pi.id')
-                        ->select('pi.*', 'p.base_unit_id')
+                    $product = DB::table('products')
+                        ->where('entity_id', $entityId)
+                        ->where('id', $poi->product_id)
+                        ->where('is_active', 1)
                         ->first();
+                    abort_unless($product, 422, 'Produk PO tidak aktif atau bukan milik entitas pengguna.');
 
-                    abort_unless($purchaseItem, 422, 'Item pembelian untuk PO tidak ditemukan.');
+                    $factor = (float) ($poi->conversion_factor ?: 1);
+                    $baseQtyTotal = (float) ($poi->base_qty ?: ((float) $poi->qty * $factor));
+                    $lineTotal = (float) $poi->total;
+                    $purchaseItem = (object) [
+                        'id' => null,
+                        'product_id' => $poi->product_id,
+                        'unit_id' => $poi->unit_id,
+                        'qty' => $poi->qty,
+                        'conversion_factor' => $factor,
+                        'base_qty' => $baseQtyTotal,
+                        'unit_cost' => (float) $poi->unit_price,
+                        'base_unit_cost' => $baseQtyTotal > 0 ? $lineTotal / $baseQtyTotal : 0,
+                        'base_unit_id' => $product->base_unit_id,
+                    ];
+                    $receivedBase = DB::table('receipt_items as ri')
+                        ->join('receipts as r', 'r.id', '=', 'ri.receipt_id')
+                        ->where('ri.purchase_order_item_id', $poi->id)
+                        ->where('r.status', 'posted')
+                        ->sum('ri.base_qty');
                 } else {
+                    abort_unless($purchase, 422, 'Faktur pembelian belum dibuat. Buat faktur melalui menu Faktur Pembelian terlebih dahulu.');
+
                     $purchaseItem = DB::table('purchase_items as pi')
                         ->join('products as p', 'p.id', '=', 'pi.product_id')
                         ->where('pi.id', $row['purchase_item_id'] ?? 0)
@@ -486,19 +422,19 @@ class ReceiptController extends Controller
                         ->lockForUpdate()
                         ->select('pi.*', 'p.base_unit_id')
                         ->first();
+                    abort_unless($purchaseItem, 422, 'Item pembelian tidak valid.');
+
+                    $factor = (float) ($purchaseItem->conversion_factor ?: 1);
+                    $baseQtyTotal = (float) ($purchaseItem->base_qty ?: ($purchaseItem->qty * $factor));
+                    $receivedBase = DB::table('receipt_items as ri')
+                        ->join('receipts as r', 'r.id', '=', 'ri.receipt_id')
+                        ->where('ri.purchase_item_id', $purchaseItem->id)
+                        ->where('r.status', 'posted')
+                        ->sum('ri.base_qty');
                 }
 
-                abort_unless($purchaseItem, 422, 'Item pembelian tidak valid.');
-
                 $qty = (float) $row['qty'];
-                $factor = (float) ($purchaseItem->conversion_factor ?: 1);
-                $baseQtyTotal = (float) ($purchaseItem->base_qty ?: ($purchaseItem->qty * $factor));
                 $baseQtyPerTransaction = (float) $purchaseItem->qty > 0 ? $baseQtyTotal / (float) $purchaseItem->qty : $factor;
-
-                $receivedBase = DB::table('receipt_items')
-                    ->where('purchase_item_id', $purchaseItem->id)
-                    ->sum('base_qty');
-
                 $remainingBase = $baseQtyTotal - (float) $receivedBase;
                 $requestedBase = $qty * $baseQtyPerTransaction;
 
@@ -511,7 +447,7 @@ class ReceiptController extends Controller
                 DB::table('receipt_items')->insert([
                     'receipt_id' => $receiptId,
                     'purchase_order_item_id' => $purchaseOrderItemId,
-                    'purchase_item_id' => $purchaseItem->id,
+                    'purchase_item_id' => $purchaseItem->id ?? null,
                     'product_id' => $purchaseItem->product_id,
                     'unit_id' => $purchaseItem->unit_id ?: ($purchaseItem->base_unit_id ?? null),
                     'qty' => $qty,
@@ -555,7 +491,7 @@ class ReceiptController extends Controller
 
                 DB::table('stock_movements')->insert([
                     'entity_id' => $entityId,
-                    'business_unit_id' => $purchase->business_unit_id,
+                    'business_unit_id' => $businessUnitId,
                     'warehouse_id' => $warehouse->id,
                     'product_id' => $purchaseItem->product_id,
                     'unit_id' => $purchaseItem->base_unit_id,
@@ -573,50 +509,56 @@ class ReceiptController extends Controller
                     'updated_at' => now(),
                 ]);
 
-                DB::table('purchase_price_histories')->insert([
-                    'entity_id' => $entityId,
-                    'business_unit_id' => $purchase->business_unit_id,
-                    'product_id' => $purchaseItem->product_id,
-                    'unit_id' => $purchaseItem->unit_id ?: ($purchaseItem->base_unit_id ?? null),
-                    'supplier_id' => $purchase->supplier_id,
-                    'price_date' => $purchase->purchase_date,
-                    'qty' => $qty,
-                    'conversion_factor' => $baseQtyPerTransaction,
-                    'base_qty' => $requestedBase,
-                    'unit_price' => $purchaseItem->unit_cost,
-                    'base_unit_price' => $baseUnitCost,
-                    'source' => 'purchase',
-                    'reference_id' => $purchase->id,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
+                if ($purchase && !$isPoItem) {
+                    DB::table('purchase_price_histories')->insert([
+                        'entity_id' => $entityId,
+                        'business_unit_id' => $businessUnitId,
+                        'product_id' => $purchaseItem->product_id,
+                        'unit_id' => $purchaseItem->unit_id ?: ($purchaseItem->base_unit_id ?? null),
+                        'supplier_id' => $supplierId,
+                        'price_date' => $purchaseDate,
+                        'qty' => $qty,
+                        'conversion_factor' => $baseQtyPerTransaction,
+                        'base_qty' => $requestedBase,
+                        'unit_price' => $purchaseItem->unit_cost,
+                        'base_unit_price' => $baseUnitCost,
+                        'source' => 'purchase',
+                        'reference_id' => $purchase->id,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
 
-                DB::table('receipt_invoice_allocations')->insert([
-                    'receipt_item_id' => DB::table('receipt_items')->where('receipt_id', $receiptId)->where('purchase_item_id', $purchaseItem->id)->latest('id')->value('id'),
-                    'purchase_item_id' => $purchaseItem->id,
-                    'qty' => $qty,
-                    'conversion_factor' => $baseQtyPerTransaction,
-                    'base_qty' => $requestedBase,
-                    'allocated_value' => round($value, 2),
-                    'status' => 'posted',
-                    'created_by' => $userId,
-                    'created_at' => now(),
+                if ($purchase && $purchaseItem->id) {
+                    DB::table('receipt_invoice_allocations')->insert([
+                        'receipt_item_id' => DB::table('receipt_items')->where('receipt_id', $receiptId)->where('purchase_item_id', $purchaseItem->id)->latest('id')->value('id'),
+                        'purchase_item_id' => $purchaseItem->id,
+                        'qty' => $qty,
+                        'conversion_factor' => $baseQtyPerTransaction,
+                        'base_qty' => $requestedBase,
+                        'allocated_value' => round($value, 2),
+                        'status' => 'posted',
+                        'created_by' => $userId,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
+
+            if ($purchase) {
+                $totalBasePurchased = DB::table('receipt_items')->where('receipt_id', $receiptId)->sum('base_qty');
+                $totalBaseExpected = (float) DB::table('purchase_items')
+                    ->where('purchase_id', $purchase->id)
+                    ->sum(DB::raw('COALESCE(base_qty, qty * COALESCE(conversion_factor, 1))'));
+
+                DB::table('purchases')->where('id', $purchase->id)->update([
+                    'goods_received' => true,
+                    'posting_status' => $totalBasePurchased + 0.0000001 >= $totalBaseExpected ? 'posted' : 'partial_received',
+                    'posted_at' => now(),
+                    'posted_by' => $userId,
                     'updated_at' => now(),
                 ]);
             }
-
-            $totalBasePurchased = DB::table('receipt_items')->where('receipt_id', $receiptId)->sum('base_qty');
-            $totalBaseExpected = DB::table('purchase_items')
-                ->where('purchase_id', $purchase->id)
-                ->sum(DB::raw('COALESCE(base_qty, qty * COALESCE(conversion_factor, 1))'));
-
-            DB::table('purchases')->where('id', $purchase->id)->update([
-                'goods_received' => true,
-                'posting_status' => $totalBasePurchased + 0.0000001 >= $totalBaseExpected ? 'posted' : 'partial_received',
-                'posted_at' => now(),
-                'posted_by' => $userId,
-                'updated_at' => now(),
-            ]);
 
             if ($po) {
                 $totalOrdered = (float) DB::table('purchase_order_items')
