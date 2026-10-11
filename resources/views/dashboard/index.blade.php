@@ -124,7 +124,7 @@
             <div class="d-flex justify-content-between gap-2 mb-3"><span class="muted">Nilai penyesuaian stok posted</span><strong>{{ $money($stockAdjustments) }}</strong></div>
             <div class="d-flex justify-content-between gap-2 mb-3"><span class="muted">Jumlah item master</span><strong>{{ number_format((int) $products, 0, ',', '.') }}</strong></div>
             <div class="d-flex justify-content-between gap-2"><span class="muted">Nilai persediaan</span><strong>{{ $money($stockValue) }}</strong></div>
-            <div class="d-flex justify-content-between gap-2 mt-3"><span class="muted">Produk perlu reorder</span><strong class="{{ $reorderCount > 0 ? 'text-danger' : 'text-success' }}">{{ number_format((int) $reorderCount, 0, ',', '.') }}</strong></div>
+            <div class="d-flex justify-content-between gap-2 mt-3"><span class="muted">Produk perlu reorder</span><strong><a class="{{ $reorderCount > 0 ? 'text-danger' : 'text-success' }} text-decoration-none" href="{{ route('laporan.persediaan', array_filter(['business_unit_id' => $businessUnitId])) }}">{{ number_format((int) $reorderCount, 0, ',', '.') }}</a></strong></div>
             <div class="small muted mt-2">Stok tersedia ≤ minimal stok, hanya BU aktif.</div>
         </div></div>
         <div class="col-12 col-lg-4"><div class="dash-card bg-white p-3 h-100">
