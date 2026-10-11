@@ -545,7 +545,7 @@ class ReceiptController extends Controller
                 }
             }
 
-            if ($purchase) {
+            if ($purchase && !$po) {
                 $totalBasePurchased = DB::table('receipt_items')->where('receipt_id', $receiptId)->sum('base_qty');
                 $totalBaseExpected = (float) DB::table('purchase_items')
                     ->where('purchase_id', $purchase->id)
