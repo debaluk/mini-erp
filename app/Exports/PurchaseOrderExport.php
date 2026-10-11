@@ -35,9 +35,11 @@ class PurchaseOrderExport implements FromCollection, WithHeadings, WithMapping, 
         $supplierId     = $this->request->query('supplier_id');
         $warehouseId    = $this->request->query('warehouse_id');
         $statusFilter   = $this->request->query('status');
+        $entityId = (int) (auth()->user()->entity_id ?? 0);
+        abort_unless($entityId > 0, 403, 'Entitas pengguna tidak valid.');
 
         if ($businessUnitId) {
-            $bu = DB::table('business_units')->where('id', $businessUnitId)->first();
+            $bu = DB::table('business_units')->where('entity_id', $entityId)->where('id', $businessUnitId)->where('is_active', 1)->first();
             if ($bu) $this->unitBisnisName = "{$bu->code} - {$bu->name}";
         }
 
@@ -45,6 +47,7 @@ class PurchaseOrderExport implements FromCollection, WithHeadings, WithMapping, 
             ->leftJoin('business_units as bu', 'bu.id', '=', 'po.business_unit_id')
             ->join('suppliers as s', 's.id', '=', 'po.supplier_id')
             ->join('warehouses as w', 'w.id', '=', 'po.warehouse_id')
+            ->where('po.entity_id', $entityId)
             ->whereNull('po.deleted_at')
             ->whereDate('po.po_date', '>=', $startDate)
             ->whereDate('po.po_date', '<=', $endDate);
