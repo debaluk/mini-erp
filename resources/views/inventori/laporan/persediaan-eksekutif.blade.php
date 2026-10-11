@@ -9,7 +9,7 @@
     .inventory-report .report-section-title { font-weight: 700; }
     .inventory-report .report-table th { white-space: nowrap; vertical-align: middle; }
     .inventory-report .report-table td { vertical-align: middle; }
-    .inventory-report .report-detail { min-width: 1050px; }
+    .inventory-report .report-detail { min-width: 1250px; }
     .inventory-report .report-detail td { white-space: nowrap; }
     @media print {
         .no-print { display: none !important; }
@@ -178,9 +178,9 @@
             <table class="table table-hover report-table report-detail mb-0">
                 <thead class="table-light">
                     @if($mode === 'analisis-harga')
-                    <tr><th>No.</th><th>Kode Item</th><th>Nama Item</th><th>Unit Bisnis</th><th>Gudang</th><th class="text-end">Stok</th><th class="text-end">HPP/Unit</th><th class="text-end">Harga Jual/Unit</th><th class="text-end">Nilai Stok</th><th class="text-end">Potensi Penjualan</th><th class="text-end">Selisih/Unit</th><th class="text-end">Potensi Laba Kotor</th><th class="text-end">Margin</th></tr>
+                    <tr><th>No.</th><th>Kode Item</th><th>Nama Item</th><th>Unit Bisnis</th><th>Gudang</th><th class="text-end">Stok</th><th class="text-end">Minimal Stok / ROP</th><th>Status ROP</th><th class="text-end">HPP/Unit</th><th class="text-end">Harga Jual/Unit</th><th class="text-end">Nilai Stok</th><th class="text-end">Potensi Penjualan</th><th class="text-end">Selisih/Unit</th><th class="text-end">Potensi Laba Kotor</th><th class="text-end">Margin</th></tr>
                     @else
-                    <tr><th>No.</th><th>Kode Item</th><th>Nama Item</th><th>Satuan Dasar</th><th>Unit Bisnis</th><th>Gudang</th><th class="text-end">Qty</th><th class="text-end">HPP Rata-rata</th><th class="text-end">Nilai Stok</th></tr>
+                    <tr><th>No.</th><th>Kode Item</th><th>Nama Item</th><th>Satuan Dasar</th><th>Unit Bisnis</th><th>Gudang</th><th class="text-end">Qty</th><th class="text-end">Minimal Stok / ROP</th><th>Status ROP</th><th class="text-end">HPP Rata-rata</th><th class="text-end">Nilai Stok</th></tr>
                     @endif
                 </thead>
                 <tbody>
@@ -190,6 +190,8 @@
                         <td>{{ $rows->firstItem() + $loop->index }}</td><td class="fw-semibold">{{ $row->code ?: $row->sku ?: '-' }}</td><td>{{ $row->product_name }}</td>
                         <td>{{ $row->business_unit_name ?: '-' }}</td><td>{{ $row->warehouse_name }}</td>
                         <td class="text-end">{{ format_id_number($row->qty, 3) }} {{ $row->unit_code }}</td>
+                        <td class="text-end">@if($row->manage_stock && $row->reorder_point !== null) {{ format_id_number($row->reorder_point, 3) }} {{ $row->unit_code }} @else - @endif</td>
+                        <td>@if($row->manage_stock && $row->reorder_point !== null) <span class="badge {{ (float) $row->qty <= (float) $row->reorder_point ? 'text-bg-danger' : 'text-bg-success' }}">{{ (float) $row->qty <= (float) $row->reorder_point ? 'Perlu Reorder' : 'Aman' }}</span> @else - @endif</td>
                         <td class="text-end">Rp {{ format_id_number($row->avg_cost, 0) }}</td>
                         <td class="text-end">@if($row->selling_price !== null) Rp {{ format_id_number($row->selling_price, 0) }} @else <span class="text-danger">Belum diatur</span> @endif</td>
                         <td class="text-end">Rp {{ format_id_number($row->stock_value, 0) }}</td>
@@ -202,11 +204,11 @@
                     <tr>
                         <td>{{ $rows->firstItem() + $loop->index }}</td><td class="fw-semibold">{{ $row->code ?: $row->sku ?: '-' }}</td><td>{{ $row->product_name }}</td>
                         <td>{{ $row->unit_name ?: $row->unit_code ?: '-' }}</td><td>{{ $row->business_unit_names ?: '-' }}</td><td>{{ $row->warehouse_name }}</td>
-                        <td class="text-end">{{ format_id_number($row->qty, 3) }}</td><td class="text-end">Rp {{ format_id_number($row->avg_cost, 0) }}</td><td class="text-end fw-semibold">Rp {{ format_id_number($row->stock_value, 0) }}</td>
+                        <td class="text-end">{{ format_id_number($row->qty, 3) }}</td><td class="text-end">@if($row->manage_stock && $row->reorder_point !== null) {{ format_id_number($row->reorder_point, 3) }} @else - @endif</td><td>@if($row->manage_stock && $row->reorder_point !== null) <span class="badge {{ (float) $row->qty <= (float) $row->reorder_point ? 'text-bg-danger' : 'text-bg-success' }}">{{ (float) $row->qty <= (float) $row->reorder_point ? 'Perlu Reorder' : 'Aman' }}</span> @else - @endif</td><td class="text-end">Rp {{ format_id_number($row->avg_cost, 0) }}</td><td class="text-end fw-semibold">Rp {{ format_id_number($row->stock_value, 0) }}</td>
                     </tr>
                     @endif
                 @empty
-                    <tr><td colspan="{{ $mode === 'analisis-harga' ? 13 : 9 }}" class="text-center text-secondary py-4">Tidak ada data persediaan sesuai filter.</td></tr>
+                    <tr><td colspan="{{ $mode === 'analisis-harga' ? 15 : 11 }}" class="text-center text-secondary py-4">Tidak ada data persediaan sesuai filter.</td></tr>
                 @endforelse
                 </tbody>
             </table>
