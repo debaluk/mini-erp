@@ -12,9 +12,9 @@ class PurchaseReturnController extends Controller
 {
     private function entityId(): int
     {
-        $entity = DB::table('entities')->first();
-        abort_unless($entity, 422, 'Entitas belum tersedia.');
-        return (int) $entity->id;
+        $entityId = (int) (auth()->user()->entity_id ?? 0);
+        abort_unless($entityId > 0, 403, 'Entitas pengguna tidak valid.');
+        return $entityId;
     }
 
     private function nextReturnNumber(int $entity, string $returnDate): string
@@ -38,8 +38,9 @@ class PurchaseReturnController extends Controller
         $endDate = $request->query('end_date', now()->endOfMonth()->toDateString());
         $businessUnitId = $request->query('business_unit_id');
         $warehouseId = $request->query('warehouse_id');
-        $businessUnits = BusinessUnit::where('is_active', 1)->orderBy('code')->get();
-        $warehouses = Warehouse::where('is_active', 1)->orderBy('name')->get();
+        $entityId = $this->entityId();
+        $businessUnits = BusinessUnit::where('entity_id', $entityId)->where('is_active', 1)->orderBy('code')->get();
+        $warehouses = Warehouse::where('entity_id', $entityId)->where('is_active', 1)->orderBy('name')->get();
 
         return view('inventori.pembelian.retur.index', compact('businessUnits', 'warehouses', 'startDate', 'endDate', 'businessUnitId', 'warehouseId'));
     }
@@ -183,6 +184,13 @@ class PurchaseReturnController extends Controller
                 ->where('entity_id', $entity)->where('id', $receipt->purchase_id)
                 ->whereNull('deleted_at')->lockForUpdate()->first();
             abort_unless($purchase && $purchase->status !== 'cancelled', 422, 'Faktur pembelian sumber tidak valid atau sudah dibatalkan.');
+
+            $businessUnit = DB::table('business_units')
+                ->where('entity_id', $entity)
+                ->where('id', $receipt->business_unit_id)
+                ->where('is_active', 1)
+                ->first();
+            abort_unless($businessUnit, 422, 'Unit Bisnis retur tidak aktif atau bukan milik entitas pengguna.');
 
             $returnNo = $this->nextReturnNumber($entity, $data['return_date']);
             $returnId = DB::table('purchase_returns')->insertGetId([
@@ -398,6 +406,13 @@ class PurchaseReturnController extends Controller
 
             abort_unless($return, 404, 'Retur pembelian tidak ditemukan.');
             abort_unless($return->status === 'draft', 422, 'Retur sudah diposting.');
+
+            $businessUnit = DB::table('business_units')
+                ->where('entity_id', $entity)
+                ->where('id', $return->business_unit_id)
+                ->where('is_active', 1)
+                ->first();
+            abort_unless($businessUnit, 422, 'Unit Bisnis retur tidak aktif atau bukan milik entitas pengguna.');
 
             $items = DB::table('purchase_return_items')
                 ->where('purchase_return_id', $return->id)
