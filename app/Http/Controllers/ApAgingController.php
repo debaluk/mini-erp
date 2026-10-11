@@ -42,13 +42,14 @@ class ApAgingController extends Controller
             ->join('suppliers as sup', 'sup.id', '=', 'p.supplier_id')
             ->leftJoin('business_units as bu', 'bu.id', '=', 'p.business_unit_id')
             ->leftJoinSub(
-                DB::table('supplier_payment_allocations as spa')
-                    ->join('supplier_payments as sp', 'sp.id', '=', 'spa.supplier_payment_id')
-                    ->select('spa.purchase_id', DB::raw('COALESCE(SUM(spa.amount), 0) as total_paid'))
-                    ->where('spa.status', 'posted')
-                    ->where('sp.status', 'posted')
-                    ->whereDate('sp.payment_date', '<=', $asOfDate)
-                    ->groupBy('spa.purchase_id'),
+                DB::table('payments as pay')
+                    ->join('purchases as pur', 'pur.id', '=', 'pay.purchase_id')
+                    ->select('pay.purchase_id', DB::raw('COALESCE(SUM(pay.paid_amount), 0) as total_paid'))
+                    ->where('pur.entity_id', $entityId)
+                    ->where('pur.status', 'posted')
+                    ->where('pur.payment_method', 'credit')
+                    ->whereDate('pay.payment_date', '<=', $asOfDate)
+                    ->groupBy('pay.purchase_id'),
                 'pay', 'pay.purchase_id', '=', 'p.id'
             )
             ->where('p.entity_id', $entityId)
