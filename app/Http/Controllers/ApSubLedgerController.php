@@ -201,7 +201,7 @@ class ApSubLedgerController extends Controller
         $paymentEntries = DB::table('supplier_payment_allocations as spa')
             ->join('supplier_payments as sp', 'sp.id', '=', 'spa.supplier_payment_id')
             ->join('purchases as pur', 'pur.id', '=', 'spa.purchase_id')
-            ->where('pur.supplier_id', $supplierId)->where('pur.status', 'posted')
+            ->where('pur.entity_id', $entityId)->where('pur.supplier_id', $supplierId)->where('pur.status', 'posted')
             ->where('spa.status', 'posted')->where('sp.status', 'posted')
             ->whereDate('sp.payment_date', '>=', $startDate)->whereDate('sp.payment_date', '<=', $endDate)
             ->when($businessUnitId, fn($q) => $q->where('pur.business_unit_id', $businessUnitId))
@@ -242,8 +242,8 @@ class ApSubLedgerController extends Controller
     public function storeInitialBalance(Request $request)
     {
         $request->validate([
-            'business_unit_id' => 'required|exists:business_units,id',
-            'supplier_id'      => 'required|exists:suppliers,id',
+            'business_unit_id' => 'required|integer',
+            'supplier_id'      => 'required|integer',
             'purchase_no'      => 'required|string|max:100',
             'purchase_date'    => 'required|date',
             'due_date'         => 'required|date|after_or_equal:purchase_date',
@@ -253,11 +253,25 @@ class ApSubLedgerController extends Controller
 
         DB::beginTransaction();
         try {
-            $apAccount     = ChartOfAccount::where('code', '2000101')->first() ?? ChartOfAccount::where('type', 'liability')->where('name', 'LIKE', '%Hutang%')->first();
-            $equityAccount = ChartOfAccount::where('code', '3000101')->first() ?? ChartOfAccount::where('type', 'equity')->where('name', 'LIKE', '%Modal%')->first();
+            $entityId = $this->entityId();
+            $businessUnit = DB::table('business_units')->where('entity_id', $entityId)->where('id', $request->business_unit_id)->where('is_active', 1)->first();
+            $supplier = DB::table('suppliers')->where('entity_id', $entityId)->where('id', $request->supplier_id)->where('is_active', 1)->first();
+            abort_unless($businessUnit && $supplier, 422, 'Unit Bisnis atau supplier tidak aktif atau bukan milik entitas pengguna.');
+
+            $period = DB::table('accounting_periods')->where('entity_id', $entityId)
+                ->where('period_year', Carbon::parse($request->purchase_date)->year)
+                ->where('period_month', Carbon::parse($request->purchase_date)->month)->first();
+            abort_if($period && in_array($period->status, ['closing', 'closed'], true), 422, 'Periode akuntansi sudah closing atau closed.');
+
+            $mapping = DB::table('business_unit_account_mappings')->where('entity_id', $entityId)
+                ->where('business_unit_id', $businessUnit->id)->where('mapping_key', 'payable')->value('account_id');
+            $apAccount = $mapping ? ChartOfAccount::where('entity_id', $entityId)->where('id', $mapping)->where('is_active', 1)->where('is_postable', 1)->first() : null;
+            $equityAccount = ChartOfAccount::where('entity_id', $entityId)->where('code', '3000101')->where('is_active', 1)->where('is_postable', 1)->first()
+                ?? ChartOfAccount::where('entity_id', $entityId)->where('type', 'equity')->where('name', 'LIKE', '%Modal%')->where('is_active', 1)->where('is_postable', 1)->first();
+            abort_unless($apAccount && $equityAccount, 422, 'Mapping akun hutang atau akun ekuitas entitas belum tersedia.');
 
             $purchaseId = DB::table('purchases')->insertGetId([
-                'entity_id'        => auth()->user()->entity_id ?? 1,
+                'entity_id'        => $entityId,
                 'business_unit_id' => $request->business_unit_id,
                 'supplier_id'      => $request->supplier_id,
                 'user_id'          => auth()->id() ?? 1,
@@ -301,8 +315,8 @@ class ApSubLedgerController extends Controller
     public function updateInitialBalance(Request $request, $id)
     {
         $request->validate([
-            'business_unit_id' => 'required|exists:business_units,id',
-            'supplier_id'      => 'required|exists:suppliers,id',
+            'business_unit_id' => 'required|integer',
+            'supplier_id'      => 'required|integer',
             'purchase_no'      => 'required|string|max:100',
             'purchase_date'    => 'required|date',
             'due_date'         => 'required|date|after_or_equal:purchase_date',
@@ -312,7 +326,27 @@ class ApSubLedgerController extends Controller
 
         DB::beginTransaction();
         try {
-            DB::table('purchases')->where('id', $id)->update([
+            $entityId = $this->entityId();
+            $purchase = DB::table('purchases')->where('entity_id', $entityId)->where('id', $id)
+                ->where('status', 'posted')
+                ->where(function ($q) {
+                    $q->where('memo', 'LIKE', '[SALDO AWAL]%')->orWhere('memo', 'LIKE', '[EDIT HUTANG]%');
+                })->lockForUpdate()->first();
+            abort_unless($purchase, 404, 'Saldo awal hutang tidak ditemukan pada entitas pengguna.');
+            abort_unless((int) $request->business_unit_id === (int) $purchase->business_unit_id, 422, 'Unit Bisnis saldo awal hutang tidak dapat diubah.');
+            $businessUnit = DB::table('business_units')->where('entity_id', $entityId)->where('id', $request->business_unit_id)->where('is_active', 1)->first();
+            $supplier = DB::table('suppliers')->where('entity_id', $entityId)->where('id', $request->supplier_id)->where('is_active', 1)->first();
+            abort_unless($businessUnit && $supplier, 422, 'Unit Bisnis atau supplier tidak aktif atau bukan milik entitas pengguna.');
+
+            $period = DB::table('accounting_periods')->where('entity_id', $entityId)
+                ->where('period_year', Carbon::parse($purchase->purchase_date)->year)
+                ->where('period_month', Carbon::parse($purchase->purchase_date)->month)->first();
+            $targetPeriod = DB::table('accounting_periods')->where('entity_id', $entityId)
+                ->where('period_year', Carbon::parse($request->purchase_date)->year)
+                ->where('period_month', Carbon::parse($request->purchase_date)->month)->first();
+            abort_if(($period && in_array($period->status, ['closing', 'closed'], true)) || ($targetPeriod && in_array($targetPeriod->status, ['closing', 'closed'], true)), 422, 'Periode akuntansi sudah closing atau closed.');
+
+            DB::table('purchases')->where('entity_id', $entityId)->where('id', $id)->update([
                 'business_unit_id' => $request->business_unit_id,
                 'supplier_id'      => $request->supplier_id,
                 'purchase_no'      => $request->purchase_no,
@@ -324,7 +358,7 @@ class ApSubLedgerController extends Controller
                 'updated_at'       => now(),
             ]);
 
-            $journal = Journal::where('source_type', 'INITIAL_AP')->where('source_id', $id)->first();
+            $journal = Journal::where('entity_id', $entityId)->where('source_type', 'INITIAL_AP')->where('source_id', $id)->first();
             if ($journal) {
                 $journal->update([
                     'business_unit_id' => $request->business_unit_id,
