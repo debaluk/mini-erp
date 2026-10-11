@@ -727,7 +727,8 @@ class ErpController extends Controller
             $data['is_active'] = (int) ($data['is_active'] ?? 1);
         }
 
-        if (in_array($type, ['customers','suppliers'], true)) {
+        if (in_array($type, ['customers', 'suppliers', 'workers'], true)) {
+            // Kode master dibuat otomatis dan tidak boleh diubah melalui request edit.
             unset($data['code']);
             $data['is_active'] = array_key_exists('is_active', $data) ? (int) $data['is_active'] : 1;
             if ($type === 'customers') $data['credit_limit'] = 0;
