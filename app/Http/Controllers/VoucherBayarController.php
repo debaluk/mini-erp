@@ -90,7 +90,8 @@ class VoucherBayarController extends Controller
         $q = DB::table('voucher_bayar as v')->leftJoin('workers as w','w.id','=','v.worker_id')
             ->join('business_units as bu','bu.id','=','v.business_unit_id')->where('v.entity_id',$this->entityId())
             ->select(['v.*','w.name as worker_name','bu.name as business_unit_name',
-                DB::raw('(SELECT COUNT(*) FROM voucher_bayar_items i WHERE i.voucher_bayar_id = v.id) as item_count')]);
+                DB::raw('(SELECT COUNT(*) FROM voucher_bayar_items i WHERE i.voucher_bayar_id = v.id) as item_count'),
+                DB::raw("(SELECT GROUP_CONCAT(DISTINCT wo.wo_no ORDER BY wo.wo_no SEPARATOR ', ') FROM voucher_bayar_items i JOIN production_work_orders wo ON wo.id = i.work_order_id WHERE i.voucher_bayar_id = v.id) as spk_list")]);
         if (in_array($category,['UPAH_PRODUKSI','HUTANG_SUPPLIER','OPERASIONAL','LAINNYA'],true)) $q->where('v.category',$category);
         if (in_array($status,['MENUNGGU_PEMBAYARAN','DIBAYAR_SEBAGIAN','LUNAS'],true)) $q->where('v.status',$status);
         $vouchers = $q->orderByRaw("CASE WHEN v.status = 'LUNAS' THEN 1 ELSE 0 END")
