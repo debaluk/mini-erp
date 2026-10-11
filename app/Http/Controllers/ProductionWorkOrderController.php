@@ -114,6 +114,13 @@ class ProductionWorkOrderController extends Controller
             ->select('production_work_order_id', DB::raw('SUM(good_output_qty) as good_output_qty'))
             ->pluck('good_output_qty', 'production_work_order_id');
 
+        // Hasil produksi baru boleh diinput setelah minimal satu pemakaian bahan disetujui.
+        $approvedUsageWorkOrderIds = DB::table('production_wo_material_usages')
+            ->whereIn('production_work_order_id', $rows->pluck('id'))
+            ->where('status', 'approved')
+            ->distinct()
+            ->pluck('production_work_order_id');
+
         foreach ($rows as $row) {
             $materials = $bomMaterials->get($row->bom_id, collect());
             $usedByProduct = $usedMaterials->get($row->id, collect())->keyBy('product_id');
@@ -186,6 +193,7 @@ class ProductionWorkOrderController extends Controller
             'woCosts',
             'woWorkers',
             'resultDraftLines',
+            'approvedUsageWorkOrderIds',
             'dateFrom',
             'dateTo'
         ));
@@ -796,6 +804,13 @@ class ProductionWorkOrderController extends Controller
 
                 abort_unless($lockedWorkOrder, 404, 'SPK tidak ditemukan.');
                 abort_unless($lockedWorkOrder->status === 'in_progress', 422, 'Hanya SPK yang sedang diproses dapat menerima hasil produksi.');
+
+                // Urutan flow: pemakaian bahan aktual harus disetujui sebelum hasil boleh disimpan atau di-closing.
+                $hasApprovedMaterialUsage = DB::table('production_wo_material_usages')
+                    ->where('production_work_order_id', $id)
+                    ->where('status', 'approved')
+                    ->exists();
+                abort_unless($hasApprovedMaterialUsage, 422, 'Catat dan ajukan pemakaian bahan terlebih dahulu, lalu pastikan sudah disetujui sebelum input hasil produksi.');
 
                 // Simpan kuantitas sebagai angka, bukan string format tampilan Indonesia.
                 $goodQuantities = array_map(static fn ($value) => round((float) $value, 3), $entry['good_qty']);
