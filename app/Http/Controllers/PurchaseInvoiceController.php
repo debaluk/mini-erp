@@ -562,7 +562,19 @@ class PurchaseInvoiceController extends Controller
                     throw new \RuntimeException('Rincian barang pembelian tidak lengkap.');
                 }
 
-                $receipt = DB::table('receipts')->where('purchase_id',$id)->orderBy('id')->lockForUpdate()->first();
+                $receipt = DB::table('receipts')->where('entity_id', $entityId)->where('purchase_id',$id)->orderBy('id')->lockForUpdate()->first();
+
+                if (DB::table('payments')->where('purchase_id', $id)->exists()) {
+                    throw new \RuntimeException('Faktur tidak dapat diedit karena sudah memiliki riwayat pembayaran.');
+                }
+                if ($receipt && DB::table('purchase_return_items as pri')
+                    ->join('purchase_returns as pr', 'pr.id', '=', 'pri.purchase_return_id')
+                    ->join('receipt_items as ri', 'ri.id', '=', 'pri.receipt_item_id')
+                    ->where('ri.receipt_id', $receipt->id)
+                    ->whereIn('pr.status', ['draft', 'posted'])
+                    ->exists()) {
+                    throw new \RuntimeException('Faktur tidak dapat diedit karena penerimaannya sudah digunakan oleh Retur Pembelian.');
+                }
 
                 if ($purchase->source_type === 'po') {
                     if ($oldItems->count() !== count($products)) {
@@ -990,12 +1002,13 @@ class PurchaseInvoiceController extends Controller
     public function destroy(Request $request, $id)
     {
         try {
-            $result = DB::transaction(function () use ($id) {
-                $entityId = (int) (auth()->user()->entity_id ?? 1);
+            $entityId = $this->entityId();
+            $result = DB::transaction(function () use ($id, $entityId) {
 
                 $purchase = DB::table('purchases')
                     ->where('entity_id', $entityId)
                     ->where('id', $id)
+                    ->whereNull('deleted_at')
                     ->lockForUpdate()
                     ->first();
 
@@ -1015,6 +1028,21 @@ class PurchaseInvoiceController extends Controller
 
                 if ($period && in_array($period->status, ['closing', 'closed'], true)) {
                     throw new \RuntimeException('Faktur tidak dapat dibatalkan karena periode akuntansi sudah dalam proses closing atau sudah closed.');
+                }
+
+                if (DB::table('payments')->where('purchase_id', $purchase->id)->exists()) {
+                    throw new \RuntimeException('Faktur tidak dapat dibatalkan karena sudah memiliki riwayat pembayaran. Selesaikan pembatalan pembayaran terlebih dahulu.');
+                }
+
+                $receiptForGuards = DB::table('receipts')
+                    ->where('entity_id', $entityId)->where('purchase_id', $purchase->id)->first();
+                if ($receiptForGuards && DB::table('purchase_return_items as pri')
+                    ->join('purchase_returns as pr', 'pr.id', '=', 'pri.purchase_return_id')
+                    ->join('receipt_items as ri', 'ri.id', '=', 'pri.receipt_item_id')
+                    ->where('ri.receipt_id', $receiptForGuards->id)
+                    ->whereIn('pr.status', ['draft', 'posted'])
+                    ->exists()) {
+                    throw new \RuntimeException('Faktur tidak dapat dibatalkan karena penerimaannya sudah digunakan oleh Retur Pembelian.');
                 }
 
                 $returnExists = DB::table('purchase_return_items as pri')
