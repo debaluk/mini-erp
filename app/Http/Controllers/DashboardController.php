@@ -20,7 +20,7 @@ class DashboardController extends Controller
         $startDate = Carbon::createFromFormat('Y-m-d', $period . '-01')->startOfMonth()->toDateString();
         $endDate = Carbon::createFromFormat('Y-m-d', $period . '-01')->endOfMonth()->toDateString();
         $businessUnitId = $request->query('business_unit_id');
-        $businessUnits = DB::table('business_units')->where('is_active', 1)->orderBy('code')->get();
+        $businessUnits = DB::table('business_units')->where('entity_id', $entityId)->where('is_active', 1)->orderBy('code')->get();
         $validUnitIds = $businessUnits->pluck('id')->map(fn ($id) => (string) $id)->all();
         if ($businessUnitId && !in_array((string) $businessUnitId, $validUnitIds, true)) {
             $businessUnitId = null;
@@ -28,8 +28,8 @@ class DashboardController extends Controller
 
         // Reorder Point uses the existing product minimum_stock field. Count each product per active BU/gudang mapping.
         $reorderQuery = DB::table('product_business_units as pbu')
-            ->join('products as p', function ($join) { $join->on('p.id', '=', 'pbu.product_id')->on('p.entity_id', '=', 'pbu.entity_id'); })
-            ->join('business_units as bu', function ($join) { $join->on('bu.id', '=', 'pbu.business_unit_id')->on('bu.entity_id', '=', 'pbu.entity_id'); })
+            ->join('products as p', 'p.id', '=', 'pbu.product_id')
+            ->join('business_units as bu', function ($join) { $join->on('bu.id', '=', 'pbu.business_unit_id')->on('bu.entity_id', '=', 'p.entity_id'); })
             ->join('warehouse_business_units as wbu', function ($join) { $join->on('wbu.business_unit_id', '=', 'bu.id')->on('wbu.entity_id', '=', 'bu.entity_id'); })
             ->join('warehouses as w', function ($join) { $join->on('w.id', '=', 'wbu.warehouse_id')->on('w.entity_id', '=', 'wbu.entity_id'); })
             ->leftJoin('warehouses_stocks as ws', function ($join) { $join->on('ws.product_id', '=', 'p.id')->on('ws.warehouse_id', '=', 'w.id')->on('ws.entity_id', '=', 'p.entity_id'); })
