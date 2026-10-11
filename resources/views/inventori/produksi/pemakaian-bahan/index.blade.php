@@ -73,25 +73,53 @@
                         <th>Produk</th>
                         <th>Gudang</th>
                         <th class="text-end">Target</th>
+                        <th>Status Pemakaian</th>
                         <th class="text-end">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
                 @forelse($workOrders as $wo)
+                    @php
+                        if ($wo->open_usage?->status === 'pending') {
+                            $usageStatusLabel = 'Menunggu Approval';
+                            $usageStatusClass = 'warning';
+                        } elseif ($wo->open_usage?->status === 'draft') {
+                            $usageStatusLabel = 'Draft';
+                            $usageStatusClass = 'secondary';
+                        } elseif ($wo->has_approved_usage && $wo->materials->isNotEmpty()) {
+                            $usageStatusLabel = 'Disetujui';
+                            $usageStatusClass = 'success';
+                        } elseif ($wo->materials->isEmpty()) {
+                            $usageStatusLabel = 'Estimasi Habis';
+                            $usageStatusClass = 'dark';
+                        } else {
+                            $usageStatusLabel = 'Belum Dicatat';
+                            $usageStatusClass = 'light';
+                        }
+                    @endphp
                     <tr>
                         <td class="fw-semibold">{{ $wo->wo_no }}</td>
                         <td>{{ \Carbon\Carbon::parse($wo->wo_date)->format('d/m/Y') }}</td>
                         <td>{{ $wo->product_name }}</td>
                         <td>{{ $wo->warehouse_name }}</td>
-                        <td class="text-end">{{ number_format((float) $wo->target_output_qty, 2, ',', '.') }}</td>
-                        <td class="text-end">
-                            <button type="button" class="btn btn-sm btn-primary btn-open-material-usage" data-id="{{ $wo->id }}">
-                                Pemakaian
-                            </button>
+                        <td class="text-end">{{ \App\Helpers\FormatHelper::indo((float) $wo->target_output_qty, 2) }}</td>
+                        <td>
+                            <span class="badge text-bg-{{ $usageStatusClass === 'light' ? 'light border text-dark' : $usageStatusClass }}">{{ $usageStatusLabel }}</span>
+                        </td>
+                        <td class="text-end text-nowrap">
+                            @if($wo->open_usage)
+                                <a href="{{ route('produksi.pemakaian-bahan.show', $wo->open_usage->id) }}" class="btn btn-sm {{ $wo->open_usage->status === 'pending' ? 'btn-warning' : 'btn-outline-secondary' }}">
+                                    {{ $wo->open_usage->status === 'pending' ? 'Proses Approval' : 'Lanjutkan Draft' }}
+                                </a>
+                            @elseif($wo->materials->isNotEmpty())
+                                <button type="button" class="btn btn-sm btn-primary btn-open-material-usage" data-id="{{ $wo->id }}">Catat Bahan</button>
+                            @else
+                                <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="Sisa estimasi bahan sudah habis">Selesai</button>
+                            @endif
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="text-center text-muted py-4">Tidak ada SPK On Progress dengan sisa estimasi bahan yang masih dapat dipakai.</td></tr>
+                    <tr><td colspan="7" class="text-center text-muted py-4">Tidak ada SPK yang sedang diproses.</td></tr>
                 @endforelse
                 </tbody>
             </table>
@@ -197,7 +225,7 @@
                             <tbody id="materialUsageRows"></tbody>
                         </table>
                     </div>
-                    <div class="small text-secondary">Sisa estimasi = kuantitas BOM × batch SPK dikurangi total pemakaian yang sudah disetujui. Pemakaian dapat dibuat bertahap, tidak boleh melewati estimasi.</div>
+                    <div class="small text-secondary">Isi jumlah aktual yang benar-benar dipakai. Boleh sebagian dan bisa dicatat bertahap, tetapi tidak boleh melebihi sisa estimasi SPK.</div>
                     <div class="mt-3">
                         <label class="form-label">Catatan</label>
                         <textarea name="notes" class="form-control" rows="2"></textarea>
@@ -253,7 +281,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 actualInput.min = '0.001';
                 actualInput.step = '0.001';
                 actualInput.required = true;
-                actualInput.value = item.remaining_qty;
+                actualInput.max = item.remaining_qty;
+                actualInput.placeholder = 'Qty aktual';
+                actualInput.value = '';
                 actualCell.append(productInput, actualInput);
                 tr.appendChild(actualCell);
                 rows.appendChild(tr);
