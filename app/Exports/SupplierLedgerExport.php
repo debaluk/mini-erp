@@ -38,7 +38,7 @@ class SupplierLedgerExport implements FromCollection, WithHeadings, WithStyles, 
 
         $initialPurchases = DB::table('purchases')
             ->where('entity_id', $entityId)
-            ->where('supplier_id', $this->supplierId)->where('status', 'posted')
+            ->where('supplier_id', $this->supplierId)->where('status', 'posted')->where('payment_method', 'credit')
             ->whereDate('purchase_date', '<', $startDate)
             ->when($businessUnitId, fn($q) => $q->where('business_unit_id', $businessUnitId))->sum('total');
 
@@ -54,7 +54,7 @@ class SupplierLedgerExport implements FromCollection, WithHeadings, WithStyles, 
 
         $purchaseEntries = DB::table('purchases')
             ->where('entity_id', $entityId)
-            ->where('supplier_id', $this->supplierId)->where('status', 'posted')
+            ->where('supplier_id', $this->supplierId)->where('status', 'posted')->where('payment_method', 'credit')
             ->whereDate('purchase_date', '>=', $startDate)->whereDate('purchase_date', '<=', $endDate)
             ->when($businessUnitId, fn($q) => $q->where('business_unit_id', $businessUnitId))
             ->select('purchase_date as trans_date', 'purchase_no as ref_no', 'memo as description', DB::raw('0 as debit'), 'total as credit')->get();
