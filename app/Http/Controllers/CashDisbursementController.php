@@ -144,6 +144,7 @@ class CashDisbursementController extends Controller
             )
             ->where('p.entity_id', $entityId)
             ->where('p.supplier_id', $supplierId)
+            ->where('p.payment_method', 'credit')
             ->where('p.status', 'posted')
             ->select(
                 'p.id',
@@ -228,6 +229,7 @@ class CashDisbursementController extends Controller
                     ->where('id', $purchaseId)
                     ->where('business_unit_id', $businessUnit->id)
                     ->where('supplier_id', $supplier->id)
+                    ->where('payment_method', 'credit')
                     ->where('status', 'posted')
                     ->whereNull('deleted_at')
                     ->lockForUpdate()
