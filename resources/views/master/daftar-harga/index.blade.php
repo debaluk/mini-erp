@@ -64,7 +64,7 @@
             <input type="hidden" name="unit_id" id="priceUnitId">
 
             <div class="modal-content border-0 shadow">
-                <div class="modal-header px-4 py-3">
+                <div class="modal-header px-0 py-0">
                     <div>
                         <h5 class="modal-title fw-semibold mb-1">Setup Harga Jual</h5>
                         <div class="small text-secondary">Atur harga jual item untuk Unit Bisnis yang dipilih.</div>
@@ -112,7 +112,7 @@
                     </div>
                 </div>
 
-                <div class="modal-footer px-4 py-3">
+                <div class="modal-footer px-0 py-0">
                     <small class="text-secondary me-auto"><span class="text-danger">*</span> Wajib diisi</small>
                     <button type="button" class="btn btn-light border btn-close-modal">Batal</button>
                     <button type="submit" class="btn btn-primary px-4" id="priceSaveButton">Simpan Harga</button>
@@ -154,7 +154,7 @@
 <div class="modal fade" id="priceHistoryModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content border-0 shadow">
-            <div class="modal-header px-4 py-3">
+            <div class="modal-header px-0 py-0">
                 <div>
                     <h5 class="modal-title fw-semibold mb-1">History Harga Jual</h5>
                     <div class="small text-secondary" id="historySubtitle"></div>
@@ -182,7 +182,7 @@
                 </div>
                 <div id="historyEmpty" class="text-center text-muted py-4 d-none">Belum ada history harga.</div>
             </div>
-            <div class="modal-footer px-4 py-3">
+            <div class="modal-footer px-0 py-0">
                 <button type="button" class="btn btn-light border btn-close-modal">Tutup</button>
             </div>
         </div>
