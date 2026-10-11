@@ -49,6 +49,7 @@ class ApAgingExport implements FromCollection, WithHeadings, WithStyles, WithCol
             )
             ->where('p.entity_id', $entityId)
             ->where('p.status', 'posted')
+            ->where('p.payment_method', 'credit')
             ->whereDate('p.purchase_date', '<=', $asOfDate);
 
         if ($businessUnitId) $query->where('p.business_unit_id', $businessUnitId);
