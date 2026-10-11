@@ -26,15 +26,29 @@ class DashboardController extends Controller
             $businessUnitId = null;
         }
 
+        // Reorder Point uses the existing product minimum_stock field. Count each product per active BU/gudang mapping.
+        $reorderQuery = DB::table('product_business_units as pbu')
+            ->join('products as p', function ($join) { $join->on('p.id', '=', 'pbu.product_id')->on('p.entity_id', '=', 'pbu.entity_id'); })
+            ->join('business_units as bu', function ($join) { $join->on('bu.id', '=', 'pbu.business_unit_id')->on('bu.entity_id', '=', 'pbu.entity_id'); })
+            ->join('warehouse_business_units as wbu', function ($join) { $join->on('wbu.business_unit_id', '=', 'bu.id')->on('wbu.entity_id', '=', 'bu.entity_id'); })
+            ->join('warehouses as w', function ($join) { $join->on('w.id', '=', 'wbu.warehouse_id')->on('w.entity_id', '=', 'wbu.entity_id'); })
+            ->leftJoin('warehouses_stocks as ws', function ($join) { $join->on('ws.product_id', '=', 'p.id')->on('ws.warehouse_id', '=', 'w.id')->on('ws.entity_id', '=', 'p.entity_id'); })
+            ->where('p.entity_id', $entityId)->where('p.is_active', 1)->where('p.manage_stock', 1)
+            ->whereNotNull('p.minimum_stock')->where('bu.is_active', 1)->where('w.is_active', 1);
+        if ($businessUnitId) $reorderQuery->where('bu.id', $businessUnitId);
+        $reorderCount = (clone $reorderQuery)->whereRaw('COALESCE(ws.qty, 0) <= p.minimum_stock')->distinct()->count(DB::raw("CONCAT(p.id, '-', bu.id)"));
+
         $products = DB::table('products')->when($entityId, fn ($q) => $q->where('entity_id', $entityId))->count();
         $customers = DB::table('customers')->when($entityId, fn ($q) => $q->where('entity_id', $entityId))->count();
         $suppliers = DB::table('suppliers')->when($entityId, fn ($q) => $q->where('entity_id', $entityId))->count();
 
-        $stockQuery = DB::table('warehouses_stocks')->when($entityId, fn ($q) => $q->where('entity_id', $entityId));
-        if ($businessUnitId && DB::getSchemaBuilder()->hasColumn('warehouses_stocks', 'business_unit_id')) {
-            $stockQuery->where('business_unit_id', $businessUnitId);
-        }
-        $stockValue = (float) $stockQuery->selectRaw('COALESCE(SUM(qty * avg_cost), 0) as amount')->value('amount');
+        $stockQuery = DB::table('warehouses_stocks as ws')
+            ->join('warehouse_business_units as wbu', function ($join) { $join->on('wbu.warehouse_id', '=', 'ws.warehouse_id')->on('wbu.entity_id', '=', 'ws.entity_id'); })
+            ->join('business_units as bu', function ($join) { $join->on('bu.id', '=', 'wbu.business_unit_id')->on('bu.entity_id', '=', 'wbu.entity_id'); })
+            ->join('warehouses as w', function ($join) { $join->on('w.id', '=', 'ws.warehouse_id')->on('w.entity_id', '=', 'ws.entity_id'); })
+            ->where('ws.entity_id', $entityId)->where('bu.is_active', 1)->where('w.is_active', 1);
+        if ($businessUnitId) $stockQuery->where('bu.id', $businessUnitId);
+        $stockValue = (float) $stockQuery->selectRaw('COALESCE(SUM(ws.qty * ws.avg_cost), 0) as amount')->value('amount');
 
         $salesQuery = DB::table('sales')
             ->where('status', 'posted')
@@ -219,7 +233,7 @@ class DashboardController extends Controller
 
         return view('dashboard.index', compact(
             'entityId', 'period', 'startDate', 'endDate', 'businessUnitId', 'businessUnits',
-            'products', 'customers', 'suppliers', 'stockValue', 'salesTotal', 'purchasesTotal',
+            'products', 'customers', 'suppliers', 'stockValue', 'reorderCount', 'salesTotal', 'purchasesTotal',
             'netSales', 'grossProfit', 'grossMargin', 'cashBankBalance', 'cashMovement',
             'trendLabels', 'trendSales', 'trendProfit', 'buCards', 'arBuckets', 'apBuckets',
             'stockAdjustments', 'recentTransactions', 'buChartLabels', 'buChartValues'
