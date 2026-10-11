@@ -737,6 +737,15 @@ class PurchaseInvoiceController extends Controller
                     throw new \RuntimeException('Faktur tidak ditemukan.');
                 }
 
+                $period = DB::table('accounting_periods')
+                    ->where('entity_id', $purchase->entity_id)
+                    ->where('period_year', Carbon::parse($purchase->purchase_date)->year)
+                    ->where('period_month', Carbon::parse($purchase->purchase_date)->month)
+                    ->first();
+                if ($period && in_array($period->status, ['closing', 'closed'], true)) {
+                    throw new \RuntimeException('Faktur tidak dapat diposting karena periode akuntansi sudah closing atau closed.');
+                }
+
                 if ($purchase->status === 'posted') {
                     throw new \RuntimeException('Faktur sudah POSTED.');
                 }
@@ -778,11 +787,10 @@ class PurchaseInvoiceController extends Controller
                     app(ReceiptController::class)->store($receiptRequest);
                 }
 
-                // PO tidak bergantung pada Penerimaan Barang saat Faktur Pembelian disimpan.
-                // Penerimaan adalah proses fisik terpisah yang menangani stok/HPP.
-                // Faktur PO hanya mengakui sisi finansial agar tidak terjadi jurnal ganda.
+                // Jurnal finansial selalu berasal dari Faktur Pembelian, baik PO maupun Non-PO.
+                // Penerimaan hanya mencatat stok/moving average dan tidak membuat jurnal.
 
-                if ($purchase->source_type === 'po') {
+                if (in_array($purchase->source_type, ['po', 'direct'], true)) {
                     $mapping = DB::table('business_unit_account_mappings')
                         ->where('business_unit_id', $purchase->business_unit_id)
                         ->whereIn('mapping_key', ['inventory', 'payable', 'cash', 'bank'])
