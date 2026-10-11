@@ -654,9 +654,27 @@ class PurchaseInvoiceController extends Controller
                 ]);
 
                 // Jurnal yang sama: hanya isi jurnal diperbarui.
-                $journal=DB::table('journals')->where('source_type','purchase_invoice')->where('source_id',$id)->orderBy('id')->first();
+                $journal=DB::table('journals')
+                    ->where('entity_id', $purchase->entity_id)
+                    ->where('source_type','purchase_invoice')
+                    ->where('source_id',$id)
+                    ->orderBy('id')->first();
                 if(!$journal && $receipt && $purchase->source_type!=='po'){
-                    $journal=DB::table('journals')->where('source_type','receipt')->where('source_id',$receipt->id)->orderBy('id')->first();
+                    // Migrasi jurnal Non-PO lama dari source receipt ke source faktur.
+                    $legacyReceiptJournal = DB::table('journals')
+                        ->where('entity_id', $purchase->entity_id)
+                        ->where('source_type', 'receipt')
+                        ->where('source_id', $receipt->id)
+                        ->orderBy('id')->first();
+                    if ($legacyReceiptJournal) {
+                        DB::table('journals')->where('id', $legacyReceiptJournal->id)->update([
+                            'source_type' => 'purchase_invoice',
+                            'source_id' => $purchase->id,
+                            'journal_no' => 'JRN-INV-'.$purchase->id,
+                            'updated_at' => now(),
+                        ]);
+                        $journal = DB::table('journals')->where('id', $legacyReceiptJournal->id)->first();
+                    }
                 }
                 if($journal){
                     $mapping=DB::table('business_unit_account_mappings')
