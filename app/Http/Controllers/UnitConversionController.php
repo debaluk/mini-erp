@@ -137,13 +137,6 @@ class UnitConversionController extends Controller
 
         abort_if((int) $product->base_unit_id === (int) $data['unit_id'], 422, 'Base Unit tidak perlu dibuat sebagai konversi.');
 
-        if (($data['is_default_purchase'] ?? false)) {
-            DB::table('product_unit_conversions')
-                ->where('product_id', $product->id)
-                ->when($id, fn ($q) => $q->where('id', '<>', $id))
-                ->update(['is_default_purchase' => 0, 'updated_at' => now()]);
-        }
-
         if ($id) {
             abort_if(
                 DB::table('product_unit_conversions')
@@ -154,6 +147,13 @@ class UnitConversionController extends Controller
                 422,
                 'Konversi untuk produk dan satuan ini sudah tersedia.'
             );
+        }
+
+        if (($data['is_default_purchase'] ?? false)) {
+            DB::table('product_unit_conversions')
+                ->where('product_id', $product->id)
+                ->when($id, fn ($q) => $q->where('id', '<>', $id))
+                ->update(['is_default_purchase' => 0, 'updated_at' => now()]);
         }
 
         if (($data['is_default_sale'] ?? false)) {
