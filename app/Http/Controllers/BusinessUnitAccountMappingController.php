@@ -90,7 +90,7 @@ class BusinessUnitAccountMappingController extends Controller
             'direct_equipment' => 'Alat Langsung',
             'direct_rent' => 'Sewa Langsung',
             'direct_overhead' => 'Overhead Langsung',
-            'hpp_difference' => 'Selisih HPP',
+            'hpp_difference' => 'Selisih harga PO–faktur',
             'hpp_adjustment' => 'Penyesuaian HPP',
         ];
     }
