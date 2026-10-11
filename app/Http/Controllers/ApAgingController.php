@@ -29,7 +29,7 @@ class ApAgingController extends Controller
         $asOfDate       = $request->query('as_of_date', date('Y-m-d'));
         $businessUnitId = $request->query('business_unit_id');
         $supplierId     = $request->query('supplier_id');
-        $bucketFilter   = $request->query('bucket'); // current, 1_30, 31_60, above_60
+        $bucketFilter   = $request->query('bucket'); // lancar, terlambat 1–30 hari, 31–60 hari, lebih dari 60 hari
         $search         = $request->query('search');
 
         $businessUnits = BusinessUnit::where('entity_id', $entityId)->where('is_active', 1)->orderBy('code')->get();
