@@ -107,7 +107,11 @@ class ErpController extends Controller
             ->when($request->filled('business_unit_id'), function ($query) use ($request) {
                 $query->join('product_business_units', function ($join) {
                     $join->on('product_business_units.product_id', '=', 'products.id');
-                })->where('product_business_units.business_unit_id', (int) $request->business_unit_id);
+                })->join('business_units as product_bu', function ($join) {
+                    // Pastikan mapping BU yang dipakai untuk filter memang milik entitas produk.
+                    $join->on('product_bu.id', '=', 'product_business_units.business_unit_id')
+                        ->on('product_bu.entity_id', '=', 'products.entity_id');
+                })->where('product_bu.id', (int) $request->business_unit_id);
             })
             ->where('products.entity_id', $entity)
             ->select(
