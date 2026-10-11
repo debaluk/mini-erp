@@ -364,7 +364,7 @@ class CashDisbursementController extends Controller
             // Kredit: Kas/Bank Pembayar
             JournalEntry::create([
                 'journal_id' => $journal->id,
-                'account_id' => $request->cash_account_id,
+                'account_id' => $cashAccount->id,
                 'debit'      => 0,
                 'credit'     => $request->amount,
             ]);
