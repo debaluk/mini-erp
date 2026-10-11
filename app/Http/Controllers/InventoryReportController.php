@@ -260,12 +260,12 @@ class InventoryReportController extends Controller
         $sheet->getStyle('A9:' . $lastColumn . $lastRow)->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
         if ($rowNumber > 10) {
             if ($mode === 'analisis-harga') {
-                $sheet->getStyle('G10:H' . $lastRow)->getNumberFormat()->setFormatCode('#,##0.000');
+                $sheet->getStyle('G10:H' . $lastRow)->getNumberFormat()->setFormatCode('#,##0.00');
                 $sheet->getStyle('J10:O' . $lastRow)->getNumberFormat()->setFormatCode('#,##0.00');
                 $sheet->getStyle('P10:P' . $lastRow)->getNumberFormat()->setFormatCode('0.00');
             } else {
                 $sheet->getStyle('H10:I' . $lastRow)->getNumberFormat()->setFormatCode('#,##0.000');
-                $sheet->getStyle('K10:L' . $lastRow)->getNumberFormat()->setFormatCode('#,##0');
+                $sheet->getStyle('K10:L' . $lastRow)->getNumberFormat()->setFormatCode('#,##0.00');
             }
         }
         foreach (range('A', $lastColumn) as $column) $sheet->getColumnDimension($column)->setAutoSize(true);
