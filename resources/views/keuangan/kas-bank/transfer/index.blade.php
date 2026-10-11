@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid px-4 py-3">
+<div class="container-fluid px-0 py-0">
 
     <!-- Page Header (Judul & Tombol Memicu Modal) -->
     <div class="d-flex justify-content-between align-items-center mb-3">
