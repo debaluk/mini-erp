@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="d-flex justify-content-between align-items-start mb-3">
-    <div><h4 class="mb-1">Detail Perhitungan Produksi</h4><div class="text-secondary small">Rincian informatif SPK; halaman ini tidak membuat atau mengubah jurnal.</div></div>
+    <div><h4 class="mb-1">Detail Perhitungan Produksi</h4><div class="text-secondary small">Rincian informatif SPK</div></div>
     <a href="{{ route('laporan.produksi') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Kembali</a>
 </div>
 
@@ -43,7 +43,7 @@
 <tr class="table-light fw-semibold"><td>Total upah aktual</td><td class="text-end">Rp {{ number_format((float) $actualLabor, 2, ',', '.') }}</td></tr>
 </tbody></table></div>
 @else<div class="card-body text-secondary">Realisasi belum tersedia. Estimasi upah: <strong>Rp {{ number_format((float) $estimatedLabor, 2, ',', '.') }}</strong>.</div>@endif
-<div class="card-body text-secondary small">Upah ditampilkan sebagai informasi sesuai data SPK/realisasi. Tidak ada jurnal baru dari halaman ini.</div></div>
+<div class="card-body text-secondary small">Upah ditampilkan sebagai informasi sesuai data SPK/realisasi.</div></div>
 
 <div class="card border-0 shadow-sm mb-3"><div class="card-header bg-white fw-semibold">4. Hasil produksi dan reject</div><div class="card-body"><div class="row g-3">
 <div class="col-md-3"><div class="text-secondary small">Target SPK</div><div class="fs-5 fw-semibold">{{ \App\Helpers\FormatHelper::indo((float) $wo->target_output_qty, 0) }} pcs</div></div>
