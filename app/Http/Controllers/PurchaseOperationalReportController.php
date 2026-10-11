@@ -13,7 +13,12 @@ use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 
 class PurchaseOperationalReportController extends Controller
 {
-    private function entityId(): int { return (int) (DB::table('entities')->value('id') ?? 1); }
+    private function entityId(): int
+    {
+        $entityId = (int) (auth()->user()->entity_id ?? 0);
+        abort_unless($entityId > 0, 403, 'Entitas pengguna tidak valid.');
+        return $entityId;
+    }
 
     private function period(Request $request): array
     {
