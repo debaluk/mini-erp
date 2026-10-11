@@ -638,10 +638,6 @@ class PurchaseInvoiceController extends Controller
 
                 }
 
-                if ($purchase->source_type !== 'po') {
-                    app(ReceiptController::class)->replaceNonPoReceiptItems($purchase->id, $entityId);
-                }
-
                 $tax=(float)$request->input('tax_amount',$purchase->ppn_amount??0);
                 $total=max(0,$subtotal-$discountTotal)+$tax;
                 DB::table('purchases')->where('id',$id)->update([
@@ -653,6 +649,10 @@ class PurchaseInvoiceController extends Controller
                     'memo'=>$request->memo,'subtotal'=>$subtotal,'discount'=>$discountTotal,'total'=>$total,
                     'dpp'=>max(0,$subtotal-$discountTotal),'ppn_amount'=>$tax,'updated_at'=>now()
                 ]);
+
+                if ($purchase->source_type !== 'po') {
+                    app(ReceiptController::class)->replaceNonPoReceiptItems($purchase->id, $entityId);
+                }
 
                 // Jurnal yang sama: hanya isi jurnal diperbarui.
                 $journal=DB::table('journals')
