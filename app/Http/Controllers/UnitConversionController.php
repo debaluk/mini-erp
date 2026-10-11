@@ -22,8 +22,14 @@ class UnitConversionController extends Controller
 
         $baseQuery = DB::table('product_unit_conversions as puc')
             ->join('products as p', 'p.id', '=', 'puc.product_id')
-            ->join('units as u', 'u.id', '=', 'puc.unit_id')
-            ->leftJoin('units as bu', 'bu.id', '=', 'p.base_unit_id')
+            ->join('units as u', function ($join) use ($entity) {
+                $join->on('u.id', '=', 'puc.unit_id')
+                    ->where('u.entity_id', '=', $entity);
+            })
+            ->leftJoin('units as bu', function ($join) use ($entity) {
+                $join->on('bu.id', '=', 'p.base_unit_id')
+                    ->where('bu.entity_id', '=', $entity);
+            })
             ->where('p.entity_id', $entity)
             ->where('puc.is_active', 1);
 
