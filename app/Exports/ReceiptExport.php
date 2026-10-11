@@ -30,7 +30,7 @@ class ReceiptExport implements FromCollection, WithHeadings, WithMapping
             ->leftJoin('warehouses as w', 'w.id', '=', 'r.warehouse_id')
             ->leftJoin('business_units as bu', 'bu.id', '=', 'r.business_unit_id')
             ->leftJoin(DB::raw('(SELECT receipt_id, COUNT(*) as total_items FROM receipt_items GROUP BY receipt_id) ri'), 'ri.receipt_id', '=', 'r.id')
-            ->where('r.entity_id', DB::table('entities')->value('id') ?? 1)
+            ->where('r.entity_id', (int) (auth()->user()->entity_id ?? 0))
             ->whereDate('r.receipt_date', '>=', $startDate)
             ->whereDate('r.receipt_date', '<=', $endDate);
 
