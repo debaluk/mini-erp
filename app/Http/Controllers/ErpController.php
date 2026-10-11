@@ -811,7 +811,11 @@ class ErpController extends Controller
 
             abort_unless($record, 404, 'Data tidak ditemukan.');
 
-            if (in_array($type, ['customers', 'suppliers'], true) && (int) $id === 1) {
+            // Lindungi data Umum berdasarkan identitas dan nama, karena ID auto-increment tidak selalu 1 di setiap entitas.
+            if (
+                in_array($type, ['customers', 'suppliers'], true)
+                && ((int) $id === 1 || mb_strtolower(trim((string) ($record->name ?? ''))) === 'umum')
+            ) {
                 abort(422, 'Data default Umum tidak dapat dihapus.');
             }
 
