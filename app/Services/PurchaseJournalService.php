@@ -153,4 +153,54 @@ class PurchaseJournalService
             return $journalId;
         });
     }
+    /**
+     * Remove journals for a purchase invoice being cancelled.
+     * Legacy receipt journals are included for receipts belonging to this invoice.
+     */
+    public function cancel(int $purchaseId, int $entityId): void
+    {
+        if ($entityId <= 0) {
+            throw new RuntimeException('Entitas pembelian tidak valid.');
+        }
+
+        DB::transaction(function () use ($purchaseId, $entityId): void {
+            $purchase = DB::table('purchases')
+                ->where('entity_id', $entityId)
+                ->where('id', $purchaseId)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$purchase) {
+                throw new RuntimeException('Faktur pembelian tidak ditemukan pada entitas ini.');
+            }
+
+            $receiptIds = DB::table('receipts')
+                ->where('entity_id', $entityId)
+                ->where('purchase_id', $purchaseId)
+                ->pluck('id');
+
+            $journalQuery = DB::table('journals')
+                ->where('entity_id', $entityId)
+                ->where(function ($query) use ($purchaseId, $receiptIds): void {
+                    $query->where(function ($q) use ($purchaseId): void {
+                        $q->where('source_type', 'purchase_invoice')
+                            ->where('source_id', $purchaseId);
+                    });
+
+                    if ($receiptIds->isNotEmpty()) {
+                        $query->orWhere(function ($q) use ($receiptIds): void {
+                            $q->where('source_type', 'receipt')
+                                ->whereIn('source_id', $receiptIds);
+                        });
+                    }
+                });
+
+            $journalIds = $journalQuery->lockForUpdate()->pluck('id');
+            if ($journalIds->isNotEmpty()) {
+                DB::table('journal_entries')->whereIn('journal_id', $journalIds)->delete();
+                DB::table('journals')->whereIn('id', $journalIds)->delete();
+            }
+        });
+    }
+
 }
