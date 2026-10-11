@@ -17,11 +17,19 @@ use Carbon\Carbon;
 
 class ApSubLedgerController extends Controller
 {
+    private function entityId(): int
+    {
+        $entityId = (int) (auth()->user()->entity_id ?? 0);
+        abort_unless($entityId > 0, 403, 'Entitas pengguna tidak valid.');
+        return $entityId;
+    }
+
     /**
      * Halaman Utama: List Hutang, Aging, & Rekonsiliasi COA
      */
     public function index(Request $request)
     {
+        $entityId       = $this->entityId();
         $startDate      = $request->query('start_date', now()->startOfYear()->format('Y-m-d'));
         $endDate        = $request->query('end_date', now()->endOfMonth()->format('Y-m-d'));
         $businessUnitId = $request->query('business_unit_id');
@@ -29,8 +37,8 @@ class ApSubLedgerController extends Controller
         $statusFilter   = $request->query('status');
         $search         = $request->query('search');
 
-        $businessUnits = BusinessUnit::where('is_active', 1)->orderBy('code')->get();
-        $suppliers     = Supplier::where('is_active', 1)->orderBy('name')->get();
+        $businessUnits = BusinessUnit::where('entity_id', $entityId)->where('is_active', 1)->orderBy('code')->get();
+        $suppliers     = Supplier::where('entity_id', $entityId)->where('is_active', 1)->orderBy('name')->get();
 
         // Query Sub-Ledger Hutang dari Purchases & Payments
         $query = DB::table('purchases as p')
@@ -43,6 +51,7 @@ class ApSubLedgerController extends Controller
                     ->groupBy('purchase_id'),
                 'pay', 'pay.purchase_id', '=', 'p.id'
             )
+            ->where('p.entity_id', $entityId)
             ->where('p.status', 'posted')
             ->whereDate('p.purchase_date', '>=', $startDate)
             ->whereDate('p.purchase_date', '<=', $endDate);
@@ -68,6 +77,7 @@ class ApSubLedgerController extends Controller
         // Saldo Awal Hutang:
         // Setup Saldo Awal + Hutang sebelum start_date - Pembayaran sebelum start_date
         $openingInitialBalance = DB::table('purchases')
+            ->where('entity_id', $entityId)
             ->where('status', 'posted')
             ->where('memo', 'LIKE', '[SALDO AWAL]%')
             ->whereDate('purchase_date', '<', $startDate)
@@ -76,6 +86,7 @@ class ApSubLedgerController extends Controller
             ->sum('total');
 
         $openingPurchases = DB::table('purchases')
+            ->where('entity_id', $entityId)
             ->where('status', 'posted')
             ->where(function ($q) {
                 $q->whereNull('memo')
@@ -89,6 +100,7 @@ class ApSubLedgerController extends Controller
         $openingPayments = DB::table('supplier_payment_allocations as spa')
             ->join('supplier_payments as sp', 'sp.id', '=', 'spa.supplier_payment_id')
             ->join('purchases as pur', 'pur.id', '=', 'spa.purchase_id')
+            ->where('pur.entity_id', $entityId)
             ->where('pur.status', 'posted')
             ->where('spa.status', 'posted')
             ->where('sp.status', 'posted')
@@ -134,9 +146,9 @@ class ApSubLedgerController extends Controller
         $filteredList = $statusFilter ? $processedPurchases->filter(fn($i) => $i->ap_status === $statusFilter) : $processedPurchases;
 
         // Rekonsiliasi Akun COA 2000101 (Hutang Usaha)
-        $apCoa = ChartOfAccount::where('code', '2000101')->first();
-        $coaBalance = $apCoa ? (float) JournalEntry::whereHas('journal', function ($q) use ($endDate, $businessUnitId) {
-            $q->where('status', 'posted')->whereDate('journal_date', '<=', $endDate);
+        $apCoa = ChartOfAccount::where('entity_id', $entityId)->where('code', '2000101')->first();
+        $coaBalance = $apCoa ? (float) JournalEntry::whereHas('journal', function ($q) use ($endDate, $businessUnitId, $entityId) {
+            $q->where('entity_id', $entityId)->where('status', 'posted')->whereDate('journal_date', '<=', $endDate);
             if ($businessUnitId) $q->where('business_unit_id', $businessUnitId);
         })->where('account_id', $apCoa->id)->sum(DB::raw('credit - debit')) : 0; // Hutang saldo normal Kredit
 
@@ -155,21 +167,22 @@ class ApSubLedgerController extends Controller
      */
     public function getSupplierLedger($supplierId, Request $request)
     {
+        $entityId       = $this->entityId();
         $startDate      = $request->query('start_date', now()->startOfYear()->format('Y-m-d'));
         $endDate        = $request->query('end_date', now()->endOfMonth()->format('Y-m-d'));
         $businessUnitId = $request->query('business_unit_id');
 
-        $supplier = Supplier::findOrFail($supplierId);
+        $supplier = Supplier::where('entity_id', $entityId)->findOrFail($supplierId);
 
         // Saldo Awal sebelum $startDate
-        $initialPurchases = DB::table('purchases')->where('supplier_id', $supplierId)->where('status', 'posted')->where('payment_method', 'credit')
+        $initialPurchases = DB::table('purchases')->where('entity_id', $entityId)->where('supplier_id', $supplierId)->where('status', 'posted')->where('payment_method', 'credit')
             ->whereDate('purchase_date', '<', $startDate)
             ->when($businessUnitId, fn($q) => $q->where('business_unit_id', $businessUnitId))->sum('total');
 
         $initialPayments = DB::table('supplier_payment_allocations as spa')
             ->join('supplier_payments as sp', 'sp.id', '=', 'spa.supplier_payment_id')
             ->join('purchases as pur', 'pur.id', '=', 'spa.purchase_id')
-            ->where('pur.supplier_id', $supplierId)->where('pur.status', 'posted')
+            ->where('pur.entity_id', $entityId)->where('pur.supplier_id', $supplierId)->where('pur.status', 'posted')
             ->where('spa.status', 'posted')->where('sp.status', 'posted')
             ->whereDate('sp.payment_date', '<', $startDate)
             ->when($businessUnitId, fn($q) => $q->where('pur.business_unit_id', $businessUnitId))
@@ -179,6 +192,7 @@ class ApSubLedgerController extends Controller
 
         // Mutasi Periode Ini (Hutang bertambah di Kredit / Pembelian, berkurang di Debit / Pelunasan)
         $purchaseEntries = DB::table('purchases')
+            ->where('entity_id', $entityId)
             ->where('supplier_id', $supplierId)->where('status', 'posted')->where('payment_method', 'credit')
             ->whereDate('purchase_date', '>=', $startDate)->whereDate('purchase_date', '<=', $endDate)
             ->when($businessUnitId, fn($q) => $q->where('business_unit_id', $businessUnitId))
