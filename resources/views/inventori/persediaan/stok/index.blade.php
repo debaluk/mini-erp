@@ -44,7 +44,7 @@
     <div class="table-responsive">
         <table class="table table-hover table-striped align-middle mb-0" style="font-size: 0.88rem;">
             <thead class="table-dark">
-                <tr><th class="text-center" style="width:55px">No.</th><th>Kode Barang</th><th>Nama Barang</th><th>Satuan</th><th>Unit Bisnis</th><th>Gudang</th><th class="text-end">Stok Tersedia</th></tr>
+                <tr><th class="text-center" style="width:55px">No.</th><th>Kode Barang</th><th>Nama Barang</th><th>Satuan</th><th>Unit Bisnis</th><th>Gudang</th><th class="text-end">Stok Tersedia</th><th class="text-end">Minimal Stok / ROP</th><th>Status ROP</th></tr>
             </thead>
             <tbody>
             @forelse($rows as $row)
@@ -56,9 +56,11 @@
                     <td>{{ $row->business_unit_names ?: '-' }}</td>
                     <td>{{ $row->warehouse_name }}</td>
                     <td class="text-end fw-semibold">{{ rtrim(rtrim(number_format((float) $row->qty, 3, ',', '.'), '0'), ',') }}</td>
+                    <td class="text-end">@if($row->manage_stock && $row->reorder_point !== null) {{ rtrim(rtrim(number_format((float) $row->reorder_point, 3, ',', '.'), '0'), ',') }} @else - @endif</td>
+                    <td>@if($row->manage_stock && $row->reorder_point !== null) <span class="badge {{ (float) $row->qty <= (float) $row->reorder_point ? 'text-bg-danger' : 'text-bg-success' }}">{{ (float) $row->qty <= (float) $row->reorder_point ? 'Perlu Reorder' : 'Aman' }}</span> @else - @endif</td>
                 </tr>
             @empty
-                <tr><td colspan="7" class="text-center text-secondary py-4">Data persediaan tidak ditemukan.</td></tr>
+                <tr><td colspan="9" class="text-center text-secondary py-4">Data persediaan tidak ditemukan.</td></tr>
             @endforelse
             </tbody>
         </table>
