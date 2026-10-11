@@ -10,7 +10,7 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
-        $entity = DB::table('entities')->first();
+        $entity = DB::table('entities')->where('id', auth()->user()->entity_id ?? 1)->first();
         $entityId = $entity?->id;
         $period = $request->query('period', now()->format('Y-m'));
         if (!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $period)) {
