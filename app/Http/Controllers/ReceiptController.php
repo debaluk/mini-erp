@@ -998,14 +998,21 @@ class ReceiptController extends Controller
                     'Penerimaan tidak dapat dibatalkan karena sudah memiliki Retur Pembelian.'
                 );
 
-                $purchase = DB::table('purchases')
-                    ->where('entity_id', $entityId)
-                    ->where('id', $receipt->purchase_id)
-                    ->lockForUpdate()
-                    ->first();
+                $purchase = null;
+                if ($receipt->purchase_id) {
+                    $purchase = DB::table('purchases')
+                        ->where('entity_id', $entityId)
+                        ->where('id', $receipt->purchase_id)
+                        ->lockForUpdate()
+                        ->first();
+                }
 
-                abort_unless($purchase, 422, 'Faktur pembelian penerimaan tidak ditemukan.');
-                abort_unless($purchase->purchase_order_id, 422, 'Penerimaan Non-PO tidak dibatalkan dari menu ini.');
+                $purchaseOrderId = $purchase->purchase_order_id ?? DB::table('receipt_items as ri')
+                    ->join('purchase_order_items as poi', 'poi.id', '=', 'ri.purchase_order_item_id')
+                    ->where('ri.receipt_id', $receipt->id)
+                    ->value('poi.purchase_order_id');
+
+                abort_unless($receipt->source_type === 'po' && $purchaseOrderId, 422, 'Penerimaan Non-PO tidak dibatalkan dari menu ini.');
 
                 $period = DB::table('accounting_periods')
                     ->where('entity_id', $receipt->entity_id)
@@ -1105,8 +1112,8 @@ class ReceiptController extends Controller
                         ]);
                 }
 
-                if ($purchase && $purchase->purchase_order_id) {
-                    $poId = (int) $purchase->purchase_order_id;
+                if ($purchaseOrderId) {
+                    $poId = (int) $purchaseOrderId;
                     $totalOrdered = (float) DB::table('purchase_order_items')
                         ->where('purchase_order_id', $poId)
                         ->sum('qty');
