@@ -48,6 +48,17 @@ class ReceiptController extends Controller
         $query = DB::table('receipts as r')
             ->leftJoin('purchases as p', 'p.id', '=', 'r.purchase_id')
             ->leftJoin('purchase_orders as po', 'po.id', '=', 'p.purchase_order_id')
+            ->leftJoinSub(
+                DB::table('receipt_items as ri')
+                    ->join('purchase_order_items as poi', 'poi.id', '=', 'ri.purchase_order_item_id')
+                    ->join('purchase_orders as rpo', 'rpo.id', '=', 'poi.purchase_order_id')
+                    ->select('ri.receipt_id', 'rpo.id as po_id', 'rpo.po_no')
+                    ->groupBy('ri.receipt_id', 'rpo.id', 'rpo.po_no'),
+                'rpo',
+                'rpo.receipt_id',
+                '=',
+                'r.id'
+            )
             ->leftJoin('suppliers as s', 's.id', '=', 'r.supplier_id')
             ->leftJoin('warehouses as w', 'w.id', '=', 'r.warehouse_id')
             ->leftJoin('business_units as bu', 'bu.id', '=', 'r.business_unit_id')
@@ -63,7 +74,9 @@ class ReceiptController extends Controller
 
         $data = $query->select(
             'r.id', 'r.receipt_no', 'r.receipt_date', 'r.status',
-            'po.id as purchase_order_id', 'po.po_no', 's.name as supplier_name', 'w.name as warehouse_name',
+            DB::raw('COALESCE(po.id, rpo.po_id) as purchase_order_id'),
+            DB::raw('COALESCE(po.po_no, rpo.po_no) as po_no'),
+            's.name as supplier_name', 'w.name as warehouse_name',
             'bu.name as business_unit_name', DB::raw('COALESCE(ri.total_items, 0) as total_items')
         )->orderByDesc('r.receipt_date')->orderByDesc('r.id')->get();
 
@@ -84,7 +97,7 @@ class ReceiptController extends Controller
             ->leftJoin('business_units as bu', 'bu.id', '=', 'r.business_unit_id')
             ->where('r.entity_id', $this->entityId())
             ->where('r.id', $id)
-            ->select('r.*', 'po.po_no', 's.name as supplier_name', 'w.name as warehouse_name', 'bu.name as business_unit_name')
+            ->select('r.*', DB::raw('COALESCE(po.po_no, rpo.po_no) as po_no'), 's.name as supplier_name', 'w.name as warehouse_name', 'bu.name as business_unit_name')
             ->firstOrFail();
 
         $items = DB::table('receipt_items as ri')
