@@ -50,7 +50,7 @@ class SalesJournalService
 
             $mappingKeys = match ($sale->business_type) {
                 'retail' => ['cash','bank','receivable','inventory','sales_merchandise','cogs_merchandise'],
-                'production' => ['cash','bank','receivable','inventory','sales_finished_goods','cogs_finished_goods'],
+                'production' => ['cash','bank','receivable','inventory','inventory_finished_goods','sales_finished_goods','cogs_finished_goods'],
                 'service' => ['cash','bank','receivable','sales_service'],
                 default => throw new RuntimeException('Jenis Unit Bisnis tidak didukung untuk posting penjualan.'),
             };
