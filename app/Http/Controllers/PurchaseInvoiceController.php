@@ -696,7 +696,9 @@ class PurchaseInvoiceController extends Controller
                     $journal=DB::table('journals')->where('source_type','receipt')->where('source_id',$receipt->id)->orderBy('id')->first();
                 }
                 if($journal){
-                    $mapping=DB::table('business_unit_account_mappings')->where('business_unit_id',$request->business_unit_id)
+                    $mapping=DB::table('business_unit_account_mappings')
+                        ->where('entity_id', $purchase->entity_id)
+                        ->where('business_unit_id',$request->business_unit_id)
                         ->whereIn('mapping_key',['inventory','payable','cash','bank'])->pluck('account_id','mapping_key');
                     $creditKey=match(strtolower((string)$request->payment_method)){ 'cash','tunai'=>'cash','bank','transfer','qris'=>'bank',default=>'payable' };
                     if(!isset($mapping['inventory'],$mapping[$creditKey])) throw new \RuntimeException('Mapping akun pembelian belum lengkap.');
@@ -748,6 +750,13 @@ class PurchaseInvoiceController extends Controller
                 if (!$purchase) {
                     throw new \RuntimeException('Faktur tidak ditemukan.');
                 }
+
+                $businessUnit = DB::table('business_units')
+                    ->where('entity_id', $purchase->entity_id)
+                    ->where('id', $purchase->business_unit_id)
+                    ->where('is_active', 1)
+                    ->first();
+                abort_unless($businessUnit, 422, 'Unit Bisnis faktur tidak aktif atau bukan milik entitas pengguna.');
 
                 $period = DB::table('accounting_periods')
                     ->where('entity_id', $purchase->entity_id)
@@ -804,6 +813,7 @@ class PurchaseInvoiceController extends Controller
 
                 if (in_array($purchase->source_type, ['po', 'direct'], true)) {
                     $mapping = DB::table('business_unit_account_mappings')
+                        ->where('entity_id', $purchase->entity_id)
                         ->where('business_unit_id', $purchase->business_unit_id)
                         ->whereIn('mapping_key', ['inventory', 'payable', 'cash', 'bank'])
                         ->pluck('account_id', 'mapping_key');
