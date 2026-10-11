@@ -559,6 +559,15 @@ class PurchaseInvoiceController extends Controller
                     throw new \RuntimeException('Faktur tidak dapat diedit karena periode akuntansi sudah dalam proses closing atau sudah closed.');
                 }
 
+                $targetPeriod = DB::table('accounting_periods')
+                    ->where('entity_id', $purchase->entity_id)
+                    ->where('period_year', Carbon::parse($request->purchase_date)->year)
+                    ->where('period_month', Carbon::parse($request->purchase_date)->month)
+                    ->first();
+                if ($targetPeriod && in_array($targetPeriod->status, ['closing', 'closed'], true)) {
+                    throw new \RuntimeException('Tanggal faktur tidak dapat dipindahkan ke periode akuntansi yang sudah closing atau closed.');
+                }
+
                 $oldItems = DB::table('purchase_items')->where('purchase_id',$id)->orderBy('id')->lockForUpdate()->get();
                 $products = array_values($request->input('products',[]));
                 $qtys = array_values($request->input('qty',[]));
