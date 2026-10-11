@@ -810,6 +810,15 @@ class ProductionWorkOrderController extends Controller
 
     public function saveProductionResult(Request $request, int $id)
     {
+        // Hasil produksi wajib dikirim melalui payload per pekerja yang diverifikasi
+        // terhadap setup SPK. Tolak payload legacy yang menerima tarif/kuantitas upah
+        // langsung dari request agar endpoint tidak bisa dipakai untuk bypass UI.
+        abort_unless(
+            $request->has('good_qty') && $request->has('reject_by_worker'),
+            422,
+            'Input hasil produksi tidak valid. Gunakan form hasil produksi pada SPK.'
+        );
+
         $action = (string) $request->input('action', 'close');
         $resultIdsToPost = collect();
 
@@ -1330,18 +1339,47 @@ class ProductionWorkOrderController extends Controller
     public function destroy(int $id)
     {
         $entityId = $this->entityId();
-        $wo = DB::table('production_work_orders')
-            ->where('entity_id', $entityId)
-            ->where('id', $id)
-            ->where('status', 'open')
-            ->first();
+        abort_unless($entityId, 422, 'Entitas belum tersedia.');
 
-        abort_unless($wo, 422, 'Hanya SPK Open yang dapat dihapus.');
+        DB::transaction(function () use ($id, $entityId): void {
+            // Validasi ulang dalam transaksi dan kunci SPK agar status tidak berubah
+            // di antara pemeriksaan dan penghapusan.
+            $wo = DB::table('production_work_orders')
+                ->where('entity_id', $entityId)
+                ->where('id', $id)
+                ->where('status', 'open')
+                ->lockForUpdate()
+                ->first();
 
-        DB::transaction(function () use ($id): void {
-            DB::table('production_work_order_costs')->where('production_work_order_id', $id)->delete();
-            DB::table('production_work_order_workers')->where('production_work_order_id', $id)->delete();
-            DB::table('production_work_orders')->where('id', $id)->where('status', 'open')->delete();
+            abort_unless($wo, 422, 'Hanya SPK Open milik entitas aktif yang dapat dihapus.');
+
+            // SPK yang sudah memiliki jejak proses tidak boleh dihapus lewat request langsung.
+            $hasUsage = DB::table('production_wo_material_usages')
+                ->where('entity_id', $entityId)
+                ->where('production_work_order_id', $id)
+                ->exists();
+            $hasResult = DB::table('production_work_order_results')
+                ->where('entity_id', $entityId)
+                ->where('production_work_order_id', $id)
+                ->exists();
+            $hasProduction = DB::table('productions')
+                ->where('entity_id', $entityId)
+                ->where('production_work_order_id', $id)
+                ->exists();
+
+            abort_if($hasUsage || $hasResult || $hasProduction, 422, 'SPK tidak dapat dihapus karena sudah memiliki riwayat produksi.');
+
+            DB::table('production_work_order_costs')
+                ->where('production_work_order_id', $id)
+                ->delete();
+            DB::table('production_work_order_workers')
+                ->where('production_work_order_id', $id)
+                ->delete();
+            DB::table('production_work_orders')
+                ->where('entity_id', $entityId)
+                ->where('id', $id)
+                ->where('status', 'open')
+                ->delete();
         });
 
         if (request()->expectsJson()) {
