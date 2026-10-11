@@ -12,7 +12,9 @@ class ReceiptController extends Controller
 {
     private function entityId(): int
     {
-        return (int) (DB::table('entities')->value('id') ?? 1);
+        $entityId = (int) (auth()->user()->entity_id ?? 0);
+        abort_unless($entityId > 0, 403, 'Entitas pengguna tidak valid.');
+        return $entityId;
     }
 
     public function index(Request $request)
@@ -22,7 +24,10 @@ class ReceiptController extends Controller
         $endDate = $request->input('end_date', now()->endOfMonth()->toDateString());
 
         $businessUnits = DB::table('business_units')
-            ->where('is_active', 1)->orderBy('code')->get(['id','code','name']);
+            ->where('entity_id', $entity)
+            ->where('is_active', 1)
+            ->orderBy('code')
+            ->get(['id','code','name']);
 
         $suppliers = DB::table('suppliers')
             ->where('entity_id', $entity)->where('is_active', 1)
@@ -266,7 +271,8 @@ class ReceiptController extends Controller
 
         $entityId = $this->entityId();
         $userId = auth()->id();
-        $createJournal = array_key_exists('journal', $data) ? (bool) $data['journal'] : true;
+        // Penerimaan hanya mencatat stok dan moving average. Jurnal dibuat oleh Faktur Pembelian.
+        $createJournal = false;
 
         DB::transaction(function () use ($data, $entityId, $userId, $createJournal): void {
             $purchase = null;
@@ -400,8 +406,16 @@ class ReceiptController extends Controller
                 ->first();
 
             abort_unless($warehouse, 422, 'Gudang tidak valid.');
+
+            $businessUnit = DB::table('business_units')
+                ->where('entity_id', $entityId)
+                ->where('id', $purchase->business_unit_id)
+                ->where('is_active', 1)
+                ->first();
+            abort_unless($businessUnit, 422, 'Unit Bisnis penerimaan tidak aktif atau bukan milik entitas pengguna.');
+
             if ((int) $warehouse->business_unit_id !== (int) $purchase->business_unit_id) {
-                back()->withInput()->with('error', 'Gudang harus berada pada unit bisnis pembelian.')->throwResponse();
+                abort(422, 'Gudang harus berada pada Unit Bisnis pembelian.');
             }
 
             // Untuk PO, jurnal finansial dibuat saat Faktur Pembelian diposting.
