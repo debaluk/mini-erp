@@ -403,8 +403,8 @@ class ErpController extends Controller
         $item = DB::table('products')->where('entity_id', $entity)->find($id);
         abort_unless($item, 404);
 
-        // Produk yang sudah direferensikan transaksi/master lain dikunci agar perubahan tidak merusak riwayat.
-        // Mapping BU dan konversi satuan adalah konfigurasi produk, bukan pemakaian transaksi.
+        // Produk yang sudah dipakai hanya boleh diubah nama tampilannya; konfigurasi dan identitas lainnya dikunci.
+        // Pengecekan ini juga mencakup tabel tanpa foreign key agar perubahan tidak merusak riwayat.
         $references = DB::select(
             "SELECT TABLE_NAME
              FROM information_schema.COLUMNS
@@ -413,13 +413,28 @@ class ErpController extends Controller
                AND TABLE_NAME NOT IN ('products', 'product_unit_conversions', 'product_business_units')"
         );
 
+        $isReferenced = false;
         foreach ($references as $reference) {
             if (DB::table($reference->TABLE_NAME)->where('product_id', $id)->exists()) {
-                abort(
-                    422,
-                    'Produk tidak dapat diedit karena sudah digunakan oleh data/master/transaksi lain. Nonaktifkan produk jika tidak digunakan lagi.'
-                );
+                $isReferenced = true;
+                break;
             }
+        }
+
+        // Saat produk sudah digunakan, simpan hanya nama; abaikan perubahan field lain dari form edit.
+        if ($isReferenced) {
+            $nameData = $request->validate([
+                'name' => ['required', 'string', 'max:255'],
+            ]);
+
+            DB::table('products')
+                ->where('entity_id', $entity)
+                ->where('id', $id)
+                ->update(['name' => $nameData['name'], 'updated_at' => now()]);
+
+            return $request->expectsJson()
+                ? response()->json(['message' => 'Nama produk berhasil diperbarui. Data produk lainnya tetap dikunci karena sudah digunakan.'])
+                : redirect()->route('master.menu.produk')->with('success', 'Nama produk berhasil diperbarui. Data produk lainnya tetap dikunci karena sudah digunakan.');
         }
 
         $data = $request->validate([
