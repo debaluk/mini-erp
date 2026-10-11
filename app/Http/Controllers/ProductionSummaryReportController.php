@@ -58,15 +58,6 @@ class ProductionSummaryReportController extends Controller
                 $goodQty = (float) ($output->qty ?? $production->good_output_qty ?? 0);
                 $hppUnit = $output ? (float) $output->unit_cost : null;
                 $rejectQty = (float) ($production->reject_qty ?? 0);
-            } else {
-                $draft = DB::table('production_work_order_results as r')
-                    ->join('production_work_order_result_lines as l', 'l.production_work_order_result_id', '=', 'r.id')
-                    ->where('r.production_work_order_id', $wo->id)
-                    ->where('r.status', 'draft')
-                    ->selectRaw('COALESCE(SUM(l.good_qty),0) as good_qty, COALESCE(SUM(l.reject_qty),0) as reject_qty')
-                    ->first();
-                $goodQty = (float) ($draft->good_qty ?? 0);
-                $rejectQty = (float) ($draft->reject_qty ?? 0);
             }
 
             return (object) [
@@ -79,7 +70,8 @@ class ProductionSummaryReportController extends Controller
                 'production_qty' => $goodQty,
                 'hpp_unit' => $hppUnit,
                 'reject_qty' => $rejectQty,
-                'status' => $production ? 'posted' : $wo->status,
+                'status' => $production ? 'completed' : $wo->status,
+                'cost_basis' => $production ? 'Realisasi' : 'Estimasi',
                 'product_name' => $wo->product_name,
             ];
         });
