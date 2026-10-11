@@ -15,15 +15,23 @@ use Carbon\Carbon;
 
 class PurchaseOrderController extends Controller
 {
+    private function entityId(): int
+    {
+        $entityId = (int) (auth()->user()->entity_id ?? 0);
+        abort_unless($entityId > 0, 403, 'Entitas pengguna tidak valid.');
+        return $entityId;
+    }
+
     public function index(Request $request)
     {
+        $entityId = $this->entityId();
         $startDate      = $request->query('start_date', now()->startOfMonth()->format('Y-m-d'));
         $endDate        = $request->query('end_date', now()->endOfMonth()->format('Y-m-d'));
         
-        $businessUnits = BusinessUnit::where('is_active', 1)->orderBy('code')->get();
-        $warehouses    = Warehouse::where('is_active', 1)->orderBy('name')->get();
-        $suppliers     = Supplier::where('is_active', 1)->orderBy('name')->get();
-        $products      = Product::query()->leftJoin('units as u', 'u.id', '=', 'products.base_unit_id')->where('products.is_active', 1)->orderBy('products.name')->select('products.*', 'u.code as unit_code', 'u.name as unit_name')->get();
+        $businessUnits = BusinessUnit::where('entity_id', $entityId)->where('is_active', 1)->orderBy('code')->get();
+        $warehouses    = Warehouse::where('entity_id', $entityId)->where('is_active', 1)->orderBy('name')->get();
+        $suppliers     = Supplier::where('entity_id', $entityId)->where('is_active', 1)->orderBy('name')->get();
+        $products      = Product::query()->leftJoin('units as u', 'u.id', '=', 'products.base_unit_id')->where('products.entity_id', $entityId)->where('products.is_active', 1)->orderBy('products.name')->select('products.*', 'u.code as unit_code', 'u.name as unit_name')->get();
         $autoPoNo      = $this->generatePoCode();
 
         return view('inventori.pembelian.po.index', compact(
@@ -44,6 +52,11 @@ class PurchaseOrderController extends Controller
             return response()->json([]);
         }
 
+        $entityId = $this->entityId();
+        $businessUnit = DB::table('business_units')->where('entity_id', $entityId)->where('id', $businessUnitId)->where('is_active', 1)->first();
+        $warehouse = DB::table('warehouses')->where('entity_id', $entityId)->where('id', $warehouseId)->where('is_active', 1)->first();
+        abort_unless($businessUnit && $warehouse && (int) $warehouse->business_unit_id === (int) $businessUnit->id, 422, 'Unit Bisnis atau gudang tidak valid.');
+
         $products = DB::table('products as p')
             ->join('product_business_units as pbu', function ($join) use ($businessUnitId) {
                 $join->on('pbu.product_id', '=', 'p.id')
@@ -59,6 +72,7 @@ class PurchaseOrderController extends Controller
                     ->where('puc.is_active', 1);
             })
             ->leftJoin('units as u', 'u.id', '=', 'puc.unit_id')
+            ->where('p.entity_id', $entityId)
             ->where('p.is_active', 1)
             ->orderBy('p.name')
             ->select(
@@ -91,6 +105,7 @@ class PurchaseOrderController extends Controller
             ->join('suppliers as s', 's.id', '=', 'po.supplier_id')
             ->join('warehouses as w', 'w.id', '=', 'po.warehouse_id')
             ->join('users as u', 'u.id', '=', 'po.user_id')
+            ->where('po.entity_id', $this->entityId())
             ->whereNull('po.deleted_at')
             ->whereDate('po.po_date', '>=', $startDate)
             ->whereDate('po.po_date', '<=', $endDate);
@@ -134,7 +149,7 @@ class PurchaseOrderController extends Controller
      */
     public function getSupplierInfo($id)
     {
-        $supplier = Supplier::find($id);
+        $supplier = Supplier::where('entity_id', $this->entityId())->where('is_active', 1)->find($id);
         if (!$supplier) {
             return response()->json(['success' => false, 'message' => 'Supplier tidak ditemukan'], 404);
         }
@@ -167,10 +182,17 @@ class PurchaseOrderController extends Controller
 
         DB::beginTransaction();
         try {
+            $entityId = $this->entityId();
+            $businessUnit = DB::table('business_units')->where('entity_id', $entityId)->where('id', $request->business_unit_id)->where('is_active', 1)->first();
+            $supplier = DB::table('suppliers')->where('entity_id', $entityId)->where('id', $request->supplier_id)->where('is_active', 1)->first();
+            $warehouse = DB::table('warehouses')->where('entity_id', $entityId)->where('id', $request->warehouse_id)->where('is_active', 1)->first();
+            abort_unless($businessUnit && $supplier && $warehouse, 422, 'Unit Bisnis, supplier, atau gudang tidak aktif atau bukan milik entitas pengguna.');
+            abort_unless((int) $warehouse->business_unit_id === (int) $businessUnit->id, 422, 'Gudang harus berada pada Unit Bisnis PO.');
+
             $poNo = $this->generatePoCode();
 
             $poId = DB::table('purchase_orders')->insertGetId([
-                'entity_id'        => auth()->user()->entity_id ?? 1,
+                'entity_id'        => $entityId,
                 'business_unit_id' => $request->business_unit_id,
                 'supplier_id'      => $request->supplier_id,
                 'warehouse_id'     => $request->warehouse_id,
@@ -189,7 +211,8 @@ class PurchaseOrderController extends Controller
                 $discount  = (float) ($request->discount[$idx] ?? 0);
                 $total     = ($qty * $price) - $discount;
 
-                $product = Product::find($prodId);
+                $product = Product::where('entity_id', $entityId)->where('is_active', 1)->find($prodId);
+                abort_unless($product, 422, 'Produk PO tidak aktif atau bukan milik entitas pengguna.');
 
                 DB::table('purchase_order_items')->insert([
                     'purchase_order_id' => $poId,
@@ -220,7 +243,7 @@ class PurchaseOrderController extends Controller
      */
     public function getEditData($id)
     {
-        $po = DB::table('purchase_orders')->where('id', $id)->whereNull('deleted_at')->first();
+        $po = DB::table('purchase_orders')->where('entity_id', $this->entityId())->where('id', $id)->whereNull('deleted_at')->first();
         if (!$po || $po->status !== 'draft') {
             return response()->json(['success' => false, 'message' => 'PO tidak dapat diedit / bukan draft'], 400);
         }
@@ -239,14 +262,21 @@ class PurchaseOrderController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $po = DB::table('purchase_orders')->where('id', $id)->whereNull('deleted_at')->first();
+        $entityId = $this->entityId();
+        $po = DB::table('purchase_orders')->where('entity_id', $entityId)->where('id', $id)->whereNull('deleted_at')->first();
         if (!$po || $po->status !== 'draft') {
             return response()->json(['success' => false, 'message' => 'Hanya PO berstatus DRAFT yang dapat diperbarui!'], 400);
         }
 
         DB::beginTransaction();
         try {
-            DB::table('purchase_orders')->where('id', $id)->update([
+            $businessUnit = DB::table('business_units')->where('entity_id', $entityId)->where('id', $request->business_unit_id)->where('is_active', 1)->first();
+            $supplier = DB::table('suppliers')->where('entity_id', $entityId)->where('id', $request->supplier_id)->where('is_active', 1)->first();
+            $warehouse = DB::table('warehouses')->where('entity_id', $entityId)->where('id', $request->warehouse_id)->where('is_active', 1)->first();
+            abort_unless($businessUnit && $supplier && $warehouse, 422, 'Unit Bisnis, supplier, atau gudang tidak aktif atau bukan milik entitas pengguna.');
+            abort_unless((int) $warehouse->business_unit_id === (int) $businessUnit->id, 422, 'Gudang harus berada pada Unit Bisnis PO.');
+
+            DB::table('purchase_orders')->where('entity_id', $entityId)->where('id', $id)->update([
                 'business_unit_id' => $request->business_unit_id,
                 'supplier_id'      => $request->supplier_id,
                 'warehouse_id'     => $request->warehouse_id,
@@ -264,7 +294,8 @@ class PurchaseOrderController extends Controller
                 $discount  = (float) ($request->discount[$idx] ?? 0);
                 $total     = ($qty * $price) - $discount;
 
-                $product = Product::find($prodId);
+                $product = Product::where('entity_id', $entityId)->where('is_active', 1)->find($prodId);
+                abort_unless($product, 422, 'Produk PO tidak aktif atau bukan milik entitas pengguna.');
 
                 DB::table('purchase_order_items')->insert([
                     'purchase_order_id' => $id,
@@ -300,6 +331,7 @@ class PurchaseOrderController extends Controller
             ->join('suppliers as s', 's.id', '=', 'po.supplier_id')
             ->join('warehouses as w', 'w.id', '=', 'po.warehouse_id')
             ->join('users as u', 'u.id', '=', 'po.user_id')
+            ->where('po.entity_id', $this->entityId())
             ->where('po.id', $id)
             ->whereNull('po.deleted_at')
             ->select('po.*', 'bu.name as business_unit_name', 's.name as supplier_name', 's.address as supplier_address', 's.phone as supplier_phone', 'w.name as warehouse_name', 'u.name as creator_name')
@@ -320,7 +352,7 @@ class PurchaseOrderController extends Controller
      */
     public function approve($id)
     {
-        $po = DB::table('purchase_orders')->where('id', $id)->whereNull('deleted_at')->first();
+        $po = DB::table('purchase_orders')->where('entity_id', $this->entityId())->where('id', $id)->whereNull('deleted_at')->first();
 
         if (!$po) {
             return response()->json(['success' => false, 'message' => 'PO tidak ditemukan.'], 404);
@@ -330,7 +362,8 @@ class PurchaseOrderController extends Controller
             return response()->json(['success' => false, 'message' => 'Hanya PO berstatus DRAFT yang dapat di-approve.'], 400);
         }
 
-        DB::table('purchase_orders')->where('id', $id)->update([
+        abort_unless(DB::table('business_units')->where('entity_id', $po->entity_id)->where('id', $po->business_unit_id)->where('is_active', 1)->exists(), 422, 'Unit Bisnis PO tidak aktif.');
+        DB::table('purchase_orders')->where('entity_id', $po->entity_id)->where('id', $id)->update([
             'status' => 'approved',
             'updated_at' => now(),
         ]);
@@ -345,7 +378,11 @@ class PurchaseOrderController extends Controller
     {
         DB::beginTransaction();
         try {
-            DB::table('purchase_orders')->where('id', $id)->update([
+            $entityId = $this->entityId();
+            $po = DB::table('purchase_orders')->where('entity_id', $entityId)->where('id', $id)->lockForUpdate()->first();
+            abort_unless($po, 404, 'Purchase Order tidak ditemukan.');
+            abort_if(in_array($po->status, ['completed', 'closed', 'canceled'], true), 422, 'Status PO tidak dapat diubah.');
+            DB::table('purchase_orders')->where('entity_id', $entityId)->where('id', $id)->update([
                 'status'              => 'closed',
                 'cancellation_reason' => $request->reason ?? 'Ditutup manual oleh pengguna',
                 'cancelled_by'        => auth()->id(),
@@ -366,7 +403,7 @@ class PurchaseOrderController extends Controller
      */
     public function destroy($id)
     {
-        $po = DB::table('purchase_orders')->where('id', $id)->whereNull('deleted_at')->first();
+        $po = DB::table('purchase_orders')->where('entity_id', $this->entityId())->where('id', $id)->whereNull('deleted_at')->first();
         if (!$po) {
             return response()->json(['success' => false, 'message' => 'Purchase Order tidak ditemukan.'], 404);
         }
@@ -375,7 +412,7 @@ class PurchaseOrderController extends Controller
             return response()->json(['success' => false, 'message' => 'Hanya PO berstatus DRAFT yang dapat dibatalkan.'], 400);
         }
 
-        DB::table('purchase_orders')->where('id', $id)->update([
+        DB::table('purchase_orders')->where('entity_id', $po->entity_id)->where('id', $id)->update([
             'status'              => 'canceled',
             'cancellation_reason' => 'Dibatalkan oleh pengguna',
             'cancelled_by'        => auth()->id(),
@@ -396,6 +433,7 @@ class PurchaseOrderController extends Controller
             ->join('suppliers as s', 's.id', '=', 'po.supplier_id')
             ->join('warehouses as w', 'w.id', '=', 'po.warehouse_id')
             ->join('users as u', 'u.id', '=', 'po.user_id')
+            ->where('po.entity_id', $this->entityId())
             ->where('po.id', $id)
             ->select('po.*', 'bu.name as business_unit_name', 's.name as supplier_name', 's.address as supplier_address', 's.phone as supplier_phone', 'w.name as warehouse_name', 'u.name as creator_name')
             ->firstOrFail();
@@ -422,6 +460,7 @@ class PurchaseOrderController extends Controller
             ->leftJoin('business_units as bu', 'bu.id', '=', 'po.business_unit_id')
             ->join('suppliers as s', 's.id', '=', 'po.supplier_id')
             ->join('warehouses as w', 'w.id', '=', 'po.warehouse_id')
+            ->where('po.entity_id', $this->entityId())
             ->whereNull('po.deleted_at')
             ->whereDate('po.po_date', '>=', $startDate)
             ->whereDate('po.po_date', '<=', $endDate);
