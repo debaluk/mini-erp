@@ -98,10 +98,13 @@ class PurchaseOperationalReportController extends Controller
 
     private function payableRows(int $entity, string $start, string $end, ?int $unitId)
     {
-        $paid = DB::table('supplier_payment_allocations as spa')
-            ->join('supplier_payments as sp', 'sp.id', '=', 'spa.supplier_payment_id')
-            ->where('spa.status', 'posted')->where('sp.status', 'posted')->whereDate('sp.payment_date', '<=', $end)
-            ->select('spa.purchase_id')->selectRaw('SUM(spa.amount) as paid_amount')->groupBy('spa.purchase_id');
+        $paid = DB::table('payments as pay')
+            ->join('purchases as pur', 'pur.id', '=', 'pay.purchase_id')
+            ->where('pur.entity_id', $entity)
+            ->where('pur.status', 'posted')
+            ->where('pur.payment_method', 'credit')
+            ->whereDate('pay.payment_date', '<=', $end)
+            ->select('pay.purchase_id')->selectRaw('SUM(pay.paid_amount) as paid_amount')->groupBy('pay.purchase_id');
         return DB::table('purchases as p')
             ->leftJoin('suppliers as s', 's.id', '=', 'p.supplier_id')
             ->leftJoin('business_units as bu', 'bu.id', '=', 'p.business_unit_id')
