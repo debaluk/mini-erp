@@ -106,6 +106,10 @@ class JournalController extends Controller
             'production_material_usage' => DB::table('production_wo_material_usages')
                 ->where('id', $journal->source_id)
                 ->value('usage_no'),
+            'production_hpp', 'production_labor' => DB::table('productions as p')
+                ->join('production_work_orders as wo', 'wo.id', '=', 'p.production_work_order_id')
+                ->where('p.id', $journal->source_id)
+                ->value('wo.wo_no'),
             'cash_in', 'cash_out' => DB::table('cash_bank_transactions')
                 ->where('id', $journal->source_id)
                 ->value('transaction_no'),
