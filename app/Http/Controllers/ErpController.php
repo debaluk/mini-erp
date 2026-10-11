@@ -402,6 +402,26 @@ class ErpController extends Controller
         $entity = $this->entityId();
         $item = DB::table('products')->where('entity_id', $entity)->find($id);
         abort_unless($item, 404);
+
+        // Produk yang sudah direferensikan transaksi/master lain dikunci agar perubahan tidak merusak riwayat.
+        // Mapping BU dan konversi satuan adalah konfigurasi produk, bukan pemakaian transaksi.
+        $references = DB::select(
+            "SELECT TABLE_NAME
+             FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND COLUMN_NAME = 'product_id'
+               AND TABLE_NAME NOT IN ('products', 'product_unit_conversions', 'product_business_units')"
+        );
+
+        foreach ($references as $reference) {
+            if (DB::table($reference->TABLE_NAME)->where('product_id', $id)->exists()) {
+                abort(
+                    422,
+                    'Produk tidak dapat diedit karena sudah digunakan oleh data/master/transaksi lain. Nonaktifkan produk jika tidak digunakan lagi.'
+                );
+            }
+        }
+
         $data = $request->validate([
             'barcode' => ['nullable', 'string', 'max:100'], 'name' => ['required', 'string', 'max:255'],
             'business_unit_ids' => ['required', 'array', 'min:1'], 'business_unit_ids.*' => ['integer'],
