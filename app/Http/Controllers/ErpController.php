@@ -872,9 +872,25 @@ class ErpController extends Controller
         $entity=$this->entityId();
         $map=['sales'=>'sales','payments'=>'payments','shifts'=>'cash_shifts','purchases'=>'purchases','receipts'=>'purchases','payables'=>'purchases','stock'=>'warehouses_stocks','movements'=>'stock_movements','opname'=>'stock_opnames','bom'=>'boms','production'=>'productions','production-results'=>'productions','material-usage'=>'productions','production-cost'=>'productions','fleet'=>'vehicles','deliveries'=>'deliveries','operations'=>'vehicle_operations','fleet-costs'=>'fleet_costs','journals'=>'journals'];
         $data['rows']=isset($map[$module]) ? DB::table($map[$module])->where('entity_id',$entity)->latest('id')->paginate(15)->withQueryString() : collect();
-        $data['products']=DB::table('products as p')->leftJoin('units as u','u.id','=','p.base_unit_id')->where('p.entity_id',$entity)->where('p.is_active',1)->orderBy('p.name')->select('p.*','u.name as base_unit_name')->get();
+        // Ikat satuan dasar ke entitas produk agar lookup master tetap terisolasi secara eksplisit.
+        $data['products']=DB::table('products as p')
+            ->leftJoin('units as u', function ($join) {
+                $join->on('u.id', '=', 'p.base_unit_id')
+                    ->on('u.entity_id', '=', 'p.entity_id');
+            })
+            ->where('p.entity_id',$entity)->where('p.is_active',1)
+            ->orderBy('p.name')->select('p.*','u.name as base_unit_name')->get();
+        // Konversi dan satuan harus berasal dari entitas yang sama dengan produknya.
         $data['productUoms'] = DB::table('product_unit_conversions as puc')
-            ->join('units as u', 'u.id', '=', 'puc.unit_id')
+            ->join('products as p', function ($join) {
+                $join->on('p.id', '=', 'puc.product_id')
+                    ->on('p.entity_id', '=', 'puc.entity_id');
+            })
+            ->join('units as u', function ($join) {
+                $join->on('u.id', '=', 'puc.unit_id')
+                    ->on('u.entity_id', '=', 'p.entity_id');
+            })
+            ->where('p.entity_id', $entity)
             ->where('puc.is_active', 1)
             ->whereIn('puc.product_id', $data['products']->pluck('id'))
             ->get(['puc.product_id','puc.unit_id','puc.conversion_factor','puc.is_default_purchase','puc.is_default_sale','u.code','u.name'])
