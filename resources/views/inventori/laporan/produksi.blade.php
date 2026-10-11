@@ -66,5 +66,5 @@
         </table>
     </div>
 </div>
-<div class="text-secondary small mt-2">Bahan baku dan upah menampilkan realisasi setelah posting; sebelum posting, angka menunjukkan estimasi. HPP per unit tampil setelah posting produksi.</div>
+<div class="text-secondary small mt-2">Estimasi biaya memakai snapshot saat SPK dibuat atau terakhir diedit, sehingga tidak berubah mengikuti harga rata-rata stok terbaru. Bahan baku dan upah menampilkan realisasi setelah closing produksi; sebelum closing, angka menunjukkan estimasi. HPP per unit tampil setelah posting produksi.</div>
 @endsection
