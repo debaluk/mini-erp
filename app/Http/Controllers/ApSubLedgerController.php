@@ -289,7 +289,7 @@ class ApSubLedgerController extends Controller
             ]);
 
             $journal = Journal::create([
-                'entity_id'        => auth()->user()->entity_id ?? 1,
+                'entity_id'        => $entityId,
                 'business_unit_id' => $request->business_unit_id,
                 'journal_no'       => 'INIT-AP-' . date('YmdHis'),
                 'journal_date'     => $request->purchase_date,
