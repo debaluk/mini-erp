@@ -415,12 +415,6 @@ class ReceiptController extends Controller
                 abort(422, 'Gudang harus berada pada Unit Bisnis pembelian.');
             }
 
-            // Untuk PO, jurnal finansial dibuat saat Faktur Pembelian diposting.
-            // Penerimaan hanya menangani stok/HPP agar tidak terjadi jurnal ganda.
-            if ($po) {
-                $createJournal = false;
-            }
-
             $receiptDateBase = Carbon::now();
             $receiptDateStr = $receiptDateBase->format('Ymd');
             $receiptMonthStr = $receiptDateBase->format('Ym');
