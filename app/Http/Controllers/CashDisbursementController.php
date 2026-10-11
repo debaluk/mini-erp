@@ -287,7 +287,7 @@ class CashDisbursementController extends Controller
             // Kredit: Kas/Bank Sumber Uang
             JournalEntry::create([
                 'journal_id' => $journal->id,
-                'account_id' => $request->cash_account_id,
+                'account_id' => $cashAccount->id,
                 'debit'      => 0,
                 'credit'     => $totalPaidActual,
             ]);
@@ -306,21 +306,45 @@ class CashDisbursementController extends Controller
     public function storeOtherDisbursement(Request $request)
     {
         $request->validate([
-            'business_unit_id'       => 'required|exists:business_units,id',
+            'business_unit_id'       => 'required|integer',
             'journal_date'           => 'required|date',
-            'cash_account_id'        => 'required|exists:chart_of_accounts,id',
-            'counterpart_account_id' => 'required|exists:chart_of_accounts,id',
+            'cash_account_id'        => 'required|integer',
+            'counterpart_account_id' => 'required|integer',
             'amount'                 => 'required|numeric|min:1',
             'description'            => 'required|string|max:255',
         ]);
 
         DB::beginTransaction();
         try {
+            $entityId = $this->entityId();
+            $businessUnit = DB::table('business_units')->where('entity_id', $entityId)->where('id', $request->business_unit_id)->where('is_active', 1)->first();
+            abort_unless($businessUnit, 422, 'Unit Bisnis tidak aktif atau bukan milik entitas pengguna.');
+            $cashAccount = ChartOfAccount::where('entity_id', $entityId)->where('id', $request->cash_account_id)
+                ->where('is_cash_bank', 1)->where('is_postable', 1)->where('is_active', 1)->first();
+            abort_unless($cashAccount, 422, 'Akun kas/bank tidak aktif atau bukan milik entitas pengguna.');
+            $counterpartAccount = ChartOfAccount::where('entity_id', $entityId)->where('id', $request->counterpart_account_id)
+                ->where('is_postable', 1)->where('is_active', 1)->first();
+            abort_unless($counterpartAccount, 422, 'Akun lawan tidak aktif atau bukan milik entitas pengguna.');
+
+            $mappings = DB::table('business_unit_account_mappings')->where('entity_id', $entityId)
+                ->where('business_unit_id', $businessUnit->id)->whereIn('mapping_key', ['cash', 'bank'])->pluck('account_id', 'mapping_key');
+            abort_unless(
+                ((isset($mappings['cash']) && (int) $mappings['cash'] === (int) $cashAccount->id) ||
+                 (isset($mappings['bank']) && (int) $mappings['bank'] === (int) $cashAccount->id)),
+                422,
+                'Akun kas/bank harus sesuai mapping Unit Bisnis aktif.'
+            );
+
+            $period = DB::table('accounting_periods')->where('entity_id', $entityId)
+                ->where('period_year', \Carbon\Carbon::parse($request->journal_date)->year)
+                ->where('period_month', \Carbon\Carbon::parse($request->journal_date)->month)->first();
+            abort_if($period && in_array($period->status, ['closing', 'closed'], true), 422, 'Periode akuntansi sudah closing atau closed.');
+
             $journalNo = 'KK-' . date('YmdHis') . '-' . strtoupper(substr(uniqid(), -3));
 
             $journal = Journal::create([
-                'entity_id'        => auth()->user()->entity_id ?? 1,
-                'business_unit_id' => $request->business_unit_id,
+                'entity_id'        => $entityId,
+                'business_unit_id' => $businessUnit->id,
                 'journal_no'       => $journalNo,
                 'journal_date'     => $request->journal_date,
                 'source_type'      => 'CASH_OUT',
@@ -332,7 +356,7 @@ class CashDisbursementController extends Controller
             // Debit: Akun Tujuan / Beban / Operasional
             JournalEntry::create([
                 'journal_id' => $journal->id,
-                'account_id' => $request->counterpart_account_id,
+                'account_id' => $counterpartAccount->id,
                 'debit'      => $request->amount,
                 'credit'     => 0,
             ]);
