@@ -160,8 +160,18 @@ class PurchaseInvoiceController extends Controller
         $approvedPos = DB::table('purchase_orders as po')
             ->join('suppliers as s', 's.id', '=', 'po.supplier_id')
             ->where('po.entity_id', $entityId)
-            ->whereIn('po.status', ['approved', 'partial'])
+            // Status PO tidak menjadi filter; yang penting PO belum memiliki faktur aktif.
             ->whereNull('po.deleted_at')
+            ->whereNotExists(function ($query) {
+                $query->select(DB::raw(1))
+                    ->from('purchases as p')
+                    ->whereColumn('p.purchase_order_id', 'po.id')
+                    ->whereNull('p.deleted_at')
+                    ->where(function ($active) {
+                        $active->whereNull('p.status')
+                            ->orWhereNotIn('p.status', ['cancelled', 'canceled']);
+                    });
+            })
             ->select('po.id', 'po.po_no', 'po.po_date', 'po.supplier_id', 'po.business_unit_id', 'po.warehouse_id', 's.name as supplier_name')
             ->orderByDesc('po.id')
             ->get();
@@ -235,7 +245,7 @@ class PurchaseInvoiceController extends Controller
             ->where('bu.is_active', 1)
             ->where('w.is_active', 1)
             ->where('s.is_active', 1)
-            ->where('po.status', 'approved')
+            // Status PO tidak membatasi pembuatan faktur.
             ->whereNull('po.deleted_at')
             ->whereNotExists(function ($query) {
                 $query->select(DB::raw(1))
