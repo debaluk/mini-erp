@@ -31,6 +31,8 @@ class ApAgingExport implements FromCollection, WithHeadings, WithStyles, WithCol
         $asOfDate       = $this->request->query('as_of_date', date('Y-m-d'));
         $businessUnitId = $this->request->query('business_unit_id');
         $supplierId     = $this->request->query('supplier_id');
+        $entityId = (int) (auth()->user()->entity_id ?? 0);
+        abort_unless($entityId > 0, 403, 'Entitas pengguna tidak valid.');
 
         $query = DB::table('purchases as p')
             ->join('suppliers as sup', 'sup.id', '=', 'p.supplier_id')
@@ -45,6 +47,7 @@ class ApAgingExport implements FromCollection, WithHeadings, WithStyles, WithCol
                     ->groupBy('spa.purchase_id'),
                 'pay', 'pay.purchase_id', '=', 'p.id'
             )
+            ->where('p.entity_id', $entityId)
             ->where('p.status', 'posted')
             ->whereDate('p.purchase_date', '<=', $asOfDate);
 
