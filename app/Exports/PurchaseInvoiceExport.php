@@ -36,14 +36,15 @@ class PurchaseInvoiceExport implements FromCollection, WithHeadings, WithMapping
         $endDate        = $this->request->query('end_date', now()->endOfMonth()->format('Y-m-d'));
         $businessUnitId = $this->request->query('business_unit_id');
 
-        $entityId = (int) (auth()->user()->entity_id ?? 1);
+        $entityId = (int) (auth()->user()->entity_id ?? 0);
+        abort_unless($entityId > 0, 403, 'Entitas pengguna tidak valid.');
         $entity = DB::table('entities')->where('id', $entityId)->first();
         if ($entity) {
             $this->entityName = $entity->name;
         }
 
         if ($businessUnitId) {
-            $bu = DB::table('business_units')->where('id', $businessUnitId)->first();
+            $bu = DB::table('business_units')->where('entity_id', $entityId)->where('id', $businessUnitId)->where('is_active', 1)->first();
             if ($bu) {
                 $this->unitBisnisName = "{$bu->code} - {$bu->name}";
             }
@@ -66,6 +67,7 @@ class PurchaseInvoiceExport implements FromCollection, WithHeadings, WithMapping
                 '=',
                 'p.id'
             )
+            ->where('p.entity_id', $entityId)
             ->whereNull('p.deleted_at')
             ->whereDate('p.purchase_date', '>=', $startDate)
             ->whereDate('p.purchase_date', '<=', $endDate);
