@@ -5,6 +5,7 @@
     <div>
         <h4 class="mb-1">Laporan Produksi</h4>
         <div class="text-secondary small">Rekap SPK Unit Bisnis Produksi.</div>
+        <div class="text-primary small mt-1"><i class="bi bi-info-circle me-1"></i>Klik nomor SPK untuk melihat detail perhitungan produksi, termasuk estimasi SPK, pemakaian material aktual, upah, hasil baik, reject, dan selisih biaya.</div>
     </div>
     <a href="{{ route('laporan.produksi.export', request()->query()) }}" class="btn btn-success">
         <i class="bi bi-file-earmark-excel me-1"></i>Export Excel
@@ -50,7 +51,7 @@
                 @forelse ($rows as $row)
                     <tr>
                         <td>{{ \Carbon\Carbon::parse($row->date)->format('d/m/Y') }}</td>
-                        <td><div class="fw-semibold">{{ $row->wo_no }}</div><div class="text-secondary small">{{ $row->product_name }}</div></td>
+                        <td><a href="{{ route('laporan.produksi.detail', ['id' => $row->id]) }}" class="fw-semibold text-decoration-none">{{ $row->wo_no }}</a><div class="text-secondary small">{{ $row->product_name }}</div></td>
                         <td>{{ \App\Helpers\FormatHelper::indo((float) $row->target, 0) }}</td>
                         <td class="text-end">Rp {{ number_format((float) $row->estimated_cost, 2, ',', '.') }}</td>
                         <td class="text-end">Rp {{ number_format((float) $row->material_cost, 2, ',', '.') }}</td>
