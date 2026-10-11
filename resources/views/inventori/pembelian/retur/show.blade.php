@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid px-4 py-3">
+<div class="container-fluid px-0 py-0">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div><h3 class="mb-1 fw-bold">Detail Retur Pembelian</h3><div class="text-muted">{{ $return->return_no }}</div></div>
         <div class="d-flex gap-2">
