@@ -32,6 +32,8 @@ class ApSubLedgerExport implements FromCollection, WithHeadings, WithStyles, Wit
         $endDate        = $this->request->query('end_date', now()->endOfMonth()->format('Y-m-d'));
         $businessUnitId = $this->request->query('business_unit_id');
         $supplierId     = $this->request->query('supplier_id');
+        $entityId = (int) (auth()->user()->entity_id ?? 0);
+        abort_unless($entityId > 0, 403, 'Entitas pengguna tidak valid.');
 
         $query = DB::table('purchases as p')
             ->join('suppliers as sup', 'sup.id', '=', 'p.supplier_id')
@@ -42,6 +44,7 @@ class ApSubLedgerExport implements FromCollection, WithHeadings, WithStyles, Wit
                     ->whereNotNull('purchase_id')->groupBy('purchase_id'),
                 'pay', 'pay.purchase_id', '=', 'p.id'
             )
+            ->where('p.entity_id', $entityId)
             ->where('p.status', 'posted')
             ->whereDate('p.purchase_date', '>=', $startDate)->whereDate('p.purchase_date', '<=', $endDate);
 
