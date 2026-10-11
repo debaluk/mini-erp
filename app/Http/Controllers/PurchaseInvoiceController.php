@@ -326,8 +326,15 @@ class PurchaseInvoiceController extends Controller
             'purchase_date'    => 'required|date',
             'payment_method'   => 'required|in:cash,credit,transfer,qris',
             'products'         => 'required|array|min:1',
+            'products.*'       => 'required|integer',
             'qty'              => 'required|array|min:1',
+            'qty.*'            => 'required|numeric|gt:0',
             'unit_price'       => 'required|array|min:1',
+            'unit_price.*'     => 'required|numeric|min:0',
+            'discount'         => 'nullable|array',
+            'discount.*'       => 'nullable|numeric|min:0',
+            'document_discount'=> 'nullable|numeric|min:0',
+            'tax_amount'       => 'nullable|numeric|min:0',
         ]);
 
         $isPo = $request->filled('purchase_order_id');
@@ -520,8 +527,15 @@ class PurchaseInvoiceController extends Controller
             'due_date' => 'nullable|date',
             'memo' => 'nullable|string',
             'products' => 'required|array|min:1',
+            'products.*' => 'required|integer',
             'qty' => 'required|array|min:1',
+            'qty.*' => 'required|numeric|gt:0',
             'unit_price' => 'required|array|min:1',
+            'unit_price.*' => 'required|numeric|min:0',
+            'discount' => 'nullable|array',
+            'discount.*' => 'nullable|numeric|min:0',
+            'document_discount' => 'nullable|numeric|min:0',
+            'tax_amount' => 'nullable|numeric|min:0',
         ]);
 
         if ($request->payment_method === 'credit' && !$request->filled('supplier_id')) {
