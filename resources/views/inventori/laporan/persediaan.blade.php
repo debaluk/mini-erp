@@ -20,7 +20,7 @@
             @forelse($rows as $r)
                 <tr>
                     <td class="fw-semibold">{{ $r->code ?: $r->sku }}</td><td>{{ $r->product_name }}</td><td>{{ $r->unit_name ?: $r->unit_code ?: '-' }}</td><td>{{ $r->warehouse_name }}</td>
-                    <td class="text-end">{{ number_format($r->qty,3,',','.') }}</td><td class="text-end">Rp {{number_format($r->avg_cost,0,',','.')}}</td><td class="text-end">Rp {{number_format($r->stock_value,0,',','.')}}</td>
+                    <td class="text-end">{{ format_id_number($r->qty, 2) }}</td><td class="text-end">Rp {{format_id_number($r->avg_cost, 2)}}</td><td class="text-end">Rp {{format_id_number($r->stock_value, 2)}}</td>
                     <td class="text-center"><a class="btn btn-sm btn-outline-primary" href="{{route('inventori.stok.detail',[$r->product_id,$r->warehouse_id])}}">Detail</a></td>
                 </tr>
             @empty<tr><td colspan="8" class="text-center text-secondary py-4">Belum ada saldo stok.</td></tr>@endforelse
@@ -46,7 +46,7 @@ document.getElementById('btn-export-stock')?.addEventListener('click', async fun
         const ws=XLSX.utils.aoa_to_sheet([[payload.entity_name||'NAMA ENTITAS'],['LAPORAN STOK'],['Tgl Export : '+today],[],['Kode Item','Item','Satuan','Gudang','Qty','HPP Rata-rata','Nilai'],...data]);
         ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:6}},{s:{r:1,c:0},e:{r:1,c:6}},{s:{r:2,c:0},e:{r:2,c:6}}];
         ws['!cols']=[{wch:18},{wch:30},{wch:14},{wch:22},{wch:14},{wch:18},{wch:20}];
-        data.forEach((row,i)=>{const n=i+6; ws['E'+n].z='#,##0.###'; ws['F'+n].z='#,##0'; ws['G'+n].z='#,##0';});
+        data.forEach((row,i)=>{const n=i+6; ws['E'+n].z='#,##0.00'; ws['F'+n].z='#,##0.00'; ws['G'+n].z='#,##0.00';});
         const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Stok'); XLSX.writeFile(wb,'laporan-stok-'+new Date().toISOString().slice(0,10)+'.xlsx');
     } catch(e){alert(e.message||'Export gagal.');} finally{btn.disabled=false;}
 });
