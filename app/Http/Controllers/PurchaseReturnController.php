@@ -414,6 +414,13 @@ class PurchaseReturnController extends Controller
                 ->first();
             abort_unless($businessUnit, 422, 'Unit Bisnis retur tidak aktif atau bukan milik entitas pengguna.');
 
+            $period = DB::table('accounting_periods')
+                ->where('entity_id', $entity)
+                ->where('period_year', \Carbon\Carbon::parse($return->return_date)->year)
+                ->where('period_month', \Carbon\Carbon::parse($return->return_date)->month)
+                ->first();
+            abort_if($period && in_array($period->status, ['closing', 'closed'], true), 422, 'Retur tidak dapat diposting karena periode akuntansi sudah closing atau closed.');
+
             $items = DB::table('purchase_return_items')
                 ->where('purchase_return_id', $return->id)
                 ->lockForUpdate()
