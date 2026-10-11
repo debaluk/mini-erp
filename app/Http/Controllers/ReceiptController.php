@@ -989,6 +989,36 @@ class ReceiptController extends Controller
             DB::table('receipts')->where('entity_id', $entityId)->where('id', $receipt->id)->delete();
         }
 
+        if ($purchase->purchase_order_id) {
+            $po = DB::table('purchase_orders')
+                ->where('entity_id', $entityId)
+                ->where('id', $purchase->purchase_order_id)
+                ->lockForUpdate()
+                ->first();
+
+            if ($po && in_array($po->status, ['approved', 'partial', 'completed'], true)) {
+                $totalOrdered = (float) DB::table('purchase_order_items')
+                    ->where('purchase_order_id', $po->id)
+                    ->sum('qty');
+                $totalReceived = (float) DB::table('receipt_items as ri')
+                    ->join('receipts as r', 'r.id', '=', 'ri.receipt_id')
+                    ->join('purchase_order_items as poi', 'poi.id', '=', 'ri.purchase_order_item_id')
+                    ->where('r.entity_id', $entityId)
+                    ->where('r.status', 'posted')
+                    ->where('poi.purchase_order_id', $po->id)
+                    ->sum('ri.qty');
+
+                $poStatus = $totalReceived + 0.0000001 >= $totalOrdered && $totalOrdered > 0
+                    ? 'completed'
+                    : ($totalReceived > 0 ? 'partial' : 'approved');
+
+                DB::table('purchase_orders')->where('entity_id', $entityId)->where('id', $po->id)->update([
+                    'status' => $poStatus,
+                    'updated_at' => now(),
+                ]);
+            }
+        }
+
         DB::table('purchase_price_histories')
             ->where('entity_id', $entityId)
             ->where('reference_id', $purchaseId)
