@@ -110,6 +110,10 @@ class JournalController extends Controller
                 ->join('production_work_orders as wo', 'wo.id', '=', 'p.production_work_order_id')
                 ->where('p.id', $journal->source_id)
                 ->value('wo.wo_no'),
+            'voucher_payment' => DB::table('voucher_bayar_payments as vbp')
+                ->join('voucher_bayar as vb', 'vb.id', '=', 'vbp.voucher_bayar_id')
+                ->where('vbp.id', $journal->source_id)
+                ->value('vb.voucher_no'),
             'cash_in', 'cash_out' => DB::table('cash_bank_transactions')
                 ->where('id', $journal->source_id)
                 ->value('transaction_no'),
