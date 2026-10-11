@@ -25,6 +25,8 @@ class ProductionSummaryReportExport implements FromCollection, WithHeadings, Sho
 
     public function map($r): array
     {
+        $statusLabels = ['draft' => 'Draft', 'open' => 'Open', 'in_progress' => 'Dalam Proses', 'on_progress' => 'Dalam Proses', 'completed' => 'Selesai', 'posted' => 'Selesai'];
+
         return [
             Date::dateTimeToExcel(Carbon::parse($r->date)),
             $r->wo_no,
@@ -35,7 +37,7 @@ class ProductionSummaryReportExport implements FromCollection, WithHeadings, Sho
             (float) $r->production_qty,
             $r->hpp_unit !== null ? (float) $r->hpp_unit : null,
             (float) $r->reject_qty,
-            $r->status,
+            $statusLabels[$r->status] ?? ucfirst(str_replace('_', ' ', $r->status)),
             $r->cost_basis,
         ];
     }
