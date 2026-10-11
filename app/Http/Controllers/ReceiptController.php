@@ -436,6 +436,12 @@ class ReceiptController extends Controller
             $nextReceiptSeq = $lastReceipt ? ((int) substr($lastReceipt->receipt_no, -4)) + 1 : 1;
             $receiptNo = 'PB-' . $receiptDateStr . str_pad($nextReceiptSeq, 4, '0', STR_PAD_LEFT);
             $receiptDate = Carbon::parse($data['receipt_date'] ?? now()->toDateString())->format('Y-m-d H:i:s');
+            $receiptPeriod = DB::table('accounting_periods')
+                ->where('entity_id', $entityId)
+                ->where('period_year', Carbon::parse($receiptDate)->year)
+                ->where('period_month', Carbon::parse($receiptDate)->month)
+                ->first();
+            abort_if($receiptPeriod && in_array($receiptPeriod->status, ['closing', 'closed'], true), 422, 'Penerimaan tidak dapat diposting karena periode akuntansi sudah closing atau closed.');
 
             $receiptId = DB::table('receipts')->insertGetId([
                 'entity_id' => $entityId,
