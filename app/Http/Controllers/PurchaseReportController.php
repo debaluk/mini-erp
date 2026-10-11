@@ -15,7 +15,9 @@ class PurchaseReportController extends Controller
 {
     private function entityId(): int
     {
-        return (int) (DB::table('entities')->value('id') ?? 1);
+        $entityId = (int) (auth()->user()->entity_id ?? 0);
+        abort_unless($entityId > 0, 403, 'Entitas pengguna tidak valid.');
+        return $entityId;
     }
 
     private function dates(Request $request): array
