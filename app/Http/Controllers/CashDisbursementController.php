@@ -15,6 +15,13 @@ use Illuminate\Support\Facades\DB;
 
 class CashDisbursementController extends Controller
 {
+    private function entityId(): int
+    {
+        $entityId = (int) (auth()->user()->entity_id ?? 0);
+        abort_unless($entityId > 0, 403, 'Entitas pengguna tidak valid.');
+        return $entityId;
+    }
+
     public function index(Request $request)
     {
         $startDate      = $request->query('start_date', now()->startOfMonth()->format('Y-m-d'));
@@ -24,18 +31,19 @@ class CashDisbursementController extends Controller
         $disbursementType = $request->query('disbursement_type'); // Kategori: AP_PAYMENT / CASH_OUT
         $search         = $request->query('search');
 
-        $businessUnits = BusinessUnit::where('is_active', 1)->orderBy('code')->get();
-        $suppliers     = Supplier::where('is_active', 1)->orderBy('name')->get();
+        $entityId = $this->entityId();
+        $businessUnits = BusinessUnit::where('entity_id', $entityId)->where('is_active', 1)->orderBy('code')->get();
+        $suppliers     = Supplier::where('entity_id', $entityId)->where('is_active', 1)->orderBy('name')->get();
 
         // 1. Dropdown Akun Kas & Bank (is_cash_bank = 1)
-        $cashAccounts = ChartOfAccount::where('is_cash_bank', 1)
+        $cashAccounts = ChartOfAccount::where('entity_id', $entityId)->where('is_cash_bank', 1)
             ->where('is_postable', 1)
             ->where('is_active', 1)
             ->orderBy('code')
             ->get();
 
         // 2. Dropdown COA Hierarki Level 2 (Header Group) & Level 3 (Postable Child)
-        $coaLevel2 = ChartOfAccount::where('level', 2)
+        $coaLevel2 = ChartOfAccount::where('entity_id', $entityId)->where('level', 2)
             ->where('is_active', 1)
             ->with(['children' => function ($query) {
                 $query->where('level', 3)
@@ -48,6 +56,7 @@ class CashDisbursementController extends Controller
 
         // Base Query Filter
         $baseQuery = Journal::with(['businessUnit', 'entries.account'])
+            ->where('entity_id', $entityId)
             ->whereIn('source_type', ['CASH_OUT', 'AP_PAYMENT', 'sales_return'])
             ->whereDate('journal_date', '>=', $startDate)
             ->whereDate('journal_date', '<=', $endDate);
@@ -120,6 +129,8 @@ class CashDisbursementController extends Controller
      */
     public function getUnpaidBills($supplierId)
     {
+        $entityId = $this->entityId();
+        abort_unless(DB::table('suppliers')->where('entity_id', $entityId)->where('id', $supplierId)->where('is_active', 1)->exists(), 404, 'Supplier tidak ditemukan.');
         $bills = DB::table('purchases as p')
             ->leftJoinSub(
                 DB::table('payments')
@@ -131,6 +142,7 @@ class CashDisbursementController extends Controller
                 '=',
                 'p.id'
             )
+            ->where('p.entity_id', $entityId)
             ->where('p.supplier_id', $supplierId)
             ->where('p.status', 'posted')
             ->select(
@@ -157,25 +169,53 @@ class CashDisbursementController extends Controller
     public function storeApPayment(Request $request)
     {
         $request->validate([
-            'business_unit_id' => 'required|exists:business_units,id',
-            'supplier_id'      => 'required|exists:suppliers,id',
+            'business_unit_id' => 'required|integer',
+            'supplier_id'      => 'required|integer',
             'journal_date'     => 'required|date',
-            'cash_account_id'  => 'required|exists:chart_of_accounts,id',
+            'cash_account_id'  => 'required|integer',
             'amount'           => 'required|numeric|min:1',
             'purchase_ids'     => 'required|array|min:1',
+            'purchase_ids.*'   => 'required|integer',
             'pay_amounts'      => 'required|array',
             'description'      => 'required|string|max:255',
         ]);
 
         DB::beginTransaction();
         try {
-            // Cari COA Hutang Usaha (Level 3: 2000101)
-            $apAccount = ChartOfAccount::where('code', '2000101')->first() 
-                ?? ChartOfAccount::where('type', 'liability')->where('name', 'LIKE', '%Hutang%')->first();
+            $entityId = $this->entityId();
+            $businessUnit = DB::table('business_units')
+                ->where('entity_id', $entityId)->where('id', $request->business_unit_id)->where('is_active', 1)->first();
+            $supplier = DB::table('suppliers')
+                ->where('entity_id', $entityId)->where('id', $request->supplier_id)->where('is_active', 1)->first();
+            abort_unless($businessUnit && $supplier, 422, 'Unit Bisnis atau supplier tidak aktif atau bukan milik entitas pengguna.');
 
-            if (!$apAccount) {
-                throw new \Exception('Akun COA Hutang Usaha (2000101) tidak ditemukan.');
-            }
+            $period = DB::table('accounting_periods')
+                ->where('entity_id', $entityId)
+                ->where('period_year', \Carbon\Carbon::parse($request->journal_date)->year)
+                ->where('period_month', \Carbon\Carbon::parse($request->journal_date)->month)
+                ->first();
+            abort_if($period && in_array($period->status, ['closing', 'closed'], true), 422, 'Periode akuntansi sudah closing atau closed.');
+
+            $cashAccount = ChartOfAccount::where('entity_id', $entityId)
+                ->where('id', $request->cash_account_id)
+                ->where('is_cash_bank', 1)->where('is_postable', 1)->where('is_active', 1)->first();
+            abort_unless($cashAccount, 422, 'Akun kas/bank tidak aktif atau bukan milik entitas pengguna.');
+
+            $mappings = DB::table('business_unit_account_mappings')
+                ->where('entity_id', $entityId)
+                ->where('business_unit_id', $businessUnit->id)
+                ->whereIn('mapping_key', ['payable', 'cash', 'bank'])
+                ->pluck('account_id', 'mapping_key');
+            abort_unless(isset($mappings['payable']), 422, 'Mapping akun hutang Unit Bisnis belum tersedia.');
+            abort_unless(
+                ((isset($mappings['cash']) && (int) $mappings['cash'] === (int) $cashAccount->id) ||
+                 (isset($mappings['bank']) && (int) $mappings['bank'] === (int) $cashAccount->id)),
+                422,
+                'Akun kas/bank harus sesuai mapping Unit Bisnis aktif.'
+            );
+            $apAccount = ChartOfAccount::where('entity_id', $entityId)
+                ->where('id', $mappings['payable'])->where('is_active', 1)->where('is_postable', 1)->first();
+            abort_unless($apAccount, 422, 'Akun hutang pada mapping Unit Bisnis tidak valid.');
 
             $totalPaidActual = 0;
 
@@ -183,9 +223,22 @@ class CashDisbursementController extends Controller
                 $payAmount = (float) ($request->pay_amounts[$purchaseId] ?? 0);
                 if ($payAmount <= 0) continue;
 
-                $totalPaidActual += $payAmount;
+                $purchase = DB::table('purchases')
+                    ->where('entity_id', $entityId)
+                    ->where('id', $purchaseId)
+                    ->where('business_unit_id', $businessUnit->id)
+                    ->where('supplier_id', $supplier->id)
+                    ->where('status', 'posted')
+                    ->whereNull('deleted_at')
+                    ->lockForUpdate()
+                    ->first();
+                abort_unless($purchase, 422, 'Faktur yang dibayar tidak valid atau berbeda entitas, supplier, atau Unit Bisnis.');
 
-                // 1. Catat ke tabel riwayat pembayaran (payments)
+                $paidBefore = (float) DB::table('payments')->where('purchase_id', $purchaseId)->sum('paid_amount');
+                $remaining = max(0, (float) $purchase->total - $paidBefore);
+                abort_if($payAmount > $remaining + 0.000001, 422, 'Nominal pembayaran melebihi sisa hutang faktur '.$purchase->purchase_no.'.');
+
+                $totalPaidActual += $payAmount;
                 DB::table('payments')->insert([
                     'purchase_id'    => $purchaseId,
                     'payment_date'   => $request->journal_date,
@@ -195,33 +248,26 @@ class CashDisbursementController extends Controller
                     'updated_at'     => now(),
                 ]);
 
-                // 2. Hitung akumulasi pembayaran faktur pembelian ini
-                $totalPaidForPurchase = DB::table('payments')
-                    ->where('purchase_id', $purchaseId)
-                    ->sum('paid_amount');
-
-                $purchase = DB::table('purchases')->where('id', $purchaseId)->first();
-                if ($purchase) {
-                    $status = ($totalPaidForPurchase >= $purchase->total) ? 'paid' : 'partial';
-                    
-                    DB::table('purchases')->where('id', $purchaseId)->update([
-                        'paid_amount'    => $totalPaidForPurchase,
-                        'payment_status' => $status,
-                        'updated_at'     => now()
-                    ]);
-                }
+                $totalPaidForPurchase = $paidBefore + $payAmount;
+                $status = ($totalPaidForPurchase >= (float) $purchase->total - 0.000001) ? 'paid' : 'partial';
+                DB::table('purchases')->where('entity_id', $entityId)->where('id', $purchaseId)->update([
+                    'paid_amount'    => $totalPaidForPurchase,
+                    'payment_status' => $status,
+                    'updated_at'     => now()
+                ]);
             }
 
             if ($totalPaidActual <= 0) {
                 throw new \Exception('Nominal pembayaran pada faktur yang dicentang tidak boleh 0.');
             }
+            abort_if(abs($totalPaidActual - (float) $request->amount) > 0.01, 422, 'Total pembayaran tidak sesuai dengan rincian faktur yang dipilih.');
 
             // 3. Simpan Header Jurnal Pengeluaran
             $journalNo = 'AP-' . date('YmdHis') . '-' . strtoupper(substr(uniqid(), -3));
 
             $journal = Journal::create([
-                'entity_id'        => auth()->user()->entity_id ?? 1,
-                'business_unit_id' => $request->business_unit_id,
+                'entity_id'        => $entityId,
+                'business_unit_id' => $businessUnit->id,
                 'journal_no'       => $journalNo,
                 'journal_date'     => $request->journal_date,
                 'source_type'      => 'AP_PAYMENT',
