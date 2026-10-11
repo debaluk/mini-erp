@@ -63,6 +63,13 @@ class StockInventoryController extends Controller
                     ->join('business_units as active_bu', function ($join) { $join->on('active_bu.id', '=', 'active_wbu.business_unit_id')->on('active_bu.entity_id', '=', 'active_wbu.entity_id'); })
                     ->whereColumn('active_wbu.warehouse_id', 'ws.warehouse_id')->where('active_wbu.entity_id', $entityId)->where('active_bu.is_active', 1);
             })
+            ->whereExists(function ($sub) {
+                $sub->select(DB::raw(1))->from('product_business_units as pbu')
+                    ->join('warehouse_business_units as product_wbu', function ($join) { $join->on('product_wbu.business_unit_id', '=', 'pbu.business_unit_id'); })
+                    ->whereColumn('pbu.product_id', 'p.id')
+                    ->whereColumn('product_wbu.warehouse_id', 'ws.warehouse_id')
+                    ->whereColumn('product_wbu.entity_id', 'ws.entity_id');
+            })
             ->select(
                 'p.id as product_id', 'p.code', 'p.sku', 'p.name as product_name',
                 'u.code as unit_code', 'u.name as unit_name', 'w.id as warehouse_id',
@@ -130,6 +137,13 @@ class StockInventoryController extends Controller
                 $sub->select(DB::raw(1))->from('warehouse_business_units as active_wbu')
                     ->join('business_units as active_bu', function ($join) { $join->on('active_bu.id', '=', 'active_wbu.business_unit_id')->on('active_bu.entity_id', '=', 'active_wbu.entity_id'); })
                     ->whereColumn('active_wbu.warehouse_id', 'ws.warehouse_id')->where('active_wbu.entity_id', $entityId)->where('active_bu.is_active', 1);
+            })
+            ->whereExists(function ($sub) {
+                $sub->select(DB::raw(1))->from('product_business_units as pbu')
+                    ->join('warehouse_business_units as product_wbu', function ($join) { $join->on('product_wbu.business_unit_id', '=', 'pbu.business_unit_id'); })
+                    ->whereColumn('pbu.product_id', 'p.id')
+                    ->whereColumn('product_wbu.warehouse_id', 'ws.warehouse_id')
+                    ->whereColumn('product_wbu.entity_id', 'ws.entity_id');
             })
             ->when($businessUnitId, function ($query) use ($businessUnitId, $entityId) {
                 $query->whereExists(function ($sub) use ($businessUnitId, $entityId) {
