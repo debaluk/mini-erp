@@ -61,6 +61,7 @@ class ProductionSummaryReportController extends Controller
             }
 
             return (object) [
+                'id' => $wo->id,
                 'date' => $wo->wo_date,
                 'wo_no' => $wo->wo_no,
                 'target' => (float) $wo->target_output_qty,
