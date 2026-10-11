@@ -367,6 +367,18 @@ class PurchaseInvoiceController extends Controller
                     abort_unless($supplier, 422, 'Supplier tidak aktif atau bukan milik entitas pengguna.');
                 }
 
+                $supplierInvoiceNo = trim((string) $request->input('supplier_invoice_no', ''));
+                if ($supplierInvoiceNo !== '' && $request->filled('supplier_id')) {
+                    $duplicateSupplierInvoice = DB::table('purchases')
+                        ->where('entity_id', $entityId)
+                        ->where('supplier_id', $request->supplier_id)
+                        ->where('supplier_invoice_no', $supplierInvoiceNo)
+                        ->whereNull('deleted_at')
+                        ->where('status', '!=', 'cancelled')
+                        ->exists();
+                    abort_if($duplicateSupplierInvoice, 422, 'Nomor Faktur Supplier sudah digunakan pada supplier dan entitas ini.');
+                }
+
                 $purchaseNo = $this->generateInvoiceCode();
                 $dueDate = $request->payment_method === 'credit'
                     ? ($request->input('due_date') ?: now()->addDays(30)->toDateString())
@@ -394,9 +406,7 @@ class PurchaseInvoiceController extends Controller
                     'goods_received'      => $goodsReceived,
                     'posting_status'      => 'posted',
                     'purchase_no'         => $purchaseNo,
-                    'supplier_invoice_no' => $isPo
-                        ? ($request->input('supplier_invoice_no') ?: null)
-                        : ($request->input('supplier_invoice_no') ?: $purchaseNo),
+                    'supplier_invoice_no' => $supplierInvoiceNo !== '' ? $supplierInvoiceNo : null,
                     'supplier_invoice_date'=> $request->purchase_date,
                     'purchase_date'       => $request->purchase_date,
                     'subtotal'            => 0,
@@ -562,9 +572,21 @@ class PurchaseInvoiceController extends Controller
                     abort_unless($supplier, 422, 'Supplier tidak aktif atau bukan milik entitas pengguna.');
                 }
 
+                $supplierInvoiceNo = trim((string) $request->input('supplier_invoice_no', ''));
                 $purchase = DB::table('purchases')->where('entity_id',$entityId)->where('id',$id)->whereNull('deleted_at')->lockForUpdate()->first();
                 if (!$purchase) throw new \RuntimeException('Faktur tidak ditemukan.');
                 if ($purchase->status === 'cancelled') throw new \RuntimeException('Faktur yang sudah dibatalkan hanya dapat dicetak.');
+
+                if ($supplierInvoiceNo !== '' && $request->filled('supplier_id')) {
+                    $duplicateSupplierInvoice = DB::table('purchases')
+                        ->where('entity_id', $entityId)
+                        ->where('supplier_id', $request->supplier_id)
+                        ->where('supplier_invoice_no', $supplierInvoiceNo)
+                        ->where('id', '!=', $purchase->id)
+                        ->whereNull('deleted_at')
+                        ->where('status', '!=', 'cancelled')
+                        ->exists();
+                    abort_if($duplicateSupplierInvoice, 422, 'Nomor Faktur Supplier sudah digunakan pada supplier dan entitas ini.');
 
                 $period = DB::table('accounting_periods')
                     ->where('entity_id',$purchase->entity_id)
@@ -665,7 +687,7 @@ class PurchaseInvoiceController extends Controller
                 DB::table('purchases')->where('id',$id)->update([
                     'business_unit_id'=>$request->business_unit_id,'purchase_date'=>$request->purchase_date,
                     'supplier_id'=>$request->filled('supplier_id')?$request->supplier_id:null,
-                    'supplier_invoice_no'=>$request->supplier_invoice_no,'supplier_invoice_date'=>$request->purchase_date,
+                    'supplier_invoice_no'=>$supplierInvoiceNo !== '' ? $supplierInvoiceNo : null,'supplier_invoice_date'=>$request->purchase_date,
                     'payment_method'=>$request->payment_method,
                     'due_date'=>$request->payment_method==='credit'?($request->input('due_date')?:now()->addDays(30)->toDateString()):null,
                     'memo'=>$request->memo,'subtotal'=>$subtotal,'discount'=>$discountTotal,'total'=>$total,
@@ -682,6 +704,15 @@ class PurchaseInvoiceController extends Controller
                     (int) $entityId,
                     $receipt ? (int) $receipt->id : null
                 );
+
+                // Faktur tidak memakai approval; simpan status sesuai jurnal yang sudah diperbarui.
+                DB::table('purchases')->where('entity_id', $entityId)->where('id', $purchase->id)->update([
+                    'status' => 'posted',
+                    'posting_status' => 'posted',
+                    'posted_at' => $purchase->posted_at ?: now(),
+                    'posted_by' => $purchase->posted_by ?: (auth()->id() ?? 1),
+                    'updated_at' => now(),
+                ]);
 
                 return $purchase->purchase_no;
             });
