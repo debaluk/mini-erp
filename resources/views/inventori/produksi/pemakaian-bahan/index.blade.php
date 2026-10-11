@@ -16,7 +16,8 @@
 @endif
 
 <div class="card border-0 shadow-sm mb-3">
-        <div class="card-body">
+    <div class="card-body">
+        <div class="small fw-semibold text-secondary mb-2">Filter riwayat pemakaian</div>
         <form method="GET" class="row g-2 align-items-end">
             <div class="col-md-3">
                 <label class="form-label">Dari</label>
@@ -114,7 +115,7 @@
                             @elseif($wo->materials->isNotEmpty())
                                 <button type="button" class="btn btn-sm btn-primary btn-open-material-usage" data-id="{{ $wo->id }}">Catat Bahan</button>
                             @else
-                                <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="Sisa estimasi bahan sudah habis">Selesai</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="Sisa estimasi bahan sudah habis">Estimasi Habis</button>
                             @endif
                         </td>
                     </tr>
