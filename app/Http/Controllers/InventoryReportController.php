@@ -44,6 +44,13 @@ class InventoryReportController extends Controller
                     ->whereColumn('active_wbu.entity_id', 'ws.entity_id')
                     ->where('active_bu.is_active', 1);
             })
+            ->whereExists(function ($sub) {
+                $sub->select(DB::raw(1))->from('product_business_units as pbu')
+                    ->join('warehouse_business_units as product_wbu', function ($join) { $join->on('product_wbu.business_unit_id', '=', 'pbu.business_unit_id'); })
+                    ->whereColumn('pbu.product_id', 'p.id')
+                    ->whereColumn('product_wbu.warehouse_id', 'ws.warehouse_id')
+                    ->whereColumn('product_wbu.entity_id', 'ws.entity_id');
+            })
             ->when($request->filled('business_unit_id'), function ($query) use ($request, $entityId) {
                 $query->whereExists(function ($sub) use ($request, $entityId) {
                     $sub->select(DB::raw(1))->from('warehouse_business_units as wbu')
@@ -84,6 +91,13 @@ class InventoryReportController extends Controller
                     ->whereColumn('active_wbu.warehouse_id', 'ws.warehouse_id')
                     ->whereColumn('active_wbu.entity_id', 'ws.entity_id')
                     ->where('active_bu.is_active', 1);
+            })
+            ->whereExists(function ($sub) {
+                $sub->select(DB::raw(1))->from('product_business_units as pbu')
+                    ->join('warehouse_business_units as product_wbu', function ($join) { $join->on('product_wbu.business_unit_id', '=', 'pbu.business_unit_id'); })
+                    ->whereColumn('pbu.product_id', 'p.id')
+                    ->whereColumn('product_wbu.warehouse_id', 'ws.warehouse_id')
+                    ->whereColumn('product_wbu.entity_id', 'ws.entity_id');
             })
             ->when($request->filled('business_unit_id'), fn ($q) => $q->where('bu.id', $request->integer('business_unit_id')))
             ->when($request->filled('warehouse_id'), fn ($q) => $q->where('ws.warehouse_id', $request->integer('warehouse_id')))
