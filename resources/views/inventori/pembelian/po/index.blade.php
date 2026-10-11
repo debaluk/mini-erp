@@ -236,7 +236,14 @@ document.addEventListener('DOMContentLoaded', function () {
         },
         columns: [
             { data: 'formatted_date', className: 'text-center' },
-            { data: 'po_no', className: 'text-center font-monospace fw-bold text-primary' },
+            {
+                data: 'po_no',
+                className: 'text-center font-monospace fw-bold',
+                render: function (data, type, row) {
+                    if (type !== 'display') return data;
+                    return '<a href="#" class="btn-view-po text-decoration-none" data-id="' + row.id + '" title="Lihat detail PO">' + data + '</a>';
+                }
+            },
             { data: 'supplier_name', className: 'fw-semibold text-dark' },
             { data: 'warehouse_name' },
             { data: 'business_unit_name', className: 'text-center' },
@@ -272,12 +279,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 render: function (data, type, row) {
                     let actions = `<div class="btn-group btn-group-sm">`;
                     if (row.status === 'canceled') {
-                        actions += `<button type="button" class="btn btn-outline-info btn-view-po" data-id="${row.id}" title="Detail PO"><i class="bi bi-eye"></i></button>`;
                         actions += '</div>';
                         return actions;
-                    }
-                    if (row.status !== 'draft') {
-                        actions += `<button type="button" class="btn btn-outline-info btn-view-po" data-id="${row.id}" title="Detail PO"><i class="bi bi-eye"></i></button>`;
                     }
                     actions += `<a href="{{ url('/inventori/pembelian/po') }}/${row.id}/print" target="_blank" class="btn btn-outline-secondary" title="Cetak Nota PO"><i class="bi bi-printer"></i></a>`;
                     if (row.status === 'draft') {
