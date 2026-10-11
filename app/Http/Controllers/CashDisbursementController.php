@@ -176,7 +176,7 @@ class CashDisbursementController extends Controller
             'cash_account_id'  => 'required|integer',
             'amount'           => 'required|numeric|min:1',
             'purchase_ids'     => 'required|array|min:1',
-            'purchase_ids.*'   => 'required|integer',
+            'purchase_ids.*'   => 'required|integer|distinct',
             'pay_amounts'      => 'required|array',
             'description'      => 'required|string|max:255',
         ]);
