@@ -149,11 +149,20 @@ class ApSubLedgerController extends Controller
         $filteredList = $statusFilter ? $processedPurchases->filter(fn($i) => $i->ap_status === $statusFilter) : $processedPurchases;
 
         // Rekonsiliasi Akun COA 2000101 (Hutang Usaha)
-        $apCoa = ChartOfAccount::where('entity_id', $entityId)->where('code', '2000101')->first();
-        $coaBalance = $apCoa ? (float) JournalEntry::whereHas('journal', function ($q) use ($endDate, $businessUnitId, $entityId) {
-            $q->where('entity_id', $entityId)->where('status', 'posted')->whereDate('journal_date', '<=', $endDate);
-            if ($businessUnitId) $q->where('business_unit_id', $businessUnitId);
-        })->where('account_id', $apCoa->id)->sum(DB::raw('credit - debit')) : 0; // Hutang saldo normal Kredit
+        $payableAccountIds = DB::table('business_unit_account_mappings')
+            ->where('entity_id', $entityId)
+            ->where('mapping_key', 'payable')
+            ->when($businessUnitId, fn ($q) => $q->where('business_unit_id', $businessUnitId))
+            ->pluck('account_id')
+            ->unique()
+            ->values();
+
+        $coaBalance = $payableAccountIds->isNotEmpty()
+            ? (float) JournalEntry::whereHas('journal', function ($q) use ($endDate, $businessUnitId, $entityId) {
+                $q->where('entity_id', $entityId)->where('status', 'posted')->whereDate('journal_date', '<=', $endDate);
+                if ($businessUnitId) $q->where('business_unit_id', $businessUnitId);
+            })->whereIn('account_id', $payableAccountIds)->sum(DB::raw('credit - debit'))
+            : 0; // Hutang saldo normal Kredit berdasarkan mapping Unit Bisnis.
 
         $reconciliationDifference = $totalApAmount - $coaBalance;
 
