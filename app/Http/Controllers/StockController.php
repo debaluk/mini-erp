@@ -26,10 +26,7 @@ class StockController extends Controller
                 $join->on('p.id', '=', 'ws.product_id')
                     ->on('p.entity_id', '=', 'ws.entity_id');
             })
-            ->leftJoin('units as u', function ($join) {
-                $join->on('u.id', '=', 'p.base_unit_id')
-                    ->on('u.entity_id', '=', 'p.entity_id');
-            })
+            ->leftJoin('units as u', 'u.id', '=', 'p.base_unit_id')
             ->join('warehouses as w', function ($join) {
                 $join->on('w.id', '=', 'ws.warehouse_id')
                     ->on('w.entity_id', '=', 'ws.entity_id');
