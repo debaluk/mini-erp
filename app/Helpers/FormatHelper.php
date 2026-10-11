@@ -1,16 +1,16 @@
 <?php
 
-namespace App\Helpers;
+namespace App\\Helpers;
 
 class FormatHelper
 {
-    public static function indo($value, int $decimals = 0, bool $prefixRp = false): string
+    /**
+     * Format displayed numeric values consistently in Indonesian notation.
+     * All displayed numbers use exactly two decimal places.
+     */
+    public static function indo($value, int $decimals = 2, bool $prefixRp = false): string
     {
-        if ($value === null || $value === '') {
-            return $prefixRp ? 'Rp 0' : '0';
-        }
-
-        $formatted = number_format((float) $value, $decimals, ',', '.');
+        $formatted = number_format((float) ($value ?? 0), 2, ',', '.');
 
         return $prefixRp ? 'Rp ' . $formatted : $formatted;
     }
