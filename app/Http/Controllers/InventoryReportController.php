@@ -264,7 +264,7 @@ class InventoryReportController extends Controller
                 $sheet->getStyle('J10:O' . $lastRow)->getNumberFormat()->setFormatCode('#,##0.00');
                 $sheet->getStyle('P10:P' . $lastRow)->getNumberFormat()->setFormatCode('0.00');
             } else {
-                $sheet->getStyle('H10:I' . $lastRow)->getNumberFormat()->setFormatCode('#,##0.000');
+                $sheet->getStyle('H10:I' . $lastRow)->getNumberFormat()->setFormatCode('#,##0.00');
                 $sheet->getStyle('K10:L' . $lastRow)->getNumberFormat()->setFormatCode('#,##0.00');
             }
         }
