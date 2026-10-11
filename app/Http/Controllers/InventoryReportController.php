@@ -221,8 +221,8 @@ class InventoryReportController extends Controller
         abort_unless($entity, 404, 'Data entitas tidak ditemukan.');
         $query = $mode === 'analisis-harga' ? $this->priceComparisonQuery($request, $entityId) : $this->stockQuery($request, $entityId);
         $rows = $query->orderBy('p.name')->orderBy('w.name')->get();
-        $unitName = $request->filled('business_unit_id') ? (DB::table('business_units')->where('entity_id', $entityId)->where('id', $request->integer('business_unit_id'))->value('name') ?? 'Unit Bisnis') : 'Semua Unit Bisnis';
-        $warehouseName = $request->filled('warehouse_id') ? (DB::table('warehouses')->where('entity_id', $entityId)->where('id', $request->integer('warehouse_id'))->value('name') ?? 'Gudang') : 'Semua Gudang';
+        $unitName = $request->filled('business_unit_id') ? (DB::table('business_units')->where('entity_id', $entityId)->where('is_active', 1)->where('id', $request->integer('business_unit_id'))->value('name') ?? 'Unit Bisnis') : 'Semua Unit Bisnis';
+        $warehouseName = $request->filled('warehouse_id') ? (DB::table('warehouses as w')->join('warehouse_business_units as wbu', function ($join) { $join->on('wbu.warehouse_id', '=', 'w.id')->on('wbu.entity_id', '=', 'w.entity_id'); })->join('business_units as bu', function ($join) { $join->on('bu.id', '=', 'wbu.business_unit_id')->on('bu.entity_id', '=', 'wbu.entity_id'); })->where('w.entity_id', $entityId)->where('w.is_active', 1)->where('bu.is_active', 1)->where('w.id', $request->integer('warehouse_id'))->value('w.name') ?? 'Gudang') : 'Semua Gudang';
         $headers = $mode === 'analisis-harga'
             ? ['No.', 'Kode Item', 'SKU', 'Nama Item', 'Unit Bisnis', 'Gudang', 'Qty', 'Minimal Stok / ROP', 'Status ROP', 'HPP/Unit', 'Harga Jual/Unit', 'Nilai Stok', 'Potensi Penjualan', 'Selisih/Unit', 'Potensi Laba Kotor', 'Margin (%)']
             : ['No.', 'Kode Item', 'SKU', 'Nama Item', 'Satuan Dasar', 'Unit Bisnis', 'Gudang', 'Qty Saat Ini', 'Minimal Stok / ROP', 'Status ROP', 'HPP Rata-rata', 'Nilai Stok'];
