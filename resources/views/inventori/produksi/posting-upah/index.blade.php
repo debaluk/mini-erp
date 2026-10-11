@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @section('content')
-<div class="container-fluid px-4 py-3">
+<div class="container-fluid px-0 py-0">
     <div class="d-flex justify-content-between align-items-center mb-3"><div><h3 class="mb-1 fw-bold">Posting Upah</h3><div class="text-secondary small">Ajukan pembayaran berdasarkan upah hasil produksi yang sudah di-closing.</div></div><span class="badge text-bg-primary">{{ $workerGroups->count() }} kelompok pekerja</span></div>
     @if(session('success'))<div class="alert alert-success py-2">{{ session('success') }}</div>@endif
     @if(session('error'))<div class="alert alert-danger py-2">{{ session('error') }}</div>@endif
