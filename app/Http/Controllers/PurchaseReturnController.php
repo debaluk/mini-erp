@@ -542,7 +542,9 @@ class PurchaseReturnController extends Controller
         $endDate = $request->query('end_date', now()->endOfMonth()->toDateString());
         $businessUnitId = $request->query('business_unit_id');
         $warehouseId = $request->query('warehouse_id');
-        $businessUnitName = $businessUnitId ? DB::table('business_units')->where('id', $businessUnitId)->value('name') : null;
+        $businessUnitName = $businessUnitId
+            ? DB::table('business_units')->where('entity_id', $entityId)->where('id', $businessUnitId)->where('is_active', 1)->value('name')
+            : null;
 
         $query = DB::table('purchase_returns as r')
             ->leftJoin('business_units as bu', 'bu.id', '=', 'r.business_unit_id')
