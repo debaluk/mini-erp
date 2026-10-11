@@ -46,7 +46,12 @@ class DashboardController extends Controller
             ->join('warehouse_business_units as wbu', function ($join) { $join->on('wbu.warehouse_id', '=', 'ws.warehouse_id')->on('wbu.entity_id', '=', 'ws.entity_id'); })
             ->join('business_units as bu', function ($join) { $join->on('bu.id', '=', 'wbu.business_unit_id')->on('bu.entity_id', '=', 'wbu.entity_id'); })
             ->join('warehouses as w', function ($join) { $join->on('w.id', '=', 'ws.warehouse_id')->on('w.entity_id', '=', 'ws.entity_id'); })
-            ->where('ws.entity_id', $entityId)->where('bu.is_active', 1)->where('w.is_active', 1);
+            ->where('ws.entity_id', $entityId)->where('bu.is_active', 1)->where('w.is_active', 1)
+            ->whereExists(function ($sub) {
+                $sub->select(DB::raw(1))->from('product_business_units as pbu')
+                    ->whereColumn('pbu.product_id', 'ws.product_id')
+                    ->whereColumn('pbu.business_unit_id', 'bu.id');
+            });
         if ($businessUnitId) $stockQuery->where('bu.id', $businessUnitId);
         $stockValue = (float) $stockQuery->selectRaw('COALESCE(SUM(ws.qty * ws.avg_cost), 0) as amount')->value('amount');
 
