@@ -58,7 +58,9 @@
                 </table>
             </div>
         </div>
-        
+        <div class="px-3 py-2 border-top bg-light small text-muted">
+            <i class="bi bi-info-circle me-1"></i>Catatan: Faktur pembelian dapat diedit atau dibatalkan selama periode bulan terkait belum ditutup. Setelah periode ditutup, perubahan tidak diperbolehkan.
+        </div>
     </div>
 </div>
 
