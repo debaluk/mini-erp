@@ -115,7 +115,7 @@ class PurchaseOperationalReportController extends Controller
             ->select('p.id', 'p.purchase_no', 'p.purchase_date', 'p.due_date', 'p.payment_method', 'p.total', 'p.status', 's.name as supplier_name', 'bu.name as unit_name')
             ->selectRaw('COALESCE(pay.paid_amount, 0) as paid_amount')
             ->selectRaw('COALESCE((SELECT SUM(pri.return_value) FROM purchase_return_items pri JOIN purchase_returns pr ON pr.id = pri.purchase_return_id JOIN purchase_items pi ON pi.id = pri.purchase_item_id WHERE pi.purchase_id = p.id AND pr.status = "posted" AND pr.return_date <= ?), 0) as return_amount', [$end . ' 23:59:59'])
-            ->selectRaw('GREATEST(p.total - COALESCE(pay.paid_amount, 0) - COALESCE((SELECT SUM(pri.return_value) FROM purchase_return_items pri JOIN purchase_returns pr ON pr.id = pri.purchase_return_id JOIN purchase_items pi ON pi.id = pri.purchase_item_id WHERE pi.purchase_id = p.id AND pr.status = "posted" AND pr.return_date <= ?), 0), 0) as outstanding_amount', [$end . ' 23:59:59'])
+            ->selectRaw('GREATEST(p.total - COALESCE(pay.paid_amount, 0), 0) as outstanding_amount')
             ->orderByDesc('p.purchase_date')->orderByDesc('p.id');
     }
 
