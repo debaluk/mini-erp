@@ -207,9 +207,9 @@ class InventoryReportController extends Controller
         $unitName = $request->filled('business_unit_id') ? (DB::table('business_units')->where('entity_id', $entityId)->where('id', $request->integer('business_unit_id'))->value('name') ?? 'Unit Bisnis') : 'Semua Unit Bisnis';
         $warehouseName = $request->filled('warehouse_id') ? (DB::table('warehouses')->where('entity_id', $entityId)->where('id', $request->integer('warehouse_id'))->value('name') ?? 'Gudang') : 'Semua Gudang';
         $headers = $mode === 'analisis-harga'
-            ? ['No.', 'Kode Item', 'SKU', 'Nama Item', 'Unit Bisnis', 'Gudang', 'Qty', 'HPP/Unit', 'Harga Jual/Unit', 'Nilai Stok', 'Potensi Penjualan', 'Selisih/Unit', 'Potensi Laba Kotor', 'Margin (%)']
-            : ['No.', 'Kode Item', 'SKU', 'Nama Item', 'Satuan Dasar', 'Unit Bisnis', 'Gudang', 'Qty Saat Ini', 'HPP Rata-rata', 'Nilai Stok'];
-        $lastColumn = $mode === 'analisis-harga' ? 'N' : 'J';
+            ? ['No.', 'Kode Item', 'SKU', 'Nama Item', 'Unit Bisnis', 'Gudang', 'Qty', 'Minimal Stok / ROP', 'Status ROP', 'HPP/Unit', 'Harga Jual/Unit', 'Nilai Stok', 'Potensi Penjualan', 'Selisih/Unit', 'Potensi Laba Kotor', 'Margin (%)']
+            : ['No.', 'Kode Item', 'SKU', 'Nama Item', 'Satuan Dasar', 'Unit Bisnis', 'Gudang', 'Qty Saat Ini', 'Minimal Stok / ROP', 'Status ROP', 'HPP Rata-rata', 'Nilai Stok'];
+        $lastColumn = $mode === 'analisis-harga' ? 'P' : 'L';
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle($mode === 'analisis-harga' ? 'Harga vs Stok' : 'Persediaan');
@@ -226,9 +226,11 @@ class InventoryReportController extends Controller
         $rowNumber = 10;
         foreach ($rows as $index => $row) {
             if ($mode === 'analisis-harga') {
-                $data = [$index + 1, $row->code ?: '-', $row->sku ?: '-', $row->product_name, $row->business_unit_name ?: '-', $row->warehouse_name, (float) $row->qty, (float) $row->avg_cost, $row->selling_price !== null ? (float) $row->selling_price : null, (float) $row->stock_value, $row->potential_sales !== null ? (float) $row->potential_sales : null, $row->selling_price !== null ? (float) $row->selling_price - (float) $row->avg_cost : null, $row->potential_gross_profit !== null ? (float) $row->potential_gross_profit : null, $row->gross_margin_percent !== null ? (float) $row->gross_margin_percent : null];
+                $ropStatus = $row->manage_stock && $row->reorder_point !== null ? ((float) $row->qty <= (float) $row->reorder_point ? 'Perlu Reorder' : 'Aman') : '-';
+                $data = [$index + 1, $row->code ?: '-', $row->sku ?: '-', $row->product_name, $row->business_unit_name ?: '-', $row->warehouse_name, (float) $row->qty, $row->manage_stock ? ($row->reorder_point !== null ? (float) $row->reorder_point : null) : null, $ropStatus, (float) $row->avg_cost, $row->selling_price !== null ? (float) $row->selling_price : null, (float) $row->stock_value, $row->potential_sales !== null ? (float) $row->potential_sales : null, $row->selling_price !== null ? (float) $row->selling_price - (float) $row->avg_cost : null, $row->potential_gross_profit !== null ? (float) $row->potential_gross_profit : null, $row->gross_margin_percent !== null ? (float) $row->gross_margin_percent : null];
             } else {
-                $data = [$index + 1, $row->code ?: '-', $row->sku ?: '-', $row->product_name, $row->unit_name ?: $row->unit_code ?: '-', $row->business_unit_names ?: '-', $row->warehouse_name, (float) $row->qty, (float) $row->avg_cost, (float) $row->stock_value];
+                $ropStatus = $row->manage_stock && $row->reorder_point !== null ? ((float) $row->qty <= (float) $row->reorder_point ? 'Perlu Reorder' : 'Aman') : '-';
+                $data = [$index + 1, $row->code ?: '-', $row->sku ?: '-', $row->product_name, $row->unit_name ?: $row->unit_code ?: '-', $row->business_unit_names ?: '-', $row->warehouse_name, (float) $row->qty, $row->manage_stock ? ($row->reorder_point !== null ? (float) $row->reorder_point : null) : null, $ropStatus, (float) $row->avg_cost, (float) $row->stock_value];
             }
             $sheet->fromArray([$data], null, 'A' . $rowNumber);
             $rowNumber++;
@@ -241,12 +243,12 @@ class InventoryReportController extends Controller
         $sheet->getStyle('A9:' . $lastColumn . $lastRow)->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
         if ($rowNumber > 10) {
             if ($mode === 'analisis-harga') {
-                $sheet->getStyle('G10:G' . $lastRow)->getNumberFormat()->setFormatCode('#,##0.000');
-                $sheet->getStyle('H10:M' . $lastRow)->getNumberFormat()->setFormatCode('#,##0.00');
-                $sheet->getStyle('N10:N' . $lastRow)->getNumberFormat()->setFormatCode('0.00');
+                $sheet->getStyle('G10:H' . $lastRow)->getNumberFormat()->setFormatCode('#,##0.000');
+                $sheet->getStyle('J10:O' . $lastRow)->getNumberFormat()->setFormatCode('#,##0.00');
+                $sheet->getStyle('P10:P' . $lastRow)->getNumberFormat()->setFormatCode('0.00');
             } else {
-                $sheet->getStyle('H10:H' . $lastRow)->getNumberFormat()->setFormatCode('#,##0.000');
-                $sheet->getStyle('I10:J' . $lastRow)->getNumberFormat()->setFormatCode('#,##0');
+                $sheet->getStyle('H10:I' . $lastRow)->getNumberFormat()->setFormatCode('#,##0.000');
+                $sheet->getStyle('K10:L' . $lastRow)->getNumberFormat()->setFormatCode('#,##0');
             }
         }
         foreach (range('A', $lastColumn) as $column) $sheet->getColumnDimension($column)->setAutoSize(true);
