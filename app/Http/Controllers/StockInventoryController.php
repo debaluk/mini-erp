@@ -30,6 +30,9 @@ class StockInventoryController extends Controller
         $entityId = $this->entityId($request);
         $businessUnits = DB::table('business_units')
             ->where('entity_id', $entityId)->where('is_active', 1)->orderBy('code')->get();
+        if ($request->filled('business_unit_id')) {
+            abort_unless($businessUnits->contains('id', $request->integer('business_unit_id')), 422, 'Unit bisnis tidak aktif atau tidak valid.');
+        }
         $warehouses = DB::table('warehouses')
             ->where('entity_id', $entityId)->where('is_active', 1)->orderBy('name')->get();
 
@@ -38,7 +41,7 @@ class StockInventoryController extends Controller
                 $join->on('bu.id', '=', 'wbu.business_unit_id')
                     ->on('bu.entity_id', '=', 'wbu.entity_id');
             })
-            ->where('wbu.entity_id', $entityId)
+            ->where('wbu.entity_id', $entityId)->where('bu.is_active', 1)
             ->select('wbu.warehouse_id', DB::raw("GROUP_CONCAT(bu.name ORDER BY bu.code SEPARATOR ', ') as business_unit_names"))
             ->groupBy('wbu.warehouse_id');
 
@@ -51,11 +54,16 @@ class StockInventoryController extends Controller
                 $join->on('w.id', '=', 'ws.warehouse_id')->on('w.entity_id', '=', 'ws.entity_id');
             })
             ->leftJoinSub($buMap, 'bm', fn ($join) => $join->on('bm.warehouse_id', '=', 'w.id'))
-            ->where('ws.entity_id', $entityId)
+            ->where('ws.entity_id', $entityId)->where('w.is_active', 1)
+            ->whereExists(function ($sub) use ($entityId) {
+                $sub->select(DB::raw(1))->from('warehouse_business_units as active_wbu')
+                    ->join('business_units as active_bu', function ($join) { $join->on('active_bu.id', '=', 'active_wbu.business_unit_id')->on('active_bu.entity_id', '=', 'active_wbu.entity_id'); })
+                    ->whereColumn('active_wbu.warehouse_id', 'ws.warehouse_id')->where('active_wbu.entity_id', $entityId)->where('active_bu.is_active', 1);
+            })
             ->select(
                 'p.id as product_id', 'p.code', 'p.sku', 'p.name as product_name',
                 'u.code as unit_code', 'u.name as unit_name', 'w.id as warehouse_id',
-                'w.name as warehouse_name', 'bm.business_unit_names', 'ws.qty'
+                'w.name as warehouse_name', 'bm.business_unit_names', 'ws.qty', 'p.minimum_stock as reorder_point', 'p.manage_stock'
             )
             ->orderBy('p.name')->orderBy('w.name');
 
@@ -90,7 +98,7 @@ class StockInventoryController extends Controller
         $businessUnitName = 'Semua Unit Bisnis';
         if ($businessUnitId) {
             $businessUnitName = DB::table('business_units')
-                ->where('entity_id', $entityId)->where('id', $businessUnitId)->value('name');
+                ->where('entity_id', $entityId)->where('is_active', 1)->where('id', $businessUnitId)->value('name');
             abort_unless($businessUnitName, 422, 'Unit bisnis tidak valid.');
         }
 
@@ -101,7 +109,7 @@ class StockInventoryController extends Controller
             ->join('business_units as bu', function ($join) {
                 $join->on('bu.id', '=', 'wbu.business_unit_id')->on('bu.entity_id', '=', 'wbu.entity_id');
             })
-            ->where('wbu.entity_id', $entityId)
+            ->where('wbu.entity_id', $entityId)->where('bu.is_active', 1)
             ->select('wbu.warehouse_id', DB::raw("GROUP_CONCAT(bu.name ORDER BY bu.code SEPARATOR ', ') as business_unit_names"))
             ->groupBy('wbu.warehouse_id');
 
@@ -114,7 +122,12 @@ class StockInventoryController extends Controller
                 $join->on('w.id', '=', 'ws.warehouse_id')->on('w.entity_id', '=', 'ws.entity_id');
             })
             ->leftJoinSub($buMap, 'bm', fn ($join) => $join->on('bm.warehouse_id', '=', 'w.id'))
-            ->where('ws.entity_id', $entityId)
+            ->where('ws.entity_id', $entityId)->where('w.is_active', 1)
+            ->whereExists(function ($sub) use ($entityId) {
+                $sub->select(DB::raw(1))->from('warehouse_business_units as active_wbu')
+                    ->join('business_units as active_bu', function ($join) { $join->on('active_bu.id', '=', 'active_wbu.business_unit_id')->on('active_bu.entity_id', '=', 'active_wbu.entity_id'); })
+                    ->whereColumn('active_wbu.warehouse_id', 'ws.warehouse_id')->where('active_wbu.entity_id', $entityId)->where('active_bu.is_active', 1);
+            })
             ->when($businessUnitId, function ($query) use ($businessUnitId, $entityId) {
                 $query->whereExists(function ($sub) use ($businessUnitId, $entityId) {
                     $sub->select(DB::raw(1))->from('warehouse_business_units as wbu')
@@ -130,16 +143,16 @@ class StockInventoryController extends Controller
                     ->orWhere('p.code', 'like', $term)->orWhere('p.sku', 'like', $term));
             })
             ->select('p.code', 'p.sku', 'p.name as product_name', 'u.name as unit_name',
-                'u.code as unit_code', 'bm.business_unit_names', 'w.name as warehouse_name', 'ws.qty')
+                'u.code as unit_code', 'bm.business_unit_names', 'w.name as warehouse_name', 'ws.qty', 'p.minimum_stock as reorder_point', 'p.manage_stock')
             ->orderBy('p.name')->orderBy('w.name')->get();
 
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Laporan Stok');
 
-        $sheet->mergeCells('A1:H1');
+        $sheet->mergeCells('A1:J1');
         $sheet->setCellValue('A1', $entity->name ?? 'Entitas');
-        $sheet->mergeCells('A2:H2');
+        $sheet->mergeCells('A2:J2');
         $sheet->setCellValue('A2', $entity->address ?? '');
         $contact = collect([
             !empty($entity->phone) ? 'Telp: ' . $entity->phone : null,
@@ -147,46 +160,48 @@ class StockInventoryController extends Controller
             !empty($entity->npwp) ? 'NPWP: ' . $entity->npwp : null,
             !empty($entity->nib) ? 'NIB: ' . $entity->nib : null,
         ])->filter()->implode(' | ');
-        $sheet->mergeCells('A3:H3');
+        $sheet->mergeCells('A3:J3');
         $sheet->setCellValue('A3', $contact);
-        $sheet->mergeCells('A5:H5');
+        $sheet->mergeCells('A5:J5');
         $sheet->setCellValue('A5', 'LAPORAN STOK BARANG');
         $sheet->setCellValue('A6', 'Unit Bisnis');
-        $sheet->mergeCells('B6:H6');
+        $sheet->mergeCells('B6:J6');
         $sheet->setCellValue('B6', $businessUnitName);
         $sheet->setCellValue('A7', 'Tgl Cetak');
-        $sheet->mergeCells('B7:H7');
+        $sheet->mergeCells('B7:J7');
         $sheet->setCellValue('B7', now()->format('d/m/Y H:i'));
-        $sheet->fromArray([['No.', 'Kode Barang', 'SKU', 'Nama Barang', 'Satuan', 'Unit Bisnis', 'Gudang', 'Stok Tersedia']], null, 'A9');
+        $sheet->fromArray([['No.', 'Kode Barang', 'SKU', 'Nama Barang', 'Satuan', 'Unit Bisnis', 'Gudang', 'Stok Tersedia', 'Minimal Stok / ROP', 'Status ROP']], null, 'A9');
 
         $rowNumber = 10;
         foreach ($rows as $index => $row) {
+            $ropStatus = $row->manage_stock && $row->reorder_point !== null ? ((float) $row->qty <= (float) $row->reorder_point ? 'Perlu Reorder' : 'Aman') : '-';
             $sheet->fromArray([[$index + 1, $row->code ?: '-', $row->sku ?: '-', $row->product_name,
-                $row->unit_name ?: $row->unit_code ?: '-', $row->business_unit_names ?: '-', $row->warehouse_name, (float) $row->qty]], null, 'A' . $rowNumber);
+                $row->unit_name ?: $row->unit_code ?: '-', $row->business_unit_names ?: '-', $row->warehouse_name, (float) $row->qty,
+                $row->manage_stock && $row->reorder_point !== null ? (float) $row->reorder_point : null, $ropStatus]], null, 'A' . $rowNumber);
             $rowNumber++;
         }
 
         $lastRow = max(9, $rowNumber - 1);
-        $sheet->getStyle('A1:H1')->getFont()->setBold(true)->setSize(16);
-        $sheet->getStyle('A1:H3')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-        $sheet->getStyle('A5:H5')->getFont()->setBold(true)->setSize(14);
+        $sheet->getStyle('A1:J1')->getFont()->setBold(true)->setSize(16);
+        $sheet->getStyle('A1:J3')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('A5:J5')->getFont()->setBold(true)->setSize(14);
         $sheet->getStyle('A5:H5')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-        $sheet->getStyle('A9:H9')->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
+        $sheet->getStyle('A9:J9')->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
         $sheet->getStyle('A9:H9')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('343A40');
-        $sheet->getStyle('A9:H' . $lastRow)->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
+        $sheet->getStyle('A9:J' . $lastRow)->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
         if ($rowNumber > 10) {
-            $sheet->getStyle('H10:H' . $lastRow)->getNumberFormat()->setFormatCode('[$-id-ID]#,##0.###');
+            $sheet->getStyle('H10:I' . $lastRow)->getNumberFormat()->setFormatCode('[$-id-ID]#,##0.###');
             $sheet->getStyle('H10:H' . $lastRow)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
         }
         $sheet->getStyle('A3:H3')->getBorders()->getBottom()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
-        foreach (range('A', 'H') as $column) {
+        foreach (range('A', 'J') as $column) {
             $sheet->getColumnDimension($column)->setAutoSize(true);
         }
         $sheet->getColumnDimension('D')->setWidth(32);
         $sheet->getColumnDimension('F')->setWidth(24);
         $sheet->getColumnDimension('G')->setWidth(22);
         $sheet->freezePane('A10');
-        $sheet->setAutoFilter('A9:H' . $lastRow);
+        $sheet->setAutoFilter('A9:J' . $lastRow);
 
         $writer = new Xlsx($spreadsheet);
         return response()->streamDownload(function () use ($writer) {
