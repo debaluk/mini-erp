@@ -41,8 +41,8 @@
                     <td class="fw-semibold">{{ $result->wo_no }}</td>
                     <td>{{ $result->product_name }}</td>
                     <td class="text-center">{{ $result->worker_count }}</td>
-                    <td class="text-end">{{ \App\Helpers\FormatHelper::indo((float) $result->good_qty, 3) }}</td>
-                    <td class="text-end">{{ \App\Helpers\FormatHelper::indo((float) $result->reject_qty, 3) }}</td>
+                    <td class="text-end">{{ \App\Helpers\FormatHelper::indo((float) $result->good_qty, 0) }}</td>
+                    <td class="text-end">{{ \App\Helpers\FormatHelper::indo((float) $result->reject_qty, 0) }}</td>
                     <td class="text-end">Rp {{ number_format((float) $result->unit_labor_cost, 2, ',', '.') }}</td>
                     <td><span class="badge text-bg-{{ $result->status === 'posted' ? 'success' : 'warning' }}">{{ $result->status === 'posted' ? 'Sudah Closing' : 'Draft' }}</span></td>
                 </tr>
@@ -68,9 +68,9 @@
                     <td>{{ $line->worker_name }}</td>
                     <td>{{ $line->pay_type === 'satuan' ? 'Satuan' : 'Borongan' }}</td>
                     <td class="text-end">{{ $line->pay_type === 'satuan' ? 'Rp '.number_format((float) $line->unit_rate, 2, ',', '.') : 'Rp '.number_format((float) $line->unit_rate, 2, ',', '.') . ' / SPK' }}</td>
-                    <td class="text-end">{{ \App\Helpers\FormatHelper::indo((float) $line->good_qty, 3) }}</td>
+                    <td class="text-end">{{ \App\Helpers\FormatHelper::indo((float) $line->good_qty, 0) }}</td>
                     <td class="text-end">{{ $line->pay_type === 'satuan' ? 'Rp '.number_format((float) $line->good_cost, 2, ',', '.') : '-' }}</td>
-                    <td class="text-end">{{ \App\Helpers\FormatHelper::indo((float) $line->reject_qty, 3) }}</td>
+                    <td class="text-end">{{ \App\Helpers\FormatHelper::indo((float) $line->reject_qty, 0) }}</td>
                     <td class="text-end">{{ $line->pay_type === 'satuan' ? 'Rp '.number_format((float) $line->reject_cost, 2, ',', '.') : '-' }}</td>
                     <td><span class="badge text-bg-{{ $line->status === 'posted' ? 'success' : 'warning' }}">{{ $line->status === 'posted' ? 'Sudah Closing' : 'Draft' }}</span></td>
                 </tr>
