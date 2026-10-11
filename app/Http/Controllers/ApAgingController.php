@@ -13,19 +13,27 @@ use Carbon\Carbon;
 
 class ApAgingController extends Controller
 {
+    private function entityId(): int
+    {
+        $entityId = (int) (auth()->user()->entity_id ?? 0);
+        abort_unless($entityId > 0, 403, 'Entitas pengguna tidak valid.');
+        return $entityId;
+    }
+
     /**
      * Halaman Utama: Dashboard Aging Hutang Supplier
      */
     public function index(Request $request)
     {
+        $entityId = $this->entityId();
         $asOfDate       = $request->query('as_of_date', date('Y-m-d'));
         $businessUnitId = $request->query('business_unit_id');
         $supplierId     = $request->query('supplier_id');
         $bucketFilter   = $request->query('bucket'); // current, 1_30, 31_60, above_60
         $search         = $request->query('search');
 
-        $businessUnits = BusinessUnit::where('is_active', 1)->orderBy('code')->get();
-        $suppliers     = Supplier::where('is_active', 1)->orderBy('name')->get();
+        $businessUnits = BusinessUnit::where('entity_id', $entityId)->where('is_active', 1)->orderBy('code')->get();
+        $suppliers     = Supplier::where('entity_id', $entityId)->where('is_active', 1)->orderBy('name')->get();
 
         // -------------------------------------------------------------------
         // 1. QUERY FAKTUR PEMBELIAN KREDIT PER CUT-OFF DATE
@@ -43,6 +51,7 @@ class ApAgingController extends Controller
                     ->groupBy('spa.purchase_id'),
                 'pay', 'pay.purchase_id', '=', 'p.id'
             )
+            ->where('p.entity_id', $entityId)
             ->where('p.status', 'posted')
             ->whereDate('p.purchase_date', '<=', $asOfDate);
 
