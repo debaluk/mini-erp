@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @section('content')
-<div class="container-fluid px-4 py-3">
+<div class="container-fluid px-0 py-0">
     <h3 class="mb-1 fw-bold">Voucher Bayar</h3><div class="text-secondary small mb-3">Permohonan dari unit kerja dan realisasi pembayaran oleh Keuangan.</div>
     @if(session('success'))<div class="alert alert-success py-2">{{ session('success') }}</div>@endif
     @if(session('error'))<div class="alert alert-danger py-2">{{ session('error') }}</div>@endif
