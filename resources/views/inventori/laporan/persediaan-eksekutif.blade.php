@@ -29,16 +29,17 @@
             <a href="{{ route('laporan.persediaan.export', array_merge(request()->query(), ['mode' => $mode])) }}" class="btn btn-outline-success">
                 <i class="bi bi-file-earmark-excel me-1"></i> Export Excel
             </a>
-            <button type="button" onclick="window.print()" class="btn btn-outline-secondary">
-                <i class="bi bi-printer me-1"></i> Cetak
-            </button>
         </div>
     </div>
 
-    <div class="btn-group btn-group-sm mb-3 no-print" role="group" aria-label="Tampilan laporan persediaan">
-        <a href="{{ route('laporan.persediaan', array_merge(request()->query(), ['mode' => 'ringkasan'])) }}" class="btn {{ $mode === 'ringkasan' ? 'btn-primary' : 'btn-outline-primary' }}">Ringkasan Persediaan</a>
-        <a href="{{ route('laporan.persediaan', array_merge(request()->query(), ['mode' => 'analisis-harga'])) }}" class="btn {{ $mode === 'analisis-harga' ? 'btn-primary' : 'btn-outline-primary' }}">Harga Jual vs Nilai Stok</a>
-    </div>
+    <ul class="nav nav-tabs mb-3 no-print" role="tablist" aria-label="Laporan persediaan">
+        <li class="nav-item" role="presentation">
+            <a href="{{ route('laporan.persediaan', array_merge(request()->query(), ['mode' => 'ringkasan'])) }}" class="nav-link {{ $mode === 'ringkasan' ? 'active' : '' }}" @if($mode === 'ringkasan') aria-current="page" @endif>Ringkasan Persediaan</a>
+        </li>
+        <li class="nav-item" role="presentation">
+            <a href="{{ route('laporan.persediaan', array_merge(request()->query(), ['mode' => 'analisis-harga'])) }}" class="nav-link {{ $mode === 'analisis-harga' ? 'active' : '' }}" @if($mode === 'analisis-harga') aria-current="page" @endif>Harga Jual vs Nilai Stok</a>
+        </li>
+    </ul>
 
     <div class="card shadow-sm mb-3 no-print">
         <div class="card-body">
