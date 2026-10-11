@@ -985,14 +985,8 @@ class PurchaseInvoiceController extends Controller
                 // Pembalikan stok dan penghapusan dokumen penerimaan ditangani satu pintu oleh ReceiptController.
                 app(ReceiptController::class)->cancelForPurchaseInvoice($purchase->id, $entityId);
 
-                $invoiceJournalIds = DB::table('journals')
-                    ->where('source_type', 'purchase_invoice')
-                    ->where('source_id', $purchase->id)
-                    ->pluck('id');
-                if ($invoiceJournalIds->isNotEmpty()) {
-                    DB::table('journal_entries')->whereIn('journal_id', $invoiceJournalIds)->delete();
-                    DB::table('journals')->whereIn('id', $invoiceJournalIds)->delete();
-                }
+                // Penghapusan jurnal faktur dan jurnal penerimaan legacy ditangani service jurnal.
+                app(PurchaseJournalService::class)->cancel((int) $purchase->id, (int) $entityId);
 
                 DB::table('purchases')
                     ->where('id', $purchase->id)
