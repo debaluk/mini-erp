@@ -10,6 +10,7 @@ use App\Http\Controllers\PurchaseController;		//tidak terpakai
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\PurchaseInvoiceController;
 use App\Http\Controllers\PurchaseReturnController;
+use App\Http\Controllers\PurchasePriceHistoryController;
 use App\Http\Controllers\HppController;
 use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\ProductionWorkOrderController;
@@ -173,6 +174,7 @@ Route::middleware(['auth', 'access:inventori'])->prefix('inventori/penjualan/ret
     //Route::get('/inventori/pembelian', [PurchaseController::class, 'index'])->middleware('access:inventori')->name('inventori.pembelian');
     //Route::get('/inventori/pembelian/create', [PurchaseController::class, 'create'])->middleware('access:inventori')->name('inventori.pembelian.create');
     //Route::get('/inventori/pembelian/{id}/edit', [PurchaseController::class, 'edit'])->middleware('access:inventori')->name('inventori.pembelian.edit');
+    Route::get('/inventori/pembelian/histori-harga', [PurchasePriceHistoryController::class, 'index'])->middleware('access:inventori')->name('inventori.pembelian.histori-harga');
     Route::get('/inventori/penerimaan', [ReceiptController::class, 'index'])->middleware('access:inventori')->name('inventori.penerimaan');
     Route::get('/inventori/penerimaan/data', [ReceiptController::class, 'data'])->middleware('access:inventori')->name('inventori.penerimaan.data');
     Route::get('/inventori/penerimaan/export', [ReceiptController::class, 'export'])->middleware('access:inventori')->name('inventori.penerimaan.export');
