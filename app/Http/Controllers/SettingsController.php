@@ -259,8 +259,12 @@ class SettingsController extends Controller
             $payload['password'] = Hash::make($data['password']);
         }
 
-        DB::transaction(function () use ($id, $payload, $data) {
-            DB::table('users')->where('id', $id)->update($payload);
+        // Akun dan seluruh relasi hak akses diperbarui bersama dalam satu transaksi.
+        DB::transaction(function () use ($id, $payload, $data, $user) {
+            DB::table('users')
+                ->where('id', $id)
+                ->where('entity_id', $user->entity_id)
+                ->update($payload);
 
             DB::table('user_module_permissions')->where('user_id', $id)->delete();
             $modules = array_values(array_unique($data['modules'] ?? $this->defaultModulesForRole($data['role'])));
@@ -297,7 +301,8 @@ class SettingsController extends Controller
         abort_unless($user, 404);
         abort_unless($user->role !== 'owner', 403);
 
-        DB::table('users')->where('id', $id)->update([
+        // Scope entitas juga diterapkan pada query perubahan status, bukan hanya pencarian awal.
+        DB::table('users')->where('id', $id)->where('entity_id', $user->entity_id)->update([
             'is_active' => !$user->is_active,
             'updated_at' => now(),
         ]);
