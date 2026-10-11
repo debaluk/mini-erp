@@ -35,12 +35,14 @@ class ProductionSummaryReportExport implements FromCollection, WithHeadings, Sho
             (float) $r->production_qty,
             $r->hpp_unit !== null ? (float) $r->hpp_unit : null,
             (float) $r->reject_qty,
+            $r->status,
+            $r->cost_basis,
         ];
     }
 
     public function headings(): array
     {
-        return ['Tanggal', 'SPK', 'Target', 'Estimasi Biaya', 'Bahan Baku', 'Upah', 'Produksi', 'HPP per Unit', 'Reject'];
+        return ['Tanggal', 'SPK', 'Target', 'Estimasi Biaya', 'Bahan Baku', 'Upah', 'Produksi', 'HPP per Unit', 'Reject', 'Status SPK', 'Dasar Biaya'];
     }
 
     public function columnFormats(): array
