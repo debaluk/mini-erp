@@ -277,6 +277,12 @@ class ErpController extends Controller
         $conversionFactors = $data['conversion_factor'] ?? [];
         $conversionDefaultPurchase = $data['conversion_default_purchase'] ?? [];
         $conversionDefaultSale = $data['conversion_default_sale'] ?? [];
+        $selectedConversionUnits = array_values(array_filter(array_map('intval', $conversionUnits)));
+        abort_if(
+            count($selectedConversionUnits) !== count(array_unique($selectedConversionUnits)),
+            422,
+            'Satuan konversi yang sama tidak boleh dipilih lebih dari sekali.'
+        );
         abort_if(collect($conversionDefaultPurchase)->filter(fn ($v) => (bool) $v)->count() > 1, 422, 'Hanya satu Satuan Konversi boleh menjadi default pembelian.');
         abort_if(collect($conversionDefaultSale)->filter(fn ($v) => (bool) $v)->count() > 1, 422, 'Hanya satu Satuan Konversi boleh menjadi default penjualan.');
 
@@ -422,6 +428,8 @@ class ErpController extends Controller
         $minimumStock = (float)($data['minimum_stock'] ?? 0);
         if (!(bool)$data['manage_stock']) $minimumStock=0;
         $conversionUnits=$data['conversion_unit_id']??[]; $conversionFactors=$data['conversion_factor']??[]; $conversionDefaultPurchase=$data['conversion_default_purchase']??[]; $conversionDefaultSale=$data['conversion_default_sale']??[];
+        $selectedConversionUnits = array_values(array_filter(array_map('intval', $conversionUnits)));
+        abort_if(count($selectedConversionUnits) !== count(array_unique($selectedConversionUnits)),422,'Satuan konversi yang sama tidak boleh dipilih lebih dari sekali.');
         abort_if(collect($conversionDefaultPurchase)->filter(fn($v)=>(bool)$v)->count()>1,422,'Hanya satu Satuan Konversi boleh menjadi default pembelian.');
         abort_if(collect($conversionDefaultSale)->filter(fn($v)=>(bool)$v)->count()>1,422,'Hanya satu Satuan Konversi boleh menjadi default penjualan.');
         DB::transaction(function() use($entity,$id,$data,$unitIds,$barcode,$minimumStock,$conversionUnits,$conversionFactors,$conversionDefaultPurchase,$conversionDefaultSale){
