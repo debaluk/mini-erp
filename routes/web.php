@@ -332,7 +332,7 @@ Route::middleware(['auth', 'access:inventori'])->prefix('inventori/penyesuaian')
     Route::get('/produksi/work-order/{id}/print', [ProductionWorkOrderController::class, 'print'])->middleware('access:inventori')->name('produksi.work-order.print');
     Route::get('/produksi/work-order/export', [ProductionWorkOrderController::class, 'export'])->middleware('access:inventori')->name('produksi.work-order.export');
     Route::get('/produksi/work-order/hasil-report', [ProductionWorkOrderController::class, 'resultsReport'])->middleware('access:inventori')->name('produksi.work-order.hasil-report');
-    Route::get('/produksi/work-order/hasil-report/export', [ProductionWorkOrderController::class, 'exportResultsReport'])->middleware('access:inventori')->name('produksi.work-order.hasil-report.export');
+    Route::get('/produksi/work-order/hasil-report/export', [ProductionWorkOrderController::class, 'exportResultsReport'])->middleware('access:inventori')->name('produksi.work-order.hasil-report.export');\n    Route::get('/produksi/posting-upah', [VoucherBayarController::class, 'postingUpah'])->middleware('access:inventori')->name('produksi.posting-upah.index');\n    Route::post('/produksi/posting-upah/voucher', [VoucherBayarController::class, 'storeUpahVoucher'])->middleware('access:inventori')->name('produksi.posting-upah.store');
     Route::get('/produksi/work-order/{id}', [ProductionWorkOrderController::class, 'show'])->middleware('access:inventori')->name('produksi.work-order.show');
     Route::post('/produksi/work-order/{id}/start', [ProductionWorkOrderController::class, 'startWork'])->middleware('access:inventori')->name('produksi.work-order.start');
     Route::post('/produksi/work-order/{id}/hasil-produksi', [ProductionWorkOrderController::class, 'saveProductionResult'])->middleware('access:inventori')->name('produksi.work-order.hasil-produksi');
@@ -363,7 +363,7 @@ Route::middleware(['auth', 'access:keuangan'])->group(function () {
 	Route::get('/akuntansi/kas-bank/keluar/export', [CashDisbursementController::class, 'export'])->name('akuntansi.kas-keluar.export');
 	Route::get('/akuntansi/kas-bank/keluar/unpaid-bills/{supplierId}', [CashDisbursementController::class, 'getUnpaidBills'])->name('akuntansi.kas-keluar.unpaid-bills');
 	
-    // --- 3. Mutasi / Transfer Antar Kas & Bank (FIN-03) ---
+    // Voucher bayar dibuat unit pemohon dan direalisasikan oleh Keuangan.\n    Route::get('/keuangan/voucher', [VoucherBayarController::class, 'index'])->name('keuangan.voucher.index');\n    Route::post('/keuangan/voucher/{id}/bayar', [VoucherBayarController::class, 'pay'])->whereNumber('id')->name('keuangan.voucher.pay');\n\n    // --- 3. Mutasi / Transfer Antar Kas & Bank (FIN-03) ---
 	Route::get('/akuntansi/kas-bank/mutasi', [CashTransferController::class, 'index'])->name('akuntansi.kas-mutasi');
 	Route::post('/akuntansi/kas-bank/mutasi', [CashTransferController::class, 'store'])->name('akuntansi.kas-mutasi.store');
 	Route::get('/akuntansi/kas-bank/mutasi/export', [CashTransferController::class, 'export'])->name('akuntansi.kas-mutasi.export');   

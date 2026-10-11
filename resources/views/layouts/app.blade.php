@@ -94,6 +94,7 @@
                                 <li><a class="dropdown-item" href="{{ route('produksi.work-order') }}">Work Order (SPK)</a></li>
                                 <li><a class="dropdown-item" href="{{ route('produksi.pemakaian-bahan') }}">Bahan Baku</a></li>
                                 <li><a class="dropdown-item" href="{{ route('produksi.work-order.hasil-report') }}">Hasil Produksi</a></li>
+                                <li><a class="dropdown-item" href="{{ route('produksi.posting-upah.index') }}">Posting Upah</a></li>
                             </ul>
                         </li>
                         <li class="dropdown-submenu">
@@ -134,6 +135,7 @@
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ route('akuntansi.kas-masuk') }}">Kas / Bank Masuk</a></li>
                                 <li><a class="dropdown-item" href="{{ route('akuntansi.kas-keluar') }}">Kas / Bank Keluar</a></li>
+                                <li><a class="dropdown-item" href="{{ route('keuangan.voucher.index') }}">Voucher Bayar</a></li>
                                 <li><a class="dropdown-item" href="{{ route('akuntansi.kas-mutasi') }}">Transfer / Mutasi</a></li>
                             </ul>
                         </li>
