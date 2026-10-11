@@ -280,6 +280,7 @@ class ApSubLedgerController extends Controller
                 'purchase_no'      => $request->purchase_no,
                 'purchase_date'    => $request->purchase_date,
                 'due_date'         => $request->due_date,
+                'payment_method'   => 'credit',
                 'subtotal'         => $request->amount,
                 'total'            => $request->amount,
                 'memo'             => '[SALDO AWAL] ' . $request->description,
@@ -356,7 +357,7 @@ class ApSubLedgerController extends Controller
                 'due_date'         => $request->due_date,
                 'subtotal'         => $request->amount,
                 'total'            => $request->amount,
-                'memo'             => '[EDIT HUTANG] ' . $request->description,
+                'memo'             => '[SALDO AWAL] ' . $request->description,
                 'updated_at'       => now(),
             ]);
 
