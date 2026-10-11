@@ -213,10 +213,10 @@ class InventoryReportController extends Controller
         }
         $lastRow = max(9, $rowNumber - 1);
         $sheet->getStyle('A1:' . $lastColumn . '1')->getFont()->setBold(true)->setSize(16);
-        $sheet->getStyle('A1:' . $lastColumn . '2')->getAlignment()->setHorizontal(\\PhpOffice\\PhpSpreadsheet\\Style\\Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('A1:' . $lastColumn . '2')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
         $sheet->getStyle('A9:' . $lastColumn . '9')->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
-        $sheet->getStyle('A9:' . $lastColumn . '9')->getFill()->setFillType(\\PhpOffice\\PhpSpreadsheet\\Style\\Fill::FILL_SOLID)->getStartColor()->setRGB('343A40');
-        $sheet->getStyle('A9:' . $lastColumn . $lastRow)->getBorders()->getAllBorders()->setBorderStyle(\\PhpOffice\\PhpSpreadsheet\\Style\\Border::BORDER_THIN);
+        $sheet->getStyle('A9:' . $lastColumn . '9')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('343A40');
+        $sheet->getStyle('A9:' . $lastColumn . $lastRow)->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
         if ($rowNumber > 10) {
             if ($mode === 'analisis-harga') {
                 $sheet->getStyle('G10:G' . $lastRow)->getNumberFormat()->setFormatCode('#,##0.000');
