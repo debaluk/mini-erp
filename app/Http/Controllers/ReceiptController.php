@@ -953,6 +953,13 @@ class ReceiptController extends Controller
             ->get();
 
         foreach ($receipts as $receipt) {
+            $period = DB::table('accounting_periods')
+                ->where('entity_id', $entityId)
+                ->where('period_year', Carbon::parse($receipt->receipt_date)->year)
+                ->where('period_month', Carbon::parse($receipt->receipt_date)->month)
+                ->first();
+            abort_if($period && in_array($period->status, ['closing', 'closed'], true), 422, 'Penerimaan tidak dapat dibatalkan karena periode akuntansi sudah closing atau closed.');
+
             $items = DB::table('receipt_items')->where('receipt_id', $receipt->id)->lockForUpdate()->get();
             foreach ($items as $item) {
                 $qty = (float) $item->base_qty;
