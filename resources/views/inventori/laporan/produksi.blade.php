@@ -43,7 +43,7 @@
                     <th class="text-end">Estimasi Biaya</th>
                     <th class="text-end">Bahan Baku</th><th class="text-end">Upah</th>
                     <th class="text-end">Produksi</th><th class="text-end">HPP / Unit</th>
-                    <th class="text-end">Reject</th>
+                    <th class="text-end">Reject</th><th>Status SPK</th><th>Dasar Biaya</th>
                 </tr>
             </thead>
             <tbody>
@@ -60,11 +60,11 @@
                         <td class="text-end">{{ \App\Helpers\FormatHelper::indo((float) $row->reject_qty, 0) }}</td>
                     </tr>
                 @empty
-                    <tr><td colspan="9" class="text-center text-secondary py-4">Tidak ada SPK pada periode ini.</td></tr>
+                    <tr><td colspan="11" class="text-center text-secondary py-4">Tidak ada SPK pada periode ini.</td></tr>
                 @endforelse
             </tbody>
         </table>
     </div>
 </div>
-<div class="text-secondary small mt-2">Estimasi biaya memakai snapshot saat SPK dibuat atau terakhir diedit, sehingga tidak berubah mengikuti harga rata-rata stok terbaru. Bahan baku dan upah menampilkan realisasi setelah closing produksi; sebelum closing, angka menunjukkan estimasi. HPP per unit tampil setelah posting produksi.</div>
+<div class="text-secondary small mt-2">Estimasi biaya memakai snapshot saat SPK dibuat atau terakhir diedit, sehingga tidak berubah mengikuti harga rata-rata stok terbaru. Kolom Status SPK dan Dasar Biaya membedakan estimasi dari realisasi. Produksi, reject, dan HPP/unit hanya terisi setelah closing produksi berhasil diposting.</div>
 @endsection
