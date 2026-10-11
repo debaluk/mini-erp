@@ -58,6 +58,13 @@
                         <td class="text-end">{{ \App\Helpers\FormatHelper::indo((float) $row->production_qty, 0) }}</td>
                         <td class="text-end">@if ($row->hpp_unit !== null) Rp {{ number_format((float) $row->hpp_unit, 2, ',', '.') }} @else <span class="text-secondary">—</span> @endif</td>
                         <td class="text-end">{{ \App\Helpers\FormatHelper::indo((float) $row->reject_qty, 0) }}</td>
+                        <td>
+                            @php
+                                $statusLabel = ['draft' => 'Draft', 'open' => 'Open', 'in_progress' => 'Dalam Proses', 'on_progress' => 'Dalam Proses', 'completed' => 'Selesai', 'posted' => 'Selesai'][$row->status] ?? ucfirst(str_replace('_', ' ', $row->status));
+                            @endphp
+                            <span class="badge {{ $row->status === 'completed' ? 'text-bg-success' : (in_array($row->status, ['draft', 'open']) ? 'text-bg-secondary' : 'text-bg-primary') }}">{{ $statusLabel }}</span>
+                        </td>
+                        <td><span class="badge {{ $row->cost_basis === 'Realisasi' ? 'text-bg-success' : 'text-bg-light text-dark' }}">{{ $row->cost_basis }}</span></td>
                     </tr>
                 @empty
                     <tr><td colspan="11" class="text-center text-secondary py-4">Tidak ada SPK pada periode ini.</td></tr>
