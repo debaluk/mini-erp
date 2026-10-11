@@ -175,13 +175,14 @@ class SettingsController extends Controller
 
         $modules = array_values(array_unique($data['modules'] ?? $this->defaultModulesForRole($data['role'])));
 
-        DB::transaction(function () use ($data, $modules) {
+        $entityId = $request->user()->entity_id;
+        DB::transaction(function () use ($data, $modules, $entityId) {
             $userId = DB::table('users')->insertGetId([
                 'name' => $data['name'],
                 'email' => $data['email'],
                 'password' => Hash::make($data['password']),
                 'role' => $data['role'],
-                'entity_id' => $request->user()->entity_id,
+                'entity_id' => $entityId,
                 'default_business_unit_id' => $data['default_business_unit'],
                 'is_active' => 1,
                 'created_at' => now(),
