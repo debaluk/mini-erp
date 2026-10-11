@@ -178,6 +178,7 @@ class PurchaseOrderController extends Controller
             'products'         => 'required|array|min:1',
             'qty'              => 'required|array|min:1',
             'unit_price'       => 'required|array|min:1',
+            'status'           => 'nullable|in:draft,approved',
         ]);
 
         DB::beginTransaction();
@@ -213,6 +214,11 @@ class PurchaseOrderController extends Controller
 
                 $product = Product::where('entity_id', $entityId)->where('is_active', 1)->find($prodId);
                 abort_unless($product, 422, 'Produk PO tidak aktif atau bukan milik entitas pengguna.');
+                abort_unless(
+                    DB::table('product_business_units')->where('business_unit_id', $businessUnit->id)->where('product_id', $product->id)->exists(),
+                    422,
+                    'Produk tidak dipetakan ke Unit Bisnis PO.'
+                );
 
                 DB::table('purchase_order_items')->insert([
                     'purchase_order_id' => $poId,
@@ -262,6 +268,20 @@ class PurchaseOrderController extends Controller
      */
     public function update(Request $request, $id)
     {
+        $request->validate([
+            'business_unit_id' => 'required|integer',
+            'supplier_id' => 'required|integer',
+            'warehouse_id' => 'required|integer',
+            'po_date' => 'required|date',
+            'products' => 'required|array|min:1',
+            'products.*' => 'required|integer',
+            'qty' => 'required|array|min:1',
+            'qty.*' => 'required|numeric|gt:0',
+            'unit_price' => 'required|array|min:1',
+            'unit_price.*' => 'required|numeric|min:0',
+            'discount' => 'nullable|array',
+            'discount.*' => 'nullable|numeric|min:0',
+        ]);
         $entityId = $this->entityId();
         $po = DB::table('purchase_orders')->where('entity_id', $entityId)->where('id', $id)->whereNull('deleted_at')->first();
         if (!$po || $po->status !== 'draft') {
@@ -296,6 +316,11 @@ class PurchaseOrderController extends Controller
 
                 $product = Product::where('entity_id', $entityId)->where('is_active', 1)->find($prodId);
                 abort_unless($product, 422, 'Produk PO tidak aktif atau bukan milik entitas pengguna.');
+                abort_unless(
+                    DB::table('product_business_units')->where('business_unit_id', $businessUnit->id)->where('product_id', $product->id)->exists(),
+                    422,
+                    'Produk tidak dipetakan ke Unit Bisnis PO.'
+                );
 
                 DB::table('purchase_order_items')->insert([
                     'purchase_order_id' => $id,
