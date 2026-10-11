@@ -96,7 +96,11 @@
                                 <button type="button" class="btn btn-sm btn-outline-danger btn-delete-wo" title="Hapus" data-id="{{ $row->id }}" data-no="{{ $row->wo_no }}"><i class="bi bi-trash"></i></button>
                                 <a href="{{ route('produksi.work-order.print', $row->id) }}" target="_blank" class="btn btn-sm btn-outline-secondary" title="Cetak SPK"><i class="bi bi-printer"></i></a>
                             @elseif($row->status === 'in_progress')
-                                <button type="button" class="btn btn-sm btn-primary btn-input-production-result" data-id="{{ $row->id }}" data-no="{{ $row->wo_no }}" title="Input hasil produksi"><i class="bi bi-clipboard-check me-1"></i>Hasil</button>
+                                @if($approvedUsageWorkOrderIds->contains($row->id))
+                                    <button type="button" class="btn btn-sm btn-primary btn-input-production-result" data-id="{{ $row->id }}" data-no="{{ $row->wo_no }}" title="Input hasil produksi"><i class="bi bi-clipboard-check me-1"></i>Hasil</button>
+                                @else
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="Catat dan setujui pemakaian bahan terlebih dahulu"><i class="bi bi-lock me-1"></i>Bahan</button>
+                                @endif
                                 <a href="{{ route('produksi.work-order.show',$row->id) }}" class="btn btn-sm btn-outline-dark" title="Detail"><i class="bi bi-eye"></i></a>
                             @else
                                 <a href="{{ route('produksi.work-order.show',$row->id) }}" class="btn btn-sm btn-outline-dark" title="Detail"><i class="bi bi-eye"></i></a>
