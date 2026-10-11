@@ -97,7 +97,38 @@ class ProductionMaterialUsageController extends Controller
         return view('inventori.produksi.pemakaian-bahan.show',compact('usage','items','journals'));
     }
 
-    public function submit(int $id){$entityId=$this->entityId();$usage=DB::table('production_wo_material_usages')->where('entity_id',$entityId)->where('id',$id)->where('status','draft')->first();abort_unless($usage,422,'Hanya Draft yang dapat diajukan.');DB::table('production_wo_material_usages')->where('id',$id)->update(['status'=>'pending','updated_at'=>now()]);return back()->with('success','Pemakaian bahan diajukan untuk approval.');}
+    public function submit(int $id)
+    {
+        $entityId = $this->entityId();
+
+        DB::transaction(function () use ($entityId, $id): void {
+            $usage = DB::table('production_wo_material_usages')
+                ->where('entity_id', $entityId)
+                ->where('id', $id)
+                ->where('status', 'draft')
+                ->lockForUpdate()
+                ->first();
+
+            abort_unless($usage, 422, 'Hanya Draft milik entitas aktif yang dapat diajukan.');
+
+            $workOrder = DB::table('production_work_orders')
+                ->where('entity_id', $entityId)
+                ->where('id', $usage->production_work_order_id)
+                ->where('status', 'in_progress')
+                ->lockForUpdate()
+                ->first();
+
+            abort_unless($workOrder, 422, 'Pemakaian bahan hanya dapat diajukan saat SPK masih Diproses.');
+
+            DB::table('production_wo_material_usages')
+                ->where('entity_id', $entityId)
+                ->where('id', $id)
+                ->where('status', 'draft')
+                ->update(['status' => 'pending', 'updated_at' => now()]);
+        });
+
+        return back()->with('success', 'Pemakaian bahan diajukan untuk approval.');
+    }
 
     public function approve(int $id)
     {
@@ -111,5 +142,34 @@ class ProductionMaterialUsageController extends Controller
         return back()->with('success','Pemakaian bahan disetujui. Beban bahan baku telah diakui.');
     }
 
-    public function reject(Request $request,int $id){$data=$request->validate(['rejection_reason'=>['required','string','min:3']]);$entityId=$this->entityId();$usage=DB::table('production_wo_material_usages')->where('entity_id',$entityId)->where('id',$id)->where('status','pending')->first();abort_unless($usage,422,'Hanya pemakaian Menunggu Approval yang dapat ditolak.');DB::table('production_wo_material_usages')->where('id',$id)->update(['status'=>'rejected','rejection_reason'=>$data['rejection_reason'],'updated_at'=>now()]);return back()->with('success','Pemakaian bahan ditolak.');}
+    public function reject(Request $request, int $id)
+    {
+        $data = $request->validate([
+            'rejection_reason' => ['required', 'string', 'min:3'],
+        ]);
+        $entityId = $this->entityId();
+
+        DB::transaction(function () use ($data, $entityId, $id): void {
+            $usage = DB::table('production_wo_material_usages')
+                ->where('entity_id', $entityId)
+                ->where('id', $id)
+                ->where('status', 'pending')
+                ->lockForUpdate()
+                ->first();
+
+            abort_unless($usage, 422, 'Hanya pemakaian Menunggu Approval milik entitas aktif yang dapat ditolak.');
+
+            DB::table('production_wo_material_usages')
+                ->where('entity_id', $entityId)
+                ->where('id', $id)
+                ->where('status', 'pending')
+                ->update([
+                    'status' => 'rejected',
+                    'rejection_reason' => $data['rejection_reason'],
+                    'updated_at' => now(),
+                ]);
+        });
+
+        return back()->with('success', 'Pemakaian bahan ditolak.');
+    }
 }
