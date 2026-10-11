@@ -99,7 +99,11 @@ class ErpController extends Controller
         }
 
         $items = DB::table('products')
-            ->leftJoin('units as base_units', 'base_units.id', '=', 'products.base_unit_id')
+            // Batasi lookup satuan dasar ke entitas yang sama agar master tidak menampilkan nama satuan lintas entitas.
+            ->leftJoin('units as base_units', function ($join) {
+                $join->on('base_units.id', '=', 'products.base_unit_id')
+                    ->on('base_units.entity_id', '=', 'products.entity_id');
+            })
             ->when($request->filled('business_unit_id'), function ($query) use ($request) {
                 $query->join('product_business_units', function ($join) {
                     $join->on('product_business_units.product_id', '=', 'products.id');
