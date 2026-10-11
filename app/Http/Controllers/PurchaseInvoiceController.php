@@ -177,7 +177,7 @@ class PurchaseInvoiceController extends Controller
      */
     public function lookupProducts(Request $request)
     {
-        $entityId = (int) (auth()->user()->entity_id ?? 1);
+        $entityId = $this->entityId();
         $search = trim((string) $request->query('q', ''));
 
         $products = DB::table('products as p')
@@ -223,7 +223,7 @@ class PurchaseInvoiceController extends Controller
      */
     public function lookupPurchaseOrders(Request $request)
     {
-        $entityId = (int) (auth()->user()->entity_id ?? 1);
+        $entityId = $this->entityId();
         $search = trim((string) $request->query('q', ''));
 
         $pos = DB::table('purchase_orders as po')
@@ -231,6 +231,9 @@ class PurchaseInvoiceController extends Controller
             ->leftJoin('business_units as bu', 'bu.id', '=', 'po.business_unit_id')
             ->leftJoin('warehouses as w', 'w.id', '=', 'po.warehouse_id')
             ->where('po.entity_id', $entityId)
+            ->where('bu.is_active', 1)
+            ->where('w.is_active', 1)
+            ->where('s.is_active', 1)
             ->where('po.status', 'approved')
             ->whereNull('po.deleted_at')
             ->whereNotExists(function ($query) {
@@ -270,7 +273,7 @@ class PurchaseInvoiceController extends Controller
      */
     public function getPoItems($poId)
     {
-        $entityId = (int) (auth()->user()->entity_id ?? 1);
+        $entityId = $this->entityId();
 
         $po = DB::table('purchase_orders as po')
             ->leftJoin('business_units as bu', 'bu.id', '=', 'po.business_unit_id')
@@ -278,6 +281,8 @@ class PurchaseInvoiceController extends Controller
             ->leftJoin('warehouses as w', 'w.id', '=', 'po.warehouse_id')
             ->where('po.entity_id', $entityId)
             ->where('po.id', $poId)
+            ->where('bu.is_active', 1)
+            ->where('w.is_active', 1)
             ->whereNull('po.deleted_at')
             ->select(
                 'po.*',
