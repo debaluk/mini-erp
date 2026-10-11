@@ -144,6 +144,18 @@ class UnitConversionController extends Controller
                 ->update(['is_default_purchase' => 0, 'updated_at' => now()]);
         }
 
+        if ($id) {
+            abort_if(
+                DB::table('product_unit_conversions')
+                    ->where('product_id', $product->id)
+                    ->where('unit_id', $data['unit_id'])
+                    ->where('id', '<>', $id)
+                    ->exists(),
+                422,
+                'Konversi untuk produk dan satuan ini sudah tersedia.'
+            );
+        }
+
         if (($data['is_default_sale'] ?? false)) {
             DB::table('product_unit_conversions')
                 ->where('product_id', $product->id)
@@ -162,10 +174,12 @@ class UnitConversionController extends Controller
         ];
 
         if ($id) {
-            DB::table('product_unit_conversions')
+            $updated = DB::table('product_unit_conversions')
                 ->where('id', $id)
-                ->where('product_id', $product->id)
+                ->whereIn('product_id', DB::table('products')->select('id')->where('entity_id', $entity))
                 ->update($values);
+
+            abort_unless($updated, 404, 'Konversi satuan tidak ditemukan.');
         } else {
             $values['created_at'] = now();
             DB::table('product_unit_conversions')->updateOrInsert(
