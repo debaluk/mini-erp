@@ -53,6 +53,7 @@ class ApAgingController extends Controller
             )
             ->where('p.entity_id', $entityId)
             ->where('p.status', 'posted')
+            ->where('p.payment_method', 'credit')
             ->whereDate('p.purchase_date', '<=', $asOfDate);
 
         if (!empty($businessUnitId)) $query->where('p.business_unit_id', $businessUnitId);
