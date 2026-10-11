@@ -677,6 +677,21 @@ class PurchaseInvoiceController extends Controller
                         $journal = DB::table('journals')->where('id', $legacyReceiptJournal->id)->first();
                     }
                 }
+                if (!$journal) {
+                    $journalId = DB::table('journals')->insertGetId([
+                        'entity_id' => $purchase->entity_id,
+                        'business_unit_id' => $purchase->business_unit_id,
+                        'journal_no' => 'JRN-INV-'.$purchase->id,
+                        'journal_date' => $purchase->purchase_date,
+                        'source_type' => 'purchase_invoice',
+                        'source_id' => $purchase->id,
+                        'description' => 'Faktur pembelian '.$purchase->purchase_no,
+                        'status' => 'posted',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                    $journal = (object) ['id' => $journalId];
+                }
                 if($journal){
                     $mapping=DB::table('business_unit_account_mappings')
                         ->where('entity_id', $purchase->entity_id)
