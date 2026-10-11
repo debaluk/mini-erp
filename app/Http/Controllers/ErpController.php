@@ -883,8 +883,8 @@ class ErpController extends Controller
         // Konversi dan satuan harus berasal dari entitas yang sama dengan produknya.
         $data['productUoms'] = DB::table('product_unit_conversions as puc')
             ->join('products as p', function ($join) {
-                $join->on('p.id', '=', 'puc.product_id')
-                    ->on('p.entity_id', '=', 'puc.entity_id');
+                // product_id mengikat konversi ke produk; entity_id berada pada tabel products.
+                $join->on('p.id', '=', 'puc.product_id');
             })
             ->join('units as u', function ($join) {
                 $join->on('u.id', '=', 'puc.unit_id')
