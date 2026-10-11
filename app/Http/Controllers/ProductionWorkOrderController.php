@@ -305,6 +305,46 @@ class ProductionWorkOrderController extends Controller
         ]);
     }
 
+    private function estimateMaterialCost(int $entityId, int $warehouseId, int $bomId, float $batchQty): float
+    {
+        $items = DB::table('bom_items as bi')
+            ->join('products as p', 'p.id', '=', 'bi.product_id')
+            ->where('bi.bom_id', $bomId)
+            ->get(['bi.product_id', 'bi.unit_id', 'bi.qty', 'p.base_unit_id']);
+
+        $total = 0.0;
+
+        foreach ($items as $item) {
+            $factor = 1.0;
+            if ((int) $item->unit_id !== (int) $item->base_unit_id) {
+                $factor = (float) (DB::table('product_unit_conversions')
+                    ->where('product_id', $item->product_id)
+                    ->where('unit_id', $item->unit_id)
+                    ->where('is_active', 1)
+                    ->value('conversion_factor') ?? 0);
+            }
+
+            $stockCost = DB::table('warehouses_stocks')
+                ->where('entity_id', $entityId)
+                ->where('warehouse_id', $warehouseId)
+                ->where('product_id', $item->product_id)
+                ->value('avg_cost');
+
+            if ($stockCost === null) {
+                $stockCost = DB::table('warehouses_stocks')
+                    ->where('entity_id', $entityId)
+                    ->where('product_id', $item->product_id)
+                    ->where('qty', '>', 0)
+                    ->avg('avg_cost');
+            }
+
+            $baseQty = round((float) $item->qty * $factor * $batchQty, 3);
+            $total += round($baseQty * (float) ($stockCost ?? 0), 2);
+        }
+
+        return round($total, 2);
+    }
+
     public function store(Request $request)
     {
         $request->merge([
@@ -365,6 +405,12 @@ class ProductionWorkOrderController extends Controller
             abort_unless($workers->count() === count($data['worker_id']), 422, 'Ada pekerja yang tidak valid.');
 
             $targetOutput = round((float) $bom->output_qty * (float) $data['batch_qty'], 3);
+            $estimatedMaterialCost = $this->estimateMaterialCost(
+                $entityId,
+                (int) $warehouse->id,
+                (int) $bom->id,
+                (float) $data['batch_qty']
+            );
             $woNo = 'SPK-'.now()->format('YmdHis').'-'.Str::upper(Str::random(3));
 
             $woId = DB::table('production_work_orders')->insertGetId([
@@ -377,6 +423,7 @@ class ProductionWorkOrderController extends Controller
                 'wo_date' => $data['wo_date'],
                 'batch_qty' => $data['batch_qty'],
                 'target_output_qty' => $targetOutput,
+                'estimated_material_cost' => $estimatedMaterialCost,
                 'status' => 'open',
                 'notes' => $data['notes'] ?? null,
                 'created_at' => now(),
@@ -548,6 +595,12 @@ class ProductionWorkOrderController extends Controller
             abort_unless($validWorkers->count() === count($data['worker_id']), 422, 'Ada pekerja yang tidak valid.');
 
             $targetOutput = round((float) $bom->output_qty * (float) $data['batch_qty'], 3);
+            $estimatedMaterialCost = $this->estimateMaterialCost(
+                $entityId,
+                (int) $warehouse->id,
+                (int) $bom->id,
+                (float) $data['batch_qty']
+            );
 
             DB::table('production_work_orders')->where('id', $id)->update([
                 'business_unit_id' => $warehouse->business_unit_id,
@@ -556,6 +609,7 @@ class ProductionWorkOrderController extends Controller
                 'wo_date' => $data['wo_date'],
                 'batch_qty' => $data['batch_qty'],
                 'target_output_qty' => $targetOutput,
+                'estimated_material_cost' => $estimatedMaterialCost,
                 'notes' => $data['notes'] ?? null,
                 'updated_at' => now(),
             ]);
