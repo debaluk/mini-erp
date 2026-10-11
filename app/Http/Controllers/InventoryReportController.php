@@ -22,6 +22,7 @@ class InventoryReportController extends Controller
                     ->on('bu.entity_id', '=', 'wbu.entity_id');
             })
             ->where('wbu.entity_id', $entityId)
+            ->where('bu.is_active', 1)
             ->select('wbu.warehouse_id', DB::raw("GROUP_CONCAT(bu.name ORDER BY bu.code SEPARATOR ', ') as business_unit_names"))
             ->groupBy('wbu.warehouse_id');
 
@@ -35,6 +36,14 @@ class InventoryReportController extends Controller
             })
             ->leftJoinSub($buMap, 'bm', fn ($join) => $join->on('bm.warehouse_id', '=', 'w.id'))
             ->where('ws.entity_id', $entityId)
+            ->where('w.is_active', 1)
+            ->whereExists(function ($sub) {
+                $sub->select(DB::raw(1))->from('warehouse_business_units as active_wbu')
+                    ->join('business_units as active_bu', function ($join) { $join->on('active_bu.id', '=', 'active_wbu.business_unit_id')->on('active_bu.entity_id', '=', 'active_wbu.entity_id'); })
+                    ->whereColumn('active_wbu.warehouse_id', 'ws.warehouse_id')
+                    ->whereColumn('active_wbu.entity_id', 'ws.entity_id')
+                    ->where('active_bu.is_active', 1);
+            })
             ->when($request->filled('business_unit_id'), function ($query) use ($request, $entityId) {
                 $query->whereExists(function ($sub) use ($request, $entityId) {
                     $sub->select(DB::raw(1))->from('warehouse_business_units as wbu')
@@ -53,7 +62,7 @@ class InventoryReportController extends Controller
                 'p.id as product_id', 'p.code', 'p.sku', 'p.name as product_name',
                 'u.code as unit_code', 'u.name as unit_name',
                 'w.id as warehouse_id', 'w.name as warehouse_name',
-                'bm.business_unit_names', 'ws.qty', 'ws.avg_cost',
+                'bm.business_unit_names', 'ws.qty', 'ws.avg_cost', 'p.minimum_stock as reorder_point', 'p.manage_stock',
                 DB::raw('(ws.qty * ws.avg_cost) as stock_value')
             );
     }
@@ -68,10 +77,18 @@ class InventoryReportController extends Controller
             ->leftJoin('business_units as bu', function ($join) { $join->on('bu.id', '=', 'wbu.business_unit_id')->on('bu.entity_id', '=', 'wbu.entity_id'); })
             ->leftJoin('product_prices as pp', function ($join) { $join->on('pp.product_id', '=', 'p.id')->on('pp.business_unit_id', '=', 'bu.id')->on('pp.unit_id', '=', 'p.base_unit_id')->where('pp.price_type', '=', 'retail'); })
             ->where('ws.entity_id', $entityId)
+            ->where('w.is_active', 1)
+            ->whereExists(function ($sub) {
+                $sub->select(DB::raw(1))->from('warehouse_business_units as active_wbu')
+                    ->join('business_units as active_bu', function ($join) { $join->on('active_bu.id', '=', 'active_wbu.business_unit_id')->on('active_bu.entity_id', '=', 'active_wbu.entity_id'); })
+                    ->whereColumn('active_wbu.warehouse_id', 'ws.warehouse_id')
+                    ->whereColumn('active_wbu.entity_id', 'ws.entity_id')
+                    ->where('active_bu.is_active', 1);
+            })
             ->when($request->filled('business_unit_id'), fn ($q) => $q->where('bu.id', $request->integer('business_unit_id')))
             ->when($request->filled('warehouse_id'), fn ($q) => $q->where('ws.warehouse_id', $request->integer('warehouse_id')))
             ->when($request->filled('search'), function ($q) use ($request) { $term = '%' . trim((string) $request->query('search')) . '%'; $q->where(fn ($sub) => $sub->where('p.name', 'like', $term)->orWhere('p.code', 'like', $term)->orWhere('p.sku', 'like', $term)); })
-            ->select('p.id as product_id', 'p.code', 'p.sku', 'p.name as product_name', 'u.code as unit_code', 'u.name as unit_name', 'w.id as warehouse_id', 'w.name as warehouse_name', 'bu.id as business_unit_id', 'bu.code as business_unit_code', 'bu.name as business_unit_name', 'ws.qty', 'ws.avg_cost', DB::raw('(ws.qty * ws.avg_cost) as stock_value'), 'pp.selling_price', DB::raw('(ws.qty * pp.selling_price) as potential_sales'), DB::raw('(ws.qty * (pp.selling_price - ws.avg_cost)) as potential_gross_profit'), DB::raw('CASE WHEN pp.selling_price IS NULL THEN NULL ELSE ((pp.selling_price - ws.avg_cost) / NULLIF(pp.selling_price, 0)) * 100 END as gross_margin_percent'));
+            ->select('p.id as product_id', 'p.code', 'p.sku', 'p.name as product_name', 'u.code as unit_code', 'u.name as unit_name', 'w.id as warehouse_id', 'w.name as warehouse_name', 'bu.id as business_unit_id', 'bu.code as business_unit_code', 'bu.name as business_unit_name', 'ws.qty', 'ws.avg_cost', 'p.minimum_stock as reorder_point', 'p.manage_stock', DB::raw('(ws.qty * ws.avg_cost) as stock_value'), 'pp.selling_price', DB::raw('(ws.qty * pp.selling_price) as potential_sales'), DB::raw('(ws.qty * (pp.selling_price - ws.avg_cost)) as potential_gross_profit'), DB::raw('CASE WHEN pp.selling_price IS NULL THEN NULL ELSE ((pp.selling_price - ws.avg_cost) / NULLIF(pp.selling_price, 0)) * 100 END as gross_margin_percent'));
     }
 
     private function movementSummary(Request $request, int $entityId): array
@@ -84,6 +101,11 @@ class InventoryReportController extends Controller
                 $join->on('p.id', '=', 'sm.product_id')->on('p.entity_id', '=', 'sm.entity_id');
             })
             ->where('sm.entity_id', $entityId)
+            ->whereExists(function ($sub) use ($entityId) {
+                $sub->select(DB::raw(1))->from('warehouse_business_units as active_wbu')
+                    ->join('business_units as active_bu', function ($join) { $join->on('active_bu.id', '=', 'active_wbu.business_unit_id')->on('active_bu.entity_id', '=', 'active_wbu.entity_id'); })
+                    ->whereColumn('active_wbu.warehouse_id', 'sm.warehouse_id')->where('active_wbu.entity_id', $entityId)->where('active_bu.is_active', 1);
+            })
             ->whereDate('sm.occurred_at', '>=', $request->query('start_date'))
             ->whereDate('sm.occurred_at', '<=', $request->query('end_date'))
             ->when($request->filled('warehouse_id'), fn ($q) => $q->where('sm.warehouse_id', $request->integer('warehouse_id')))
