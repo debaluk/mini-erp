@@ -46,6 +46,7 @@ class ApSubLedgerExport implements FromCollection, WithHeadings, WithStyles, Wit
             )
             ->where('p.entity_id', $entityId)
             ->where('p.status', 'posted')
+            ->where('p.payment_method', 'credit')
             ->whereDate('p.purchase_date', '>=', $startDate)->whereDate('p.purchase_date', '<=', $endDate);
 
         if ($businessUnitId) $query->where('p.business_unit_id', $businessUnitId);
