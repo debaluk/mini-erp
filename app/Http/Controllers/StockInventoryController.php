@@ -33,8 +33,11 @@ class StockInventoryController extends Controller
         if ($request->filled('business_unit_id')) {
             abort_unless($businessUnits->contains('id', $request->integer('business_unit_id')), 422, 'Unit bisnis tidak aktif atau tidak valid.');
         }
-        $warehouses = DB::table('warehouses')
-            ->where('entity_id', $entityId)->where('is_active', 1)->orderBy('name')->get();
+        $warehouses = DB::table('warehouses as w')
+            ->join('warehouse_business_units as wbu', function ($join) { $join->on('wbu.warehouse_id', '=', 'w.id')->on('wbu.entity_id', '=', 'w.entity_id'); })
+            ->join('business_units as bu', function ($join) { $join->on('bu.id', '=', 'wbu.business_unit_id')->on('bu.entity_id', '=', 'wbu.entity_id'); })
+            ->where('w.entity_id', $entityId)->where('w.is_active', 1)->where('bu.is_active', 1)
+            ->orderBy('w.name')->distinct()->get(['w.id', 'w.name']);
 
         $buMap = DB::table('warehouse_business_units as wbu')
             ->join('business_units as bu', function ($join) {
