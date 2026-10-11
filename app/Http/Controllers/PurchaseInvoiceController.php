@@ -325,6 +325,7 @@ class PurchaseInvoiceController extends Controller
             'purchase_order_id'=> 'nullable|exists:purchase_orders,id',
             'warehouse_id'     => 'nullable|exists:warehouses,id',
             'purchase_date'    => 'required|date',
+            'supplier_invoice_no' => 'nullable|string|max:100',
             'payment_method'   => 'required|in:cash,credit,transfer,qris',
             'products'         => 'required|array|min:1',
             'products.*'       => 'required|integer',
