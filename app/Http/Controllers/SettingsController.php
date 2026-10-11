@@ -301,6 +301,9 @@ class SettingsController extends Controller
         abort_unless($user, 404);
         abort_unless($user->role !== 'owner', 403);
 
+        // Cegah pengguna menonaktifkan akun sendiri dan kehilangan akses ke pengaturan.
+        abort_if((int) $request->user()->id === $id, 422, 'Akun yang sedang digunakan tidak dapat dinonaktifkan sendiri.');
+
         // Scope entitas juga diterapkan pada query perubahan status, bukan hanya pencarian awal.
         DB::table('users')->where('id', $id)->where('entity_id', $user->entity_id)->update([
             'is_active' => !$user->is_active,
