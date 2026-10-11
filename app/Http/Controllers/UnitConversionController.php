@@ -144,6 +144,21 @@ class UnitConversionController extends Controller
         abort_if((int) $product->base_unit_id === (int) $data['unit_id'], 422, 'Base Unit tidak perlu dibuat sebagai konversi.');
 
         if ($id) {
+            // Identitas konversi melekat pada produk asal; pindah produk harus dibuat sebagai konversi baru
+            // agar pengaturan default produk lama tidak tertinggal atau ikut berubah secara keliru.
+            $existing = DB::table('product_unit_conversions')
+                ->where('id', $id)
+                ->whereIn('product_id', DB::table('products')->select('id')->where('entity_id', $entity))
+                ->first();
+
+            abort_unless($existing, 404, 'Konversi satuan tidak ditemukan.');
+
+            abort_if(
+                (int) $existing->product_id !== (int) $product->id,
+                422,
+                'Produk pada konversi tidak dapat diganti. Buat konversi baru untuk produk lain.'
+            );
+
             abort_if(
                 DB::table('product_unit_conversions')
                     ->where('product_id', $product->id)
