@@ -175,32 +175,35 @@ class SettingsController extends Controller
 
         $modules = array_values(array_unique($data['modules'] ?? $this->defaultModulesForRole($data['role'])));
 
-        $userId = DB::table('users')->insertGetId([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
-            'role' => $data['role'],
-            'entity_id' => $request->user()->entity_id,
-            'default_business_unit_id' => $data['default_business_unit'],
-            'is_active' => 1,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        DB::transaction(function () use ($data, $modules) {
+            $userId = DB::table('users')->insertGetId([
+                'name' => $data['name'],
+                'email' => $data['email'],
+                'password' => Hash::make($data['password']),
+                'role' => $data['role'],
+                'entity_id' => $request->user()->entity_id,
+                'default_business_unit_id' => $data['default_business_unit'],
+                'is_active' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
 
-        DB::table('user_module_permissions')->insert(array_map(fn ($module) => [
-            'user_id' => $userId,
-            'module' => $module,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ], $modules));
+            DB::table('user_module_permissions')->insert(array_map(fn ($module) => [
+                'user_id' => $userId,
+                'module' => $module,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ], $modules));
 
-        DB::table('user_business_units')->insert(array_map(fn ($businessUnitId) => [
-            'user_id' => $userId,
-            'business_unit_id' => $businessUnitId,
-            'is_default' => (int) $businessUnitId === (int) $data['default_business_unit'],
-            'created_at' => now(),
-            'updated_at' => now(),
-        ], array_values(array_unique($data['business_units']))));
+            DB::table('user_business_units')->insert(array_map(fn ($businessUnitId) => [
+                'user_id' => $userId,
+                'business_unit_id' => $businessUnitId,
+                'is_default' => (int) $businessUnitId === (int) $data['default_business_unit'],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ], array_values(array_unique($data['business_units']))));
+
+        });
 
         return back()->with('success', 'User berhasil ditambahkan.');
     }
@@ -255,26 +258,29 @@ class SettingsController extends Controller
             $payload['password'] = Hash::make($data['password']);
         }
 
-        DB::table('users')->where('id', $id)->update($payload);
+        DB::transaction(function () use ($id, $payload, $data) {
+            DB::table('users')->where('id', $id)->update($payload);
 
-        DB::table('user_module_permissions')->where('user_id', $id)->delete();
-        $modules = array_values(array_unique($data['modules'] ?? $this->defaultModulesForRole($data['role'])));
+            DB::table('user_module_permissions')->where('user_id', $id)->delete();
+            $modules = array_values(array_unique($data['modules'] ?? $this->defaultModulesForRole($data['role'])));
 
-        DB::table('user_module_permissions')->insert(array_map(fn ($module) => [
-            'user_id' => $id,
-            'module' => $module,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ], $modules));
+            DB::table('user_module_permissions')->insert(array_map(fn ($module) => [
+                'user_id' => $id,
+                'module' => $module,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ], $modules));
 
-        DB::table('user_business_units')->where('user_id', $id)->delete();
-        DB::table('user_business_units')->insert(array_map(fn ($businessUnitId) => [
-            'user_id' => $id,
-            'business_unit_id' => $businessUnitId,
-            'is_default' => (int) $businessUnitId === (int) $data['default_business_unit'],
-            'created_at' => now(),
-            'updated_at' => now(),
-        ], array_values(array_unique($data['business_units']))));
+            DB::table('user_business_units')->where('user_id', $id)->delete();
+            DB::table('user_business_units')->insert(array_map(fn ($businessUnitId) => [
+                'user_id' => $id,
+                'business_unit_id' => $businessUnitId,
+                'is_default' => (int) $businessUnitId === (int) $data['default_business_unit'],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ], array_values(array_unique($data['business_units']))));
+
+        });
 
         return back()->with('success', 'User berhasil diperbarui.');
     }
