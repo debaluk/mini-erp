@@ -493,6 +493,8 @@ const purchaseTable = new DataTable('#tablePurchases', {
         { data: 'formatted_grand', className: 'text-end fw-bold' },
         { data: 'status', className: 'text-center', render: data => {
             const statusMap = {
+                draft: ['bg-secondary', 'DRAFT'],
+                partial_received: ['bg-warning text-dark', 'BELUM LENGKAP DITERIMA'],
                 partial: ['bg-warning text-dark', 'SEBAGIAN'],
                 completed: ['bg-success', 'SELESAI'],
                 closed: ['bg-dark', 'DITUTUP'],
@@ -501,7 +503,7 @@ const purchaseTable = new DataTable('#tablePurchases', {
                 posted: ['bg-success', 'TERPOSTING']
             };
             const key = String(data || '').toLowerCase();
-            const [badgeClass, label] = statusMap[key] || ['bg-success', 'TERPOSTING'];
+            const [badgeClass, label] = statusMap[key] || ['bg-secondary', key ? key.toUpperCase() : 'TIDAK DIKETAHUI'];
             return '<span class="badge ' + badgeClass + '">' + label + '</span>';
         } },
         { data: null, orderable: false, searchable: false, className: 'text-center', render: (data, type, row) => {
