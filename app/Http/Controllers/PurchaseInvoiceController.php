@@ -587,6 +587,7 @@ class PurchaseInvoiceController extends Controller
                         ->where('status', '!=', 'cancelled')
                         ->exists();
                     abort_if($duplicateSupplierInvoice, 422, 'Nomor Faktur Supplier sudah digunakan pada supplier dan entitas ini.');
+                }
 
                 $period = DB::table('accounting_periods')
                     ->where('entity_id',$purchase->entity_id)
