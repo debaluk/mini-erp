@@ -594,9 +594,7 @@ class PurchaseInvoiceController extends Controller
 
                 $receipt = DB::table('receipts')->where('entity_id', $entityId)->where('purchase_id',$id)->orderBy('id')->lockForUpdate()->first();
 
-                if (DB::table('payments')->where('purchase_id', $id)->exists()) {
-                    throw new \RuntimeException('Faktur tidak dapat diedit karena sudah memiliki riwayat pembayaran.');
-                }
+                // Tabel payments hanya menyimpan pembayaran penjualan melalui sale_id, bukan pembayaran faktur pembelian.
                 if ($receipt && DB::table('purchase_return_items as pri')
                     ->join('purchase_returns as pr', 'pr.id', '=', 'pri.purchase_return_id')
                     ->join('receipt_items as ri', 'ri.id', '=', 'pri.receipt_item_id')
@@ -956,9 +954,7 @@ class PurchaseInvoiceController extends Controller
                     throw new \RuntimeException('Faktur tidak dapat dibatalkan karena periode akuntansi sudah dalam proses closing atau sudah closed.');
                 }
 
-                if (DB::table('payments')->where('purchase_id', $purchase->id)->exists()) {
-                    throw new \RuntimeException('Faktur tidak dapat dibatalkan karena sudah memiliki riwayat pembayaran. Selesaikan pembatalan pembayaran terlebih dahulu.');
-                }
+                // Tabel payments hanya menyimpan pembayaran penjualan melalui sale_id, bukan pembayaran faktur pembelian.
 
                 $receiptForGuards = DB::table('receipts')
                     ->where('entity_id', $entityId)->where('purchase_id', $purchase->id)->first();
