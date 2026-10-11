@@ -461,6 +461,7 @@ Route::get('/laporan/retur-penjualan/export', [SalesReturnReportController::clas
     Route::get('/laporan/persediaan/export', [InventoryReportController::class, 'export'])->middleware('access:inventori')->name('laporan.persediaan.export');
     Route::get('/laporan/produksi', [ProductionSummaryReportController::class, 'index'])->middleware('access:inventori')->name('laporan.produksi');
     Route::get('/laporan/produksi/export', [ProductionSummaryReportController::class, 'export'])->middleware('access:inventori')->name('laporan.produksi.export');
+    Route::get('/laporan/produksi/{id}', [ProductionSummaryReportController::class, 'detail'])->whereNumber('id')->middleware('access:inventori')->name('laporan.produksi.detail');
     Route::get('/laporan/piutang', fn () => app(ModuleController::class)->show('receivables'))->middleware('access:keuangan')->name('laporan.piutang');
     Route::get('/laporan/hutang', fn () => app(ModuleController::class)->show('payables'))->middleware('access:keuangan')->name('laporan.hutang');
     Route::get('/laporan/keuangan', fn () => app(ModuleController::class)->show('profit-loss'))->middleware('access:keuangan')->name('laporan.keuangan');
