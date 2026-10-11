@@ -86,6 +86,7 @@
                                 <li><a class="dropdown-item" href="{{ route('inventori.pembelian.index') }}">Faktur Pembelian</a></li>
 								<li><a class="dropdown-item" href="{{ route('inventori.penerimaan') }}">Penerimaan Barang</a></li>
                                 <li><a class="dropdown-item" href="{{ route('inventori.pembelian.retur') }}">Retur Pembelian</a></li>
+                                <li><a class="dropdown-item" href="{{ route('inventori.pembelian.histori-harga') }}">Histori Harga Pembelian</a></li>
                             </ul>
                         </li>
                         <li class="dropdown-submenu">
