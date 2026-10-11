@@ -40,8 +40,11 @@ class CashDisbursementExport implements
         $businessUnitId   = $this->request->query('business_unit_id');
         $cashAccountId    = $this->request->query('cash_account_id');
         $disbursementType = $this->request->query('disbursement_type');
+        $entityId = (int) (auth()->user()->entity_id ?? 0);
+        abort_unless($entityId > 0, 403, 'Entitas pengguna tidak valid.');
 
         $query = Journal::with(['businessUnit', 'entries.account'])
+            ->where('entity_id', $entityId)
             ->whereIn('source_type', ['CASH_OUT', 'AP_PAYMENT'])
             ->whereDate('journal_date', '>=', $startDate)
             ->whereDate('journal_date', '<=', $endDate);
