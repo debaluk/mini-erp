@@ -53,6 +53,7 @@ class ApSubLedgerController extends Controller
             )
             ->where('p.entity_id', $entityId)
             ->where('p.status', 'posted')
+            ->where('p.payment_method', 'credit')
             ->whereDate('p.purchase_date', '>=', $startDate)
             ->whereDate('p.purchase_date', '<=', $endDate);
 
@@ -88,6 +89,7 @@ class ApSubLedgerController extends Controller
         $openingPurchases = DB::table('purchases')
             ->where('entity_id', $entityId)
             ->where('status', 'posted')
+            ->where('payment_method', 'credit')
             ->where(function ($q) {
                 $q->whereNull('memo')
                   ->orWhere('memo', 'NOT LIKE', '[SALDO AWAL]%');
