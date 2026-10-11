@@ -12,6 +12,7 @@ use App\Models\Product;
 use App\Models\ChartOfAccount;
 use App\Models\Journal;
 use App\Models\JournalEntry;
+use App\Services\PurchaseJournalService;
 use App\Exports\PurchaseInvoiceExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\DB;
@@ -677,62 +678,12 @@ class PurchaseInvoiceController extends Controller
                     app(ReceiptController::class)->replaceNonPoReceiptItems($purchase->id, $entityId);
                 }
 
-                // Jurnal yang sama: hanya isi jurnal diperbarui.
-                $journal=DB::table('journals')
-                    ->where('entity_id', $purchase->entity_id)
-                    ->where('source_type','purchase_invoice')
-                    ->where('source_id',$id)
-                    ->orderBy('id')->first();
-                if(!$journal && $receipt && $purchase->source_type!=='po'){
-                    // Migrasi jurnal Non-PO lama dari source receipt ke source faktur.
-                    $legacyReceiptJournal = DB::table('journals')
-                        ->where('entity_id', $purchase->entity_id)
-                        ->where('source_type', 'receipt')
-                        ->where('source_id', $receipt->id)
-                        ->orderBy('id')->first();
-                    if ($legacyReceiptJournal) {
-                        DB::table('journals')->where('id', $legacyReceiptJournal->id)->update([
-                            'source_type' => 'purchase_invoice',
-                            'source_id' => $purchase->id,
-                            'journal_no' => 'JRN-INV-'.$purchase->id,
-                            'updated_at' => now(),
-                        ]);
-                        $journal = DB::table('journals')->where('id', $legacyReceiptJournal->id)->first();
-                    }
-                }
-                if (!$journal) {
-                    $journalId = DB::table('journals')->insertGetId([
-                        'entity_id' => $purchase->entity_id,
-                        'business_unit_id' => $purchase->business_unit_id,
-                        'journal_no' => 'JRN-INV-'.$purchase->id,
-                        'journal_date' => $purchase->purchase_date,
-                        'source_type' => 'purchase_invoice',
-                        'source_id' => $purchase->id,
-                        'description' => 'Faktur pembelian '.$purchase->purchase_no,
-                        'status' => 'posted',
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-                    $journal = (object) ['id' => $journalId];
-                }
-                if($journal){
-                    $mapping=DB::table('business_unit_account_mappings')
-                        ->where('entity_id', $purchase->entity_id)
-                        ->where('business_unit_id',$request->business_unit_id)
-                        ->whereIn('mapping_key',['inventory','payable','cash','bank'])->pluck('account_id','mapping_key');
-                    $creditKey=match(strtolower((string)$request->payment_method)){ 'cash','tunai'=>'cash','bank','transfer','qris'=>'bank',default=>'payable' };
-                    if(!isset($mapping['inventory'],$mapping[$creditKey])) throw new \RuntimeException('Mapping akun pembelian belum lengkap.');
-                    $value=round($total,2);
-                    DB::table('journal_entries')->where('journal_id',$journal->id)->delete();
-                    DB::table('journal_entries')->insert([
-                        ['journal_id'=>$journal->id,'account_id'=>$mapping['inventory'],'debit'=>$value,'credit'=>0,'created_at'=>now(),'updated_at'=>now()],
-                        ['journal_id'=>$journal->id,'account_id'=>$mapping[$creditKey],'debit'=>0,'credit'=>$value,'created_at'=>now(),'updated_at'=>now()],
-                    ]);
-                    DB::table('journals')->where('id',$journal->id)->update([
-                        'business_unit_id'=>$request->business_unit_id,'journal_date'=>$request->purchase_date,
-                        'description'=>'Faktur pembelian '.$purchase->purchase_no,'updated_at'=>now()
-                    ]);
-                }
+                // Jurnal finansial dikelola terpusat oleh PurchaseJournalService.
+                app(\App\Services\PurchaseJournalService::class)->post(
+                    (int) $purchase->id,
+                    (int) $entityId,
+                    $receipt ? (int) $receipt->id : null
+                );
 
                 return $purchase->purchase_no;
             });
@@ -828,67 +779,12 @@ class PurchaseInvoiceController extends Controller
                     app(ReceiptController::class)->store($receiptRequest);
                 }
 
-                // Jurnal finansial selalu berasal dari Faktur Pembelian, baik PO maupun Non-PO.
-                // Penerimaan hanya mencatat stok/moving average dan tidak membuat jurnal.
-
-                if (in_array($purchase->source_type, ['po', 'direct'], true)) {
-                    $mapping = DB::table('business_unit_account_mappings')
-                        ->where('entity_id', $purchase->entity_id)
-                        ->where('business_unit_id', $purchase->business_unit_id)
-                        ->whereIn('mapping_key', ['inventory', 'payable', 'cash', 'bank'])
-                        ->pluck('account_id', 'mapping_key');
-
-                    abort_unless(isset($mapping['inventory']), 422, 'Mapping akun inventory belum tersedia.');
-
-                    $creditKey = match (strtolower((string) ($purchase->payment_method ?? 'credit'))) {
-                        'cash', 'tunai' => 'cash',
-                        'bank', 'transfer', 'qris' => 'bank',
-                        default => 'payable',
-                    };
-
-                    abort_unless(isset($mapping[$creditKey]), 422, 'Mapping akun pembelian belum lengkap.');
-
-                    $journalExists = DB::table('journals')
-                        ->where('source_type', 'purchase_invoice')
-                        ->where('source_id', $purchase->id)
-                        ->exists();
-
-                    if (!$journalExists) {
-                        $journalId = DB::table('journals')->insertGetId([
-                            'entity_id' => $purchase->entity_id,
-                            'business_unit_id' => $purchase->business_unit_id,
-                            'journal_no' => 'JRN-INV-'.$purchase->id,
-                            'journal_date' => $purchase->purchase_date,
-                            'source_type' => 'purchase_invoice',
-                            'source_id' => $purchase->id,
-                            'description' => 'Faktur pembelian '.$purchase->purchase_no,
-                            'status' => 'posted',
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ]);
-
-                        $journalValue = round((float) $purchase->total, 2);
-
-                        DB::table('journal_entries')->insert([
-                            [
-                                'journal_id' => $journalId,
-                                'account_id' => $mapping['inventory'],
-                                'debit' => $journalValue,
-                                'credit' => 0,
-                                'created_at' => now(),
-                                'updated_at' => now(),
-                            ],
-                            [
-                                'journal_id' => $journalId,
-                                'account_id' => $mapping[$creditKey],
-                                'debit' => 0,
-                                'credit' => $journalValue,
-                                'created_at' => now(),
-                                'updated_at' => now(),
-                            ],
-                        ]);
-                    }
-                }
+                // Jurnal faktur pembelian dikelola oleh service terpusat.
+                // Penerimaan hanya mengelola stok/moving average, bukan jurnal.
+                app(\App\Services\PurchaseJournalService::class)->post(
+                    (int) $purchase->id,
+                    (int) $entityId
+                );
 
                 DB::table('purchases')->where('id', $id)->update([
                     'status' => 'posted',
