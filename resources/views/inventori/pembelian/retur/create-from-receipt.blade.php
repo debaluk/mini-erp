@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid px-4 py-3">
+<div class="container-fluid px-0 py-0">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
             <h3 class="mb-1 fw-bold">Buat Retur Pembelian</h3>
