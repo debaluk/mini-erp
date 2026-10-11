@@ -500,10 +500,11 @@ class PurchaseInvoiceController extends Controller
             return response()->json(['status' => 'success', 'data' => ['purchase' => $p, 'items' => $items]]);
         }
 
-        $businessUnits = BusinessUnit::where('is_active', 1)->orderBy('code')->get();
-        $warehouses = Warehouse::where('is_active', 1)->orderBy('name')->get();
-        $suppliers = Supplier::where('is_active', 1)->orderBy('name')->get();
-        $products = Product::where('is_active', 1)->orderBy('name')->get();
+        $entityId = $this->entityId();
+        $businessUnits = BusinessUnit::where('entity_id', $entityId)->where('is_active', 1)->orderBy('code')->get();
+        $warehouses = Warehouse::where('entity_id', $entityId)->where('is_active', 1)->orderBy('name')->get();
+        $suppliers = Supplier::where('entity_id', $entityId)->where('is_active', 1)->orderBy('name')->get();
+        $products = Product::where('entity_id', $entityId)->where('is_active', 1)->orderBy('name')->get();
 
         return view('inventori.pembelian.faktur.edit', compact('p','businessUnits','warehouses','suppliers','products','items'));
     }
