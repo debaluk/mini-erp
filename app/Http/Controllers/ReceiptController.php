@@ -697,6 +697,336 @@ class ReceiptController extends Controller
             ->with('success', 'Penerimaan berhasil diposting; stok dan moving average diperbarui.');
     }
 
+    /**
+     * Balik dan kosongkan item penerimaan Non-PO sebelum item faktur diperbarui.
+     * Semua perubahan stok untuk edit faktur tetap berada di gerbang Penerimaan.
+     */
+    public function clearNonPoReceiptItemsForEdit(int $purchaseId, int $entityId): void
+    {
+        abort_unless($this->entityId() === $entityId, 403, 'Entitas pengguna tidak valid.');
+
+        $purchase = DB::table('purchases')
+            ->where('entity_id', $entityId)
+            ->where('id', $purchaseId)
+            ->whereNull('deleted_at')
+            ->lockForUpdate()
+            ->first();
+        abort_unless($purchase && $purchase->source_type !== 'po', 422, 'Penerimaan edit hanya berlaku untuk pembelian Non-PO.');
+
+        $receipt = DB::table('receipts')
+            ->where('entity_id', $entityId)
+            ->where('purchase_id', $purchaseId)
+            ->where('status', 'posted')
+            ->lockForUpdate()
+            ->first();
+        abort_unless($receipt, 422, 'Penerimaan Non-PO tidak ditemukan.');
+
+        $items = DB::table('receipt_items')->where('receipt_id', $receipt->id)->lockForUpdate()->get();
+        foreach ($items as $item) {
+            $qty = (float) $item->base_qty;
+            if ($qty <= 0) continue;
+
+            $stock = DB::table('warehouses_stocks')
+                ->where('warehouse_id', $receipt->warehouse_id)
+                ->where('product_id', $item->product_id)
+                ->lockForUpdate()
+                ->first();
+            if (!$stock || (float) $stock->qty + 0.0000001 < $qty) {
+                throw new \RuntimeException('Stok tidak mencukupi untuk mengubah faktur '.$purchase->purchase_no.'.');
+            }
+
+            $oldQty = (float) $stock->qty;
+            $newQty = $oldQty - $qty;
+            $newValue = ($oldQty * (float) $stock->avg_cost) - ($qty * (float) $item->base_unit_cost);
+            if ($newValue < -0.01) {
+                throw new \RuntimeException('Nilai stok tidak mencukupi untuk membalik penerimaan saat edit faktur.');
+            }
+
+            DB::table('warehouses_stocks')->where('id', $stock->id)->update([
+                'qty' => $newQty,
+                'avg_cost' => round($newQty > 0 ? max(0, $newValue / $newQty) : 0, 9),
+                'updated_at' => now(),
+            ]);
+
+            DB::table('stock_movements')->insert([
+                'entity_id' => $purchase->entity_id,
+                'business_unit_id' => $purchase->business_unit_id,
+                'warehouse_id' => $receipt->warehouse_id,
+                'product_id' => $item->product_id,
+                'unit_id' => $item->unit_id,
+                'transaction_qty' => -(float) $item->qty,
+                'conversion_factor' => $item->conversion_factor,
+                'movement_type' => 'purchase_edit_out',
+                'qty' => -$qty,
+                'unit_cost' => $item->base_unit_cost,
+                'reference_type' => 'purchase_edit',
+                'reference_id' => $purchase->id,
+                'receipt_id' => $receipt->id,
+                'occurred_at' => now(),
+                'created_by' => auth()->id(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        DB::table('receipt_invoice_allocations')->whereIn('receipt_item_id', function ($q) use ($receipt) {
+            $q->select('id')->from('receipt_items')->where('receipt_id', $receipt->id);
+        })->delete();
+        DB::table('receipt_items')->where('receipt_id', $receipt->id)->delete();
+    }
+
+    /**
+     * Terapkan item faktur Non-PO yang baru melalui mekanisme Penerimaan.
+     * Pemanggil harus sudah berada dalam transaksi database.
+     */
+    public function replaceNonPoReceiptItems(int $purchaseId, int $entityId): void
+    {
+        abort_unless($this->entityId() === $entityId, 403, 'Entitas pengguna tidak valid.');
+
+        $purchase = DB::table('purchases')
+            ->where('entity_id', $entityId)
+            ->where('id', $purchaseId)
+            ->whereNull('deleted_at')
+            ->lockForUpdate()
+            ->first();
+        abort_unless($purchase && $purchase->source_type !== 'po', 422, 'Penerimaan edit hanya berlaku untuk pembelian Non-PO.');
+
+        $receipt = DB::table('receipts')
+            ->where('entity_id', $entityId)
+            ->where('purchase_id', $purchaseId)
+            ->where('status', 'posted')
+            ->lockForUpdate()
+            ->first();
+        abort_unless($receipt, 422, 'Penerimaan Non-PO tidak ditemukan.');
+
+        $businessUnit = DB::table('business_units')
+            ->where('entity_id', $entityId)
+            ->where('id', $purchase->business_unit_id)
+            ->where('is_active', 1)
+            ->first();
+        abort_unless($businessUnit, 422, 'Unit Bisnis penerimaan tidak aktif atau bukan milik entitas pengguna.');
+
+        $warehouse = DB::table('warehouses')
+            ->where('entity_id', $entityId)
+            ->where('id', $receipt->warehouse_id)
+            ->where('is_active', 1)
+            ->first();
+        abort_unless($warehouse && (int) $warehouse->business_unit_id === (int) $purchase->business_unit_id, 422, 'Gudang penerimaan tidak valid untuk Unit Bisnis.');
+
+        $items = DB::table('purchase_items')
+            ->where('purchase_id', $purchaseId)
+            ->orderBy('id')
+            ->get();
+        abort_if($items->isEmpty(), 422, 'Faktur pembelian tidak memiliki item untuk diterima.');
+
+        foreach ($items as $item) {
+            $product = DB::table('products')
+                ->where('entity_id', $entityId)
+                ->where('id', $item->product_id)
+                ->where('is_active', 1)
+                ->first();
+            abort_unless($product, 422, 'Produk penerimaan tidak aktif atau bukan milik entitas pengguna.');
+
+            $qty = (float) $item->qty;
+            $factor = (float) ($item->conversion_factor ?: 1);
+            $baseQty = (float) ($item->base_qty ?: ($qty * $factor));
+            $baseCost = (float) $item->base_unit_cost;
+            abort_if($qty <= 0 || $baseQty <= 0 || $baseCost < 0, 422, 'Qty atau harga penerimaan tidak valid.');
+
+            $receiptItemId = DB::table('receipt_items')->insertGetId([
+                'receipt_id' => $receipt->id,
+                'purchase_order_item_id' => null,
+                'purchase_item_id' => $item->id,
+                'product_id' => $item->product_id,
+                'unit_id' => $item->unit_id ?: $product->base_unit_id,
+                'qty' => $qty,
+                'conversion_factor' => $factor,
+                'base_qty' => $baseQty,
+                'unit_cost' => $item->unit_cost,
+                'base_unit_cost' => $baseCost,
+                'valuation_status' => 'valued',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            DB::table('receipt_invoice_allocations')->insert([
+                'receipt_item_id' => $receiptItemId,
+                'purchase_item_id' => $item->id,
+                'qty' => $qty,
+                'conversion_factor' => $factor,
+                'base_qty' => $baseQty,
+                'allocated_value' => round((float) $item->total, 2),
+                'status' => 'posted',
+                'created_by' => auth()->id(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $stock = DB::table('warehouses_stocks')
+                ->where('warehouse_id', $receipt->warehouse_id)
+                ->where('product_id', $item->product_id)
+                ->lockForUpdate()
+                ->first();
+
+            if ($stock) {
+                $oldQty = (float) $stock->qty;
+                $newQty = $oldQty + $baseQty;
+                $newAvg = $newQty > 0 ? (($oldQty * (float) $stock->avg_cost) + ($baseQty * $baseCost)) / $newQty : 0;
+                DB::table('warehouses_stocks')->where('id', $stock->id)->update([
+                    'qty' => $newQty,
+                    'avg_cost' => round($newAvg, 9),
+                    'updated_at' => now(),
+                ]);
+            } else {
+                DB::table('warehouses_stocks')->insert([
+                    'entity_id' => $entityId,
+                    'warehouse_id' => $receipt->warehouse_id,
+                    'product_id' => $item->product_id,
+                    'qty' => $baseQty,
+                    'avg_cost' => round($baseCost, 9),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            DB::table('stock_movements')->insert([
+                'entity_id' => $entityId,
+                'business_unit_id' => $purchase->business_unit_id,
+                'warehouse_id' => $receipt->warehouse_id,
+                'product_id' => $item->product_id,
+                'unit_id' => $item->unit_id ?: $product->base_unit_id,
+                'transaction_qty' => $qty,
+                'conversion_factor' => $factor,
+                'movement_type' => 'purchase_edit_in',
+                'qty' => $baseQty,
+                'unit_cost' => $baseCost,
+                'reference_type' => 'purchase_edit',
+                'reference_id' => $purchase->id,
+                'receipt_id' => $receipt->id,
+                'occurred_at' => now(),
+                'created_by' => auth()->id(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            DB::table('purchase_price_histories')->insert([
+                'entity_id' => $entityId,
+                'business_unit_id' => $purchase->business_unit_id,
+                'product_id' => $item->product_id,
+                'unit_id' => $item->unit_id ?: $product->base_unit_id,
+                'supplier_id' => $purchase->supplier_id,
+                'price_date' => $purchase->purchase_date,
+                'qty' => $qty,
+                'conversion_factor' => $factor,
+                'base_qty' => $baseQty,
+                'unit_price' => $item->unit_cost,
+                'base_unit_price' => $baseCost,
+                'source' => 'purchase',
+                'reference_id' => $purchase->id,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+    }
+
+    /**
+     * Membalik dan membatalkan penerimaan yang terikat ke faktur pembelian.
+     * Dipakai oleh pembatalan faktur agar stok tidak dimodifikasi di controller faktur.
+     */
+    public function cancelForPurchaseInvoice(int $purchaseId, int $entityId): void
+    {
+        abort_unless($this->entityId() === $entityId, 403, 'Entitas pengguna tidak valid.');
+
+        $purchase = DB::table('purchases')
+            ->where('entity_id', $entityId)
+            ->where('id', $purchaseId)
+            ->whereNull('deleted_at')
+            ->lockForUpdate()
+            ->first();
+        abort_unless($purchase, 404, 'Faktur pembelian tidak ditemukan.');
+
+        $receipts = DB::table('receipts')
+            ->where('entity_id', $entityId)
+            ->where('purchase_id', $purchaseId)
+            ->where('status', 'posted')
+            ->lockForUpdate()
+            ->get();
+
+        foreach ($receipts as $receipt) {
+            $items = DB::table('receipt_items')->where('receipt_id', $receipt->id)->lockForUpdate()->get();
+            foreach ($items as $item) {
+                $qty = (float) $item->base_qty;
+                if ($qty <= 0) continue;
+
+                $stock = DB::table('warehouses_stocks')
+                    ->where('warehouse_id', $receipt->warehouse_id)
+                    ->where('product_id', $item->product_id)
+                    ->lockForUpdate()
+                    ->first();
+                if (!$stock || (float) $stock->qty + 0.0000001 < $qty) {
+                    throw new \RuntimeException('Faktur tidak dapat dibatalkan karena stok barang pada gudang tidak mencukupi untuk membalik penerimaan.');
+                }
+
+                $oldQty = (float) $stock->qty;
+                $oldValue = $oldQty * (float) $stock->avg_cost;
+                $removeValue = $qty * (float) $item->base_unit_cost;
+                if ($oldValue + 0.01 < $removeValue) {
+                    throw new \RuntimeException('Faktur tidak dapat dibatalkan karena nilai stok saat ini tidak mencukupi untuk membalik nilai penerimaan.');
+                }
+
+                $newQty = $oldQty - $qty;
+                $newValue = max(0, $oldValue - $removeValue);
+                DB::table('warehouses_stocks')->where('id', $stock->id)->update([
+                    'qty' => $newQty,
+                    'avg_cost' => round($newQty > 0 ? $newValue / $newQty : 0, 9),
+                    'updated_at' => now(),
+                ]);
+
+                DB::table('stock_movements')->insert([
+                    'entity_id' => $entityId,
+                    'business_unit_id' => $purchase->business_unit_id,
+                    'warehouse_id' => $receipt->warehouse_id,
+                    'product_id' => $item->product_id,
+                    'unit_id' => $item->unit_id,
+                    'transaction_qty' => -(float) $item->qty,
+                    'conversion_factor' => $item->conversion_factor,
+                    'movement_type' => 'purchase_cancel',
+                    'qty' => -$qty,
+                    'unit_cost' => $item->base_unit_cost,
+                    'reference_type' => 'purchase_cancel',
+                    'reference_id' => $purchase->id,
+                    'receipt_id' => $receipt->id,
+                    'occurred_at' => now(),
+                    'created_by' => auth()->id(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            $journalIds = DB::table('journals')
+                ->where('entity_id', $entityId)
+                ->where('source_type', 'receipt')
+                ->where('source_id', $receipt->id)
+                ->pluck('id');
+            if ($journalIds->isNotEmpty()) {
+                DB::table('journal_entries')->whereIn('journal_id', $journalIds)->delete();
+                DB::table('journals')->whereIn('id', $journalIds)->delete();
+            }
+
+            DB::table('receipt_invoice_allocations')->whereIn('receipt_item_id', function ($q) use ($receipt) {
+                $q->select('id')->from('receipt_items')->where('receipt_id', $receipt->id);
+            })->delete();
+            DB::table('receipt_items')->where('receipt_id', $receipt->id)->delete();
+            DB::table('receipts')->where('entity_id', $entityId)->where('id', $receipt->id)->delete();
+        }
+
+        DB::table('purchase_price_histories')
+            ->where('entity_id', $entityId)
+            ->where('reference_id', $purchaseId)
+            ->where('source', 'purchase')
+            ->delete();
+    }
+
     public function cancel(Request $request, int $id)
     {
         try {
