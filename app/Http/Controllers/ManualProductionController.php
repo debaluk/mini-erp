@@ -75,11 +75,14 @@ class ManualProductionController extends Controller
                 $qty = round((float) $material->qty * $batch, 3);
                 $stock = DB::table('warehouses_stocks')->where('entity_id', $entityId)->where('warehouse_id', $warehouse->id)
                     ->where('product_id', $material->product_id)->lockForUpdate()->first();
-                abort_unless($qty > 0 && $stock && (float) $stock->qty >= $qty, 422, 'Stok bahan baku tidak mencukupi (produk ID '.$material->product_id.').');
-                $cost = round($qty * (float) $stock->avg_cost, 2);
+                abort_unless($qty > 0, 422, 'Kuantitas bahan baku tidak valid.');
+                // Produksi manual untuk uji stok/HPP tidak memvalidasi kecukupan stok.
+                // Jika stok belum tersedia, gunakan biaya rata-rata nol dan jangan membuat stok negatif.
+                $unitCost = (float) ($stock->avg_cost ?? 0);
+                $cost = round($qty * $unitCost, 2);
                 $materialCost += $cost;
                 $consumptions[] = ['product_id' => $material->product_id, 'unit_id' => $material->base_unit_id, 'qty' => $qty,
-                    'unit_cost' => (float) $stock->avg_cost, 'cost' => $cost, 'stock_id' => $stock->id, 'stock_qty' => (float) $stock->qty];
+                    'unit_cost' => $unitCost, 'cost' => $cost, 'stock_id' => $stock->id ?? null, 'stock_qty' => (float) ($stock->qty ?? 0)];
             }
 
             $productionId = DB::table('productions')->insertGetId([
@@ -97,7 +100,9 @@ class ManualProductionController extends Controller
             ]);
 
             foreach ($consumptions as $item) {
-                DB::table('warehouses_stocks')->where('id', $item['stock_id'])->update(['qty' => $item['stock_qty'] - $item['qty'], 'updated_at' => now()]);
+                if ($item['stock_id'] !== null) {
+                    DB::table('warehouses_stocks')->where('id', $item['stock_id'])->update(['qty' => $item['stock_qty'] - $item['qty'], 'updated_at' => now()]);
+                }
                 DB::table('production_material_usages')->insert(['production_id' => $productionId, 'product_id' => $item['product_id'],
                     'warehouse_id' => $warehouse->id, 'qty' => $item['qty'], 'unit_cost' => $item['unit_cost'], 'total_cost' => $item['cost'],
                     'source' => 'manual_bom', 'created_at' => now(), 'updated_at' => now()]);
