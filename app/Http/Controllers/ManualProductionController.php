@@ -154,11 +154,16 @@ class ManualProductionController extends Controller
             abort_unless($production, 404, 'Produksi manual tidak ditemukan.');
 
             $costIds = DB::table('production_costs')->where('production_id', $id)->pluck('id');
-            $hasVoucher = DB::table('voucher_bayar_items')
-                ->where('production_id', $id)
-                ->orWhereIn('production_cost_id', $costIds)
-                ->exists();
-            abort_if($hasVoucher, 422, 'Produksi manual tidak dapat dihapus karena upahnya sudah masuk voucher.');
+            $voucherIds = DB::table('voucher_bayar_items')->where('production_id', $id)->pluck('voucher_bayar_id');
+            if ($costIds->isNotEmpty()) {
+                $voucherIds = $voucherIds->merge(DB::table('voucher_bayar_items')->whereIn('production_cost_id', $costIds)->pluck('voucher_bayar_id'))->unique()->values();
+            }
+            // Voucher yang belum dibayar tidak mengunci penghapusan produksi manual.
+            $hasPostedPayment = $voucherIds->isNotEmpty() && DB::table('voucher_bayar_payments as vbp')
+                ->join('voucher_bayar as vb', 'vb.id', '=', 'vbp.voucher_bayar_id')
+                ->whereIn('vbp.voucher_bayar_id', $voucherIds)->where('vb.entity_id', $entityId)
+                ->where('vb.category', 'UPAH_PRODUKSI')->whereNotNull('vbp.journal_id')->exists();
+            abort_if($hasPostedPayment, 422, 'Produksi manual tidak dapat dihapus karena pembayaran upahnya sudah diposting.');
 
             foreach (DB::table('production_outputs')->where('production_id', $id)->get() as $output) {
                 $stock = DB::table('warehouses_stocks')->where('entity_id', $entityId)
