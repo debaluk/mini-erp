@@ -336,6 +336,7 @@ Route::middleware(['auth', 'access:inventori'])->prefix('inventori/penyesuaian')
     Route::get('/produksi/work-order/export', [ProductionWorkOrderController::class, 'export'])->middleware('access:inventori')->name('produksi.work-order.export');
     Route::get('/produksi/manual/options', [\App\Http\Controllers\ManualProductionController::class, 'options'])->middleware('access:inventori')->name('produksi.manual.options');
     Route::post('/produksi/manual', [\App\Http\Controllers\ManualProductionController::class, 'store'])->middleware('access:inventori')->name('produksi.manual.store');
+    Route::delete('/produksi/manual/{id}', [\App\Http\Controllers\ManualProductionController::class, 'destroy'])->middleware('access:inventori')->name('produksi.manual.destroy');
     Route::get('/produksi/work-order/hasil-report', [ProductionWorkOrderController::class, 'resultsReport'])->middleware('access:inventori')->name('produksi.work-order.hasil-report');
     Route::get('/produksi/work-order/hasil-report/export', [ProductionWorkOrderController::class, 'exportResultsReport'])->middleware('access:inventori')->name('produksi.work-order.hasil-report.export');
     Route::get('/produksi/posting-upah', [VoucherBayarController::class, 'postingUpah'])->middleware('access:inventori')->name('produksi.posting-upah.index');
