@@ -1305,6 +1305,28 @@ class ProductionWorkOrderController extends Controller
                 DB::raw('COUNT(DISTINCT l.worker_id) as worker_count'),
             ]);
 
+        // Transaksi manual ikut tampil di rekap, tanpa mengubah alur hasil SPK normal.
+        $manualResults = DB::table('productions as pr')
+            ->join('boms as b', 'b.id', '=', 'pr.bom_id')
+            ->join('products as p', 'p.id', '=', 'b.product_id')
+            ->where('pr.entity_id', $entityId)
+            ->whereNull('pr.production_work_order_id')
+            ->where('pr.production_no', 'like', 'MAN-%')
+            ->where('pr.status', 'posted')
+            ->whereDate('pr.production_date', '>=', $dateFrom)
+            ->whereDate('pr.production_date', '<=', $dateTo)
+            ->orderByDesc('pr.production_date')
+            ->get([
+                'pr.id', 'pr.production_date', 'pr.status',
+                'pr.production_no as wo_no', 'p.name as product_name',
+                'pr.good_output_qty as good_qty', 'pr.reject_qty',
+                DB::raw('0 as unit_labor_cost'), DB::raw('0 as worker_count'),
+            ])->map(function ($row) {
+                $row->work_order_id = null;
+                return $row;
+            });
+        $results = $results->concat($manualResults)->sortByDesc('production_date')->values();
+
         $lines = DB::table('production_work_order_result_lines as l')
             ->join('production_work_order_results as r', 'r.id', '=', 'l.production_work_order_result_id')
             ->join('workers as w', 'w.id', '=', 'l.worker_id')
