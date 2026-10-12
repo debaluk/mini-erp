@@ -121,7 +121,7 @@
             <form method="POST" action="{{ route('produksi.work-order.store') }}" id="workOrderForm">
                 @csrf
                 <input type="hidden" name="_method" id="woMethod" value="">
-                <input type="hidden" name="batch_qty" id="woBatchQty" value="1">
+                
                 <div class="modal-header">
                     <h5 class="modal-title" id="workOrderModalTitle">Buat Work Order / SPK</h5>
                     <button type="button" class="btn-close" aria-label="Tutup" data-bs-dismiss="modal"></button>
@@ -133,6 +133,10 @@
                             <input type="date" name="wo_date" id="woDate" class="form-control" value="{{ now()->toDateString() }}" required>
                         </div>
                         <div class="col-md-3">
+                            <label class="form-label">Jumlah Batch</label>
+                            <input type="number" name="batch_qty" id="woBatchQty" class="form-control" min="0.001" step="0.001" value="1" required>
+                        </div>
+                        <div class="col-md-3">
 
                             <label class="form-label">Business Unit</label>
                             <select name="business_unit_id" id="woModalBu" class="form-select" required>
@@ -142,10 +146,10 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Gudang Produksi</label>
+                        <div class="col-md-3 d-none">
+                            <label class="form-label">Gudang Produksi (otomatis dari BU)</label>
                             <select name="warehouse_id" id="woModalWarehouse" class="form-select" required>
-                                <option value="">Pilih gudang</option>
+                                <option value="">Gudang mengikuti mapping BU</option>
                                 @foreach($warehouses as $warehouse)
                                     <option value="{{ $warehouse->id }}" data-bu="{{ $warehouse->business_unit_id }}">{{ $warehouse->code }} — {{ $warehouse->name }}</option>
                                 @endforeach
@@ -385,6 +389,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const fields={bu:document.getElementById('woModalBu'),warehouse:document.getElementById('woModalWarehouse'),bom:document.getElementById('woModalBom'),date:document.getElementById('woDate'),batch:document.getElementById('woBatchQty'),notes:document.getElementById('woNotes'),total:document.getElementById('woModalTotal'),material:document.getElementById('woMaterialTotal'),bomRows:document.getElementById('woBomRows')};
 
     const filterSelect=(select,bu)=>{[...select.options].forEach(o=>{if(o.value)o.hidden=!!bu&&o.dataset.bu!==String(bu)});if(select.selectedOptions[0]?.hidden)select.value=''};
+    const syncWarehouseFromBu=()=>{
+        const bu=String(fields.bu.value||'');
+        const matches=[...fields.warehouse.options].filter(o=>o.value&&!o.hidden&&o.dataset.bu===bu);
+        fields.warehouse.value=matches.length===1?matches[0].value:'';
+    };
 
     function costRow(group,data={}){
         const wrap=document.createElement('div');
@@ -469,10 +478,12 @@ document.addEventListener('DOMContentLoaded', function () {
         fields.batch.value='1';
                 fields.bu.value='';
         fields.warehouse.value='';
+        fields.batch.value='1';
         fields.bom.value='';
         fields.notes.value='';
         filterSelect(fields.warehouse,'');
         filterSelect(fields.bom,'');
+        syncWarehouseFromBu();
         fields.material.dataset.value=0;
         resetCosts();
         loadBom();
@@ -491,6 +502,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 fields.bu.value=row.business_unit_id;
         filterSelect(fields.warehouse,row.business_unit_id);
         filterSelect(fields.bom,row.business_unit_id);
+        syncWarehouseFromBu();
         fields.warehouse.value=row.warehouse_id;
         fields.bom.value=row.bom_id;
         fields.notes.value=row.notes||'';
@@ -503,7 +515,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.getElementById('btnCreateWorkOrder').addEventListener('click',openCreate);
     document.querySelectorAll('.btn-edit-wo').forEach(b=>b.addEventListener('click',()=>openEdit(b.dataset.id)));
-    fields.bu.addEventListener('change',()=>{filterSelect(fields.warehouse,fields.bu.value);filterSelect(fields.bom,fields.bu.value);loadBom()});
+    fields.bu.addEventListener('change',()=>{filterSelect(fields.warehouse,fields.bu.value);filterSelect(fields.bom,fields.bu.value);syncWarehouseFromBu();loadBom()});
+    fields.batch.addEventListener('input',loadBom);
     fields.warehouse.addEventListener('change',loadBom);
     fields.bom.addEventListener('change',loadBom);
 
@@ -661,8 +674,21 @@ document.addEventListener('DOMContentLoaded', function () {
         const isEdit = document.getElementById('woMethod').value === 'PUT';
         const url = formElement.action;
         const type = isEdit ? 'PUT' : 'POST';
+        const bomText = fields.bom.selectedOptions[0]?.textContent?.trim() || 'BOM';
+        const batchText = Number(fields.batch.value || 0).toLocaleString('id-ID',{maximumFractionDigits:3});
+        const actionText = isEdit ? 'Simpan perubahan SPK' : 'Simpan SPK baru';
 
-        $.ajax({
+        Swal.fire({
+            icon: 'question',
+            title: 'Konfirmasi',
+            text: actionText + ' dengan BOM ' + bomText + ' sebanyak ' + batchText + ' batch beserta estimasi biaya yang ditampilkan?',
+            showCancelButton: true,
+            confirmButtonText: 'Ya, simpan',
+            cancelButtonText: 'Batal',
+            reverseButtons: true
+        }).then(result => {
+            if (!result.isConfirmed) return;
+            $.ajax({
             url: url,
             type: type,
             data: $(formElement).serialize(),
@@ -693,6 +719,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     html: message
                 });
             }
+            });
         });
     });
 
