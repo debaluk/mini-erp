@@ -161,8 +161,13 @@ class ManualProductionController extends Controller
             // Voucher yang belum dibayar tidak mengunci penghapusan produksi manual.
             $hasPostedPayment = $voucherIds->isNotEmpty() && DB::table('voucher_bayar_payments as vbp')
                 ->join('voucher_bayar as vb', 'vb.id', '=', 'vbp.voucher_bayar_id')
-                ->whereIn('vbp.voucher_bayar_id', $voucherIds)->where('vb.entity_id', $entityId)
-                ->where('vb.category', 'UPAH_PRODUKSI')->whereNotNull('vbp.journal_id')->exists();
+                ->whereIn('vbp.voucher_bayar_id', $voucherIds)
+                ->where('vb.entity_id', $entityId)
+                ->where('vb.category', 'UPAH_PRODUKSI')
+                ->whereIn('vb.status', ['DIBAYAR_SEBAGIAN', 'LUNAS'])
+                ->where('vb.paid_amount', '>', 0)
+                ->whereNotNull('vbp.journal_id')
+                ->exists();
             abort_if($hasPostedPayment, 422, 'Produksi manual tidak dapat dihapus karena pembayaran upahnya sudah diposting.');
 
             foreach (DB::table('production_outputs')->where('production_id', $id)->get() as $output) {
