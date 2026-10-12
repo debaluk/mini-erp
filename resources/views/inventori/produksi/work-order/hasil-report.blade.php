@@ -6,7 +6,8 @@
         <h4 class="mb-1">Hasil Produksi</h4>
         <div class="text-secondary small">Rekap hasil produksi dan rincian per pekerja.</div>
     </div>
-    <div>
+    <div class="d-flex gap-2">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#manualProductionModal">Input Produksi Manual</button>
         <a href="{{ route('produksi.work-order.hasil-report.export', request()->query()) }}" class="btn btn-success"><i class="bi bi-file-earmark-excel me-1"></i>Export Excel</a>
     </div>
 </div>
@@ -81,4 +82,9 @@
         </table>
     </div>
 </div>
+
+<div class="modal fade" id="manualProductionModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog"><form method="POST" action="{{ route('produksi.manual.store') }}" class="modal-content">@csrf<div class="modal-header"><h5 class="modal-title">Input Produksi Manual</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="alert alert-info small">Posting langsung untuk uji stok dan HPP. Tidak membuat jurnal.</div><label class="form-label">Tanggal</label><input type="date" name="production_date" class="form-control mb-2" value="{{ now()->toDateString() }}" required><label class="form-label">BOM / Produk</label><select id="manualBomId" name="bom_id" class="form-select mb-2" required><option value="">Pilih BOM</option></select><label class="form-label">Gudang</label><select id="manualWarehouseId" name="warehouse_id" class="form-select mb-2" required><option value="">Pilih gudang</option></select><div class="row"><div class="col"><label class="form-label">Hasil bagus</label><input type="number" name="good_qty" min="0.001" step="0.001" class="form-control" required></div><div class="col"><label class="form-label">Reject</label><input type="number" name="reject_qty" min="0" step="0.001" value="0" class="form-control"></div></div></div><div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary">Posting</button></div></form></div></div>
+<script>
+document.getElementById('manualProductionModal')?.addEventListener('show.bs.modal', async function(){const b=document.getElementById('manualBomId'),w=document.getElementById('manualWarehouseId');if(b.dataset.loaded)return;try{const r=await fetch(@json(route('produksi.manual.options')),{headers:{Accept:'application/json'}});if(!r.ok)throw new Error();const d=await r.json();d.boms.forEach(x=>b.add(new Option(x.code+' - '+x.product_name,x.id)));d.warehouses.forEach(x=>w.add(new Option(x.name,x.id)));b.dataset.loaded='1';const filter=()=>{const selected=d.boms.find(x=>String(x.id)===b.value);[...w.options].forEach((o,i)=>{if(!i)return;const wh=d.warehouses.find(x=>String(x.id)===o.value);o.hidden=!!selected&&String(wh.business_unit_id)!==String(selected.business_unit_id)});if(w.selectedOptions[0]?.hidden)w.value=''};b.addEventListener('change',filter);filter()}catch(e){alert('Gagal memuat BOM dan gudang. Muat ulang halaman lalu coba lagi.')}});
+</script>
 @endsection
