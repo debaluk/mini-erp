@@ -30,7 +30,57 @@ class ManualProductionController extends Controller
             ->where('bu.business_type', 'production')->orderBy('w.name')
             ->get(['w.id', 'w.business_unit_id', 'w.name']);
         $workers = DB::table('workers')->where('entity_id', $entityId)->where('is_active', 1)->orderBy('name')->get(['id', 'code', 'name']);
-        return response()->json(['boms' => $boms, 'warehouses' => $warehouses, 'workers' => $workers]);
+        $materials = DB::table('bom_items as bi')
+            ->join('boms as b', 'b.id', '=', 'bi.bom_id')
+            ->join('products as p', 'p.id', '=', 'bi.product_id')
+            ->join('units as u', 'u.id', '=', 'bi.unit_id')
+            ->leftJoin('product_unit_conversions as puc', function ($join) {
+                $join->on('puc.product_id', '=', 'bi.product_id')
+                    ->on('puc.unit_id', '=', 'bi.unit_id')
+                    ->where('puc.is_active', 1);
+            })
+            ->leftJoin('warehouses as w', function ($join) {
+                $join->on('w.entity_id', '=', 'b.entity_id')
+                    ->on('w.business_unit_id', '=', 'b.business_unit_id')
+                    ->where('w.is_active', 1);
+            })
+            ->leftJoin('warehouses_stocks as ws', function ($join) {
+                $join->on('ws.entity_id', '=', 'b.entity_id')
+                    ->on('ws.warehouse_id', '=', 'w.id')
+                    ->on('ws.product_id', '=', 'bi.product_id');
+            })
+            ->where('b.entity_id', $entityId)
+            ->where('b.is_active', 1)
+            ->get([
+                'bi.bom_id', 'bi.product_id', 'bi.qty as bom_qty', 'bi.unit_id',
+                'p.sku', 'p.name as material_name', 'p.base_unit_id',
+                'u.code as unit_code', 'u.name as unit_name',
+                'ws.avg_cost as stock_unit_cost',
+                'puc.conversion_factor',
+            ])
+            ->groupBy('bom_id')
+            ->map(fn ($rows) => $rows->map(function ($item) {
+                $factor = (int) $item->unit_id === (int) $item->base_unit_id
+                    ? 1
+                    : (float) ($item->conversion_factor ?? 1);
+                $baseUnitCost = (float) ($item->stock_unit_cost ?? 0);
+                return [
+                    'product_id' => (int) $item->product_id,
+                    'sku' => $item->sku,
+                    'name' => $item->material_name,
+                    'qty' => (float) $item->bom_qty,
+                    'unit' => $item->unit_code ?: $item->unit_name,
+                    'unit_cost' => round($baseUnitCost * $factor, 2),
+                ];
+            })->values())
+            ->toArray();
+
+        return response()->json([
+            'boms' => $boms,
+            'warehouses' => $warehouses,
+            'workers' => $workers,
+            'materials' => $materials,
+        ]);
     }
 
     public function store(Request $request)
