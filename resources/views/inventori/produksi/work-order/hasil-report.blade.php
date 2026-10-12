@@ -33,7 +33,7 @@
     <div class="table-responsive">
         <table class="table table-hover table-sm align-middle mb-0">
             <thead class="table-light">
-                <tr><th>Tanggal</th><th>No. SPK</th><th>Produk</th><th class="text-center">Pekerja</th><th class="text-end">Hasil Bagus</th><th class="text-end">Reject</th><th class="text-end">Biaya Upah Satuan</th><th>Status</th></tr>
+                <tr><th>Tanggal</th><th>No. SPK</th><th>Produk</th><th class="text-center">Pekerja</th><th class="text-end">Hasil Bagus</th><th class="text-end">Reject</th><th class="text-end">Biaya Upah Satuan</th><th>Status</th><th class="text-center">Aksi</th></tr>
             </thead>
             <tbody>
             @forelse($results as $result)
@@ -46,9 +46,10 @@
                     <td class="text-end">{{ \App\Helpers\FormatHelper::indo((float) $result->reject_qty, 0) }}</td>
                     <td class="text-end">Rp {{ number_format((float) $result->unit_labor_cost, 2, ',', '.') }}</td>
                     <td><span class="badge text-bg-{{ $result->status === 'posted' ? 'success' : 'warning' }}">{{ $result->status === 'posted' ? 'Sudah Closing' : 'Draft' }}</span></td>
+                    <td class="text-center">@if(str_starts_with($result->wo_no, 'MAN-'))<form method="POST" action="{{ route('produksi.manual.destroy', $result->id) }}" class="d-inline" onsubmit="return confirm('Hapus produksi manual ini? Stok barang jadi dikurangi dan bahan baku dikembalikan. Jika sudah masuk voucher, penghapusan ditolak.');">@csrf @method('DELETE')<button type="submit" class="btn btn-sm btn-outline-danger" title="Hapus"><i class="bi bi-trash"></i></button></form>@else<span class="text-muted">-</span>@endif</td>
                 </tr>
             @empty
-                <tr><td colspan="8" class="text-center text-muted py-4">Belum ada hasil produksi pada periode ini.</td></tr>
+                <tr><td colspan="9" class="text-center text-muted py-4">Belum ada hasil produksi pada periode ini.</td></tr>
             @endforelse
             </tbody>
         </table>
