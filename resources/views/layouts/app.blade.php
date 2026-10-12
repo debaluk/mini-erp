@@ -38,6 +38,125 @@
         main .card-body { padding: .75rem; }
         main .card-header { padding: .5rem .75rem; }
         main form.row { --bs-gutter-x: .6rem; --bs-gutter-y: .45rem; }
+
+        /* Standar bersama tabel/list untuk seluruh modul ERP */
+        main .table {
+            --bs-table-bg: #fff;
+            --bs-table-border-color: #e2e8f0;
+            font-size: .82rem;
+            vertical-align: middle;
+            margin-bottom: 0;
+        }
+        main .table > :not(caption) > * > * {
+            padding: .45rem .6rem;
+            border-bottom-width: 1px;
+        }
+        main .table thead th {
+            background: #f1f5f9;
+            color: #334155;
+            font-size: .78rem;
+            font-weight: 700;
+            white-space: nowrap;
+            vertical-align: middle;
+            border-bottom: 1px solid #d5dee8;
+        }
+        main .table tbody td {
+            color: #334155;
+            font-size: .82rem;
+            line-height: 1.35;
+        }
+        main .table tbody tr:hover > * {
+            --bs-table-bg: #f8fafc;
+        }
+        main .table .btn {
+            margin: 1px;
+        }
+        main .table .btn.btn-sm {
+            min-width: 28px;
+            min-height: 28px;
+            padding: .2rem .4rem;
+            line-height: 1.1;
+        }
+        main .table .badge {
+            font-size: .72rem;
+            font-weight: 600;
+            padding: .32em .55em;
+            white-space: nowrap;
+        }
+        main .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        main .dataTables_wrapper {
+            width: 100%;
+            color: #475569;
+            font-size: .8rem;
+        }
+        main .dataTables_wrapper .dt-layout-row {
+            align-items: center;
+            margin: .65rem 0;
+            gap: .5rem;
+        }
+        main .dataTables_wrapper .dt-length,
+        main .dataTables_wrapper .dt-search,
+        main .dataTables_wrapper .dt-info,
+        main .dataTables_wrapper .dt-paging {
+            font-size: .8rem;
+        }
+        main .dataTables_wrapper .dt-length select,
+        main .dataTables_wrapper .dt-search input {
+            min-height: 30px;
+            border: 1px solid #cbd5e1;
+            border-radius: .375rem;
+            padding: .25rem .5rem;
+            font-size: .8rem;
+        }
+        main .dataTables_wrapper .dt-search input {
+            margin-left: .35rem;
+        }
+        main .dataTables_wrapper .dt-paging .pagination {
+            gap: 3px !important;
+            margin: 0 !important;
+        }
+        main .dataTables_wrapper .dt-paging .pagination .page-item,
+        main .dataTables_wrapper .dt-paging .pagination .page-link {
+            width: 30px !important;
+            min-width: 30px !important;
+            max-width: 30px !important;
+            height: 30px !important;
+            min-height: 30px !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border-radius: .375rem !important;
+            font-size: .78rem !important;
+            line-height: 28px !important;
+            text-align: center !important;
+        }
+        main .dataTables_wrapper .dt-paging .pagination .page-link {
+            display: block !important;
+        }
+        main .dataTables_wrapper .dt-paging .page-item.active .page-link {
+            background: #0d6efd;
+            border-color: #0d6efd;
+            color: #fff;
+        }
+        main .dataTables_wrapper .dt-paging .page-item.disabled .page-link {
+            color: #94a3b8;
+        }
+        @media (max-width: 767.98px) {
+            main { padding: .75rem !important; }
+            main .table > :not(caption) > * > * { padding: .4rem .5rem; }
+            main .dataTables_wrapper .dt-layout-row {
+                align-items: stretch;
+                margin: .5rem 0;
+            }
+            main .dataTables_wrapper .dt-search,
+            main .dataTables_wrapper .dt-search input {
+                width: 100%;
+                margin-left: 0;
+            }
+        }
     </style>
 </head>
 <body class="bg-light">
@@ -215,6 +334,8 @@
 <script src="https://cdn.datatables.net/2.3.3/js/dataTables.js"></script>
 <script src="https://cdn.datatables.net/2.3.3/js/dataTables.bootstrap5.js"></script>
 <script>
+    DataTable.defaults.pageLength = 15;
+    DataTable.defaults.lengthMenu = [15, 25, 50, 100];
     DataTable.defaults.language = {
         ...DataTable.defaults.language,
         processing: 'Memproses...', search: 'Cari:', lengthMenu: 'Tampilkan _MENU_ data', info: 'Menampilkan _START_ sampai _END_ dari _TOTAL_ data', infoEmpty: 'Menampilkan 0 sampai 0 dari _TOTAL_ data', infoFiltered: '(disaring dari _MAX_ total data)', loadingRecords: 'Memuat...', zeroRecords: 'Data tidak ditemukan', emptyTable: 'Belum ada data', paginate: { first: '<<', previous: '<', next: '>', last: '>>' }
