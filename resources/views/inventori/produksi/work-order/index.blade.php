@@ -455,6 +455,17 @@ document.addEventListener('DOMContentLoaded', function () {
             recalc();
             return;
         }
+        if(!fields.warehouse.value){
+            document.getElementById('woBomProduct').textContent='-';
+            document.getElementById('woBomCode').textContent='-';
+            document.getElementById('woBomTarget').textContent='0';
+            fields.bomRows.dataset.targetQty=0;
+            fields.material.dataset.value=0;
+            fields.material.textContent='Rp 0';
+            fields.bomRows.innerHTML='<tr><td colspan="5" class="text-center text-danger">Gudang untuk BU ini belum terpetakan. Periksa mapping BU–gudang.</td></tr>';
+            recalc();
+            return;
+        }
         const q=new URLSearchParams({warehouse_id:fields.warehouse.value,batch_qty:fields.batch.value||1});
         const r=await fetch('{{ url('/produksi/work-order/bom') }}/'+fields.bom.value+'/info?'+q,{headers:{Accept:'application/json'}});
         if(!r.ok)return;
