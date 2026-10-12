@@ -29,7 +29,8 @@ class ManualProductionController extends Controller
             ->where('w.entity_id', $entityId)->where('w.is_active', 1)
             ->where('bu.business_type', 'production')->orderBy('w.name')
             ->get(['w.id', 'w.business_unit_id', 'w.name']);
-        return response()->json(['boms' => $boms, 'warehouses' => $warehouses]);
+        $workers = DB::table('workers')->where('entity_id', $entityId)->where('is_active', 1)->orderBy('name')->get(['id', 'code', 'name']);
+        return response()->json(['boms' => $boms, 'warehouses' => $warehouses, 'workers' => $workers]);
     }
 
     public function store(Request $request)
@@ -40,13 +41,21 @@ class ManualProductionController extends Controller
             'warehouse_id' => ['required', 'integer'],
             'good_qty' => ['required', 'numeric', 'gt:0'],
             'reject_qty' => ['nullable', 'numeric', 'gte:0'],
+            'worker_id' => ['required', 'integer'],
+            'pay_type' => ['required', 'in:borongan,satuan'],
+            'unit_rate' => ['required', 'numeric', 'gte:0'],
         ]);
         $entityId = $this->entityId();
         abort_unless($entityId, 422, 'Entitas belum tersedia.');
         $goodQty = round((float) $data['good_qty'], 3);
         $rejectQty = round((float) ($data['reject_qty'] ?? 0), 3);
+        $worker = DB::table('workers')->where('entity_id', $entityId)->where('is_active', 1)->where('id', $data['worker_id'])->first();
+        abort_unless($worker, 422, 'Pekerja aktif tidak ditemukan pada entitas ini.');
+        $payType = $data['pay_type'];
+        $unitRate = round((float) $data['unit_rate'], 2);
+        $laborAmount = $payType === 'satuan' ? round(($goodQty + $rejectQty) * $unitRate, 2) : $unitRate;
 
-        DB::transaction(function () use ($data, $entityId, $goodQty, $rejectQty): void {
+        DB::transaction(function () use ($data, $entityId, $goodQty, $rejectQty, $worker, $payType, $unitRate, $laborAmount): void {
             $bom = DB::table('boms as b')
                 ->join('business_units as bu', 'bu.id', '=', 'b.business_unit_id')
                 ->where('b.entity_id', $entityId)->where('b.id', $data['bom_id'])
@@ -79,6 +88,14 @@ class ManualProductionController extends Controller
                 'production_date' => $data['production_date'].' 00:00:00', 'qty' => $batch, 'total_cost' => $materialCost,
                 'good_output_qty' => $goodQty, 'reject_qty' => $rejectQty, 'status' => 'posted', 'created_at' => now(), 'updated_at' => now(),
             ]);
+            DB::table('production_costs')->insert([
+                'production_id' => $productionId, 'cost_group' => 'U',
+                'description' => 'Upah '.$worker->name.' ('.($payType === 'satuan' ? 'Satuan' : 'Borongan').', tarif '.number_format($unitRate, 2, ',', '.').')',
+                'amount' => $laborAmount, 'source' => 'manual_production',
+                'reference_type' => 'worker', 'reference_id' => $worker->id,
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+
             foreach ($consumptions as $item) {
                 DB::table('warehouses_stocks')->where('id', $item['stock_id'])->update(['qty' => $item['stock_qty'] - $item['qty'], 'updated_at' => now()]);
                 DB::table('production_material_usages')->insert(['production_id' => $productionId, 'product_id' => $item['product_id'],
@@ -116,6 +133,6 @@ class ManualProductionController extends Controller
                 'qty' => $rejectQty, 'reject_type' => 'scrap', 'description' => 'Reject produksi manual', 'recoverable_value' => 0,
                 'created_at' => now(), 'updated_at' => now()]);
         });
-        return redirect()->route('produksi.work-order.hasil-report')->with('success', 'Produksi manual diposting tanpa jurnal.');
+        return redirect()->route('produksi.work-order.hasil-report')->with('success', 'Produksi manual diposting tanpa jurnal. Data pekerja dan upah tersimpan; HPP barang jadi tetap berdasarkan bahan baku.');
     }
 }
