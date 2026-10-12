@@ -140,4 +140,69 @@ class ManualProductionController extends Controller
         });
         return redirect()->route('produksi.work-order.hasil-report')->with('success', 'Produksi manual diposting tanpa jurnal. Data pekerja dan upah tersimpan; HPP barang jadi tetap berdasarkan bahan baku.');
     }
+
+    public function destroy(int $id)
+    {
+        $entityId = $this->entityId();
+        abort_unless($entityId, 422, 'Entitas belum tersedia.');
+
+        DB::transaction(function () use ($id, $entityId): void {
+            $production = DB::table('productions')->where('id', $id)
+                ->where('entity_id', $entityId)->whereNull('production_work_order_id')
+                ->where('production_no', 'like', 'MAN-%')->where('status', 'posted')
+                ->lockForUpdate()->first();
+            abort_unless($production, 404, 'Produksi manual tidak ditemukan.');
+
+            $costIds = DB::table('production_costs')->where('production_id', $id)->pluck('id');
+            $hasVoucher = DB::table('voucher_bayar_items')
+                ->where('production_id', $id)
+                ->orWhereIn('production_cost_id', $costIds)
+                ->exists();
+            abort_if($hasVoucher, 422, 'Produksi manual tidak dapat dihapus karena upahnya sudah masuk voucher.');
+
+            foreach (DB::table('production_outputs')->where('production_id', $id)->get() as $output) {
+                $stock = DB::table('warehouses_stocks')->where('entity_id', $entityId)
+                    ->where('warehouse_id', $output->warehouse_id)->where('product_id', $output->product_id)
+                    ->lockForUpdate()->first();
+                if ($stock) {
+                    $oldQty = (float) $stock->qty;
+                    $newQty = $oldQty - (float) $output->qty;
+                    $newAvg = $newQty > 0
+                        ? max(0, (($oldQty * (float) $stock->avg_cost) - ((float) $output->qty * (float) $output->unit_cost)) / $newQty)
+                        : 0;
+                    DB::table('warehouses_stocks')->where('id', $stock->id)->update([
+                        'qty' => $newQty, 'avg_cost' => round($newAvg, 9), 'updated_at' => now(),
+                    ]);
+                }
+            }
+
+            foreach (DB::table('production_material_usages')->where('production_id', $id)->get() as $usage) {
+                $stock = DB::table('warehouses_stocks')->where('entity_id', $entityId)
+                    ->where('warehouse_id', $usage->warehouse_id)->where('product_id', $usage->product_id)
+                    ->lockForUpdate()->first();
+                if ($stock) {
+                    DB::table('warehouses_stocks')->where('id', $stock->id)->update([
+                        'qty' => (float) $stock->qty + (float) $usage->qty, 'updated_at' => now(),
+                    ]);
+                } else {
+                    DB::table('warehouses_stocks')->insert([
+                        'entity_id' => $entityId, 'warehouse_id' => $usage->warehouse_id, 'product_id' => $usage->product_id,
+                        'qty' => (float) $usage->qty, 'avg_cost' => (float) $usage->unit_cost,
+                        'created_at' => now(), 'updated_at' => now(),
+                    ]);
+                }
+            }
+
+            DB::table('stock_movements')->where('reference_type', 'manual_production')->where('reference_id', $id)->delete();
+            DB::table('production_outputs')->where('production_id', $id)->delete();
+            DB::table('production_material_usages')->where('production_id', $id)->delete();
+            DB::table('production_rejects')->where('production_id', $id)->delete();
+            DB::table('production_costs')->where('production_id', $id)->delete();
+            DB::table('productions')->where('id', $id)->delete();
+        });
+
+        return redirect()->route('produksi.work-order.hasil-report')
+            ->with('success', 'Produksi manual dihapus dan mutasi stoknya dibatalkan.');
+    }
+
 }
